@@ -22,7 +22,10 @@ export default async function handler(req, res) {
       success_url: `${origin}/?checkout=success`,
       cancel_url: `${origin}/?checkout=cancel`,
       metadata: { supabase_user_id: userId },
-      subscription_data: { metadata: { supabase_user_id: userId } },
+      subscription_data: {
+  metadata: { supabase_user_id: userId },
+  trial_period_days: 7,
+},
     });
     res.status(200).json({ url: session.url });
   } catch (err) {
