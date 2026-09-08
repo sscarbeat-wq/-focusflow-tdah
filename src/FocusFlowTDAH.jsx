@@ -21,6 +21,8 @@ import {
   LogOut,
 } from "lucide-react";
 
+import InstallBanner from "./InstallBanner";
+
 const C = {
   bg: "#141B2E",
   surface: "#1D2740",
@@ -109,6 +111,18 @@ export default function FocusFlowTDAH({ initialProgress, onProgressChange, userE
     check();
     window.addEventListener("resize", check);
     return () => window.removeEventListener("resize", check);
+  }, []);
+
+  const breathingSectionRef = useRef(null);
+  const stopThinkSectionRef = useRef(null);
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const atajo = params.get("atajo");
+    if (!atajo) return;
+    const target = atajo === "respirar" ? breathingSectionRef.current : atajo === "freno" ? stopThinkSectionRef.current : null;
+    if (target) {
+      setTimeout(() => target.scrollIntoView({ behavior: "smooth", block: "center" }), 200);
+    }
   }, []);
 
   // ---- Persisted state ----
@@ -380,6 +394,7 @@ export default function FocusFlowTDAH({ initialProgress, onProgressChange, userE
       }}
     >
       <div style={{ maxWidth: "1000px", margin: "0 auto" }}>
+        <InstallBanner />
         {/* Header */}
         <header
           style={{
@@ -710,6 +725,7 @@ export default function FocusFlowTDAH({ initialProgress, onProgressChange, userE
           </div>
 
           <div>
+            <div ref={stopThinkSectionRef}>
             <Panel
               accent={C.lavender}
               icon={<Hand size={22} />}
@@ -780,7 +796,9 @@ export default function FocusFlowTDAH({ initialProgress, onProgressChange, userE
                 </div>
               )}
             </Panel>
+            </div>
 
+            <div ref={breathingSectionRef}>
             <Panel
               accent={C.mint}
               icon={<Wind size={22} />}
@@ -815,6 +833,7 @@ export default function FocusFlowTDAH({ initialProgress, onProgressChange, userE
                 </button>
               </div>
             </Panel>
+            </div>
 
             <Panel
               accent={C.lavender}

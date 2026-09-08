@@ -21,6 +21,22 @@ export default defineConfig({
           { src: "icon-512.png", sizes: "512x512", type: "image/png" },
           { src: "icon-maskable-512.png", sizes: "512x512", type: "image/png", purpose: "maskable" },
         ],
+        shortcuts: [
+          {
+            name: "Respiración guiada",
+            short_name: "Respirar",
+            description: "Abrir directo la burbuja de respiración",
+            url: "/?atajo=respirar",
+            icons: [{ src: "icon-192.png", sizes: "192x192", type: "image/png" }],
+          },
+          {
+            name: "Freno de impulsividad",
+            short_name: "Freno",
+            description: "Abrir directo el freno de impulsividad",
+            url: "/?atajo=freno",
+            icons: [{ src: "icon-192.png", sizes: "192x192", type: "image/png" }],
+          },
+        ],
       },
     }),
   ],

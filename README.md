@@ -37,6 +37,10 @@ App de hábitos con login y progreso guardado por usuario (Supabase).
 
 Este proyecto ya está configurado para que el celular la trate como una app instalada, con su propio ícono, sin pasar por App Store ni Google Play.
 
+La app ahora también incluye un aviso automático (arriba de la pantalla) que detecta si la persona usa Android o iPhone y le muestra los pasos exactos para instalarla — incluyendo un aviso especial si abre el link desde dentro de TikTok o Instagram (ahí no se puede instalar directo, hay que decirle que toque "Abrir en el navegador" primero).
+
+En Android, además, hay dos accesos directos (mantén presionado el ícono de la app ya instalada): uno abre directo la respiración guiada, otro el freno de impulsividad. En iPhone, Apple no permite estos accesos directos para apps instaladas así, por lo que solo funcionan en Android.
+
 1. Corre `npm install` de nuevo (para bajar el paquete nuevo que agrega esto) y luego `npm run build`. Esto crea una carpeta `dist` con la versión final de la app.
 2. Sigue el paso 3 de este README (Publicar el sitio en Vercel) si todavía no lo has hecho. Vercel construye el proyecto automáticamente, no necesitas subir la carpeta `dist` a mano.
 3. Una vez que tengas tu URL pública (ej. `focusflow-tdah.vercel.app`), ábrela desde el celular:

@@ -1,5 +1,6 @@
 import React, { useState } from "react";
 import { supabase } from "./supabaseClient";
+import InstallBanner from "./InstallBanner";
 
 const C = {
   bg: "#141B2E",
@@ -78,6 +79,9 @@ export default function Auth() {
           maxWidth: "360px",
         }}
       >
+        <div style={{ marginBottom: "-8px" }}>
+          <InstallBanner />
+        </div>
         <h1 style={{ fontSize: "22px", fontWeight: 700, margin: "0 0 6px" }}>FocusFlow TDAH</h1>
         <p style={{ fontSize: "13px", color: C.textMuted, margin: "0 0 24px" }}>
           {mode === "signin" ? "Entra a tu cuenta" : "Crea tu cuenta"}
