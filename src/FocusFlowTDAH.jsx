@@ -102,7 +102,7 @@ const DEFAULT_PROGRESS = {
   deskCleared: false,
 };
 
-export default function FocusFlowTDAH({ initialProgress, onProgressChange, userEmail, onSignOut }) {
+export default function FocusFlowTDAH({ initialProgress, onProgressChange, userEmail, onSignOut, onManageSubscription }) {
   const saved = { ...DEFAULT_PROGRESS, ...(initialProgress || {}) };
 
   const [isNarrow, setIsNarrow] = useState(false);
@@ -448,6 +448,23 @@ export default function FocusFlowTDAH({ initialProgress, onProgressChange, userE
                 </div>
               )}
             </div>
+            {onManageSubscription && (
+              <button
+                onClick={onManageSubscription}
+                style={{
+                  background: "transparent",
+                  border: `1px solid ${C.border}`,
+                  borderRadius: "8px",
+                  padding: "0 14px",
+                  height: "40px",
+                  color: C.textMuted,
+                  cursor: "pointer",
+                  fontSize: "12px",
+                }}
+              >
+                Mi suscripción
+              </button>
+            )}
             {onSignOut && (
               <button
                 onClick={onSignOut}

@@ -19,3 +19,19 @@ create policy "Cada usuario inserta solo su progreso"
 create policy "Cada usuario actualiza solo su progreso"
   on progress for update
   using (auth.uid() = user_id);
+
+-- Tabla de suscripciones (Stripe). Solo el webhook (con la service role key)
+-- puede escribir aquí; los usuarios solo pueden leer su propia fila.
+create table if not exists subscriptions (
+  user_id uuid references auth.users(id) on delete cascade primary key,
+  stripe_customer_id text,
+  stripe_subscription_id text,
+  status text not null default 'inactive',
+  updated_at timestamptz not null default now()
+);
+
+alter table subscriptions enable row level security;
+
+create policy "Cada usuario ve solo su suscripción"
+  on subscriptions for select
+  using (auth.uid() = user_id);
