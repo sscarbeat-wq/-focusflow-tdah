@@ -59,7 +59,7 @@ export default function Paywall({ userId, userEmail, onSignOut }) {
         }}
       >
         <Sparkles size={28} color={C.amber} style={{ marginBottom: "14px" }} />
-        <h1 style={{ fontSize: "22px", fontWeight: 700, margin: "0 0 8px" }}>Desbloquea FocusFlow</h1>
+        <h1 style={{ fontSize: "22px", fontWeight: 700, margin: "0 0 8px" }}>Desbloquea Noha</h1>
         <p style={{ fontSize: "14px", color: C.textMuted, lineHeight: 1.6, margin: "0 0 24px" }}>
           Acceso completo al desglosador de tareas, auditor de tiempo, freno de impulsividad, respiración guiada,
           reestructuración de pensamientos y rastreador de hábitos.
