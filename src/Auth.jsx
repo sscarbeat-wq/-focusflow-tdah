@@ -82,7 +82,7 @@ export default function Auth() {
         <div style={{ marginBottom: "-8px" }}>
           <InstallBanner />
         </div>
-        <h1 style={{ fontSize: "22px", fontWeight: 700, margin: "0 0 6px" }}>FocusFlow TDAH</h1>
+        <h1 style={{ fontSize: "22px", fontWeight: 700, margin: "0 0 6px" }}>Noha</h1>
         <p style={{ fontSize: "13px", color: C.textMuted, margin: "0 0 24px" }}>
           {mode === "signin" ? "Entra a tu cuenta" : "Crea tu cuenta"}
         </p>
