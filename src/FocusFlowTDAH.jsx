@@ -20,12 +20,15 @@ import {
   Layout as LayoutIcon,
   LogOut,
   Headphones,
+  Smile,
 } from "lucide-react";
 
 import InstallBanner from "./InstallBanner";
 import Mascot from "./Mascot";
 import FocusMode from "./FocusMode";
+import MoodLog from "./MoodLog";
 import { DEFAULT_STREAK, nextStreak, effectiveStreak } from "./streak";
+import { DEFAULT_MOOD_LOG, recordMood } from "./moodLog";
 
 const C = {
   bg: "#141B2E",
@@ -42,6 +45,8 @@ const C = {
   lavenderText: "#201A33",
   amber: "#D9A15C",
   amberText: "#2E2008",
+  rose: "#D98CA6",
+  roseText: "#33121F",
 };
 
 function Panel({ accent, icon, title, subtitle, children }) {
@@ -105,6 +110,7 @@ const DEFAULT_PROGRESS = {
   hydrated: false,
   deskCleared: false,
   streak: DEFAULT_STREAK,
+  moodLog: DEFAULT_MOOD_LOG,
 };
 
 export default function FocusFlowTDAH({ initialProgress, onProgressChange, userEmail, onSignOut, onManageSubscription }) {
@@ -139,6 +145,7 @@ export default function FocusFlowTDAH({ initialProgress, onProgressChange, userE
   const [hydrated, setHydrated] = useState(saved.hydrated);
   const [deskCleared, setDeskCleared] = useState(saved.deskCleared);
   const [streak, setStreak] = useState(() => effectiveStreak(saved.streak));
+  const [moodLog, setMoodLog] = useState(saved.moodLog);
 
   const firstRender = useRef(true);
   useEffect(() => {
@@ -146,9 +153,9 @@ export default function FocusFlowTDAH({ initialProgress, onProgressChange, userE
       firstRender.current = false;
       return;
     }
-    onProgressChange?.({ xp, jar, screensOff, sleepEnv, ateWell, hydrated, deskCleared, streak });
+    onProgressChange?.({ xp, jar, screensOff, sleepEnv, ateWell, hydrated, deskCleared, streak, moodLog });
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [xp, jar, screensOff, sleepEnv, ateWell, hydrated, deskCleared, streak]);
+  }, [xp, jar, screensOff, sleepEnv, ateWell, hydrated, deskCleared, streak, moodLog]);
 
   // ---- XP + jar ----
   const [xpMsg, setXpMsg] = useState("");
@@ -162,6 +169,14 @@ export default function FocusFlowTDAH({ initialProgress, onProgressChange, userE
     if (xpTimeout.current) clearTimeout(xpTimeout.current);
     xpTimeout.current = setTimeout(() => setXpMsg(""), 2400);
   }, []);
+
+  const handleMoodSave = useCallback(
+    (mood, note) => {
+      setMoodLog((prev) => recordMood(prev, mood, note));
+      grantXp("registro de ánimo");
+    },
+    [grantXp]
+  );
 
   useEffect(() => () => xpTimeout.current && clearTimeout(xpTimeout.current), []);
 
@@ -756,6 +771,15 @@ export default function FocusFlowTDAH({ initialProgress, onProgressChange, userE
               subtitle="Sesiones de trabajo con descansos programados y ruido blanco de fondo."
             >
               <FocusMode C={C} onSessionComplete={() => grantXp("sesión de enfoque completada")} />
+            </Panel>
+
+            <Panel
+              accent={C.rose}
+              icon={<Smile size={22} />}
+              title="Registro de ánimo"
+              subtitle="Un check-in rápido al día — te ayuda a ver patrones entre tu ánimo y tus hábitos."
+            >
+              <MoodLog C={C} moodLog={moodLog} onSave={handleMoodSave} />
             </Panel>
           </div>
 
