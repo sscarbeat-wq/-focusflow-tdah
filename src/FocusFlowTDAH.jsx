@@ -429,7 +429,7 @@ export default function FocusFlowTDAH({ initialProgress, onProgressChange, userE
           }}
         >
           <div>
-            <h1 style={{ fontSize: "24px", fontWeight: 700, margin: 0 }}>FocusFlow TDAH</h1>
+            <h1 style={{ fontSize: "24px", fontWeight: 700, margin: 0 }}>Noha</h1>
             <p style={{ fontSize: "13px", color: C.textMuted, margin: "6px 0 0" }}>
               {userEmail ? `Sesión de ${userEmail}` : "Sistema de habituación y regulación"}
             </p>
