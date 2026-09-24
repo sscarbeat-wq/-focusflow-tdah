@@ -19,9 +19,13 @@ import {
   Activity,
   Layout as LayoutIcon,
   LogOut,
+  Headphones,
 } from "lucide-react";
 
 import InstallBanner from "./InstallBanner";
+import Mascot from "./Mascot";
+import FocusMode from "./FocusMode";
+import { DEFAULT_STREAK, nextStreak, effectiveStreak } from "./streak";
 
 const C = {
   bg: "#141B2E",
@@ -100,6 +104,7 @@ const DEFAULT_PROGRESS = {
   ateWell: false,
   hydrated: false,
   deskCleared: false,
+  streak: DEFAULT_STREAK,
 };
 
 export default function FocusFlowTDAH({ initialProgress, onProgressChange, userEmail, onSignOut, onManageSubscription }) {
@@ -133,6 +138,7 @@ export default function FocusFlowTDAH({ initialProgress, onProgressChange, userE
   const [ateWell, setAteWell] = useState(saved.ateWell);
   const [hydrated, setHydrated] = useState(saved.hydrated);
   const [deskCleared, setDeskCleared] = useState(saved.deskCleared);
+  const [streak, setStreak] = useState(() => effectiveStreak(saved.streak));
 
   const firstRender = useRef(true);
   useEffect(() => {
@@ -140,9 +146,9 @@ export default function FocusFlowTDAH({ initialProgress, onProgressChange, userE
       firstRender.current = false;
       return;
     }
-    onProgressChange?.({ xp, jar, screensOff, sleepEnv, ateWell, hydrated, deskCleared });
+    onProgressChange?.({ xp, jar, screensOff, sleepEnv, ateWell, hydrated, deskCleared, streak });
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [xp, jar, screensOff, sleepEnv, ateWell, hydrated, deskCleared]);
+  }, [xp, jar, screensOff, sleepEnv, ateWell, hydrated, deskCleared, streak]);
 
   // ---- XP + jar ----
   const [xpMsg, setXpMsg] = useState("");
@@ -152,6 +158,7 @@ export default function FocusFlowTDAH({ initialProgress, onProgressChange, userE
     setXp((p) => Math.round((p + 0.85) * 100) / 100);
     setXpMsg(`+0.85 XP — ${label}`);
     setJar((prev) => [{ id: Date.now(), label }, ...prev].slice(0, 12));
+    setStreak((prev) => nextStreak(prev));
     if (xpTimeout.current) clearTimeout(xpTimeout.current);
     xpTimeout.current = setTimeout(() => setXpMsg(""), 2400);
   }, []);
@@ -488,6 +495,8 @@ export default function FocusFlowTDAH({ initialProgress, onProgressChange, userE
           </div>
         </header>
 
+        <Mascot streak={streak} C={C} />
+
         {/* Dopamine jar */}
         <div
           style={{
@@ -738,6 +747,15 @@ export default function FocusFlowTDAH({ initialProgress, onProgressChange, userE
                     : "justo lo estimado."}
                 </div>
               )}
+            </Panel>
+
+            <Panel
+              accent={C.lavender}
+              icon={<Headphones size={22} />}
+              title="Modo enfoque"
+              subtitle="Sesiones de trabajo con descansos programados y ruido blanco de fondo."
+            >
+              <FocusMode C={C} onSessionComplete={() => grantXp("sesión de enfoque completada")} />
             </Panel>
           </div>
 
