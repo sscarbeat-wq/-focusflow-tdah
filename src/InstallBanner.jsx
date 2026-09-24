@@ -106,7 +106,7 @@ export default function InstallBanner() {
           <X size={16} />
         </button>
         <div style={titleStyle}>
-          <Download size={16} color={C.mint} /> Instala FocusFlow en tu celular
+          <Download size={16} color={C.mint} /> Instala Noha en tu celular
         </div>
         {deferredPrompt ? (
           <>
@@ -146,7 +146,7 @@ export default function InstallBanner() {
             <X size={16} />
           </button>
           <div style={titleStyle}>
-            <Download size={16} color={C.mint} /> Instala FocusFlow en tu iPhone
+            <Download size={16} color={C.mint} /> Instala Noha en tu iPhone
           </div>
           Para instalarla necesitas abrir este link en <strong>Safari</strong> (no en Chrome) — en iPhone, solo
           Safari puede agregarla a tu pantalla de inicio.
@@ -159,7 +159,7 @@ export default function InstallBanner() {
           <X size={16} />
         </button>
         <div style={titleStyle}>
-          <Download size={16} color={C.mint} /> Instala FocusFlow en tu iPhone
+          <Download size={16} color={C.mint} /> Instala Noha en tu iPhone
         </div>
         Toca <Share size={14} style={{ verticalAlign: "-2px" }} /> <strong>Compartir</strong> (abajo, al centro) →{" "}
         <strong>"Agregar a pantalla de inicio"</strong>.
