@@ -19,9 +19,16 @@ import {
   Activity,
   Layout as LayoutIcon,
   LogOut,
+  Headphones,
+  Smile,
 } from "lucide-react";
 
 import InstallBanner from "./InstallBanner";
+import Mascot from "./Mascot";
+import FocusMode from "./FocusMode";
+import MoodLog from "./MoodLog";
+import { DEFAULT_STREAK, nextStreak, effectiveStreak } from "./streak";
+import { DEFAULT_MOOD_LOG, recordMood } from "./moodLog";
 
 const C = {
   bg: "#141B2E",
@@ -38,6 +45,8 @@ const C = {
   lavenderText: "#201A33",
   amber: "#D9A15C",
   amberText: "#2E2008",
+  rose: "#D98CA6",
+  roseText: "#33121F",
 };
 
 function Panel({ accent, icon, title, subtitle, children }) {
@@ -100,6 +109,8 @@ const DEFAULT_PROGRESS = {
   ateWell: false,
   hydrated: false,
   deskCleared: false,
+  streak: DEFAULT_STREAK,
+  moodLog: DEFAULT_MOOD_LOG,
 };
 
 export default function FocusFlowTDAH({ initialProgress, onProgressChange, userEmail, onSignOut, onManageSubscription }) {
@@ -133,6 +144,8 @@ export default function FocusFlowTDAH({ initialProgress, onProgressChange, userE
   const [ateWell, setAteWell] = useState(saved.ateWell);
   const [hydrated, setHydrated] = useState(saved.hydrated);
   const [deskCleared, setDeskCleared] = useState(saved.deskCleared);
+  const [streak, setStreak] = useState(() => effectiveStreak(saved.streak));
+  const [moodLog, setMoodLog] = useState(saved.moodLog);
 
   const firstRender = useRef(true);
   useEffect(() => {
@@ -140,9 +153,9 @@ export default function FocusFlowTDAH({ initialProgress, onProgressChange, userE
       firstRender.current = false;
       return;
     }
-    onProgressChange?.({ xp, jar, screensOff, sleepEnv, ateWell, hydrated, deskCleared });
+    onProgressChange?.({ xp, jar, screensOff, sleepEnv, ateWell, hydrated, deskCleared, streak, moodLog });
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [xp, jar, screensOff, sleepEnv, ateWell, hydrated, deskCleared]);
+  }, [xp, jar, screensOff, sleepEnv, ateWell, hydrated, deskCleared, streak, moodLog]);
 
   // ---- XP + jar ----
   const [xpMsg, setXpMsg] = useState("");
@@ -152,9 +165,18 @@ export default function FocusFlowTDAH({ initialProgress, onProgressChange, userE
     setXp((p) => Math.round((p + 0.85) * 100) / 100);
     setXpMsg(`+0.85 XP — ${label}`);
     setJar((prev) => [{ id: Date.now(), label }, ...prev].slice(0, 12));
+    setStreak((prev) => nextStreak(prev));
     if (xpTimeout.current) clearTimeout(xpTimeout.current);
     xpTimeout.current = setTimeout(() => setXpMsg(""), 2400);
   }, []);
+
+  const handleMoodSave = useCallback(
+    (mood, note) => {
+      setMoodLog((prev) => recordMood(prev, mood, note));
+      grantXp("registro de ánimo");
+    },
+    [grantXp]
+  );
 
   useEffect(() => () => xpTimeout.current && clearTimeout(xpTimeout.current), []);
 
@@ -407,7 +429,7 @@ export default function FocusFlowTDAH({ initialProgress, onProgressChange, userE
           }}
         >
           <div>
-            <h1 style={{ fontSize: "24px", fontWeight: 700, margin: 0 }}>FocusFlow TDAH</h1>
+            <h1 style={{ fontSize: "24px", fontWeight: 700, margin: 0 }}>Noha</h1>
             <p style={{ fontSize: "13px", color: C.textMuted, margin: "6px 0 0" }}>
               {userEmail ? `Sesión de ${userEmail}` : "Sistema de habituación y regulación"}
             </p>
@@ -487,6 +509,8 @@ export default function FocusFlowTDAH({ initialProgress, onProgressChange, userE
             )}
           </div>
         </header>
+
+        <Mascot streak={streak} C={C} />
 
         {/* Dopamine jar */}
         <div
@@ -738,6 +762,24 @@ export default function FocusFlowTDAH({ initialProgress, onProgressChange, userE
                     : "justo lo estimado."}
                 </div>
               )}
+            </Panel>
+
+            <Panel
+              accent={C.lavender}
+              icon={<Headphones size={22} />}
+              title="Modo enfoque"
+              subtitle="Sesiones de trabajo con descansos programados y ruido blanco de fondo."
+            >
+              <FocusMode C={C} onSessionComplete={() => grantXp("sesión de enfoque completada")} />
+            </Panel>
+
+            <Panel
+              accent={C.rose}
+              icon={<Smile size={22} />}
+              title="Registro de ánimo"
+              subtitle="Un check-in rápido al día — te ayuda a ver patrones entre tu ánimo y tus hábitos."
+            >
+              <MoodLog C={C} moodLog={moodLog} onSave={handleMoodSave} />
             </Panel>
           </div>
 

@@ -1,4 +1,4 @@
-# FocusFlow TDAH
+# Noha (antes FocusFlow TDAH)
 
 App de hábitos con login y progreso guardado por usuario (Supabase).
 
@@ -56,7 +56,7 @@ Este proyecto ya tiene todo el código necesario: pantalla de suscripción (payw
 
 1. Entra a https://stripe.com y crea una cuenta (queda en "modo de prueba" por default — perfecto para probar antes de cobrar de verdad).
 2. En el menú lateral, ve a **Product catalog** → **Add a product**.
-3. Ponle nombre (ej. "FocusFlow TDAH — Suscripción mensual"), precio (ej. $5-9 USD), y marca que sea **Recurring** (recurrente), mensual.
+3. Ponle nombre (ej. "Noha — Suscripción mensual"), precio (ej. $5-9 USD), y marca que sea **Recurring** (recurrente), mensual.
 4. Guarda el producto. En la página del producto vas a ver el **Price ID**, algo como `price_1AbCdEfG...` — cópialo.
 
 ### 5.2 Conseguir tus claves de Stripe

@@ -9,8 +9,8 @@ export default defineConfig({
       registerType: "autoUpdate",
       includeAssets: ["icon-192.png", "icon-512.png", "icon-maskable-512.png"],
       manifest: {
-        name: "FocusFlow TDAH",
-        short_name: "FocusFlow",
+        name: "Noha — TDAH",
+        short_name: "Noha",
         description: "Sistema de habituación y regulación para TDAH",
         theme_color: "#141B2E",
         background_color: "#141B2E",
