@@ -7,6 +7,12 @@ export default defineConfig({
     react(),
     VitePWA({
       registerType: "autoUpdate",
+      strategies: "injectManifest",
+      srcDir: "src",
+      filename: "sw.js",
+      injectManifest: {
+        injectionPoint: "self.__WB_MANIFEST",
+      },
       includeAssets: ["icon-192.png", "icon-512.png", "icon-maskable-512.png"],
       manifest: {
         name: "Noha — TDAH",
