@@ -3,7 +3,18 @@
 // con la app cerrada o en segundo plano.
 import { precacheAndRoute } from "workbox-precaching";
 
-precacheAndRoute(self.__WB_MANIFEST);
+// Solo necesitamos el service worker para las notificaciones push (no para
+// que la app funcione sin internet), así que sacamos el HTML del precache.
+// Dejar que workbox interceptara la navegación principal (index.html) fue lo
+// que causó que la carga de la página se quedara colgada en el Preview
+// ("Waiting for server response" sin terminar nunca) — mejor que esa
+// petición la maneje el navegador directo, sin pasar por el service worker.
+const manifest = (self.__WB_MANIFEST || []).filter((entry) => {
+  const url = typeof entry === "string" ? entry : entry.url;
+  return !url.endsWith(".html");
+});
+
+precacheAndRoute(manifest);
 
 self.addEventListener("push", (event) => {
   let data = {};
