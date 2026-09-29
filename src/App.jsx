@@ -118,6 +118,7 @@ export default function App() {
       initialProgress={progress}
       onProgressChange={handleProgressChange}
       userEmail={session.user.email}
+      userId={session.user.id}
       onSignOut={() => supabase.auth.signOut()}
       onManageSubscription={handleManageSubscription}
     />
