@@ -7,11 +7,13 @@ export default defineConfig({
     react(),
     VitePWA({
       registerType: "autoUpdate",
-      strategies: "injectManifest",
-      srcDir: "src",
-      filename: "sw.js",
-      injectManifest: {
-        injectionPoint: "self.__WB_MANIFEST",
+      workbox: {
+        skipWaiting: true,
+        clientsClaim: true,
+        // Agrega los listeners de push/notificationclick al service worker
+        // que genera el plugin, sin tocar su manejo de caché/precarga (eso
+        // es lo que causaba que la app se congelara — ver notas en el PR).
+        importScripts: ["push-sw.js"],
       },
       includeAssets: ["icon-192.png", "icon-512.png", "icon-maskable-512.png"],
       manifest: {
