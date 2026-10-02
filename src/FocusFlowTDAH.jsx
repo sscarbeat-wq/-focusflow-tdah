@@ -21,12 +21,14 @@ import {
   LogOut,
   Headphones,
   Smile,
+  Bell,
 } from "lucide-react";
 
 import InstallBanner from "./InstallBanner";
 import Mascot from "./Mascot";
 import FocusMode from "./FocusMode";
 import MoodLog from "./MoodLog";
+import NotificationsPanel from "./NotificationsPanel";
 import { DEFAULT_STREAK, nextStreak, effectiveStreak } from "./streak";
 import { DEFAULT_MOOD_LOG, recordMood } from "./moodLog";
 
@@ -113,7 +115,7 @@ const DEFAULT_PROGRESS = {
   moodLog: DEFAULT_MOOD_LOG,
 };
 
-export default function FocusFlowTDAH({ initialProgress, onProgressChange, userEmail, onSignOut, onManageSubscription }) {
+export default function FocusFlowTDAH({ initialProgress, onProgressChange, userEmail, userId, onSignOut, onManageSubscription }) {
   const saved = { ...DEFAULT_PROGRESS, ...(initialProgress || {}) };
 
   const [isNarrow, setIsNarrow] = useState(false);
@@ -780,6 +782,15 @@ export default function FocusFlowTDAH({ initialProgress, onProgressChange, userE
               subtitle="Un check-in rápido al día — te ayuda a ver patrones entre tu ánimo y tus hábitos."
             >
               <MoodLog C={C} moodLog={moodLog} onSave={handleMoodSave} />
+            </Panel>
+
+            <Panel
+              accent={C.mint}
+              icon={<Bell size={22} />}
+              title="Notificaciones"
+              subtitle="Avisos para acordarte de usar Noha, aunque tengas la app cerrada."
+            >
+              <NotificationsPanel C={C} userId={userId} />
             </Panel>
           </div>
 

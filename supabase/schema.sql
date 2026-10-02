@@ -35,3 +35,31 @@ alter table subscriptions enable row level security;
 create policy "Cada usuario ve solo su suscripción"
   on subscriptions for select
   using (auth.uid() = user_id);
+
+-- Suscripciones de notificaciones push (Web Push). Cada usuario administra
+-- solo las suyas; el cron del servidor las lee todas con la service role key.
+create table if not exists push_subscriptions (
+  id uuid primary key default gen_random_uuid(),
+  user_id uuid references auth.users(id) on delete cascade not null,
+  endpoint text not null unique,
+  subscription jsonb not null,
+  created_at timestamptz not null default now()
+);
+
+alter table push_subscriptions enable row level security;
+
+create policy "Cada usuario ve solo sus suscripciones push"
+  on push_subscriptions for select
+  using (auth.uid() = user_id);
+
+create policy "Cada usuario inserta solo sus suscripciones push"
+  on push_subscriptions for insert
+  with check (auth.uid() = user_id);
+
+create policy "Cada usuario actualiza solo sus suscripciones push"
+  on push_subscriptions for update
+  using (auth.uid() = user_id);
+
+create policy "Cada usuario borra solo sus suscripciones push"
+  on push_subscriptions for delete
+  using (auth.uid() = user_id);
