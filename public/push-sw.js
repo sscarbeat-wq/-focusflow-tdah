@@ -6,15 +6,15 @@ self.addEventListener("push", (event) => {
   try {
     data = event.data ? event.data.json() : {};
   } catch (err) {
-    data = { title: "Noha", body: event.data ? event.data.text() : "" };
+    data = { title: "Senda", body: event.data ? event.data.text() : "" };
   }
 
-  const title = data.title || "Noha";
+  const title = data.title || "Senda";
   const options = {
     body: data.body || "",
     icon: "/icon-192.png",
     badge: "/icon-192.png",
-    tag: data.tag || "noha-recordatorio",
+    tag: data.tag || "senda-recordatorio",
     data: { url: data.url || "/" },
   };
 

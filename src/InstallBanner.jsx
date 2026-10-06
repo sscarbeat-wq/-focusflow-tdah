@@ -1,16 +1,6 @@
 import React, { useEffect, useState } from "react";
 import { Download, Share, X, ExternalLink } from "lucide-react";
-
-const C = {
-  surface: "#1D2740",
-  surfaceAlt: "#24304D",
-  border: "#34405F",
-  text: "#E8EAF0",
-  textMuted: "#8E96AC",
-  mint: "#8FCBB0",
-  mintText: "#12261E",
-  amber: "#D9A15C",
-};
+import { DARK_THEME } from "./theme";
 
 function detectEnv() {
   const ua = navigator.userAgent || "";
@@ -24,7 +14,7 @@ function detectEnv() {
   return { isStandalone, isIOS, isAndroid, isInAppBrowser, isChromeIOS, isDesktop };
 }
 
-export default function InstallBanner() {
+export default function InstallBanner({ C = DARK_THEME }) {
   const [env] = useState(detectEnv);
   const [dismissed, setDismissed] = useState(() => localStorage.getItem("ff_install_dismissed") === "1");
   const [deferredPrompt, setDeferredPrompt] = useState(null);
@@ -106,7 +96,7 @@ export default function InstallBanner() {
           <X size={16} />
         </button>
         <div style={titleStyle}>
-          <Download size={16} color={C.mint} /> Instala Noha en tu celular
+          <Download size={16} color={C.mint} /> Instala Senda en tu celular
         </div>
         {deferredPrompt ? (
           <>
@@ -146,7 +136,7 @@ export default function InstallBanner() {
             <X size={16} />
           </button>
           <div style={titleStyle}>
-            <Download size={16} color={C.mint} /> Instala Noha en tu iPhone
+            <Download size={16} color={C.mint} /> Instala Senda en tu iPhone
           </div>
           Para instalarla necesitas abrir este link en <strong>Safari</strong> (no en Chrome) — en iPhone, solo
           Safari puede agregarla a tu pantalla de inicio.
@@ -159,7 +149,7 @@ export default function InstallBanner() {
           <X size={16} />
         </button>
         <div style={titleStyle}>
-          <Download size={16} color={C.mint} /> Instala Noha en tu iPhone
+          <Download size={16} color={C.mint} /> Instala Senda en tu iPhone
         </div>
         Toca <Share size={14} style={{ verticalAlign: "-2px" }} /> <strong>Compartir</strong> (abajo, al centro) →{" "}
         <strong>"Agregar a pantalla de inicio"</strong>.

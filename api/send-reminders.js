@@ -58,10 +58,10 @@ export default async function handler(req, res) {
 
       if (streakAtRisk) {
         title = "Tu racha te está esperando 🔥";
-        body = `Llevas ${streak.current} días seguidos en Noha — completa algo hoy para no perderla.`;
+        body = `Llevas ${streak.current} días seguidos en Senda — completa algo hoy para no perderla.`;
       } else if (!moodToday) {
         title = "¿Cómo te sientes hoy?";
-        body = "Tómate 10 segundos para registrar tu ánimo en Noha.";
+        body = "Tómate 10 segundos para registrar tu ánimo en Senda.";
       }
 
       if (!title) continue; // ya hizo su check-in hoy y su racha no corre riesgo — no lo molestamos
