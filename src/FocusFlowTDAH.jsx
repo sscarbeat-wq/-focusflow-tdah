@@ -22,6 +22,7 @@ import {
   Headphones,
   Smile,
   Bell,
+  Sun,
 } from "lucide-react";
 
 import InstallBanner from "./InstallBanner";
@@ -31,77 +32,6 @@ import MoodLog from "./MoodLog";
 import NotificationsPanel from "./NotificationsPanel";
 import { DEFAULT_STREAK, nextStreak, effectiveStreak } from "./streak";
 import { DEFAULT_MOOD_LOG, recordMood } from "./moodLog";
-
-const C = {
-  bg: "#141B2E",
-  surface: "#1D2740",
-  surfaceAlt: "#24304D",
-  border: "#34405F",
-  text: "#E8EAF0",
-  textMuted: "#8E96AC",
-  mint: "#8FCBB0",
-  mintDark: "#5FA085",
-  mintText: "#12261E",
-  lavender: "#B3A6D9",
-  lavenderDark: "#8B7CBF",
-  lavenderText: "#201A33",
-  amber: "#D9A15C",
-  amberText: "#2E2008",
-  rose: "#D98CA6",
-  roseText: "#33121F",
-};
-
-function Panel({ accent, icon, title, subtitle, children }) {
-  return (
-    <div
-      style={{
-        background: C.surface,
-        borderTop: `3px solid ${accent}`,
-        borderRadius: "6px",
-        padding: "22px 22px 24px",
-        marginBottom: "20px",
-      }}
-    >
-      <div style={{ display: "flex", gap: "12px", alignItems: "flex-start", marginBottom: "16px" }}>
-        <div style={{ color: accent, marginTop: "2px", flexShrink: 0 }}>{icon}</div>
-        <div>
-          <h2 style={{ fontSize: "17px", fontWeight: 600, margin: 0, color: C.text }}>{title}</h2>
-          {subtitle && (
-            <p style={{ fontSize: "13px", color: C.textMuted, margin: "5px 0 0", lineHeight: 1.5 }}>{subtitle}</p>
-          )}
-        </div>
-      </div>
-      {children}
-    </div>
-  );
-}
-
-function Toggle({ label, checked, onChange }) {
-  return (
-    <button
-      onClick={() => onChange(!checked)}
-      style={{
-        display: "flex",
-        alignItems: "center",
-        gap: "10px",
-        width: "100%",
-        textAlign: "left",
-        background: "transparent",
-        border: "none",
-        cursor: "pointer",
-        padding: "10px 0",
-        borderBottom: `1px solid ${C.border}`,
-      }}
-    >
-      {checked ? (
-        <CheckCircle2 size={20} color={C.mint} style={{ flexShrink: 0 }} />
-      ) : (
-        <Circle size={20} color={C.textMuted} style={{ flexShrink: 0 }} />
-      )}
-      <span style={{ fontSize: "14px", color: checked ? C.text : C.textMuted }}>{label}</span>
-    </button>
-  );
-}
 
 const DEFAULT_PROGRESS = {
   xp: 0,
@@ -115,7 +45,72 @@ const DEFAULT_PROGRESS = {
   moodLog: DEFAULT_MOOD_LOG,
 };
 
-export default function FocusFlowTDAH({ initialProgress, onProgressChange, userEmail, userId, onSignOut, onManageSubscription }) {
+export default function FocusFlowTDAH({
+  initialProgress,
+  onProgressChange,
+  userEmail,
+  userId,
+  onSignOut,
+  onManageSubscription,
+  C,
+  theme,
+  onToggleTheme,
+}) {
+  // Definidos aquí adentro (en vez de a nivel de módulo) para que tomen el
+  // tema activo (`C`) de este render — así cambian de color junto con el
+  // resto de la app cuando el paciente cambia entre claro y oscuro.
+  function Panel({ accent, icon, title, subtitle, children }) {
+    return (
+      <div
+        style={{
+          background: C.surface,
+          borderTop: `3px solid ${accent}`,
+          borderRadius: "6px",
+          padding: "22px 22px 24px",
+          marginBottom: "20px",
+        }}
+      >
+        <div style={{ display: "flex", gap: "12px", alignItems: "flex-start", marginBottom: "16px" }}>
+          <div style={{ color: accent, marginTop: "2px", flexShrink: 0 }}>{icon}</div>
+          <div>
+            <h2 style={{ fontSize: "17px", fontWeight: 600, margin: 0, color: C.text }}>{title}</h2>
+            {subtitle && (
+              <p style={{ fontSize: "13px", color: C.textMuted, margin: "5px 0 0", lineHeight: 1.5 }}>{subtitle}</p>
+            )}
+          </div>
+        </div>
+        {children}
+      </div>
+    );
+  }
+
+  function Toggle({ label, checked, onChange }) {
+    return (
+      <button
+        onClick={() => onChange(!checked)}
+        style={{
+          display: "flex",
+          alignItems: "center",
+          gap: "10px",
+          width: "100%",
+          textAlign: "left",
+          background: "transparent",
+          border: "none",
+          cursor: "pointer",
+          padding: "10px 0",
+          borderBottom: `1px solid ${C.border}`,
+        }}
+      >
+        {checked ? (
+          <CheckCircle2 size={20} color={C.mint} style={{ flexShrink: 0 }} />
+        ) : (
+          <Circle size={20} color={C.textMuted} style={{ flexShrink: 0 }} />
+        )}
+        <span style={{ fontSize: "14px", color: checked ? C.text : C.textMuted }}>{label}</span>
+      </button>
+    );
+  }
+
   const saved = { ...DEFAULT_PROGRESS, ...(initialProgress || {}) };
 
   const [isNarrow, setIsNarrow] = useState(false);
@@ -418,7 +413,7 @@ export default function FocusFlowTDAH({ initialProgress, onProgressChange, userE
       }}
     >
       <div style={{ maxWidth: "1000px", margin: "0 auto" }}>
-        <InstallBanner />
+        <InstallBanner C={C} />
         {/* Header */}
         <header
           style={{
@@ -431,7 +426,7 @@ export default function FocusFlowTDAH({ initialProgress, onProgressChange, userE
           }}
         >
           <div>
-            <h1 style={{ fontSize: "24px", fontWeight: 700, margin: 0 }}>Noha</h1>
+            <h1 style={{ fontSize: "24px", fontWeight: 700, margin: 0 }}>Senda</h1>
             <p style={{ fontSize: "13px", color: C.textMuted, margin: "6px 0 0" }}>
               {userEmail ? `Sesión de ${userEmail}` : "Sistema de habituación y regulación"}
             </p>
@@ -472,6 +467,27 @@ export default function FocusFlowTDAH({ initialProgress, onProgressChange, userE
                 </div>
               )}
             </div>
+            {onToggleTheme && (
+              <button
+                onClick={onToggleTheme}
+                aria-label={theme === "light" ? "Cambiar a modo oscuro" : "Cambiar a modo claro"}
+                title={theme === "light" ? "Cambiar a modo oscuro" : "Cambiar a modo claro"}
+                style={{
+                  background: "transparent",
+                  border: `1px solid ${C.border}`,
+                  borderRadius: "8px",
+                  width: "40px",
+                  height: "40px",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  color: C.textMuted,
+                  cursor: "pointer",
+                }}
+              >
+                {theme === "light" ? <Moon size={16} /> : <Sun size={16} />}
+              </button>
+            )}
             {onManageSubscription && (
               <button
                 onClick={onManageSubscription}
@@ -788,7 +804,7 @@ export default function FocusFlowTDAH({ initialProgress, onProgressChange, userE
               accent={C.mint}
               icon={<Bell size={22} />}
               title="Notificaciones"
-              subtitle="Avisos para acordarte de usar Noha, aunque tengas la app cerrada."
+              subtitle="Avisos para acordarte de usar Senda, aunque tengas la app cerrada."
             >
               <NotificationsPanel C={C} userId={userId} />
             </Panel>

@@ -1,19 +1,9 @@
 import React, { useState } from "react";
+import { Sun, Moon } from "lucide-react";
 import { supabase } from "./supabaseClient";
 import InstallBanner from "./InstallBanner";
 
-const C = {
-  bg: "#141B2E",
-  surface: "#1D2740",
-  surfaceAlt: "#24304D",
-  border: "#34405F",
-  text: "#E8EAF0",
-  textMuted: "#8E96AC",
-  mint: "#8FCBB0",
-  mintText: "#12261E",
-};
-
-export default function Auth() {
+export default function Auth({ C, theme, onToggleTheme }) {
   const [mode, setMode] = useState("signin"); // signin | signup
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -77,12 +67,38 @@ export default function Auth() {
           padding: "32px",
           width: "100%",
           maxWidth: "360px",
+          position: "relative",
         }}
       >
+        {onToggleTheme && (
+          <button
+            type="button"
+            onClick={onToggleTheme}
+            aria-label={theme === "light" ? "Cambiar a modo oscuro" : "Cambiar a modo claro"}
+            title={theme === "light" ? "Cambiar a modo oscuro" : "Cambiar a modo claro"}
+            style={{
+              position: "absolute",
+              top: "14px",
+              right: "14px",
+              background: "transparent",
+              border: `1px solid ${C.border}`,
+              borderRadius: "8px",
+              width: "34px",
+              height: "34px",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              color: C.textMuted,
+              cursor: "pointer",
+            }}
+          >
+            {theme === "light" ? <Moon size={16} /> : <Sun size={16} />}
+          </button>
+        )}
         <div style={{ marginBottom: "-8px" }}>
-          <InstallBanner />
+          <InstallBanner C={C} />
         </div>
-        <h1 style={{ fontSize: "22px", fontWeight: 700, margin: "0 0 6px" }}>Noha</h1>
+        <h1 style={{ fontSize: "22px", fontWeight: 700, margin: "0 0 6px" }}>Senda</h1>
         <p style={{ fontSize: "13px", color: C.textMuted, margin: "0 0 24px" }}>
           {mode === "signin" ? "Entra a tu cuenta" : "Crea tu cuenta"}
         </p>

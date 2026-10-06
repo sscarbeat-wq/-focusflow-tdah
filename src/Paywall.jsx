@@ -1,19 +1,7 @@
 import React, { useState } from "react";
-import { Sparkles, LogOut } from "lucide-react";
+import { Sparkles, LogOut, Sun, Moon } from "lucide-react";
 
-const C = {
-  bg: "#141B2E",
-  surface: "#1D2740",
-  surfaceAlt: "#24304D",
-  border: "#34405F",
-  text: "#E8EAF0",
-  textMuted: "#8E96AC",
-  mint: "#8FCBB0",
-  mintText: "#12261E",
-  amber: "#D9A15C",
-};
-
-export default function Paywall({ userId, userEmail, onSignOut }) {
+export default function Paywall({ userId, userEmail, onSignOut, C, theme, onToggleTheme }) {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
 
@@ -56,10 +44,36 @@ export default function Paywall({ userId, userEmail, onSignOut }) {
           width: "100%",
           maxWidth: "380px",
           textAlign: "center",
+          position: "relative",
         }}
       >
+        {onToggleTheme && (
+          <button
+            type="button"
+            onClick={onToggleTheme}
+            aria-label={theme === "light" ? "Cambiar a modo oscuro" : "Cambiar a modo claro"}
+            title={theme === "light" ? "Cambiar a modo oscuro" : "Cambiar a modo claro"}
+            style={{
+              position: "absolute",
+              top: "14px",
+              right: "14px",
+              background: "transparent",
+              border: `1px solid ${C.border}`,
+              borderRadius: "8px",
+              width: "34px",
+              height: "34px",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              color: C.textMuted,
+              cursor: "pointer",
+            }}
+          >
+            {theme === "light" ? <Moon size={16} /> : <Sun size={16} />}
+          </button>
+        )}
         <Sparkles size={28} color={C.amber} style={{ marginBottom: "14px" }} />
-        <h1 style={{ fontSize: "22px", fontWeight: 700, margin: "0 0 8px" }}>Desbloquea Noha</h1>
+        <h1 style={{ fontSize: "22px", fontWeight: 700, margin: "0 0 8px" }}>Desbloquea Senda</h1>
         <p style={{ fontSize: "14px", color: C.textMuted, lineHeight: 1.6, margin: "0 0 24px" }}>
           Acceso completo al desglosador de tareas, auditor de tiempo, freno de impulsividad, respiración guiada,
           reestructuración de pensamientos y rastreador de hábitos.

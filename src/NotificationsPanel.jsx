@@ -55,7 +55,7 @@ export default function NotificationsPanel({ C, userId }) {
   if (status === "unsupported") {
     return (
       <p style={{ fontSize: "13px", color: C.textMuted, lineHeight: 1.6, margin: 0 }}>
-        Tu navegador no soporta notificaciones push todavía. En iPhone, primero instala Noha a tu pantalla de
+        Tu navegador no soporta notificaciones push todavía. En iPhone, primero instala Senda a tu pantalla de
         inicio (botón Compartir → "Agregar a pantalla de inicio") y ábrela desde ahí para poder activarlas.
       </p>
     );

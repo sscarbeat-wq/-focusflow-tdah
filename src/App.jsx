@@ -3,6 +3,7 @@ import { supabase } from "./supabaseClient";
 import Auth from "./Auth";
 import FocusFlowTDAH from "./FocusFlowTDAH";
 import Paywall from "./Paywall";
+import { DARK_THEME, LIGHT_THEME, getStoredTheme, storeTheme } from "./theme";
 
 const ACTIVE_STATUSES = ["active", "trialing"];
 
@@ -12,6 +13,24 @@ export default function App() {
   const [loadingProgress, setLoadingProgress] = useState(true);
   const [subscription, setSubscription] = useState(undefined); // undefined = cargando
   const saveTimeout = useRef(null);
+
+  // Tema claro/oscuro — una sola fuente de verdad para toda la app, para
+  // que la pantalla de login, el paywall y la app se vean consistentes.
+  const [theme, setTheme] = useState(getStoredTheme);
+  const C = theme === "light" ? LIGHT_THEME : DARK_THEME;
+  const toggleTheme = () => {
+    setTheme((prev) => {
+      const next = prev === "light" ? "dark" : "light";
+      storeTheme(next);
+      return next;
+    });
+  };
+
+  // Evita un "flash" del color equivocado fuera del árbol de React (por
+  // ejemplo el rebote al hacer scroll más allá del final de la página).
+  useEffect(() => {
+    document.body.style.background = C.bg;
+  }, [C.bg]);
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data }) => setSession(data.session));
@@ -98,7 +117,7 @@ export default function App() {
   };
 
   if (session === undefined) return null; // cargando sesión inicial
-  if (!session) return <Auth />;
+  if (!session) return <Auth C={C} theme={theme} onToggleTheme={toggleTheme} />;
   if (loadingProgress || subscription === undefined) return null; // cargando datos
 
   const isActive = subscription && ACTIVE_STATUSES.includes(subscription.status);
@@ -109,6 +128,9 @@ export default function App() {
         userId={session.user.id}
         userEmail={session.user.email}
         onSignOut={() => supabase.auth.signOut()}
+        C={C}
+        theme={theme}
+        onToggleTheme={toggleTheme}
       />
     );
   }
@@ -121,6 +143,9 @@ export default function App() {
       userId={session.user.id}
       onSignOut={() => supabase.auth.signOut()}
       onManageSubscription={handleManageSubscription}
+      C={C}
+      theme={theme}
+      onToggleTheme={toggleTheme}
     />
   );
 }
