@@ -23,6 +23,7 @@ import {
   Smile,
   Bell,
   Sun,
+  TrendingUp,
 } from "lucide-react";
 
 import InstallBanner from "./InstallBanner";
@@ -30,6 +31,7 @@ import Mascot from "./Mascot";
 import FocusMode from "./FocusMode";
 import MoodLog from "./MoodLog";
 import NotificationsPanel from "./NotificationsPanel";
+import WeeklyInsights from "./WeeklyInsights";
 import { DEFAULT_STREAK, nextStreak, effectiveStreak } from "./streak";
 import { DEFAULT_MOOD_LOG, recordMood } from "./moodLog";
 
@@ -853,6 +855,21 @@ export default function FocusFlowTDAH({
               subtitle="Un check-in rápido al día — te ayuda a ver patrones entre tu ánimo y tus hábitos."
             >
               <MoodLog C={C} moodLog={moodLog} onSave={handleMoodSave} />
+            </Panel>
+
+            <Panel C={C}
+              accent={C.amber}
+              icon={<TrendingUp size={22} />}
+              title="Insights semanales"
+              subtitle="Patrones de tu semana, armados con lo que ya registraste — nada inventado."
+            >
+              <WeeklyInsights
+                C={C}
+                moodLog={moodLog}
+                jar={jar}
+                streak={streak}
+                habits={{ screensOff, sleepEnv, ateWell, hydrated, deskCleared }}
+              />
             </Panel>
 
             <Panel C={C}
