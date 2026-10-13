@@ -45,6 +45,65 @@ const DEFAULT_PROGRESS = {
   moodLog: DEFAULT_MOOD_LOG,
 };
 
+// Panel y Toggle viven a nivel de módulo (no adentro de FocusFlowTDAH) para
+// que React no los trate como un componente nuevo en cada render — si se
+// redefinen en cada llamada, React desmonta y vuelve a montar todo lo que
+// hay dentro cada vez que el componente se actualiza, lo que le hace perder
+// el foco a cualquier input que esté adentro mientras el paciente escribe.
+// Reciben `C` (el tema activo) como prop para seguir cambiando de color
+// junto con el resto de la app entre modo claro y oscuro.
+function Panel({ accent, icon, title, subtitle, children, C }) {
+  return (
+    <div
+      style={{
+        background: C.surface,
+        borderTop: `3px solid ${accent}`,
+        borderRadius: "6px",
+        padding: "22px 22px 24px",
+        marginBottom: "20px",
+      }}
+    >
+      <div style={{ display: "flex", gap: "12px", alignItems: "flex-start", marginBottom: "16px" }}>
+        <div style={{ color: accent, marginTop: "2px", flexShrink: 0 }}>{icon}</div>
+        <div>
+          <h2 style={{ fontSize: "17px", fontWeight: 600, margin: 0, color: C.text }}>{title}</h2>
+          {subtitle && (
+            <p style={{ fontSize: "13px", color: C.textMuted, margin: "5px 0 0", lineHeight: 1.5 }}>{subtitle}</p>
+          )}
+        </div>
+      </div>
+      {children}
+    </div>
+  );
+}
+
+function Toggle({ label, checked, onChange, C }) {
+  return (
+    <button
+      onClick={() => onChange(!checked)}
+      style={{
+        display: "flex",
+        alignItems: "center",
+        gap: "10px",
+        width: "100%",
+        textAlign: "left",
+        background: "transparent",
+        border: "none",
+        cursor: "pointer",
+        padding: "10px 0",
+        borderBottom: `1px solid ${C.border}`,
+      }}
+    >
+      {checked ? (
+        <CheckCircle2 size={20} color={C.mint} style={{ flexShrink: 0 }} />
+      ) : (
+        <Circle size={20} color={C.textMuted} style={{ flexShrink: 0 }} />
+      )}
+      <span style={{ fontSize: "14px", color: checked ? C.text : C.textMuted }}>{label}</span>
+    </button>
+  );
+}
+
 export default function FocusFlowTDAH({
   initialProgress,
   onProgressChange,
@@ -56,61 +115,6 @@ export default function FocusFlowTDAH({
   theme,
   onToggleTheme,
 }) {
-  // Definidos aquí adentro (en vez de a nivel de módulo) para que tomen el
-  // tema activo (`C`) de este render — así cambian de color junto con el
-  // resto de la app cuando el paciente cambia entre claro y oscuro.
-  function Panel({ accent, icon, title, subtitle, children }) {
-    return (
-      <div
-        style={{
-          background: C.surface,
-          borderTop: `3px solid ${accent}`,
-          borderRadius: "6px",
-          padding: "22px 22px 24px",
-          marginBottom: "20px",
-        }}
-      >
-        <div style={{ display: "flex", gap: "12px", alignItems: "flex-start", marginBottom: "16px" }}>
-          <div style={{ color: accent, marginTop: "2px", flexShrink: 0 }}>{icon}</div>
-          <div>
-            <h2 style={{ fontSize: "17px", fontWeight: 600, margin: 0, color: C.text }}>{title}</h2>
-            {subtitle && (
-              <p style={{ fontSize: "13px", color: C.textMuted, margin: "5px 0 0", lineHeight: 1.5 }}>{subtitle}</p>
-            )}
-          </div>
-        </div>
-        {children}
-      </div>
-    );
-  }
-
-  function Toggle({ label, checked, onChange }) {
-    return (
-      <button
-        onClick={() => onChange(!checked)}
-        style={{
-          display: "flex",
-          alignItems: "center",
-          gap: "10px",
-          width: "100%",
-          textAlign: "left",
-          background: "transparent",
-          border: "none",
-          cursor: "pointer",
-          padding: "10px 0",
-          borderBottom: `1px solid ${C.border}`,
-        }}
-      >
-        {checked ? (
-          <CheckCircle2 size={20} color={C.mint} style={{ flexShrink: 0 }} />
-        ) : (
-          <Circle size={20} color={C.textMuted} style={{ flexShrink: 0 }} />
-        )}
-        <span style={{ fontSize: "14px", color: checked ? C.text : C.textMuted }}>{label}</span>
-      </button>
-    );
-  }
-
   const saved = { ...DEFAULT_PROGRESS, ...(initialProgress || {}) };
 
   const [isNarrow, setIsNarrow] = useState(false);
@@ -618,7 +622,7 @@ export default function FocusFlowTDAH({
 
         <div style={{ display: "grid", gridTemplateColumns: isNarrow ? "1fr" : "1fr 1fr", gap: "0 20px" }}>
           <div>
-            <Panel
+            <Panel C={C}
               accent={C.mint}
               icon={<ListTree size={22} />}
               title="El desglosador"
@@ -745,7 +749,7 @@ export default function FocusFlowTDAH({
               )}
             </Panel>
 
-            <Panel
+            <Panel C={C}
               accent={C.amber}
               icon={<Timer size={22} />}
               title="El auditor de tiempo"
@@ -833,7 +837,7 @@ export default function FocusFlowTDAH({
               )}
             </Panel>
 
-            <Panel
+            <Panel C={C}
               accent={C.lavender}
               icon={<Headphones size={22} />}
               title="Modo enfoque"
@@ -842,7 +846,7 @@ export default function FocusFlowTDAH({
               <FocusMode C={C} onSessionComplete={() => grantXp("sesión de enfoque completada")} />
             </Panel>
 
-            <Panel
+            <Panel C={C}
               accent={C.rose}
               icon={<Smile size={22} />}
               title="Registro de ánimo"
@@ -851,7 +855,7 @@ export default function FocusFlowTDAH({
               <MoodLog C={C} moodLog={moodLog} onSave={handleMoodSave} />
             </Panel>
 
-            <Panel
+            <Panel C={C}
               accent={C.mint}
               icon={<Bell size={22} />}
               title="Notificaciones"
@@ -863,7 +867,7 @@ export default function FocusFlowTDAH({
 
           <div>
             <div ref={stopThinkSectionRef}>
-            <Panel
+            <Panel C={C}
               accent={C.lavender}
               icon={<Hand size={22} />}
               title="Freno de impulsividad"
@@ -936,7 +940,7 @@ export default function FocusFlowTDAH({
             </div>
 
             <div ref={breathingSectionRef}>
-            <Panel
+            <Panel C={C}
               accent={C.mint}
               icon={<Wind size={22} />}
               title="Burbuja de enfoque"
@@ -972,7 +976,7 @@ export default function FocusFlowTDAH({
             </Panel>
             </div>
 
-            <Panel
+            <Panel C={C}
               accent={C.lavender}
               icon={<Brain size={22} />}
               title="Reestructuración de pensamientos"
@@ -1050,7 +1054,7 @@ export default function FocusFlowTDAH({
           </div>
         </div>
 
-        <Panel
+        <Panel C={C}
           accent={C.amber}
           icon={<Moon size={22} />}
           title="Rastreador de estilo de vida"
@@ -1061,15 +1065,15 @@ export default function FocusFlowTDAH({
               <p style={{ fontSize: "12px", color: C.textMuted, margin: "0 0 4px", display: "flex", alignItems: "center", gap: "6px" }}>
                 <Moon size={13} /> Higiene del sueño
               </p>
-              <Toggle label="Apagué las pantallas a tiempo" checked={screensOff} onChange={(v) => toggleXp(setScreensOff, screensOff, "pantallas apagadas a tiempo")} />
-              <Toggle label="Preparé el entorno para dormir" checked={sleepEnv} onChange={(v) => toggleXp(setSleepEnv, sleepEnv, "entorno de sueño listo")} />
+              <Toggle C={C} label="Apagué las pantallas a tiempo" checked={screensOff} onChange={(v) => toggleXp(setScreensOff, screensOff, "pantallas apagadas a tiempo")} />
+              <Toggle C={C} label="Preparé el entorno para dormir" checked={sleepEnv} onChange={(v) => toggleXp(setSleepEnv, sleepEnv, "entorno de sueño listo")} />
             </div>
             <div>
               <p style={{ fontSize: "12px", color: C.textMuted, margin: "0 0 4px", display: "flex", alignItems: "center", gap: "6px" }}>
                 <Utensils size={13} /> Alimentación
               </p>
-              <Toggle label="Comí algo nutritivo hoy" checked={ateWell} onChange={(v) => toggleXp(setAteWell, ateWell, "comida nutritiva")} />
-              <Toggle label="Tomé agua a lo largo del día" checked={hydrated} onChange={(v) => toggleXp(setHydrated, hydrated, "hidratación")} />
+              <Toggle C={C} label="Comí algo nutritivo hoy" checked={ateWell} onChange={(v) => toggleXp(setAteWell, ateWell, "comida nutritiva")} />
+              <Toggle C={C} label="Tomé agua a lo largo del día" checked={hydrated} onChange={(v) => toggleXp(setHydrated, hydrated, "hidratación")} />
             </div>
             <div style={{ marginTop: "18px" }}>
               <p style={{ fontSize: "12px", color: C.textMuted, margin: "0 0 8px", display: "flex", alignItems: "center", gap: "6px" }}>
@@ -1093,7 +1097,7 @@ export default function FocusFlowTDAH({
               <p style={{ fontSize: "12px", color: C.textMuted, margin: "0 0 4px", display: "flex", alignItems: "center", gap: "6px" }}>
                 <LayoutIcon size={13} /> Espacio de trabajo
               </p>
-              <Toggle
+              <Toggle C={C}
                 label='"Fuera de la vista, fuera de la mente" — orden rápido del escritorio'
                 checked={deskCleared}
                 onChange={(v) => toggleXp(setDeskCleared, deskCleared, "escritorio ordenado")}
