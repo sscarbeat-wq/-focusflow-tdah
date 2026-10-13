@@ -200,6 +200,36 @@ export default function FocusFlowTDAH({
     );
   const removeStep = (id) => setSteps((p) => p.filter((s) => s.id !== id));
 
+  const [aiLoading, setAiLoading] = useState(false);
+  const [aiError, setAiError] = useState("");
+
+  const handleAiBreakdown = async () => {
+    if (!bigTask.trim() || aiLoading) return;
+    setAiLoading(true);
+    setAiError("");
+    try {
+      const res = await fetch("/api/breakdown-task", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ userId, task: bigTask.trim() }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "No se pudo desglosar la tarea.");
+      setSteps(
+        (data.steps || []).slice(0, 5).map((s, i) => ({
+          id: Date.now() + i,
+          text: s.text,
+          min: s.min,
+          done: false,
+        }))
+      );
+    } catch (err) {
+      setAiError(err.message || "Ocurrió un error. Intenta de nuevo.");
+    } finally {
+      setAiLoading(false);
+    }
+  };
+
   // ---- Time auditor ----
   const [estimateMin, setEstimateMin] = useState(15);
   const [running, setRunning] = useState(false);
@@ -603,6 +633,27 @@ export default function FocusFlowTDAH({
               />
               {bigTask.trim() && (
                 <>
+                  <button
+                    onClick={handleAiBreakdown}
+                    disabled={aiLoading}
+                    style={{
+                      ...btnPrimary(C.lavender, C.lavenderText),
+                      display: "flex",
+                      alignItems: "center",
+                      gap: "6px",
+                      marginBottom: "10px",
+                      opacity: aiLoading ? 0.7 : 1,
+                      cursor: aiLoading ? "default" : "pointer",
+                    }}
+                  >
+                    <Sparkles size={14} /> {aiLoading ? "Desglosando..." : "Desglosar con IA"}
+                  </button>
+                  {aiError && (
+                    <p style={{ fontSize: "12px", color: C.amber, margin: "0 0 12px", lineHeight: 1.5 }}>{aiError}</p>
+                  )}
+                  <p style={{ fontSize: "11px", color: C.textMuted, margin: "0 0 14px" }}>
+                    La IA reemplaza la lista de pasos de abajo — también puedes seguir agregándolos tú misma, a mano.
+                  </p>
                   <div style={{ display: "flex", gap: "8px", marginBottom: "14px", flexWrap: "wrap" }}>
                     <input
                       type="text"
