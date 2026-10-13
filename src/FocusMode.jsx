@@ -15,7 +15,7 @@ function fmt(sec) {
   return `${String(m).padStart(2, "0")}:${String(s).padStart(2, "0")}`;
 }
 
-export default function FocusMode({ C, onSessionComplete }) {
+export default function FocusMode({ C, onSessionComplete, onSessionStart }) {
   const [workMin, setWorkMin] = useState(25);
   const [breakMin, setBreakMin] = useState(5);
   const [mode, setMode] = useState("work"); // "work" | "break"
@@ -52,7 +52,16 @@ export default function FocusMode({ C, onSessionComplete }) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [running, mode, breakMin, workMin]);
 
-  const start = () => setRunning(true);
+  // Solo avisamos al padre cuando arranca una sesión NUEVA (secondsLeft
+  // todavía en el total completo), no al reanudar después de una pausa —
+  // así no se agenda un bloque de calendario duplicado cada vez que el
+  // paciente le da play/pausa varias veces a la misma sesión.
+  const start = () => {
+    if (mode === "work" && secondsLeft === workMin * 60) {
+      onSessionStart?.(workMin);
+    }
+    setRunning(true);
+  };
   const pause = () => setRunning(false);
   const reset = () => {
     setRunning(false);
