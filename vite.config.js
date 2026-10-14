@@ -14,6 +14,13 @@ export default defineConfig({
         // que genera el plugin, sin tocar su manejo de caché/precarga (eso
         // es lo que causaba que la app se congelara — ver notas en el PR).
         importScripts: ["push-sw.js"],
+        // Sin esto, el service worker intercepta TODA navegación de página
+        // completa (incluyendo window.location.href hacia /api/...) y
+        // regresa el index.html cacheado en vez de dejarla llegar al
+        // servidor — eso es lo que rompía "Conectar con Google Calendar"
+        // (nunca llegaba a /api/auth/google/start). Excluimos /api/ para
+        // que esas navegaciones siempre pasen directo a la red.
+        navigateFallbackDenylist: [/^\/api\//],
       },
       includeAssets: ["icon-192.png", "icon-512.png", "icon-maskable-512.png"],
       manifest: {

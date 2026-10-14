@@ -24,6 +24,7 @@ import {
   Bell,
   Sun,
   TrendingUp,
+  CalendarRange,
 } from "lucide-react";
 
 import InstallBanner from "./InstallBanner";
@@ -32,6 +33,8 @@ import FocusMode from "./FocusMode";
 import MoodLog from "./MoodLog";
 import NotificationsPanel from "./NotificationsPanel";
 import WeeklyInsights from "./WeeklyInsights";
+import CalendarPanel from "./CalendarPanel";
+import { scheduleStepsOnCalendar } from "./calendarSync";
 import { DEFAULT_STREAK, nextStreak, effectiveStreak } from "./streak";
 import { DEFAULT_MOOD_LOG, recordMood } from "./moodLog";
 
@@ -191,7 +194,15 @@ export default function FocusFlowTDAH({
 
   const addStep = () => {
     if (!stepDraft.trim() || steps.length >= 5) return;
-    setSteps((p) => [...p, { id: Date.now(), text: stepDraft.trim(), min: stepMin, done: false }]);
+    const newStep = { id: Date.now(), text: stepDraft.trim(), min: stepMin, done: false };
+    // El bloque de calendario de este paso empieza después de los minutos
+    // de los pasos que ya estaban en la lista, para que vayan quedando uno
+    // detrás del otro en vez de encimados. Si el calendario no está
+    // conectado o esta sincronización está apagada, esta llamada no hace
+    // nada (ver api/calendar/create-event.js) — nunca bloquea agregar el paso.
+    const offsetMin = steps.reduce((sum, s) => sum + (s.min || 0), 0);
+    scheduleStepsOnCalendar(userId, [newStep], { startOffsetMinutes: offsetMin, kind: "step" });
+    setSteps((p) => [...p, newStep]);
     setStepDraft("");
     setStepMin(5);
   };
@@ -221,14 +232,17 @@ export default function FocusFlowTDAH({
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || "No se pudo desglosar la tarea.");
-      setSteps(
-        (data.steps || []).slice(0, 5).map((s, i) => ({
-          id: Date.now() + i,
-          text: s.text,
-          min: s.min,
-          done: false,
-        }))
-      );
+      const newSteps = (data.steps || []).slice(0, 5).map((s, i) => ({
+        id: Date.now() + i,
+        text: s.text,
+        min: s.min,
+        done: false,
+      }));
+      // Estos reemplazan la lista anterior por completo, así que el bloque
+      // de calendario de cada uno arranca desde cero (offset 0), uno detrás
+      // de otro según sus minutos estimados.
+      scheduleStepsOnCalendar(userId, newSteps, { kind: "step" });
+      setSteps(newSteps);
     } catch (err) {
       setAiError(err.message || "Ocurrió un error. Intenta de nuevo.");
     } finally {
@@ -845,7 +859,13 @@ export default function FocusFlowTDAH({
               title="Modo enfoque"
               subtitle="Sesiones de trabajo con descansos programados y ruido blanco de fondo."
             >
-              <FocusMode C={C} onSessionComplete={() => grantXp("sesión de enfoque completada")} />
+              <FocusMode
+                C={C}
+                onSessionComplete={() => grantXp("sesión de enfoque completada")}
+                onSessionStart={(min) =>
+                  scheduleStepsOnCalendar(userId, [{ text: "Sesión de enfoque (Senda)", min }], { kind: "focus" })
+                }
+              />
             </Panel>
 
             <Panel C={C}
@@ -879,6 +899,15 @@ export default function FocusFlowTDAH({
               subtitle="Avisos para acordarte de usar Senda, aunque tengas la app cerrada."
             >
               <NotificationsPanel C={C} userId={userId} />
+            </Panel>
+
+            <Panel C={C}
+              accent={C.lavender}
+              icon={<CalendarRange size={22} />}
+              title="Integración con calendario"
+              subtitle="Bloquea automáticamente en tu Google Calendar el tiempo de tus pasos y sesiones."
+            >
+              <CalendarPanel C={C} userId={userId} />
             </Panel>
           </div>
 
