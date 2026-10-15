@@ -185,6 +185,8 @@ export default function FocusFlowTDAH({
       return true;
     }
   });
+  const [celebrateMsg, setCelebrateMsg] = useState("");
+  const celebrateMsgTimeout = useRef(null);
   const toggleCelebrate = useCallback(() => {
     setCelebrateOn((prev) => {
       const next = !prev;
@@ -193,6 +195,13 @@ export default function FocusFlowTDAH({
       } catch (e) {
         /* localStorage no disponible (modo privado, etc.) — seguimos solo con el estado en memoria */
       }
+      // Confirmación visible del cambio (el ícono solo, Volume2/VolumeX, es
+      // difícil de notar a simple vista) + un sonido de muestra al
+      // encenderlo, para que quede claro de inmediato qué se activó.
+      setCelebrateMsg(next ? "Sonido y vibración activados" : "Sonido y vibración desactivados");
+      if (celebrateMsgTimeout.current) clearTimeout(celebrateMsgTimeout.current);
+      celebrateMsgTimeout.current = setTimeout(() => setCelebrateMsg(""), 2000);
+      celebrate(next);
       return next;
     });
   }, []);
@@ -219,6 +228,7 @@ export default function FocusFlowTDAH({
   );
 
   useEffect(() => () => xpTimeout.current && clearTimeout(xpTimeout.current), []);
+  useEffect(() => () => celebrateMsgTimeout.current && clearTimeout(celebrateMsgTimeout.current), []);
 
   // ---- Dismantler (no persiste entre sesiones) ----
   const [bigTask, setBigTask] = useState("");
@@ -556,6 +566,7 @@ export default function FocusFlowTDAH({
               aria-label={celebrateOn ? "Apagar sonido y vibración al completar" : "Encender sonido y vibración al completar"}
               title={celebrateOn ? "Apagar sonido y vibración al completar" : "Encender sonido y vibración al completar"}
               style={{
+                position: "relative",
                 background: "transparent",
                 border: `1px solid ${C.border}`,
                 borderRadius: "8px",
@@ -569,6 +580,23 @@ export default function FocusFlowTDAH({
               }}
             >
               {celebrateOn ? <Volume2 size={16} /> : <VolumeX size={16} />}
+              {celebrateMsg && (
+                <div
+                  style={{
+                    position: "absolute",
+                    top: "-32px",
+                    right: 0,
+                    background: C.mintDark,
+                    color: C.mintText,
+                    fontSize: "12px",
+                    padding: "5px 10px",
+                    borderRadius: "6px",
+                    whiteSpace: "nowrap",
+                  }}
+                >
+                  {celebrateMsg}
+                </div>
+              )}
             </button>
             {onToggleTheme && (
               <button
