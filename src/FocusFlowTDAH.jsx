@@ -25,6 +25,7 @@ import {
   Sun,
   TrendingUp,
   CalendarRange,
+  Users,
 } from "lucide-react";
 
 import InstallBanner from "./InstallBanner";
@@ -34,7 +35,9 @@ import MoodLog from "./MoodLog";
 import NotificationsPanel from "./NotificationsPanel";
 import WeeklyInsights from "./WeeklyInsights";
 import CalendarPanel from "./CalendarPanel";
+import BodyDoublePanel from "./BodyDoublePanel";
 import { scheduleStepsOnCalendar } from "./calendarSync";
+import { useBodyDouble } from "./bodyDouble";
 import { DEFAULT_STREAK, nextStreak, effectiveStreak } from "./streak";
 import { DEFAULT_MOOD_LOG, recordMood } from "./moodLog";
 
@@ -121,6 +124,8 @@ export default function FocusFlowTDAH({
   onToggleTheme,
 }) {
   const saved = { ...DEFAULT_PROGRESS, ...(initialProgress || {}) };
+
+  const bodyDouble = useBodyDouble(userId);
 
   const [isNarrow, setIsNarrow] = useState(false);
   useEffect(() => {
@@ -861,10 +866,14 @@ export default function FocusFlowTDAH({
             >
               <FocusMode
                 C={C}
-                onSessionComplete={() => grantXp("sesión de enfoque completada")}
-                onSessionStart={(min) =>
-                  scheduleStepsOnCalendar(userId, [{ text: "Sesión de enfoque (Senda)", min }], { kind: "focus" })
-                }
+                onSessionComplete={() => {
+                  grantXp("sesión de enfoque completada");
+                  bodyDouble.setStatus("aqui");
+                }}
+                onSessionStart={(min) => {
+                  scheduleStepsOnCalendar(userId, [{ text: "Sesión de enfoque (Senda)", min }], { kind: "focus" });
+                  bodyDouble.setStatus("enfocando");
+                }}
               />
             </Panel>
 
@@ -908,6 +917,21 @@ export default function FocusFlowTDAH({
               subtitle="Bloquea automáticamente en tu Google Calendar el tiempo de tus pasos y sesiones."
             >
               <CalendarPanel C={C} userId={userId} />
+            </Panel>
+
+            <Panel C={C}
+              accent={C.mint}
+              icon={<Users size={22} />}
+              title="Cuerpo doble virtual"
+              subtitle="Trabaja en silencio al mismo tiempo que otras personas, sin verlas ni hablarles."
+            >
+              <BodyDoublePanel
+                C={C}
+                joined={bodyDouble.joined}
+                participants={bodyDouble.participants}
+                join={bodyDouble.join}
+                leave={bodyDouble.leave}
+              />
             </Panel>
           </div>
 
