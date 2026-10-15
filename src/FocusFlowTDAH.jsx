@@ -26,6 +26,8 @@ import {
   TrendingUp,
   CalendarRange,
   Users,
+  Volume2,
+  VolumeX,
 } from "lucide-react";
 
 import InstallBanner from "./InstallBanner";
@@ -38,6 +40,7 @@ import CalendarPanel from "./CalendarPanel";
 import BodyDoublePanel from "./BodyDoublePanel";
 import { scheduleStepsOnCalendar } from "./calendarSync";
 import { useBodyDouble } from "./bodyDouble";
+import { celebrate } from "./celebrate";
 import { DEFAULT_STREAK, nextStreak, effectiveStreak } from "./streak";
 import { DEFAULT_MOOD_LOG, recordMood } from "./moodLog";
 
@@ -172,14 +175,40 @@ export default function FocusFlowTDAH({
   const [xpMsg, setXpMsg] = useState("");
   const xpTimeout = useRef(null);
 
-  const grantXp = useCallback((label) => {
-    setXp((p) => Math.round((p + 0.85) * 100) / 100);
-    setXpMsg(`+0.85 XP — ${label}`);
-    setJar((prev) => [{ id: Date.now(), label }, ...prev].slice(0, 12));
-    setStreak((prev) => nextStreak(prev));
-    if (xpTimeout.current) clearTimeout(xpTimeout.current);
-    xpTimeout.current = setTimeout(() => setXpMsg(""), 2400);
+  // Micro-recompensa de sonido + vibración al ganar XP — preferencia de
+  // dispositivo, no de paciente (como el tema claro/oscuro), por eso vive
+  // en localStorage y no en el progreso guardado en Supabase.
+  const [celebrateOn, setCelebrateOn] = useState(() => {
+    try {
+      return window.localStorage.getItem("senda-celebrate") !== "off";
+    } catch (e) {
+      return true;
+    }
+  });
+  const toggleCelebrate = useCallback(() => {
+    setCelebrateOn((prev) => {
+      const next = !prev;
+      try {
+        window.localStorage.setItem("senda-celebrate", next ? "on" : "off");
+      } catch (e) {
+        /* localStorage no disponible (modo privado, etc.) — seguimos solo con el estado en memoria */
+      }
+      return next;
+    });
   }, []);
+
+  const grantXp = useCallback(
+    (label) => {
+      setXp((p) => Math.round((p + 0.85) * 100) / 100);
+      setXpMsg(`+0.85 XP — ${label}`);
+      setJar((prev) => [{ id: Date.now(), label }, ...prev].slice(0, 12));
+      setStreak((prev) => nextStreak(prev));
+      celebrate(celebrateOn);
+      if (xpTimeout.current) clearTimeout(xpTimeout.current);
+      xpTimeout.current = setTimeout(() => setXpMsg(""), 2400);
+    },
+    [celebrateOn]
+  );
 
   const handleMoodSave = useCallback(
     (mood, note) => {
@@ -522,6 +551,25 @@ export default function FocusFlowTDAH({
                 </div>
               )}
             </div>
+            <button
+              onClick={toggleCelebrate}
+              aria-label={celebrateOn ? "Apagar sonido y vibración al completar" : "Encender sonido y vibración al completar"}
+              title={celebrateOn ? "Apagar sonido y vibración al completar" : "Encender sonido y vibración al completar"}
+              style={{
+                background: "transparent",
+                border: `1px solid ${C.border}`,
+                borderRadius: "8px",
+                width: "40px",
+                height: "40px",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                color: C.textMuted,
+                cursor: "pointer",
+              }}
+            >
+              {celebrateOn ? <Volume2 size={16} /> : <VolumeX size={16} />}
+            </button>
             {onToggleTheme && (
               <button
                 onClick={onToggleTheme}
