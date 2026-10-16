@@ -4,20 +4,73 @@ import { SITUATIONS, CRISIS, getSituation, nextResponseIndex } from "./companion
 
 // Compañero de apoyo situacional — SOLO botones de entrada rápida, nunca
 // texto libre (decisión explícita de la usuaria, para acotar el riesgo
-// clínico/legal: el paciente nunca puede escribirle a una IA algo que no
-// esperamos). El botón de crisis vive separado del resto, con su propio
-// estilo, y su mensaje nunca se genera ni se continúa — es texto fijo con
-// recursos reales.
-export default function CompanionPanel({ C, onNavigate }) {
+// clínico/legal: la paciente nunca puede escribirle a una IA algo que no
+// esperamos; el "tema" que recibe la IA siempre es uno de los 5 ids fijos
+// de SITUATIONS, nunca texto de la paciente). El botón de crisis vive
+// separado del resto, con su propio estilo, nunca pasa por la IA, y su
+// mensaje nunca se genera ni se continúa — es texto fijo con recursos reales.
+//
+// Las 5 situaciones normales piden una respuesta a api/companion-response.js
+// (IA, gpt-4o-mini) cada vez que se abren o se pide "otra idea". Si la IA no
+// responde (límite mensual, red, error del servidor) se usa en su lugar uno
+// de los textos fijos de respaldo (fallbackResponses), rotando sin repetir —
+// la paciente nunca se queda sin un mensaje de apoyo.
+export default function CompanionPanel({ C, userId, onNavigate }) {
   const [activeId, setActiveId] = useState(null); // id de SITUATIONS, "crisis", o null
-  const [responseIndexBySituation, setResponseIndexBySituation] = useState({});
+  const [textBySituation, setTextBySituation] = useState({});
+  const [loadingId, setLoadingId] = useState(null);
+  const [usingFallback, setUsingFallback] = useState({});
+  const [fallbackIndexBySituation, setFallbackIndexBySituation] = useState({});
+
+  const showFallback = (situationId) => {
+    const idx = nextResponseIndex(situationId, fallbackIndexBySituation[situationId]);
+    setFallbackIndexBySituation((prev) => ({ ...prev, [situationId]: idx }));
+    const situation = getSituation(situationId);
+    setTextBySituation((prev) => ({ ...prev, [situationId]: situation.fallbackResponses[idx] }));
+    setUsingFallback((prev) => ({ ...prev, [situationId]: true }));
+  };
+
+  const requestAiResponse = async (situationId, avoidText) => {
+    setLoadingId(situationId);
+    try {
+      const res = await fetch("/api/companion-response", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ userId, situationId, avoid: avoidText || "" }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "No se pudo generar una respuesta.");
+      if (data.unsafe) {
+        // Salvaguarda: la IA tocó un tema de riesgo — nunca se muestra su
+        // texto, se trata exactamente como si hubieran elegido el botón de
+        // crisis.
+        setActiveId("crisis");
+        return;
+      }
+      setTextBySituation((prev) => ({ ...prev, [situationId]: data.response }));
+      setUsingFallback((prev) => ({ ...prev, [situationId]: false }));
+    } catch (err) {
+      console.error("Compañero de apoyo — fallo IA, usando respaldo fijo:", err);
+      showFallback(situationId);
+    } finally {
+      setLoadingId(null);
+    }
+  };
 
   const openSituation = (situationId) => {
-    setResponseIndexBySituation((prev) => ({
-      ...prev,
-      [situationId]: nextResponseIndex(situationId, prev[situationId]),
-    }));
     setActiveId(situationId);
+    requestAiResponse(situationId, null);
+  };
+
+  const otraIdea = (situationId) => {
+    if (usingFallback[situationId]) {
+      // Ya estamos en modo respaldo para esta situación (la IA falló antes)
+      // — seguimos rotando el texto fijo en vez de reintentar la red otra
+      // vez de inmediato.
+      showFallback(situationId);
+      return;
+    }
+    requestAiResponse(situationId, textBySituation[situationId]);
   };
 
   const goBack = () => setActiveId(null);
@@ -69,6 +122,8 @@ export default function CompanionPanel({ C, onNavigate }) {
     display: "block",
   };
 
+  const btnDisabled = { opacity: 0.5, cursor: "default" };
+
   // --- Vista de crisis: mensaje fijo, sin continuar la conversación ---
   if (activeId === "crisis") {
     return (
@@ -91,7 +146,7 @@ export default function CompanionPanel({ C, onNavigate }) {
     );
   }
 
-  // --- Vista de una situación normal: respuesta fija + enlace a la herramienta ---
+  // --- Vista de una situación normal: respuesta (IA o respaldo fijo) + enlace ---
   if (activeId) {
     const situation = getSituation(activeId);
     if (!situation) {
@@ -99,16 +154,26 @@ export default function CompanionPanel({ C, onNavigate }) {
       setActiveId(null);
       return null;
     }
-    const idx = responseIndexBySituation[activeId] || 0;
-    const text = situation.responses[idx] || situation.responses[0];
+    const isLoading = loadingId === activeId;
+    const text = textBySituation[activeId];
     return (
       <div>
-        <p style={{ fontSize: "14px", color: C.text, lineHeight: 1.6, margin: "0 0 14px" }}>{text}</p>
+        {isLoading && !text ? (
+          <p style={{ fontSize: "13px", color: C.textMuted, lineHeight: 1.6, margin: "0 0 14px" }}>
+            Pensando una respuesta para esto…
+          </p>
+        ) : (
+          <p style={{ fontSize: "14px", color: C.text, lineHeight: 1.6, margin: "0 0 14px" }}>{text}</p>
+        )}
         <div style={{ display: "flex", alignItems: "center", gap: "12px", flexWrap: "wrap" }}>
           <button onClick={() => onNavigate?.(situation.linkRef)} style={btnLink}>
             {situation.linkLabel} <ArrowRight size={14} />
           </button>
-          <button onClick={() => openSituation(activeId)} style={{ ...btnBack, padding: 0 }}>
+          <button
+            onClick={() => !isLoading && otraIdea(activeId)}
+            disabled={isLoading}
+            style={{ ...btnBack, padding: 0, ...(isLoading ? btnDisabled : {}) }}
+          >
             <RotateCcw size={12} style={{ verticalAlign: "-1px", marginRight: "4px" }} />
             Otra idea para esto
           </button>

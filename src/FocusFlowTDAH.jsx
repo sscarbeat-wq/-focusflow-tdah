@@ -759,7 +759,7 @@ export default function FocusFlowTDAH({
           title="Compañero de apoyo"
           subtitle="Elige lo que estás sintiendo ahora mismo — respuestas pensadas para TDAH, sin que tengas que escribir nada."
         >
-          <CompanionPanel C={C} onNavigate={scrollToCompanionSection} />
+          <CompanionPanel C={C} userId={userId} onNavigate={scrollToCompanionSection} />
         </Panel>
 
         <div style={{ display: "grid", gridTemplateColumns: isNarrow ? "1fr" : "1fr 1fr", gap: "0 20px" }}>
