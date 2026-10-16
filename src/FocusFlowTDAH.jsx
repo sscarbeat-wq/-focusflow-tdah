@@ -29,6 +29,7 @@ import {
   Volume2,
   VolumeX,
   BookOpen,
+  HeartHandshake,
 } from "lucide-react";
 
 import InstallBanner from "./InstallBanner";
@@ -40,6 +41,7 @@ import WeeklyInsights from "./WeeklyInsights";
 import CalendarPanel from "./CalendarPanel";
 import BodyDoublePanel from "./BodyDoublePanel";
 import CbtProgramPanel from "./CbtProgramPanel";
+import CompanionPanel from "./CompanionPanel";
 import { scheduleStepsOnCalendar } from "./calendarSync";
 import { useBodyDouble } from "./bodyDouble";
 import { celebrate } from "./celebrate";
@@ -144,6 +146,9 @@ export default function FocusFlowTDAH({
 
   const breathingSectionRef = useRef(null);
   const stopThinkSectionRef = useRef(null);
+  const desglosadorSectionRef = useRef(null);
+  const auditorSectionRef = useRef(null);
+  const reestructuracionSectionRef = useRef(null);
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
     const atajo = params.get("atajo");
@@ -153,6 +158,21 @@ export default function FocusFlowTDAH({
       setTimeout(() => target.scrollIntoView({ behavior: "smooth", block: "center" }), 200);
     }
   }, []);
+
+  // El compañero de apoyo situacional enlaza a la herramienta de Senda que
+  // ya existe para cada situación, en vez de duplicar su contenido — mismo
+  // mecanismo de scroll que ya usaban los atajos de "?atajo=respirar/freno".
+  const companionSectionRefs = {
+    desglosador: desglosadorSectionRef,
+    burbuja: breathingSectionRef,
+    auditor: auditorSectionRef,
+    freno: stopThinkSectionRef,
+    reestructuracion: reestructuracionSectionRef,
+  };
+  const scrollToCompanionSection = (key) => {
+    const ref = companionSectionRefs[key];
+    if (ref?.current) ref.current.scrollIntoView({ behavior: "smooth", block: "center" });
+  };
 
   // ---- Persisted state ----
   const [xp, setXp] = useState(saved.xp);
@@ -733,8 +753,18 @@ export default function FocusFlowTDAH({
           evaluación o tratamiento profesional.
         </div>
 
+        <Panel C={C}
+          accent={C.rose}
+          icon={<HeartHandshake size={22} />}
+          title="Compañero de apoyo"
+          subtitle="Elige lo que estás sintiendo ahora mismo — respuestas pensadas para TDAH, sin que tengas que escribir nada."
+        >
+          <CompanionPanel C={C} onNavigate={scrollToCompanionSection} />
+        </Panel>
+
         <div style={{ display: "grid", gridTemplateColumns: isNarrow ? "1fr" : "1fr 1fr", gap: "0 20px" }}>
           <div>
+            <div ref={desglosadorSectionRef}>
             <Panel C={C}
               accent={C.mint}
               icon={<ListTree size={22} />}
@@ -861,7 +891,9 @@ export default function FocusFlowTDAH({
                 </>
               )}
             </Panel>
+            </div>
 
+            <div ref={auditorSectionRef}>
             <Panel C={C}
               accent={C.amber}
               icon={<Timer size={22} />}
@@ -949,6 +981,7 @@ export default function FocusFlowTDAH({
                 </div>
               )}
             </Panel>
+            </div>
 
             <Panel C={C}
               accent={C.lavender}
@@ -1147,6 +1180,7 @@ export default function FocusFlowTDAH({
             </Panel>
             </div>
 
+            <div ref={reestructuracionSectionRef}>
             <Panel C={C}
               accent={C.lavender}
               icon={<Brain size={22} />}
@@ -1222,6 +1256,7 @@ export default function FocusFlowTDAH({
                 </div>
               )}
             </Panel>
+            </div>
           </div>
         </div>
 
