@@ -1,10 +1,24 @@
 import React, { useState, useRef, useEffect, useCallback } from "react";
-import { Play, Pause, RotateCcw, Volume2, VolumeX } from "lucide-react";
+import { Play, Pause, RotateCcw, Volume2, VolumeX, EyeOff } from "lucide-react";
+import {
+  resetTracker,
+  recordLeave,
+  recordReturn,
+  formatDistractionSummary,
+  formatReturnToast,
+} from "./distractionTracker";
 
 // Modo Enfoque: Pomodoro + ruido blanco generado con Web Audio API.
 // No usa archivos de audio externos ni dependencias nuevas — el ruido blanco
 // se genera en tiempo real con un buffer de muestras aleatorias, así que no
 // hay nada que descargar ni licenciar.
+//
+// También incluye el "bloqueador de apps distractoras" (versión web): Senda
+// no puede bloquear de verdad otras apps del celular/computadora desde el
+// navegador, así que en vez de prometer algo que no puede cumplir, se limita
+// a avisar dentro del navegador — usa la Page Visibility API para notar
+// cuándo el paciente deja esta pestaña mientras una sesión de enfoque está
+// corriendo, y le avisa al volver cuánto tiempo estuvo fuera.
 
 const WORK_OPTIONS = [15, 20, 25, 30, 45];
 const BREAK_OPTIONS = [3, 5, 10, 15];
@@ -23,8 +37,11 @@ export default function FocusMode({ C, onSessionComplete, onSessionStart }) {
   const [running, setRunning] = useState(false);
   const [cyclesDone, setCyclesDone] = useState(0);
   const [noiseOn, setNoiseOn] = useState(false);
+  const [distraction, setDistraction] = useState(resetTracker());
+  const [distractionToast, setDistractionToast] = useState(null);
 
   const tickRef = useRef(null);
+  const distractionToastTimeout = useRef(null);
 
   // --- Temporizador ---
   useEffect(() => {
@@ -52,13 +69,48 @@ export default function FocusMode({ C, onSessionComplete, onSessionStart }) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [running, mode, breakMin, workMin]);
 
+  // --- Bloqueador de apps distractoras (versión web): aviso al dejar/volver
+  // a la pestaña, solo mientras una sesión de enfoque está realmente
+  // corriendo (no durante el descanso ni con el temporizador pausado) ---
+  useEffect(() => {
+    if (!running || mode !== "work") return;
+    const onVisibilityChange = () => {
+      if (document.hidden) {
+        setDistraction((s) => recordLeave(s, Date.now()));
+      } else {
+        setDistraction((s) => {
+          const { state, awayMs } = recordReturn(s, Date.now());
+          const toast = formatReturnToast(awayMs);
+          if (toast) {
+            setDistractionToast(toast);
+            if (distractionToastTimeout.current) clearTimeout(distractionToastTimeout.current);
+            distractionToastTimeout.current = setTimeout(() => setDistractionToast(null), 4000);
+          }
+          return state;
+        });
+      }
+    };
+    document.addEventListener("visibilitychange", onVisibilityChange);
+    return () => document.removeEventListener("visibilitychange", onVisibilityChange);
+  }, [running, mode]);
+
+  useEffect(() => {
+    return () => {
+      if (distractionToastTimeout.current) clearTimeout(distractionToastTimeout.current);
+    };
+  }, []);
+
   // Solo avisamos al padre cuando arranca una sesión NUEVA (secondsLeft
   // todavía en el total completo), no al reanudar después de una pausa —
   // así no se agenda un bloque de calendario duplicado cada vez que el
-  // paciente le da play/pausa varias veces a la misma sesión.
+  // paciente le da play/pausa varias veces a la misma sesión. Por el mismo
+  // motivo, el contador de distracciones también se reinicia solo aquí: una
+  // sesión nueva empieza con el contador en cero, pero pausar y reanudar la
+  // misma sesión no lo borra.
   const start = () => {
     if (mode === "work" && secondsLeft === workMin * 60) {
       onSessionStart?.(workMin);
+      setDistraction(resetTracker());
     }
     setRunning(true);
   };
@@ -67,6 +119,8 @@ export default function FocusMode({ C, onSessionComplete, onSessionStart }) {
     setRunning(false);
     setMode("work");
     setSecondsLeft(workMin * 60);
+    setDistraction(resetTracker());
+    setDistractionToast(null);
   };
 
   const changeWork = (min) => {
@@ -230,13 +284,39 @@ export default function FocusMode({ C, onSessionComplete, onSessionStart }) {
       </div>
 
       <div style={{ display: "flex", alignItems: "center", gap: "18px", marginBottom: "14px" }}>
-        <div>
+        <div style={{ position: "relative" }}>
           <div style={{ fontSize: "38px", fontWeight: 700, fontVariantNumeric: "tabular-nums", lineHeight: 1 }}>
             {fmt(secondsLeft)}
           </div>
           <div style={{ fontSize: "12px", color: C.textMuted, marginTop: "4px" }}>
             {mode === "work" ? "Sesión de enfoque" : "Descanso"} · {cyclesDone} completadas hoy
           </div>
+          {mode === "work" && formatDistractionSummary(distraction) && (
+            <div style={{ fontSize: "12px", color: C.textMuted, marginTop: "4px" }}>
+              {formatDistractionSummary(distraction)}
+            </div>
+          )}
+          {distractionToast && (
+            <div
+              style={{
+                position: "absolute",
+                bottom: "100%",
+                left: 0,
+                marginBottom: "6px",
+                background: C.mintDark,
+                color: "#fff",
+                fontSize: "12px",
+                padding: "6px 10px",
+                borderRadius: "6px",
+                width: "240px",
+                lineHeight: 1.4,
+                zIndex: 1,
+              }}
+            >
+              <EyeOff size={12} style={{ verticalAlign: "-1px", marginRight: "4px" }} />
+              {distractionToast}
+            </div>
+          )}
         </div>
         <div style={{ display: "flex", gap: "8px" }}>
           {!running ? (
@@ -263,7 +343,8 @@ export default function FocusMode({ C, onSessionComplete, onSessionStart }) {
       </div>
       <p style={{ fontSize: "12px", color: C.textMuted, margin: 0 }}>
         El ruido blanco se genera en el dispositivo, sin descargar nada. Al terminar cada sesión de enfoque suena una
-        campana suave.
+        campana suave. Si dejas esta pestaña mientras una sesión de enfoque está corriendo, Senda te avisa al volver
+        — no puede bloquear otras apps desde el navegador, pero sí puede avisarte cuánto tiempo estuviste fuera.
       </p>
     </div>
   );
