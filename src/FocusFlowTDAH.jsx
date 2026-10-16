@@ -28,6 +28,7 @@ import {
   Users,
   Volume2,
   VolumeX,
+  BookOpen,
 } from "lucide-react";
 
 import InstallBanner from "./InstallBanner";
@@ -38,11 +39,13 @@ import NotificationsPanel from "./NotificationsPanel";
 import WeeklyInsights from "./WeeklyInsights";
 import CalendarPanel from "./CalendarPanel";
 import BodyDoublePanel from "./BodyDoublePanel";
+import CbtProgramPanel from "./CbtProgramPanel";
 import { scheduleStepsOnCalendar } from "./calendarSync";
 import { useBodyDouble } from "./bodyDouble";
 import { celebrate } from "./celebrate";
 import { DEFAULT_STREAK, nextStreak, effectiveStreak } from "./streak";
 import { DEFAULT_MOOD_LOG, recordMood } from "./moodLog";
+import { DEFAULT_CBT_PROGRAM, markLessonComplete } from "./cbtProgram";
 
 const DEFAULT_PROGRESS = {
   xp: 0,
@@ -54,6 +57,7 @@ const DEFAULT_PROGRESS = {
   deskCleared: false,
   streak: DEFAULT_STREAK,
   moodLog: DEFAULT_MOOD_LOG,
+  cbtProgram: DEFAULT_CBT_PROGRAM,
 };
 
 // Panel y Toggle viven a nivel de módulo (no adentro de FocusFlowTDAH) para
@@ -160,6 +164,7 @@ export default function FocusFlowTDAH({
   const [deskCleared, setDeskCleared] = useState(saved.deskCleared);
   const [streak, setStreak] = useState(() => effectiveStreak(saved.streak));
   const [moodLog, setMoodLog] = useState(saved.moodLog);
+  const [cbtProgram, setCbtProgram] = useState(saved.cbtProgram);
 
   const firstRender = useRef(true);
   useEffect(() => {
@@ -167,9 +172,9 @@ export default function FocusFlowTDAH({
       firstRender.current = false;
       return;
     }
-    onProgressChange?.({ xp, jar, screensOff, sleepEnv, ateWell, hydrated, deskCleared, streak, moodLog });
+    onProgressChange?.({ xp, jar, screensOff, sleepEnv, ateWell, hydrated, deskCleared, streak, moodLog, cbtProgram });
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [xp, jar, screensOff, sleepEnv, ateWell, hydrated, deskCleared, streak, moodLog]);
+  }, [xp, jar, screensOff, sleepEnv, ateWell, hydrated, deskCleared, streak, moodLog, cbtProgram]);
 
   // ---- XP + jar ----
   const [xpMsg, setXpMsg] = useState("");
@@ -223,6 +228,17 @@ export default function FocusFlowTDAH({
     (mood, note) => {
       setMoodLog((prev) => recordMood(prev, mood, note));
       grantXp("registro de ánimo");
+    },
+    [grantXp]
+  );
+
+  // markLessonComplete es defensiva (ignora cualquier id que no sea la
+  // lección que de verdad toca ahora mismo), así que siempre es seguro
+  // llamarla directo desde el botón del panel.
+  const handleCbtLessonComplete = useCallback(
+    (lessonId, title) => {
+      setCbtProgram((prev) => markLessonComplete(prev, lessonId));
+      grantXp(`lección completada — ${title}`);
     },
     [grantXp]
   );
@@ -960,6 +976,15 @@ export default function FocusFlowTDAH({
               subtitle="Un check-in rápido al día — te ayuda a ver patrones entre tu ánimo y tus hábitos."
             >
               <MoodLog C={C} moodLog={moodLog} onSave={handleMoodSave} />
+            </Panel>
+
+            <Panel C={C}
+              accent={C.lavenderDark}
+              icon={<BookOpen size={22} />}
+              title="Programa breve de TCC"
+              subtitle="Una lección corta al día — psicoeducación práctica para TDAH, a tu propio ritmo."
+            >
+              <CbtProgramPanel C={C} program={cbtProgram} onComplete={handleCbtLessonComplete} />
             </Panel>
 
             <Panel C={C}
