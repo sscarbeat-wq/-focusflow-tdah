@@ -363,9 +363,10 @@ export default function FocusFlowTDAH({
   const [stepMin, setStepMin] = useState(5);
   // Energía sugerida para el paso que se está agregando a mano (inspirado
   // en el campo "Energy Level"/"Brain State" de Toodledo) — "" significa
-  // "cualquier energía", es decir, sin etiqueta. Los pasos que llegan del
-  // desglosador con IA no llevan esta etiqueta (la persona puede seguir
-  // agregando pasos a mano después para etiquetarlos).
+  // "cualquier energía", es decir, sin etiqueta. Los pasos que vienen del
+  // desglosador con IA también traen esta etiqueta (la IA la sugiere sola,
+  // ver api/breakdown-task.js); la persona puede dejarla o seguir
+  // agregando pasos a mano con su propia etiqueta.
   const [stepEnergy, setStepEnergy] = useState("");
 
   // Qué tan desglosado pedir el paso a paso con IA (inspirado en el control
@@ -447,6 +448,7 @@ export default function FocusFlowTDAH({
         text: s.text,
         min: s.min,
         done: false,
+        energy: s.energy || null,
       }));
       // Estos reemplazan la lista anterior por completo, así que el bloque
       // de calendario de cada uno arranca desde cero (offset 0), uno detrás
