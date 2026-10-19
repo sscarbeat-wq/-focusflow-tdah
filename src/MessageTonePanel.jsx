@@ -6,7 +6,9 @@ import { MODES, TONE_OPTIONS, cleanMessageText } from "./messageToneOptions";
 // "Ayuda con mensajes" (inspirado en Formalizer/Judge de Goblin Tools) —
 // reescribir el tono de un mensaje que vas a mandar, o leer con más calma
 // uno que ya recibiste. A diferencia de las demás funciones con IA de
-// Senda, aquí SÍ se pega texto libre real — por eso api/message-tone.js
+// Senda, aquí SÍ se pega texto libre real — por eso api/breakdown-task.js
+// (action: "message-tone"; comparte archivo con el desglosador para no
+// pasarse del límite de funciones serverless del plan gratuito de Vercel)
 // revisa el texto antes y después de pasar por la IA; si toca algo de
 // riesgo, este panel muestra el mismo mensaje fijo de crisis que el
 // Compañero de apoyo, nunca el resultado generado.
@@ -41,10 +43,11 @@ export default function MessageTonePanel({ C, userId }) {
     setError("");
     setResult(null);
     try {
-      const res = await fetch("/api/message-tone", {
+      const res = await fetch("/api/breakdown-task", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
+          action: "message-tone",
           userId,
           mode,
           text: cleanText,
