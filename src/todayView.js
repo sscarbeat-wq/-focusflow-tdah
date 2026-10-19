@@ -11,16 +11,37 @@
 // que responde "¿qué me falta AHORA?", en vez de tener que revisar panel
 // por panel para enterarte.
 import { todayEntry } from "./moodLog";
+import { todayEnergyEntry } from "./energyLog";
+import { todayDoses, doseTaken } from "./medicationLog";
 import { programStatus } from "./cbtProgram";
 import { pendingHabits } from "./weeklyInsights";
 
-// steps: array de pasos del desglosador (forma: {id, text, min, done})
-// moodLog, cbtProgram, habits: mismas formas que ya usa el resto de la app
-export function buildTodayItems({ steps, moodLog, cbtProgram, habits, now = new Date() } = {}) {
+// steps: array de pasos del desglosador (forma: {id, text, min, done,
+// energy?}) — energy es opcional ("baja"/"media"/"alta"), solo en pasos
+// agregados a mano.
+// moodLog, cbtProgram, habits: mismas formas que ya usa el resto de la app.
+// energyLog: mismo patrón que moodLog, para el check-in de energía.
+// medications, medicationDoseLog: mismas formas que usa MedicationPanel.
+export function buildTodayItems({
+  steps,
+  moodLog,
+  energyLog,
+  medications,
+  medicationDoseLog,
+  cbtProgram,
+  habits,
+  now = new Date(),
+} = {}) {
   const items = [];
 
   const pendingSteps = (steps || []).filter((s) => !s.done);
   if (pendingSteps.length > 0) {
+    // Si ya registró su energía de hoy, sugerimos primero el paso pendiente
+    // que coincide con ese nivel (si hay alguno etiquetado) — nunca
+    // escondemos los demás, solo cambiamos cuál se muestra como sugerencia.
+    const energyToday = todayEnergyEntry(energyLog, now);
+    const matching = energyToday ? pendingSteps.find((s) => s.energy === energyToday.level) : null;
+    const suggested = matching || pendingSteps[0];
     items.push({
       id: "steps",
       sectionRef: "desglosador",
@@ -28,7 +49,7 @@ export function buildTodayItems({ steps, moodLog, cbtProgram, habits, now = new 
         pendingSteps.length === 1
           ? "1 paso pendiente del desglosador"
           : `${pendingSteps.length} pasos pendientes del desglosador`,
-      detail: pendingSteps[0].text,
+      detail: matching ? `Sugerido para tu energía de hoy: ${suggested.text}` : suggested.text,
     });
   }
 
@@ -38,6 +59,30 @@ export function buildTodayItems({ steps, moodLog, cbtProgram, habits, now = new 
       sectionRef: "mood",
       label: "Todavía no registras cómo te sientes hoy",
       detail: null,
+    });
+  }
+
+  if (!todayEnergyEntry(energyLog, now)) {
+    items.push({
+      id: "energy",
+      sectionRef: "energy",
+      label: "Todavía no registras tu energía de hoy",
+      detail: null,
+    });
+  }
+
+  const pendingDoses = todayDoses(medications, now).filter(
+    (d) => !doseTaken(medicationDoseLog, d.medicationId, d.time, now)
+  );
+  if (pendingDoses.length > 0) {
+    items.push({
+      id: "medication",
+      sectionRef: "medication",
+      label:
+        pendingDoses.length === 1
+          ? "1 dosis de medicamento pendiente hoy"
+          : `${pendingDoses.length} dosis de medicamento pendientes hoy`,
+      detail: `${pendingDoses[0].time} — ${pendingDoses[0].medicationName}`,
     });
   }
 

@@ -7,8 +7,18 @@ import { buildTodayItems } from "./todayView";
 // renglón enlaza directo a la herramienta correspondiente (mismo mecanismo
 // de scroll que ya usa el Compañero de apoyo). Si no hay nada pendiente, lo
 // dice de forma positiva — nunca una lista vacía que se sienta como un error.
-export default function TodayPanel({ C, steps, moodLog, cbtProgram, habits, onNavigate }) {
-  const items = buildTodayItems({ steps, moodLog, cbtProgram, habits });
+export default function TodayPanel({
+  C,
+  steps,
+  moodLog,
+  energyLog,
+  medications,
+  medicationDoseLog,
+  cbtProgram,
+  habits,
+  onNavigate,
+}) {
+  const items = buildTodayItems({ steps, moodLog, energyLog, medications, medicationDoseLog, cbtProgram, habits });
 
   const itemStyle = {
     display: "flex",

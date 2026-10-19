@@ -1,5 +1,5 @@
 import React from "react";
-import { Flame } from "lucide-react";
+import { Flame, Trophy } from "lucide-react";
 
 // Mascota simple basada en emoji + CSS — sin dependencias nuevas ni assets
 // externos. Evoluciona según la racha actual. Pensada para poder cambiarse
@@ -13,17 +13,33 @@ const STAGES = [
   { min: 30, emoji: "🐉", label: "Imparable", hint: "30+ días — nivel leyenda." },
 ];
 
-function stageFor(count) {
+// Mensaje cuando la racha se acaba de reiniciar (current en 0 pero longest
+// > 0, es decir, ya había tenido una racha antes) — a propósito distinto del
+// de "nunca empezó" (longest también en 0): reiniciar una racha no es lo
+// mismo que no haber empezado nunca, y no hay razón para que se sienta
+// igual. Nada de lenguaje de "perdiste" o "rompiste" — eso alimenta el
+// rechazo a la sensibilidad al rechazo (RSD) común en TDAH, que ya está
+// documentado como consideración de diseño en otras partes de la app
+// (Compañero de apoyo, Ayuda con mensajes).
+const RESET_STAGE = {
+  emoji: "🥚",
+  label: "Volviendo a empezar — sin problema",
+  hint: "Las rachas suben y bajan. Lo que ya lograste sigue contando (mira tu mejor racha a la derecha).",
+};
+
+function stageFor(current, longest) {
+  if (current === 0 && longest > 0) return RESET_STAGE;
   let stage = STAGES[0];
   for (const s of STAGES) {
-    if (count >= s.min) stage = s;
+    if (current >= s.min) stage = s;
   }
   return stage;
 }
 
 export default function Mascot({ streak, C }) {
   const current = streak?.current || 0;
-  const stage = stageFor(current);
+  const longest = streak?.longest || 0;
+  const stage = stageFor(current, longest);
 
   return (
     <div
@@ -35,6 +51,7 @@ export default function Mascot({ streak, C }) {
         marginBottom: "20px",
         display: "flex",
         alignItems: "center",
+        flexWrap: "wrap",
         gap: "14px",
       }}
     >
@@ -73,6 +90,25 @@ export default function Mascot({ streak, C }) {
         <span style={{ fontSize: "15px", fontWeight: 700, color: C.text }}>{current}</span>
         <span style={{ fontSize: "11px", color: C.textMuted }}>{current === 1 ? "día" : "días"}</span>
       </div>
+      {longest > 0 && (
+        <div
+          title="Tu mejor racha — queda guardada aunque la racha actual se reinicie"
+          style={{
+            display: "flex",
+            alignItems: "center",
+            gap: "6px",
+            background: C.surfaceAlt,
+            border: `1px solid ${C.border}`,
+            borderRadius: "8px",
+            padding: "8px 12px",
+            flexShrink: 0,
+          }}
+        >
+          <Trophy size={16} color={C.lavender} />
+          <span style={{ fontSize: "15px", fontWeight: 700, color: C.text }}>{longest}</span>
+          <span style={{ fontSize: "11px", color: C.textMuted }}>mejor racha</span>
+        </div>
+      )}
     </div>
   );
 }
