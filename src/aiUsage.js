@@ -1,8 +1,9 @@
 // Utilidades de límite de uso mensual para funciones con IA — puras, sin
 // dependencias externas, siguiendo el mismo patrón que streak.js y
 // moodLog.js. Las usan los endpoints del servidor (api/breakdown-task.js,
-// api/companion-response.js), nunca el navegador del paciente directamente,
-// pero viven aquí junto a la demás lógica de progreso por consistencia.
+// api/companion-response.js, api/message-tone.js), nunca el navegador del
+// paciente directamente, pero viven aquí junto a la demás lógica de
+// progreso por consistencia.
 
 export const DEFAULT_AI_USAGE = { month: null, count: 0 };
 
@@ -49,4 +50,14 @@ export function nextAiUsage(prev, now = new Date()) {
 
 export function nextCompanionAiUsage(prev, now = new Date()) {
   return nextLimitedUsage(prev, COMPANION_AI_MONTHLY_LIMIT, now);
+}
+
+export const DEFAULT_MESSAGE_TONE_AI_USAGE = { month: null, count: 0 };
+
+// Límite mensual de usos de "Ayuda con mensajes" (reescribir tono / leer un
+// mensaje recibido). Mismo orden de magnitud que el del compañero de apoyo.
+export const MESSAGE_TONE_AI_MONTHLY_LIMIT = 30;
+
+export function nextMessageToneAiUsage(prev, now = new Date()) {
+  return nextLimitedUsage(prev, MESSAGE_TONE_AI_MONTHLY_LIMIT, now);
 }
