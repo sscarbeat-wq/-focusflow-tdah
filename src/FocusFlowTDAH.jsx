@@ -30,6 +30,8 @@ import {
   VolumeX,
   BookOpen,
   HeartHandshake,
+  MessageSquare,
+  ListChecks,
 } from "lucide-react";
 
 import InstallBanner from "./InstallBanner";
@@ -42,6 +44,8 @@ import CalendarPanel from "./CalendarPanel";
 import BodyDoublePanel from "./BodyDoublePanel";
 import CbtProgramPanel from "./CbtProgramPanel";
 import CompanionPanel from "./CompanionPanel";
+import TodayPanel from "./TodayPanel";
+import MessageTonePanel from "./MessageTonePanel";
 import { scheduleStepsOnCalendar } from "./calendarSync";
 import { useBodyDouble } from "./bodyDouble";
 import { celebrate } from "./celebrate";
@@ -149,6 +153,9 @@ export default function FocusFlowTDAH({
   const desglosadorSectionRef = useRef(null);
   const auditorSectionRef = useRef(null);
   const reestructuracionSectionRef = useRef(null);
+  const moodSectionRef = useRef(null);
+  const cbtSectionRef = useRef(null);
+  const habitsSectionRef = useRef(null);
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
     const atajo = params.get("atajo");
@@ -159,15 +166,19 @@ export default function FocusFlowTDAH({
     }
   }, []);
 
-  // El compañero de apoyo situacional enlaza a la herramienta de Senda que
-  // ya existe para cada situación, en vez de duplicar su contenido — mismo
-  // mecanismo de scroll que ya usaban los atajos de "?atajo=respirar/freno".
+  // El compañero de apoyo situacional y la vista "Hoy" enlazan a la
+  // herramienta de Senda que ya existe para cada pendiente, en vez de
+  // duplicar su contenido — mismo mecanismo de scroll que ya usaban los
+  // atajos de "?atajo=respirar/freno".
   const companionSectionRefs = {
     desglosador: desglosadorSectionRef,
     burbuja: breathingSectionRef,
     auditor: auditorSectionRef,
     freno: stopThinkSectionRef,
     reestructuracion: reestructuracionSectionRef,
+    mood: moodSectionRef,
+    cbt: cbtSectionRef,
+    habits: habitsSectionRef,
   };
   const scrollToCompanionSection = (key) => {
     const ref = companionSectionRefs[key];
@@ -272,6 +283,38 @@ export default function FocusFlowTDAH({
   const [stepDraft, setStepDraft] = useState("");
   const [stepMin, setStepMin] = useState(5);
 
+  // Qué tan desglosado pedir el paso a paso con IA (inspirado en el control
+  // de "picante" de Magic ToDo, de Goblin Tools) — "normal" es el
+  // comportamiento de siempre.
+  const [aiGranularity, setAiGranularity] = useState("normal");
+  const AI_GRANULARITY_OPTIONS = [
+    { id: "pocos", label: "Pocos pasos", maxSteps: 3 },
+    { id: "normal", label: "Normal", maxSteps: 5 },
+    { id: "muchos", label: "Muchos, bien chiquitos", maxSteps: 8 },
+  ];
+
+  // Modo "un paso a la vez" (inspirado en Taskmaster, de Goblin Tools) —
+  // preferencia de dispositivo, no de paciente, por eso vive en
+  // localStorage y no en el progreso guardado en Supabase.
+  const [oneStepMode, setOneStepMode] = useState(() => {
+    try {
+      return window.localStorage.getItem("senda-one-step-mode") === "on";
+    } catch (e) {
+      return false;
+    }
+  });
+  const toggleOneStepMode = () => {
+    setOneStepMode((prev) => {
+      const next = !prev;
+      try {
+        window.localStorage.setItem("senda-one-step-mode", next ? "on" : "off");
+      } catch (e) {
+        /* localStorage no disponible (modo privado, etc.) — seguimos solo con el estado en memoria */
+      }
+      return next;
+    });
+  };
+
   const addStep = () => {
     if (!stepDraft.trim() || steps.length >= 5) return;
     const newStep = { id: Date.now(), text: stepDraft.trim(), min: stepMin, done: false };
@@ -308,11 +351,12 @@ export default function FocusFlowTDAH({
       const res = await fetch("/api/breakdown-task", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ userId, task: bigTask.trim() }),
+        body: JSON.stringify({ userId, task: bigTask.trim(), granularity: aiGranularity }),
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || "No se pudo desglosar la tarea.");
-      const newSteps = (data.steps || []).slice(0, 5).map((s, i) => ({
+      const maxSteps = AI_GRANULARITY_OPTIONS.find((g) => g.id === aiGranularity)?.maxSteps || 5;
+      const newSteps = (data.steps || []).slice(0, maxSteps).map((s, i) => ({
         id: Date.now() + i,
         text: s.text,
         min: s.min,
@@ -754,6 +798,22 @@ export default function FocusFlowTDAH({
         </div>
 
         <Panel C={C}
+          accent={C.lavender}
+          icon={<ListChecks size={22} />}
+          title="Hoy"
+          subtitle="Lo que sigue pendiente ahora mismo, juntando lo que ya registraste en la app."
+        >
+          <TodayPanel
+            C={C}
+            steps={steps}
+            moodLog={moodLog}
+            cbtProgram={cbtProgram}
+            habits={{ screensOff, sleepEnv, ateWell, hydrated, deskCleared }}
+            onNavigate={scrollToCompanionSection}
+          />
+        </Panel>
+
+        <Panel C={C}
           accent={C.rose}
           icon={<HeartHandshake size={22} />}
           title="Compañero de apoyo"
@@ -780,6 +840,28 @@ export default function FocusFlowTDAH({
               />
               {bigTask.trim() && (
                 <>
+                  <p style={{ fontSize: "11px", color: C.textMuted, margin: "0 0 6px" }}>
+                    Qué tan desglosado, para este momento:
+                  </p>
+                  <div style={{ display: "flex", gap: "6px", flexWrap: "wrap", marginBottom: "10px" }}>
+                    {AI_GRANULARITY_OPTIONS.map((g) => (
+                      <button
+                        key={g.id}
+                        onClick={() => setAiGranularity(g.id)}
+                        style={{
+                          padding: "6px 10px",
+                          borderRadius: "6px",
+                          border: `1px solid ${aiGranularity === g.id ? C.lavender : C.border}`,
+                          background: aiGranularity === g.id ? C.lavender : "transparent",
+                          color: aiGranularity === g.id ? C.lavenderText : C.textMuted,
+                          fontSize: "12px",
+                          cursor: "pointer",
+                        }}
+                      >
+                        {g.label}
+                      </button>
+                    ))}
+                  </div>
                   <button
                     onClick={handleAiBreakdown}
                     disabled={aiLoading}
@@ -835,59 +917,99 @@ export default function FocusFlowTDAH({
                       <Plus size={14} /> Añadir
                     </button>
                   </div>
-                  <ol style={{ listStyle: "none", padding: 0, margin: 0 }}>
-                    {steps.map((s, i) => (
-                      <li
-                        key={s.id}
-                        style={{
-                          display: "flex",
-                          alignItems: "center",
-                          gap: "10px",
-                          padding: "8px 0",
-                          borderBottom: `1px solid ${C.border}`,
-                        }}
-                      >
-                        <span
-                          onClick={() => toggleStep(s.id)}
-                          style={{
-                            width: "22px",
-                            height: "22px",
-                            borderRadius: "50%",
-                            background: s.done ? C.mint : C.surfaceAlt,
-                            color: s.done ? C.mintText : C.textMuted,
-                            fontSize: "12px",
-                            fontWeight: 600,
-                            display: "flex",
-                            alignItems: "center",
-                            justifyContent: "center",
-                            flexShrink: 0,
-                            cursor: "pointer",
-                            border: `1px solid ${C.border}`,
-                          }}
-                        >
-                          {s.done ? <CheckCircle2 size={13} /> : i + 1}
-                        </span>
-                        <span
-                          style={{
-                            flex: 1,
-                            fontSize: "14px",
-                            textDecoration: s.done ? "line-through" : "none",
-                            color: s.done ? C.textMuted : C.text,
-                          }}
-                        >
-                          {s.text}
-                        </span>
-                        <span style={{ fontSize: "12px", color: C.textMuted }}>{s.min} min</span>
-                        <button
-                          onClick={() => removeStep(s.id)}
-                          style={{ background: "transparent", border: "none", cursor: "pointer", color: C.textMuted }}
-                          aria-label="Eliminar paso"
-                        >
-                          <Trash2 size={14} />
-                        </button>
-                      </li>
-                    ))}
-                  </ol>
+                  {steps.length > 0 && (
+                    <button
+                      onClick={toggleOneStepMode}
+                      style={{
+                        background: "transparent",
+                        border: "none",
+                        color: C.textMuted,
+                        fontSize: "11px",
+                        cursor: "pointer",
+                        padding: 0,
+                        marginBottom: "8px",
+                        display: "flex",
+                        alignItems: "center",
+                        gap: "4px",
+                      }}
+                    >
+                      <ListChecks size={12} />
+                      {oneStepMode ? "Ver todos los pasos" : "Ver un paso a la vez"}
+                    </button>
+                  )}
+                  {(() => {
+                    const pending = steps.filter((s) => !s.done);
+                    const visibleSteps = oneStepMode
+                      ? steps.filter((s) => s.done || s.id === pending[0]?.id)
+                      : steps;
+                    const hiddenPendingCount = oneStepMode ? Math.max(0, pending.length - (pending[0] ? 1 : 0)) : 0;
+                    return (
+                      <>
+                        <ol style={{ listStyle: "none", padding: 0, margin: 0 }}>
+                          {visibleSteps.map((s) => {
+                            const originalIndex = steps.findIndex((o) => o.id === s.id);
+                            return (
+                              <li
+                                key={s.id}
+                                style={{
+                                  display: "flex",
+                                  alignItems: "center",
+                                  gap: "10px",
+                                  padding: "8px 0",
+                                  borderBottom: `1px solid ${C.border}`,
+                                }}
+                              >
+                                <span
+                                  onClick={() => toggleStep(s.id)}
+                                  style={{
+                                    width: "22px",
+                                    height: "22px",
+                                    borderRadius: "50%",
+                                    background: s.done ? C.mint : C.surfaceAlt,
+                                    color: s.done ? C.mintText : C.textMuted,
+                                    fontSize: "12px",
+                                    fontWeight: 600,
+                                    display: "flex",
+                                    alignItems: "center",
+                                    justifyContent: "center",
+                                    flexShrink: 0,
+                                    cursor: "pointer",
+                                    border: `1px solid ${C.border}`,
+                                  }}
+                                >
+                                  {s.done ? <CheckCircle2 size={13} /> : originalIndex + 1}
+                                </span>
+                                <span
+                                  style={{
+                                    flex: 1,
+                                    fontSize: "14px",
+                                    textDecoration: s.done ? "line-through" : "none",
+                                    color: s.done ? C.textMuted : C.text,
+                                  }}
+                                >
+                                  {s.text}
+                                </span>
+                                <span style={{ fontSize: "12px", color: C.textMuted }}>{s.min} min</span>
+                                <button
+                                  onClick={() => removeStep(s.id)}
+                                  style={{ background: "transparent", border: "none", cursor: "pointer", color: C.textMuted }}
+                                  aria-label="Eliminar paso"
+                                >
+                                  <Trash2 size={14} />
+                                </button>
+                              </li>
+                            );
+                          })}
+                        </ol>
+                        {hiddenPendingCount > 0 && (
+                          <p style={{ fontSize: "12px", color: C.textMuted, margin: "8px 0 0" }}>
+                            +{hiddenPendingCount} paso{hiddenPendingCount === 1 ? "" : "s"} más esperando — se irán
+                            mostrando uno a la vez.
+                          </p>
+                        )}
+                      </>
+                    );
+                  })()}
                 </>
               )}
             </Panel>
@@ -1002,6 +1124,7 @@ export default function FocusFlowTDAH({
               />
             </Panel>
 
+            <div ref={moodSectionRef}>
             <Panel C={C}
               accent={C.rose}
               icon={<Smile size={22} />}
@@ -1010,7 +1133,9 @@ export default function FocusFlowTDAH({
             >
               <MoodLog C={C} moodLog={moodLog} onSave={handleMoodSave} />
             </Panel>
+            </div>
 
+            <div ref={cbtSectionRef}>
             <Panel C={C}
               accent={C.lavenderDark}
               icon={<BookOpen size={22} />}
@@ -1019,6 +1144,7 @@ export default function FocusFlowTDAH({
             >
               <CbtProgramPanel C={C} program={cbtProgram} onComplete={handleCbtLessonComplete} />
             </Panel>
+            </div>
 
             <Panel C={C}
               accent={C.amber}
@@ -1257,9 +1383,19 @@ export default function FocusFlowTDAH({
               )}
             </Panel>
             </div>
+
+            <Panel C={C}
+              accent={C.mint}
+              icon={<MessageSquare size={22} />}
+              title="Ayuda con mensajes"
+              subtitle="Reescribe el tono de un mensaje que vas a mandar, o lee con más calma uno que recibiste."
+            >
+              <MessageTonePanel C={C} userId={userId} />
+            </Panel>
           </div>
         </div>
 
+        <div ref={habitsSectionRef}>
         <Panel C={C}
           accent={C.amber}
           icon={<Moon size={22} />}
@@ -1311,6 +1447,7 @@ export default function FocusFlowTDAH({
             </div>
           </div>
         </Panel>
+        </div>
 
         <p style={{ fontSize: "12px", color: C.textMuted, textAlign: "center", lineHeight: 1.6, marginTop: "8px" }}>
           Esto es una herramienta de apoyo y no reemplaza una evaluación o tratamiento profesional.
