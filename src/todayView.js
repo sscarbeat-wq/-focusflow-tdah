@@ -16,6 +16,7 @@ import { todayDoses, doseTaken } from "./medicationLog";
 import { paymentsDueSoon } from "./paymentsLog";
 import { programStatus } from "./cbtProgram";
 import { pendingHabits } from "./weeklyInsights";
+import { oldForgottenNote } from "./quickCapture";
 
 // steps: array de pasos del desglosador (forma: {id, text, min, done,
 // energy?}) — energy es opcional ("baja"/"media"/"alta"), solo en pasos
@@ -33,6 +34,7 @@ export function buildTodayItems({
   paymentPaidLog,
   cbtProgram,
   habits,
+  quickNotes,
   now = new Date(),
 } = {}) {
   const items = [];
@@ -125,6 +127,19 @@ export function buildTodayItems({
           ? "1 hábito de autocuidado pendiente"
           : `${pending.length} hábitos de autocuidado pendientes`,
       detail: pending.map((h) => h.label).join(", "),
+    });
+  }
+
+  // "El Regreso" de Eco: una nota de Captura rápida que lleva varios días
+  // sin resolverse resurge aquí sola, en vez de quedarse enterrada en una
+  // lista que nadie vuelve a revisar.
+  const forgotten = oldForgottenNote(quickNotes, now);
+  if (forgotten) {
+    items.push({
+      id: "quicknote",
+      sectionRef: "quickCapture",
+      label: "Una nota de hace unos días volvió a aparecer",
+      detail: forgotten.text,
     });
   }
 

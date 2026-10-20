@@ -18,6 +18,7 @@ export default function TodayPanel({
   paymentPaidLog,
   cbtProgram,
   habits,
+  quickNotes,
   onNavigate,
 }) {
   const items = buildTodayItems({
@@ -30,6 +31,7 @@ export default function TodayPanel({
     paymentPaidLog,
     cbtProgram,
     habits,
+    quickNotes,
   });
 
   const itemStyle = {

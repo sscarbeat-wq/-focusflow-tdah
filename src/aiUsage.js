@@ -1,7 +1,8 @@
 // Utilidades de límite de uso mensual para funciones con IA — puras, sin
 // dependencias externas, siguiendo el mismo patrón que streak.js y
 // moodLog.js. Las usan los endpoints del servidor (api/breakdown-task.js,
-// api/companion-response.js, api/message-tone.js), nunca el navegador del
+// api/companion-response.js, api/quick-capture.js — "Ayuda con mensajes"
+// vive fusionada dentro de api/breakdown-task.js), nunca el navegador del
 // paciente directamente, pero viven aquí junto a la demás lógica de
 // progreso por consistencia.
 
@@ -60,4 +61,16 @@ export const MESSAGE_TONE_AI_MONTHLY_LIMIT = 30;
 
 export function nextMessageToneAiUsage(prev, now = new Date()) {
   return nextLimitedUsage(prev, MESSAGE_TONE_AI_MONTHLY_LIMIT, now);
+}
+
+export const DEFAULT_QUICK_CAPTURE_AI_USAGE = { month: null, count: 0 };
+
+// Límite mensual de usos de "Captura rápida" (transcripción de voz +
+// clasificación con IA). Mismo orden de magnitud que el desglosador: cada
+// nota es corta (unos segundos de audio), así que el costo real por uso es
+// mínimo incluso en el tope.
+export const QUICK_CAPTURE_AI_MONTHLY_LIMIT = 40;
+
+export function nextQuickCaptureAiUsage(prev, now = new Date()) {
+  return nextLimitedUsage(prev, QUICK_CAPTURE_AI_MONTHLY_LIMIT, now);
 }
