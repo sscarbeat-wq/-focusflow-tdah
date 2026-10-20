@@ -1019,6 +1019,11 @@ export default function FocusFlowTDAH({
                       <Plus size={14} /> Añadir
                     </button>
                   </div>
+                  {steps.length >= 5 && (
+                    <p style={{ fontSize: "11px", color: C.textMuted, margin: "-6px 0 10px" }}>
+                      Ya tienes 5 pasos — es el máximo a la vez. Borra uno (el bote de basura) para poder agregar otro.
+                    </p>
+                  )}
                   {steps.length > 0 && (
                     <button
                       onClick={toggleOneStepMode}
