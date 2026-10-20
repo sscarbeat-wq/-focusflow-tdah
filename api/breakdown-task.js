@@ -34,6 +34,7 @@ import {
 } from "../src/aiUsage.js";
 import { containsRiskLanguage } from "../src/companionSituations.js";
 import { MODES, isValidMode, isValidTone, cleanMessageText, toneHint } from "../src/messageToneOptions.js";
+import { ENERGY_LEVELS } from "../src/energyLog.js";
 
 const supabaseAdmin = createClient(process.env.VITE_SUPABASE_URL, process.env.SUPABASE_SERVICE_ROLE_KEY);
 
@@ -135,8 +136,11 @@ async function callOpenAiBreakdown(task, granularityKey) {
             'Ayudas a personas con TDAH a desglosar una tarea grande en pasos pequeños y concretos. ' +
             `Responde SOLO con un objeto JSON de la forma {"steps": [...]}, donde "steps" es un arreglo de ` +
             `${preset.range} objetos (${preset.hint}). Cada objeto debe tener "text" (el paso, en español de ` +
-            'México, una frase corta y accionable, sin numerarla) y "min" (minutos estimados, un entero entre ' +
-            "2 y 20). No incluyas nada más que ese objeto JSON.",
+            'México, una frase corta y accionable, sin numerarla), "min" (minutos estimados, un entero entre ' +
+            '2 y 20) y "energy" (qué tanta energía física/mental pide ese paso en concreto: "baja", "media" o ' +
+            '"alta" — por ejemplo, "junta tus papeles en un montón" es energía baja, y "redacta el primer ' +
+            'párrafo" es energía alta; varía el nivel entre los pasos cuando tenga sentido, no pongas el mismo ' +
+            "en todos). No incluyas nada más que ese objeto JSON.",
         },
         { role: "user", content: `Tarea: ${task}` },
       ],
@@ -172,6 +176,10 @@ async function callOpenAiBreakdown(task, granularityKey) {
     .map((s) => ({
       text: String(s?.text || "").trim().slice(0, 120),
       min: Math.max(2, Math.min(20, Math.round(Number(s?.min) || 10))),
+      // Si la IA manda algo que no sea uno de los 3 niveles válidos, se
+      // queda sin etiqueta (null) en vez de fallar todo el desglose — el
+      // paso simplemente no se sugiere por energía, pero sigue funcionando.
+      energy: ENERGY_LEVELS.includes(s?.energy) ? s.energy : null,
     }))
     .filter((s) => s.text);
 

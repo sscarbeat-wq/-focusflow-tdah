@@ -32,12 +32,16 @@ import {
   HeartHandshake,
   MessageSquare,
   ListChecks,
+  Pill,
+  BatteryMedium,
 } from "lucide-react";
 
 import InstallBanner from "./InstallBanner";
 import Mascot from "./Mascot";
 import FocusMode from "./FocusMode";
 import MoodLog from "./MoodLog";
+import EnergyLog from "./EnergyLog";
+import MedicationPanel from "./MedicationPanel";
 import NotificationsPanel from "./NotificationsPanel";
 import WeeklyInsights from "./WeeklyInsights";
 import CalendarPanel from "./CalendarPanel";
@@ -51,6 +55,15 @@ import { useBodyDouble } from "./bodyDouble";
 import { celebrate } from "./celebrate";
 import { DEFAULT_STREAK, nextStreak, effectiveStreak } from "./streak";
 import { DEFAULT_MOOD_LOG, recordMood } from "./moodLog";
+import { DEFAULT_ENERGY_LOG, recordEnergy } from "./energyLog";
+import {
+  DEFAULT_MEDICATIONS,
+  DEFAULT_MEDICATION_DOSE_LOG,
+  addMedication,
+  removeMedication,
+  logDose,
+  undoDose,
+} from "./medicationLog";
 import { DEFAULT_CBT_PROGRAM, markLessonComplete } from "./cbtProgram";
 
 const DEFAULT_PROGRESS = {
@@ -63,6 +76,9 @@ const DEFAULT_PROGRESS = {
   deskCleared: false,
   streak: DEFAULT_STREAK,
   moodLog: DEFAULT_MOOD_LOG,
+  energyLog: DEFAULT_ENERGY_LOG,
+  medications: DEFAULT_MEDICATIONS,
+  medicationDoseLog: DEFAULT_MEDICATION_DOSE_LOG,
   cbtProgram: DEFAULT_CBT_PROGRAM,
 };
 
@@ -154,6 +170,8 @@ export default function FocusFlowTDAH({
   const auditorSectionRef = useRef(null);
   const reestructuracionSectionRef = useRef(null);
   const moodSectionRef = useRef(null);
+  const energySectionRef = useRef(null);
+  const medicationSectionRef = useRef(null);
   const cbtSectionRef = useRef(null);
   const habitsSectionRef = useRef(null);
   useEffect(() => {
@@ -177,6 +195,8 @@ export default function FocusFlowTDAH({
     freno: stopThinkSectionRef,
     reestructuracion: reestructuracionSectionRef,
     mood: moodSectionRef,
+    energy: energySectionRef,
+    medication: medicationSectionRef,
     cbt: cbtSectionRef,
     habits: habitsSectionRef,
   };
@@ -195,6 +215,9 @@ export default function FocusFlowTDAH({
   const [deskCleared, setDeskCleared] = useState(saved.deskCleared);
   const [streak, setStreak] = useState(() => effectiveStreak(saved.streak));
   const [moodLog, setMoodLog] = useState(saved.moodLog);
+  const [energyLog, setEnergyLog] = useState(saved.energyLog);
+  const [medications, setMedications] = useState(saved.medications);
+  const [medicationDoseLog, setMedicationDoseLog] = useState(saved.medicationDoseLog);
   const [cbtProgram, setCbtProgram] = useState(saved.cbtProgram);
 
   const firstRender = useRef(true);
@@ -203,9 +226,37 @@ export default function FocusFlowTDAH({
       firstRender.current = false;
       return;
     }
-    onProgressChange?.({ xp, jar, screensOff, sleepEnv, ateWell, hydrated, deskCleared, streak, moodLog, cbtProgram });
+    onProgressChange?.({
+      xp,
+      jar,
+      screensOff,
+      sleepEnv,
+      ateWell,
+      hydrated,
+      deskCleared,
+      streak,
+      moodLog,
+      energyLog,
+      medications,
+      medicationDoseLog,
+      cbtProgram,
+    });
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [xp, jar, screensOff, sleepEnv, ateWell, hydrated, deskCleared, streak, moodLog, cbtProgram]);
+  }, [
+    xp,
+    jar,
+    screensOff,
+    sleepEnv,
+    ateWell,
+    hydrated,
+    deskCleared,
+    streak,
+    moodLog,
+    energyLog,
+    medications,
+    medicationDoseLog,
+    cbtProgram,
+  ]);
 
   // ---- XP + jar ----
   const [xpMsg, setXpMsg] = useState("");
@@ -263,6 +314,34 @@ export default function FocusFlowTDAH({
     [grantXp]
   );
 
+  const handleEnergySave = useCallback(
+    (level) => {
+      setEnergyLog((prev) => recordEnergy(prev, level));
+      grantXp("registro de energía");
+    },
+    [grantXp]
+  );
+
+  const handleAddMedication = useCallback((med) => {
+    setMedications((prev) => addMedication(prev, med));
+  }, []);
+
+  const handleRemoveMedication = useCallback((id) => {
+    setMedications((prev) => removeMedication(prev, id));
+  }, []);
+
+  const handleLogDose = useCallback(
+    (medicationId, time, note) => {
+      setMedicationDoseLog((prev) => logDose(prev, medicationId, time, note));
+      grantXp("dosis de medicamento registrada");
+    },
+    [grantXp]
+  );
+
+  const handleUndoDose = useCallback((medicationId, time) => {
+    setMedicationDoseLog((prev) => undoDose(prev, medicationId, time));
+  }, []);
+
   // markLessonComplete es defensiva (ignora cualquier id que no sea la
   // lección que de verdad toca ahora mismo), así que siempre es seguro
   // llamarla directo desde el botón del panel.
@@ -282,6 +361,13 @@ export default function FocusFlowTDAH({
   const [steps, setSteps] = useState([]);
   const [stepDraft, setStepDraft] = useState("");
   const [stepMin, setStepMin] = useState(5);
+  // Energía sugerida para el paso que se está agregando a mano (inspirado
+  // en el campo "Energy Level"/"Brain State" de Toodledo) — "" significa
+  // "cualquier energía", es decir, sin etiqueta. Los pasos que vienen del
+  // desglosador con IA también traen esta etiqueta (la IA la sugiere sola,
+  // ver api/breakdown-task.js); la persona puede dejarla o seguir
+  // agregando pasos a mano con su propia etiqueta.
+  const [stepEnergy, setStepEnergy] = useState("");
 
   // Qué tan desglosado pedir el paso a paso con IA (inspirado en el control
   // de "picante" de Magic ToDo, de Goblin Tools) — "normal" es el
@@ -317,7 +403,7 @@ export default function FocusFlowTDAH({
 
   const addStep = () => {
     if (!stepDraft.trim() || steps.length >= 5) return;
-    const newStep = { id: Date.now(), text: stepDraft.trim(), min: stepMin, done: false };
+    const newStep = { id: Date.now(), text: stepDraft.trim(), min: stepMin, done: false, energy: stepEnergy || null };
     // El bloque de calendario de este paso empieza después de los minutos
     // de los pasos que ya estaban en la lista, para que vayan quedando uno
     // detrás del otro en vez de encimados. Si el calendario no está
@@ -328,6 +414,7 @@ export default function FocusFlowTDAH({
     setSteps((p) => [...p, newStep]);
     setStepDraft("");
     setStepMin(5);
+    setStepEnergy("");
   };
   const toggleStep = (id) =>
     setSteps((p) =>
@@ -361,6 +448,7 @@ export default function FocusFlowTDAH({
         text: s.text,
         min: s.min,
         done: false,
+        energy: s.energy || null,
       }));
       // Estos reemplazan la lista anterior por completo, así que el bloque
       // de calendario de cada uno arranca desde cero (offset 0), uno detrás
@@ -807,6 +895,9 @@ export default function FocusFlowTDAH({
             C={C}
             steps={steps}
             moodLog={moodLog}
+            energyLog={energyLog}
+            medications={medications}
+            medicationDoseLog={medicationDoseLog}
             cbtProgram={cbtProgram}
             habits={{ screensOff, sleepEnv, ateWell, hydrated, deskCleared }}
             onNavigate={scrollToCompanionSection}
@@ -903,6 +994,17 @@ export default function FocusFlowTDAH({
                         </option>
                       ))}
                     </select>
+                    <select
+                      value={stepEnergy}
+                      onChange={(e) => setStepEnergy(e.target.value)}
+                      title="Energía que requiere este paso (opcional) — se usa para sugerirlo en 'Hoy' según tu check-in de energía"
+                      style={{ ...inputStyle, width: "auto" }}
+                    >
+                      <option value="">Cualquier energía</option>
+                      <option value="baja">Energía baja</option>
+                      <option value="media">Energía media</option>
+                      <option value="alta">Energía alta</option>
+                    </select>
                     <button
                       onClick={addStep}
                       disabled={steps.length >= 5 || !stepDraft.trim()}
@@ -917,6 +1019,11 @@ export default function FocusFlowTDAH({
                       <Plus size={14} /> Añadir
                     </button>
                   </div>
+                  {steps.length >= 5 && (
+                    <p style={{ fontSize: "11px", color: C.textMuted, margin: "-6px 0 10px" }}>
+                      Ya tienes 5 pasos — es el máximo a la vez. Borra uno (el bote de basura) para poder agregar otro.
+                    </p>
+                  )}
                   {steps.length > 0 && (
                     <button
                       onClick={toggleOneStepMode}
@@ -990,6 +1097,21 @@ export default function FocusFlowTDAH({
                                   {s.text}
                                 </span>
                                 <span style={{ fontSize: "12px", color: C.textMuted }}>{s.min} min</span>
+                                {s.energy && (
+                                  <span
+                                    title={`Pensado para energía ${s.energy}`}
+                                    style={{
+                                      fontSize: "11px",
+                                      color: C.textMuted,
+                                      background: C.surfaceAlt,
+                                      border: `1px solid ${C.border}`,
+                                      borderRadius: "10px",
+                                      padding: "2px 7px",
+                                    }}
+                                  >
+                                    {s.energy}
+                                  </span>
+                                )}
                                 <button
                                   onClick={() => removeStep(s.id)}
                                   style={{ background: "transparent", border: "none", cursor: "pointer", color: C.textMuted }}
@@ -1196,6 +1318,36 @@ export default function FocusFlowTDAH({
           </div>
 
           <div>
+            <div ref={energySectionRef}>
+            <Panel C={C}
+              accent={C.amber}
+              icon={<BatteryMedium size={22} />}
+              title="Check-in de energía"
+              subtitle="Igual que el de ánimo, pero de energía — se usa para sugerirte qué paso del desglosador conviene intentar primero."
+            >
+              <EnergyLog C={C} energyLog={energyLog} onSave={handleEnergySave} />
+            </Panel>
+            </div>
+
+            <div ref={medicationSectionRef}>
+            <Panel C={C}
+              accent={C.rose}
+              icon={<Pill size={22} />}
+              title="Medicamentos"
+              subtitle="Horarios, registro de dosis tomadas y notas de efectos secundarios — para ti y, si quieres, para compartir con tu médico."
+            >
+              <MedicationPanel
+                C={C}
+                medications={medications}
+                doseLog={medicationDoseLog}
+                onAdd={handleAddMedication}
+                onRemove={handleRemoveMedication}
+                onLogDose={handleLogDose}
+                onUndoDose={handleUndoDose}
+              />
+            </Panel>
+            </div>
+
             <div ref={stopThinkSectionRef}>
             <Panel C={C}
               accent={C.lavender}
