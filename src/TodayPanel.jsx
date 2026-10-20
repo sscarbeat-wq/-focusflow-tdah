@@ -14,11 +14,23 @@ export default function TodayPanel({
   energyLog,
   medications,
   medicationDoseLog,
+  payments,
+  paymentPaidLog,
   cbtProgram,
   habits,
   onNavigate,
 }) {
-  const items = buildTodayItems({ steps, moodLog, energyLog, medications, medicationDoseLog, cbtProgram, habits });
+  const items = buildTodayItems({
+    steps,
+    moodLog,
+    energyLog,
+    medications,
+    medicationDoseLog,
+    payments,
+    paymentPaidLog,
+    cbtProgram,
+    habits,
+  });
 
   const itemStyle = {
     display: "flex",
