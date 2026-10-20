@@ -312,16 +312,16 @@ export default function QuickCapturePanel({
                 suggestion.fields?.amount ? `, ${suggestion.fields.amount}` : ""
               }${suggestion.fields?.dueDay ? `, día ${suggestion.fields.dueDay}` : ""}. ¿Lo agrego a Pagos y suscripciones?`}
             {suggestion.type === "paso" &&
-              `Parece un paso para el desglosador: "${suggestion.fields?.text || suggestion.noteText}"${
+              `Parece un pendiente: "${suggestion.fields?.text || suggestion.noteText}"${
                 suggestion.fields?.min ? ` (~${suggestion.fields.min} min)` : ""
-              }. ¿Lo agrego a tus pasos?`}
+              }. ¿Lo agrego a tus pasos de hoy?`}
             {suggestion.type === "nota" && `Nota: "${suggestion.noteText}"`}
           </p>
 
           {!canConfirm && suggestion.type !== "nota" && (
             <p style={{ fontSize: "11px", color: C.textMuted, margin: "0 0 10px" }}>
               {suggestion.type === "paso" && canAddStep === false
-                ? "Ya tienes 5 pasos en el desglosador ahora mismo, así que la guardo como nota en vez de agregarla directo."
+                ? "Ya tienes 5 pasos en tu lista de hoy, así que la guardo como nota en vez de agregarla directo."
                 : "Faltó algún dato para agregarlo directo, así que la guardo como nota en vez de adivinar."}
             </p>
           )}
