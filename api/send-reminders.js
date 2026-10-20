@@ -16,6 +16,12 @@
 // vez al día) antes de bajar de plan. Ver roadmap para más detalle.
 import { createClient } from "@supabase/supabase-js";
 import webpush from "web-push";
+// Import con extensión ".js" explícita a propósito — este archivo es parte
+// de una función serverless de Vercel, y un import relativo sin extensión
+// puede resolverse bien en el navegador (Vite) pero tronar el empacador de
+// funciones de Vercel (ver la lección del 20 de octubre de 2026 en el
+// roadmap, encontrada justo con este mismo patrón en energyLog.js).
+import { paymentsDueSoon } from "../src/paymentsLog.js";
 
 const supabaseAdmin = createClient(process.env.VITE_SUPABASE_URL, process.env.SUPABASE_SERVICE_ROLE_KEY);
 
@@ -94,16 +100,46 @@ async function handleDailyCheck(req, res) {
         body = "Tómate 10 segundos para registrar tu ánimo en Senda.";
       }
 
-      if (!title) continue; // ya hizo su check-in hoy y su racha no corre riesgo — no lo molestamos
+      if (title) {
+        try {
+          await webpush.sendNotification(sub.subscription, JSON.stringify({ title, body, url: "/" }));
+          sent += 1;
+        } catch (err) {
+          if (err.statusCode === 404 || err.statusCode === 410) {
+            toRemove.push(sub.endpoint); // el navegador ya no existe / se desinstaló
+          } else {
+            console.error("Error enviando push a", sub.endpoint, err.message);
+          }
+        }
+      } // si no hay título, ya hizo su check-in hoy y su racha no corre riesgo — no lo molestamos con esto
 
-      try {
-        await webpush.sendNotification(sub.subscription, JSON.stringify({ title, body, url: "/" }));
-        sent += 1;
-      } catch (err) {
-        if (err.statusCode === 404 || err.statusCode === 410) {
-          toRemove.push(sub.endpoint); // el navegador ya no existe / se desinstaló
-        } else {
-          console.error("Error enviando push a", sub.endpoint, err.message);
+      // Pagos/suscripciones próximos a vencer (3 días antes o el mismo día,
+      // ver src/paymentsLog.js) — independiente del aviso de racha/ánimo de
+      // arriba, así que puede mandar su propio push aunque el de arriba no
+      // haya aplicado hoy.
+      const userPayments = progress.payments || [];
+      if (userPayments.length > 0) {
+        const duePayments = paymentsDueSoon(userPayments, progress.paymentPaidLog || {}, mxNow());
+        for (const p of duePayments) {
+          try {
+            await webpush.sendNotification(
+              sub.subscription,
+              JSON.stringify({
+                title: "Pago próximo a vencer 💳",
+                body: `${p.name}${p.amount ? ` — ${p.amount}` : ""} — ${
+                  p.daysUntil === 0 ? "vence hoy" : `vence en ${p.daysUntil} día${p.daysUntil === 1 ? "" : "s"}`
+                }`,
+                url: "/",
+              })
+            );
+            sent += 1;
+          } catch (err) {
+            if (err.statusCode === 404 || err.statusCode === 410) {
+              toRemove.push(sub.endpoint);
+            } else {
+              console.error("Error enviando push de pago a", sub.endpoint, err.message);
+            }
+          }
         }
       }
     }

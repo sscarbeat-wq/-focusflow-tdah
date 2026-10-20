@@ -13,6 +13,7 @@
 import { todayEntry } from "./moodLog";
 import { todayEnergyEntry } from "./energyLog";
 import { todayDoses, doseTaken } from "./medicationLog";
+import { paymentsDueSoon } from "./paymentsLog";
 import { programStatus } from "./cbtProgram";
 import { pendingHabits } from "./weeklyInsights";
 
@@ -28,6 +29,8 @@ export function buildTodayItems({
   energyLog,
   medications,
   medicationDoseLog,
+  payments,
+  paymentPaidLog,
   cbtProgram,
   habits,
   now = new Date(),
@@ -83,6 +86,22 @@ export function buildTodayItems({
           ? "1 dosis de medicamento pendiente hoy"
           : `${pendingDoses.length} dosis de medicamento pendientes hoy`,
       detail: `${pendingDoses[0].time} — ${pendingDoses[0].medicationName}`,
+    });
+  }
+
+  const duePayments = paymentsDueSoon(payments, paymentPaidLog, now);
+  if (duePayments.length > 0) {
+    const first = duePayments[0];
+    items.push({
+      id: "payments",
+      sectionRef: "payments",
+      label:
+        duePayments.length === 1
+          ? "1 pago por vencer"
+          : `${duePayments.length} pagos por vencer`,
+      detail: `${first.name}${first.amount ? ` — ${first.amount}` : ""} (${
+        first.daysUntil === 0 ? "hoy" : `en ${first.daysUntil} día${first.daysUntil === 1 ? "" : "s"}`
+      })`,
     });
   }
 

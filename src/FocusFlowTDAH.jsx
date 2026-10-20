@@ -34,6 +34,8 @@ import {
   ListChecks,
   Pill,
   BatteryMedium,
+  Shuffle,
+  CreditCard,
 } from "lucide-react";
 
 import InstallBanner from "./InstallBanner";
@@ -42,6 +44,7 @@ import FocusMode from "./FocusMode";
 import MoodLog from "./MoodLog";
 import EnergyLog from "./EnergyLog";
 import MedicationPanel from "./MedicationPanel";
+import PaymentsPanel from "./PaymentsPanel";
 import NotificationsPanel from "./NotificationsPanel";
 import WeeklyInsights from "./WeeklyInsights";
 import CalendarPanel from "./CalendarPanel";
@@ -64,6 +67,15 @@ import {
   logDose,
   undoDose,
 } from "./medicationLog";
+import {
+  DEFAULT_PAYMENTS,
+  DEFAULT_PAYMENT_PAID_LOG,
+  addPayment,
+  removePayment,
+  markPaid,
+  unmarkPaid,
+} from "./paymentsLog";
+import { pickRandomStep } from "./choosePick";
 import { DEFAULT_CBT_PROGRAM, markLessonComplete } from "./cbtProgram";
 
 const DEFAULT_PROGRESS = {
@@ -79,6 +91,8 @@ const DEFAULT_PROGRESS = {
   energyLog: DEFAULT_ENERGY_LOG,
   medications: DEFAULT_MEDICATIONS,
   medicationDoseLog: DEFAULT_MEDICATION_DOSE_LOG,
+  payments: DEFAULT_PAYMENTS,
+  paymentPaidLog: DEFAULT_PAYMENT_PAID_LOG,
   cbtProgram: DEFAULT_CBT_PROGRAM,
 };
 
@@ -172,6 +186,7 @@ export default function FocusFlowTDAH({
   const moodSectionRef = useRef(null);
   const energySectionRef = useRef(null);
   const medicationSectionRef = useRef(null);
+  const paymentsSectionRef = useRef(null);
   const cbtSectionRef = useRef(null);
   const habitsSectionRef = useRef(null);
   useEffect(() => {
@@ -197,6 +212,7 @@ export default function FocusFlowTDAH({
     mood: moodSectionRef,
     energy: energySectionRef,
     medication: medicationSectionRef,
+    payments: paymentsSectionRef,
     cbt: cbtSectionRef,
     habits: habitsSectionRef,
   };
@@ -218,6 +234,8 @@ export default function FocusFlowTDAH({
   const [energyLog, setEnergyLog] = useState(saved.energyLog);
   const [medications, setMedications] = useState(saved.medications);
   const [medicationDoseLog, setMedicationDoseLog] = useState(saved.medicationDoseLog);
+  const [payments, setPayments] = useState(saved.payments);
+  const [paymentPaidLog, setPaymentPaidLog] = useState(saved.paymentPaidLog);
   const [cbtProgram, setCbtProgram] = useState(saved.cbtProgram);
 
   const firstRender = useRef(true);
@@ -239,6 +257,8 @@ export default function FocusFlowTDAH({
       energyLog,
       medications,
       medicationDoseLog,
+      payments,
+      paymentPaidLog,
       cbtProgram,
     });
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -255,6 +275,8 @@ export default function FocusFlowTDAH({
     energyLog,
     medications,
     medicationDoseLog,
+    payments,
+    paymentPaidLog,
     cbtProgram,
   ]);
 
@@ -342,6 +364,27 @@ export default function FocusFlowTDAH({
     setMedicationDoseLog((prev) => undoDose(prev, medicationId, time));
   }, []);
 
+  const handleAddPayment = useCallback((payment) => {
+    setPayments((prev) => addPayment(prev, payment));
+  }, []);
+
+  const handleRemovePayment = useCallback((id) => {
+    setPayments((prev) => removePayment(prev, id));
+    setPaymentPaidLog((prev) => unmarkPaid(prev, id));
+  }, []);
+
+  const handleMarkPaymentPaid = useCallback(
+    (id, dueDateKey) => {
+      setPaymentPaidLog((prev) => markPaid(prev, id, dueDateKey));
+      grantXp("pago marcado como hecho");
+    },
+    [grantXp]
+  );
+
+  const handleUnmarkPaymentPaid = useCallback((id) => {
+    setPaymentPaidLog((prev) => unmarkPaid(prev, id));
+  }, []);
+
   // markLessonComplete es defensiva (ignora cualquier id que no sea la
   // lección que de verdad toca ahora mismo), así que siempre es seguro
   // llamarla directo desde el botón del panel.
@@ -426,6 +469,26 @@ export default function FocusFlowTDAH({
       })
     );
   const removeStep = (id) => setSteps((p) => p.filter((s) => s.id !== id));
+
+  // "Elige por mí" (inspirado en "Pick one for me" de Llama Life) — para
+  // cuando la decisión de "¿cuál paso empiezo?" es justo lo que traba. Por
+  // ahora elige al azar entre TODOS los pasos pendientes, sin considerar la
+  // energía de hoy (ver choosePick.js). chosenStepId solo resalta un paso
+  // que siga pendiente — si ya se completó o se borró, simplemente deja de
+  // resaltarse, sin necesidad de limpiarlo a mano.
+  const [chosenStepId, setChosenStepId] = useState(null);
+  const [chooseMsg, setChooseMsg] = useState("");
+  const handleChoosePick = () => {
+    const picked = pickRandomStep(steps);
+    if (picked) {
+      setChosenStepId(picked.id);
+      setChooseMsg("");
+    } else {
+      setChosenStepId(null);
+      setChooseMsg("No tienes pasos pendientes para elegir.");
+    }
+  };
+  const chosenStep = steps.find((s) => s.id === chosenStepId && !s.done) || null;
 
   const [aiLoading, setAiLoading] = useState(false);
   const [aiError, setAiError] = useState("");
@@ -898,6 +961,8 @@ export default function FocusFlowTDAH({
             energyLog={energyLog}
             medications={medications}
             medicationDoseLog={medicationDoseLog}
+            payments={payments}
+            paymentPaidLog={paymentPaidLog}
             cbtProgram={cbtProgram}
             habits={{ screensOff, sleepEnv, ateWell, hydrated, deskCleared }}
             onNavigate={scrollToCompanionSection}
@@ -1025,24 +1090,51 @@ export default function FocusFlowTDAH({
                     </p>
                   )}
                   {steps.length > 0 && (
-                    <button
-                      onClick={toggleOneStepMode}
-                      style={{
-                        background: "transparent",
-                        border: "none",
-                        color: C.textMuted,
-                        fontSize: "11px",
-                        cursor: "pointer",
-                        padding: 0,
-                        marginBottom: "8px",
-                        display: "flex",
-                        alignItems: "center",
-                        gap: "4px",
-                      }}
-                    >
-                      <ListChecks size={12} />
-                      {oneStepMode ? "Ver todos los pasos" : "Ver un paso a la vez"}
-                    </button>
+                    <div style={{ display: "flex", alignItems: "center", gap: "14px", flexWrap: "wrap", marginBottom: "8px" }}>
+                      <button
+                        onClick={toggleOneStepMode}
+                        style={{
+                          background: "transparent",
+                          border: "none",
+                          color: C.textMuted,
+                          fontSize: "11px",
+                          cursor: "pointer",
+                          padding: 0,
+                          display: "flex",
+                          alignItems: "center",
+                          gap: "4px",
+                        }}
+                      >
+                        <ListChecks size={12} />
+                        {oneStepMode ? "Ver todos los pasos" : "Ver un paso a la vez"}
+                      </button>
+                      <button
+                        onClick={handleChoosePick}
+                        title="Escoge al azar uno de tus pasos pendientes — para cuando no sabes por cuál empezar"
+                        style={{
+                          background: "transparent",
+                          border: "none",
+                          color: C.textMuted,
+                          fontSize: "11px",
+                          cursor: "pointer",
+                          padding: 0,
+                          display: "flex",
+                          alignItems: "center",
+                          gap: "4px",
+                        }}
+                      >
+                        <Shuffle size={12} />
+                        Elige por mí
+                      </button>
+                    </div>
+                  )}
+                  {chosenStep && (
+                    <p style={{ fontSize: "12px", color: C.lavenderText, margin: "0 0 8px", fontWeight: 600 }}>
+                      👉 Empieza con: {chosenStep.text}
+                    </p>
+                  )}
+                  {chooseMsg && (
+                    <p style={{ fontSize: "12px", color: C.textMuted, margin: "0 0 8px" }}>{chooseMsg}</p>
                   )}
                   {(() => {
                     const pending = steps.filter((s) => !s.done);
@@ -1062,8 +1154,11 @@ export default function FocusFlowTDAH({
                                   display: "flex",
                                   alignItems: "center",
                                   gap: "10px",
-                                  padding: "8px 0",
+                                  padding: "8px 6px",
+                                  margin: "0 -6px",
                                   borderBottom: `1px solid ${C.border}`,
+                                  borderRadius: chosenStep?.id === s.id ? "6px" : 0,
+                                  background: chosenStep?.id === s.id ? C.surfaceAlt : "transparent",
                                 }}
                               >
                                 <span
@@ -1344,6 +1439,25 @@ export default function FocusFlowTDAH({
                 onRemove={handleRemoveMedication}
                 onLogDose={handleLogDose}
                 onUndoDose={handleUndoDose}
+              />
+            </Panel>
+            </div>
+
+            <div ref={paymentsSectionRef}>
+            <Panel C={C}
+              accent={C.mint}
+              icon={<CreditCard size={22} />}
+              title="Pagos y suscripciones"
+              subtitle="Una lista manual con aviso antes de la fecha, para no pagar tarde ni olvidar una suscripción."
+            >
+              <PaymentsPanel
+                C={C}
+                payments={payments}
+                paidLog={paymentPaidLog}
+                onAdd={handleAddPayment}
+                onRemove={handleRemovePayment}
+                onMarkPaid={handleMarkPaymentPaid}
+                onUnmarkPaid={handleUnmarkPaymentPaid}
               />
             </Panel>
             </div>
