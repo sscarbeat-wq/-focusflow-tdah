@@ -158,15 +158,25 @@ async function classifyNote(text) {
             'es proponer a qué categoría pertenece, SIN inventar datos que la persona no dijo. Responde SOLO ' +
             'con un objeto JSON de la forma {"type": "...", "fields": {...}, "noteText": "..."}.\n\n' +
             '"type" es uno de estos 4 valores exactos:\n' +
-            '- "medicamento": quiere que le recuerden tomar un medicamento nuevo. fields: {"name": string, ' +
-            '"time": "HH:MM" en formato 24 horas si mencionó una hora, o null si no la mencionó}.\n' +
+            '- "medicamento": quiere que le recuerden TOMAR (ingerir) una dosis de un medicamento, a una hora ' +
+            'del día, de forma repetida — una dosis nueva para agregar a su lista de medicamentos. Usa este ' +
+            'tipo SOLO cuando el verbo es tomar/tomarse/ingerir (o claramente equivalente). Si lo que pide es ' +
+            'COMPRAR, surtir, recoger, pedir, renovar una receta, o investigar sobre un medicamento, eso NO es ' +
+            'una dosis diaria — es un pendiente de una sola vez, así que va en "paso", nunca en "medicamento". ' +
+            'fields: {"name": string, "time": "HH:MM" en formato 24 horas si mencionó una hora, o null si no ' +
+            "la mencionó}.\n" +
             '- "pago": quiere un recordatorio de un pago o suscripción recurrente. fields: {"name": string, ' +
             '"amount": string o null (tal cual lo dijo, ej. "$219"), "frequency": "mensual" o "anual", ' +
             '"dueDay": entero 1-31 si lo mencionó, o null}.\n' +
-            '- "paso": quiere agregar un paso a una tarea que está desglosando ahora mismo. fields: {"text": ' +
-            'string, "min": entero entre 2 y 20, estimado si no lo dijo}.\n' +
-            '- "nota": cualquier otra cosa — una idea, un recordatorio general, un pensamiento, algo para ' +
-            "llevar un diario. fields: {} (vacío).\n\n" +
+            '- "paso": un pendiente, mandado, trámite o tarea de una sola vez que quiere que no se le olvide ' +
+            '(ej. "comprar medicamento", "surtir la receta", "llamar al banco", "recoger algo"), o un paso de ' +
+            'una tarea que está desglosando ahora mismo. fields: {"text": string, "min": entero entre 2 y 20, ' +
+            'estimado si no lo dijo}.\n' +
+            '- "nota": cualquier otra cosa — una idea, un pensamiento, algo para llevar un diario, sin acción ' +
+            "concreta pendiente. fields: {} (vacío).\n\n" +
+            'Ejemplo para no confundir medicamento con paso: "recuérdame tomar mi pastilla a las 8am" es ' +
+            '"medicamento"; "recuérdame comprar mi medicamento" o "tengo que surtir mi receta" es "paso", NO ' +
+            '"medicamento", porque es comprar/surtir, no tomar una dosis.\n\n' +
             'Si tienes cualquier duda de la categoría, usa "nota" — es la opción segura por default. ' +
             '"noteText" siempre lleva una versión breve y limpia (sin relleno) de lo que la persona dijo, en ' +
             "español de México, sin importar el type elegido — es lo que se guarda como la nota en sí.",
@@ -195,14 +205,4 @@ async function classifyNote(text) {
     parsed = {};
   }
 
-  // Validación defensiva: si la IA manda un type inválido o campos raros,
-  // esto cae a "nota" en vez de fallar todo — y el navegador, de todas
-  // formas, nunca escribe un medicamento/pago/paso sin que la persona lo
-  // confirme con un toque, así que un campo mal formado aquí nunca llega a
-  // guardarse solo.
-  const type = QUICK_CAPTURE_TYPES.includes(parsed?.type) ? parsed.type : "nota";
-  const fields = parsed && typeof parsed.fields === "object" && parsed.fields !== null ? parsed.fields : {};
-  const noteText = String(parsed?.noteText || "").trim().slice(0, 300);
-
-  return { type, fields, noteText };
-}
+  //
