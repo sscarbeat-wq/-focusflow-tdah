@@ -205,4 +205,14 @@ async function classifyNote(text) {
     parsed = {};
   }
 
-  //
+  // Validación defensiva: si la IA manda un type inválido o campos raros,
+  // esto cae a "nota" en vez de fallar todo — y el navegador, de todas
+  // formas, nunca escribe un medicamento/pago/paso sin que la persona lo
+  // confirme con un toque, así que un campo mal formado aquí nunca llega a
+  // guardarse solo.
+  const type = QUICK_CAPTURE_TYPES.includes(parsed?.type) ? parsed.type : "nota";
+  const fields = parsed && typeof parsed.fields === "object" && parsed.fields !== null ? parsed.fields : {};
+  const noteText = String(parsed?.noteText || "").trim().slice(0, 300);
+
+  return { type, fields, noteText };
+}
