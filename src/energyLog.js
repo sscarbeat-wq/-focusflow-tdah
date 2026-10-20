@@ -4,7 +4,7 @@
 // energía de los pasos del desglosador (ver todayView.js) para sugerir qué
 // conviene intentar primero según cómo se siente la persona hoy — nunca
 // para bloquear ni esconder nada, solo para sugerir.
-import { todayKey } from "./streak";
+import { todayKey } from "./streak.js";
 
 export const ENERGY_LEVELS = ["baja", "media", "alta"];
 

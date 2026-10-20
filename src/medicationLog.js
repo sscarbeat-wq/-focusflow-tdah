@@ -7,7 +7,7 @@
 // Reutiliza todayKey() de streak.js para que el día coincida exactamente con
 // el resto de la app (ánimo, racha, energía) y con api/send-reminders.js del
 // lado del servidor (mismo cálculo de "hoy").
-import { todayKey } from "./streak";
+import { todayKey } from "./streak.js";
 
 export const DEFAULT_MEDICATIONS = [];
 export const DEFAULT_MEDICATION_DOSE_LOG = {};
