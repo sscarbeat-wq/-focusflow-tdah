@@ -36,6 +36,7 @@ import {
   BatteryMedium,
   Shuffle,
   CreditCard,
+  StickyNote,
 } from "lucide-react";
 
 import InstallBanner from "./InstallBanner";
@@ -53,6 +54,7 @@ import CbtProgramPanel from "./CbtProgramPanel";
 import CompanionPanel from "./CompanionPanel";
 import TodayPanel from "./TodayPanel";
 import MessageTonePanel from "./MessageTonePanel";
+import QuickCapturePanel from "./QuickCapturePanel";
 import { scheduleStepsOnCalendar } from "./calendarSync";
 import { useBodyDouble } from "./bodyDouble";
 import { celebrate } from "./celebrate";
@@ -66,6 +68,7 @@ import {
   removeMedication,
   logDose,
   undoDose,
+  isValidDoseTime,
 } from "./medicationLog";
 import {
   DEFAULT_PAYMENTS,
@@ -77,6 +80,13 @@ import {
 } from "./paymentsLog";
 import { pickRandomStep } from "./choosePick";
 import { DEFAULT_CBT_PROGRAM, markLessonComplete } from "./cbtProgram";
+import {
+  DEFAULT_QUICK_NOTES,
+  addQuickNote,
+  resolveQuickNote,
+  removeQuickNote,
+  oldForgottenNote,
+} from "./quickCapture";
 
 const DEFAULT_PROGRESS = {
   xp: 0,
@@ -94,6 +104,7 @@ const DEFAULT_PROGRESS = {
   payments: DEFAULT_PAYMENTS,
   paymentPaidLog: DEFAULT_PAYMENT_PAID_LOG,
   cbtProgram: DEFAULT_CBT_PROGRAM,
+  quickNotes: DEFAULT_QUICK_NOTES,
 };
 
 // Panel y Toggle viven a nivel de módulo (no adentro de FocusFlowTDAH) para
@@ -189,6 +200,7 @@ export default function FocusFlowTDAH({
   const paymentsSectionRef = useRef(null);
   const cbtSectionRef = useRef(null);
   const habitsSectionRef = useRef(null);
+  const quickCaptureSectionRef = useRef(null);
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
     const atajo = params.get("atajo");
@@ -215,6 +227,7 @@ export default function FocusFlowTDAH({
     payments: paymentsSectionRef,
     cbt: cbtSectionRef,
     habits: habitsSectionRef,
+    quickCapture: quickCaptureSectionRef,
   };
   const scrollToCompanionSection = (key) => {
     const ref = companionSectionRefs[key];
@@ -237,6 +250,7 @@ export default function FocusFlowTDAH({
   const [payments, setPayments] = useState(saved.payments);
   const [paymentPaidLog, setPaymentPaidLog] = useState(saved.paymentPaidLog);
   const [cbtProgram, setCbtProgram] = useState(saved.cbtProgram);
+  const [quickNotes, setQuickNotes] = useState(saved.quickNotes);
 
   const firstRender = useRef(true);
   useEffect(() => {
@@ -260,6 +274,7 @@ export default function FocusFlowTDAH({
       payments,
       paymentPaidLog,
       cbtProgram,
+      quickNotes,
     });
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [
@@ -278,6 +293,7 @@ export default function FocusFlowTDAH({
     payments,
     paymentPaidLog,
     cbtProgram,
+    quickNotes,
   ]);
 
   // ---- XP + jar ----
@@ -385,6 +401,48 @@ export default function FocusFlowTDAH({
     setPaymentPaidLog((prev) => unmarkPaid(prev, id));
   }, []);
 
+  // "Captura rápida" — handleAddQuickNote cubre tanto una nota general
+  // (type "nota") como cualquier sugerencia que la persona decida NO
+  // confirmar directo (ej. "no, solo guardar como nota"). Las otras tres
+  // SÍ llaman a las funciones que ya existían para agregar cada cosa, y
+  // solo se usan cuando la persona tocó "Sí, agrégalo" en la tarjeta de
+  // confirmación — la IA de api/quick-capture.js nunca escribe esto sola.
+  const handleAddQuickNote = useCallback((text) => {
+    setQuickNotes((prev) => addQuickNote(prev, text));
+  }, []);
+
+  const handleResolveQuickNote = useCallback((id) => {
+    setQuickNotes((prev) => resolveQuickNote(prev, id));
+  }, []);
+
+  const handleRemoveQuickNote = useCallback((id) => {
+    setQuickNotes((prev) => removeQuickNote(prev, id));
+  }, []);
+
+  const handleConfirmQuickMedication = useCallback((fields) => {
+    const time = fields?.time;
+    if (!isValidDoseTime(time)) return; // defensivo — el panel ya no ofrece este botón sin hora válida
+    setMedications((prev) => addMedication(prev, { name: fields?.name, doseTimes: [time], notes: "" }));
+  }, []);
+
+  const handleConfirmQuickPayment = useCallback((fields) => {
+    const frequency = fields?.frequency === "anual" ? "anual" : "mensual";
+    setPayments((prev) =>
+      addPayment(prev, {
+        name: fields?.name,
+        amount: fields?.amount,
+        frequency,
+        dueDay: fields?.dueDay,
+        // La IA no pregunta el mes de un pago anual (no es un dato que la
+        // persona suele mencionar al dictar una nota rápida) — si hace
+        // falta, se usa el mes actual; de todas formas se puede corregir
+        // a mano desde el panel de Pagos.
+        dueMonth: frequency === "anual" ? fields?.dueMonth || new Date().getMonth() + 1 : null,
+        notes: "",
+      })
+    );
+  }, []);
+
   // markLessonComplete es defensiva (ignora cualquier id que no sea la
   // lección que de verdad toca ahora mismo), así que siempre es seguro
   // llamarla directo desde el botón del panel.
@@ -470,6 +528,30 @@ export default function FocusFlowTDAH({
     );
   const removeStep = (id) => setSteps((p) => p.filter((s) => s.id !== id));
 
+  // Igual que addStep, pero a partir de lo que propuso la IA de "Captura
+  // rápida" (ver api/quick-capture.js) — solo se llama cuando la persona ya
+  // tocó "Sí, agrégalo" en la tarjeta de confirmación, nunca antes.
+  const handleConfirmQuickStep = useCallback(
+    (fields) => {
+      if (steps.length >= 5) return; // defensivo — el panel ya no ofrece este botón al tope de pasos
+      const text = String(fields?.text || "").trim().slice(0, 200);
+      if (!text) return;
+      const minValue = Number(fields?.min);
+      const cleanMin = Number.isFinite(minValue) && minValue >= 2 && minValue <= 20 ? Math.round(minValue) : 5;
+      const newStep = {
+        id: Date.now() + Math.random().toString(36).slice(2, 7),
+        text,
+        min: cleanMin,
+        done: false,
+        energy: null,
+      };
+      const offsetMin = steps.reduce((sum, s) => sum + (s.min || 0), 0);
+      scheduleStepsOnCalendar(userId, [newStep], { startOffsetMinutes: offsetMin, kind: "step" });
+      setSteps((p) => [...p, newStep]);
+    },
+    [steps, userId]
+  );
+
   // "Elige por mí" (inspirado en "Pick one for me" de Llama Life) — para
   // cuando la decisión de "¿cuál paso empiezo?" es justo lo que traba. Por
   // ahora elige al azar entre TODOS los pasos pendientes, sin considerar la
@@ -489,6 +571,10 @@ export default function FocusFlowTDAH({
     }
   };
   const chosenStep = steps.find((s) => s.id === chosenStepId && !s.done) || null;
+
+  // "El Regreso" de Eco: la nota pendiente más vieja (si lleva varios días
+  // sin resolverse) se resalta tanto aquí como en "Hoy".
+  const forgottenNoteId = oldForgottenNote(quickNotes)?.id || null;
 
   const [aiLoading, setAiLoading] = useState(false);
   const [aiError, setAiError] = useState("");
@@ -965,9 +1051,33 @@ export default function FocusFlowTDAH({
             paymentPaidLog={paymentPaidLog}
             cbtProgram={cbtProgram}
             habits={{ screensOff, sleepEnv, ateWell, hydrated, deskCleared }}
+            quickNotes={quickNotes}
             onNavigate={scrollToCompanionSection}
           />
         </Panel>
+
+        <div ref={quickCaptureSectionRef}>
+        <Panel C={C}
+          accent={C.lavender}
+          icon={<StickyNote size={22} />}
+          title="Captura rápida"
+          subtitle="Deja una idea por voz o texto sin decidir primero en qué panel va — Senda intenta mandarla sola al lugar correcto."
+        >
+          <QuickCapturePanel
+            C={C}
+            userId={userId}
+            quickNotes={quickNotes}
+            oldForgottenNoteId={forgottenNoteId}
+            canAddStep={steps.length < 5}
+            onAddNote={handleAddQuickNote}
+            onResolveNote={handleResolveQuickNote}
+            onRemoveNote={handleRemoveQuickNote}
+            onConfirmMedication={handleConfirmQuickMedication}
+            onConfirmPayment={handleConfirmQuickPayment}
+            onConfirmStep={handleConfirmQuickStep}
+          />
+        </Panel>
+        </div>
 
         <Panel C={C}
           accent={C.rose}
