@@ -41,9 +41,12 @@ import {
   ShoppingCart,
   Heart,
   Clock,
+  Flower2,
 } from "lucide-react";
 
 import InstallBanner from "./InstallBanner";
+import PerimenopauseCard from "./PerimenopauseCard";
+import MindfulnessPanel from "./MindfulnessPanel";
 import Mascot from "./Mascot";
 import FocusMode from "./FocusMode";
 import MoodLog from "./MoodLog";
@@ -401,6 +404,13 @@ export default function FocusFlowTDAH({
   const handleRemoveGoodMoment = useCallback((id) => {
     setGoodMoments((prev) => removeGoodMoment(prev, id));
   }, []);
+
+  // MindfulnessPanel es autocontenido (lleva su propio temporizador, igual
+  // que FocusMode) y solo avisa cuando la práctica completa se terminó —
+  // no hay ningún dato nuevo que guardar, solo otorgar el XP.
+  const handleMindfulnessComplete = useCallback(() => {
+    grantXp("completaste tu práctica de atención plena");
+  }, [grantXp]);
 
   const handleAddMedication = useCallback((med) => {
     setMedications((prev) => addMedication(prev, med));
@@ -1550,6 +1560,8 @@ export default function FocusFlowTDAH({
             </Panel>
             </div>
 
+            <PerimenopauseCard C={C} />
+
             <Panel C={C}
               accent={C.amber}
               icon={<TrendingUp size={22} />}
@@ -1800,6 +1812,15 @@ export default function FocusFlowTDAH({
               </div>
             </Panel>
             </div>
+
+            <Panel C={C}
+              accent={C.lavender}
+              icon={<Flower2 size={22} />}
+              title="Atención plena"
+              subtitle="Una práctica breve de mindfulness, guiada paso a paso."
+            >
+              <MindfulnessPanel C={C} onComplete={handleMindfulnessComplete} />
+            </Panel>
 
             <div ref={reestructuracionSectionRef}>
             <Panel C={C}
