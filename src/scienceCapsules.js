@@ -49,7 +49,7 @@ export const SCIENCE_CAPSULES = [
   {
     id: "perimenopausia",
     title: "TDAH y perimenopausia",
-    text: "La relación va en los dos sentidos: los cambios hormonales de la perimenopausia pueden hacer que los síntomas de TDAH se sientan más fuertes, y en algunas mujeres un TDAH que nunca se había reconocido se vuelve mucho más notorio justo en esta etapa. Un estudio en Islandia con más de 5,000 mujeres encontró que, en quienes tienen TDAH, los síntomas de la perimenopausia suelen empezar antes (hasta 10 años) y se sienten con más intensidad. Es un solo estudio en una población distinta a la nuestra — tómalo como una pista a considerar, no como una regla general. Esto no es un diagnóstico: si notas cambios de ánimo, sueño o bochornos distintos a lo de siempre, vale la pena platicarlo con tu médica.",
+    text: "La relación va en los dos sentidos: los cambios hormonales de la perimenopausia pueden hacer que los síntomas de TDAH se sientan más fuertes, y en algunas mujeres un TDAH que nunca se había reconocido se vuelve mucho más notorio justo en esta etapa. Un estudio en Islandia con más de 5,000 mujeres encontró que, en quienes tienen TDAH, los síntomas de la perimenopausia suelen empezar antes (hasta 10 años) y se sienten con más intensidad. Es un solo estudio en una población distinta a la nuestra — tómalo como una pista a considerar, no como una regla general. Esto no es un diagnóstico: si notas cambios de ánimo, sueño o bochornos distintos a lo de siempre, vale la pena platicarlo con tu médico o médica.",
     source: "Cohorte SAGA, European Psychiatry (2025) — 5,392 mujeres, Islandia.",
   },
   {
@@ -79,7 +79,7 @@ export const SCIENCE_CAPSULES = [
   {
     id: "omega-3-modesto",
     title: "Omega-3: ayuda modesta, no magia",
-    text: "Varios metaanálisis de ensayos controlados encuentran que la suplementación con ácidos grasos omega-3 tiene un efecto pequeño pero real sobre los síntomas centrales del TDAH — mucho menor que el de la medicación estimulante. Puede valer la pena como complemento, platicado con tu médica, pero no como sustituto de un tratamiento ya establecido.",
+    text: "Varios metaanálisis de ensayos controlados encuentran que la suplementación con ácidos grasos omega-3 tiene un efecto pequeño pero real sobre los síntomas centrales del TDAH — mucho menor que el de la medicación estimulante. Puede valer la pena como complemento, platicado con tu médico o médica, pero no como sustituto de un tratamiento ya establecido.",
     source: "Metaanálisis de ensayos controlados aleatorizados sobre omega-3 y TDAH (varios, 2015-2024).",
   },
   {
