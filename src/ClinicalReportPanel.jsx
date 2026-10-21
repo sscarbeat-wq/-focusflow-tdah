@@ -41,7 +41,32 @@ export default function ClinicalReportPanel({
   const valueStyle = { fontSize: "14px", color: C.text, margin: 0, lineHeight: 1.6 };
 
   return (
-    <div>
+    <div id="senda-clinical-report">
+      {/* Al imprimir (o "Guardar como PDF"), el navegador por default imprime TODA la página —
+          todos los demás paneles de Senda, no solo este reporte. Esta hoja de estilo, con el
+          truco clásico de "ocultar todo, mostrar solo este contenedor", hace que lo impreso sea
+          nada más el reporte: oculta todo lo demás de la app, muestra solo #senda-clinical-report,
+          esconde los controles interactivos marcados con data-no-print (el botón de imprimir), y
+          muestra el encabezado marcado con data-print-only que en pantalla está oculto (el título
+          del Panel que lo envuelve, en FocusFlowTDAH.jsx, no es parte de este contenedor y por
+          eso no aparecería impreso sin este encabezado propio). */}
+      <style>{`
+        @media print {
+          body * { visibility: hidden; }
+          #senda-clinical-report, #senda-clinical-report * { visibility: visible; }
+          #senda-clinical-report { position: absolute; left: 0; top: 0; width: 100%; }
+          #senda-clinical-report [data-no-print] { display: none !important; }
+          #senda-clinical-report [data-print-only] { display: block !important; }
+        }
+      `}</style>
+
+      <div data-print-only style={{ display: "none", marginBottom: "16px" }}>
+        <h2 style={{ fontSize: "18px", margin: "0 0 4px", color: C.text }}>Reporte para tu consulta — Senda</h2>
+        <p style={{ fontSize: "12px", color: C.textMuted, margin: 0 }}>
+          Últimos {CLINICAL_REPORT_DAYS} días, generado el {formatDate(report.generatedAt)}.
+        </p>
+      </div>
+
       <p style={{ fontSize: "12px", color: C.textMuted, margin: "0 0 16px", lineHeight: 1.6 }}>
         Resumen de tus últimos {CLINICAL_REPORT_DAYS} días en Senda, armado solo con lo que ya
         registraste — nada generado por IA. Es un apoyo para platicar en tu consulta, no un
@@ -49,6 +74,7 @@ export default function ClinicalReportPanel({
       </p>
 
       <button
+        data-no-print
         onClick={() => {
           if (typeof window !== "undefined" && window.print) window.print();
         }}
