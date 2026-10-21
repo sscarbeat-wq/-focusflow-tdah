@@ -40,6 +40,7 @@ import {
   FileText,
   ShoppingCart,
   Heart,
+  Clock,
 } from "lucide-react";
 
 import InstallBanner from "./InstallBanner";
@@ -60,6 +61,7 @@ import MessageTonePanel from "./MessageTonePanel";
 import QuickCapturePanel from "./QuickCapturePanel";
 import ClinicalReportPanel from "./ClinicalReportPanel";
 import GoodMomentsPanel from "./GoodMomentsPanel";
+import DayTimelinePanel from "./DayTimelinePanel";
 import { scheduleStepsOnCalendar } from "./calendarSync";
 import { useBodyDouble } from "./bodyDouble";
 import { celebrate } from "./celebrate";
@@ -1106,6 +1108,15 @@ export default function FocusFlowTDAH({
             quickNotes={quickNotes}
             onNavigate={scrollToCompanionSection}
           />
+        </Panel>
+
+        <Panel C={C}
+          accent={C.amber}
+          icon={<Clock size={22} />}
+          title="Línea de tiempo de hoy"
+          subtitle="A qué hora pasó cada cosa que hiciste en Senda hoy — para ver de un vistazo cómo se ha ido el día."
+        >
+          <DayTimelinePanel C={C} jar={jar} />
         </Panel>
 
         <div ref={quickCaptureSectionRef}>
