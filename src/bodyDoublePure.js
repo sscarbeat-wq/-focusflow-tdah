@@ -22,3 +22,18 @@ export function participantsFromPresenceState(state, userId) {
     .flat()
     .map((p) => ({ avatar: p.avatar, status: p.status, isMe: p.userId === userId }));
 }
+
+// Reacciones sin texto dentro de la sala — vocabulario fijo y pequeño, a
+// propósito, para no abrir la puerta a texto libre ni a nada que necesite
+// moderación. Se transmiten por un broadcast efímero de Supabase Realtime
+// (nunca se guardan), igual de anónimo que la presencia: solo viaja el
+// emoji de reacción junto con el avatar anónimo de quien la mandó.
+export const REACTIONS = [
+  { emoji: "👋", label: "Aquí contigo" },
+  { emoji: "💪", label: "Ánimo" },
+  { emoji: "🎉", label: "¡Lo logré!" },
+];
+
+export function isValidReaction(emoji) {
+  return REACTIONS.some((r) => r.emoji === emoji);
+}
