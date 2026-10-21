@@ -37,6 +37,10 @@ import {
   Shuffle,
   CreditCard,
   StickyNote,
+  FileText,
+  ShoppingCart,
+  Heart,
+  Clock,
 } from "lucide-react";
 
 import InstallBanner from "./InstallBanner";
@@ -55,6 +59,9 @@ import CompanionPanel from "./CompanionPanel";
 import TodayPanel from "./TodayPanel";
 import MessageTonePanel from "./MessageTonePanel";
 import QuickCapturePanel from "./QuickCapturePanel";
+import ClinicalReportPanel from "./ClinicalReportPanel";
+import GoodMomentsPanel from "./GoodMomentsPanel";
+import DayTimelinePanel from "./DayTimelinePanel";
 import { scheduleStepsOnCalendar } from "./calendarSync";
 import { useBodyDouble } from "./bodyDouble";
 import { celebrate } from "./celebrate";
@@ -87,6 +94,9 @@ import {
   removeQuickNote,
   oldForgottenNote,
 } from "./quickCapture";
+import { DEFAULT_SLEEP_LOG, recordBedtime, todayBedtime } from "./sleepLog";
+import { DEFAULT_IMPULSE_BRAKE_LOG, recordImpulseBrakeUse } from "./impulseBrakeLog";
+import { DEFAULT_GOOD_MOMENTS, addGoodMoment, removeGoodMoment } from "./goodMoments";
 
 const DEFAULT_PROGRESS = {
   xp: 0,
@@ -105,6 +115,9 @@ const DEFAULT_PROGRESS = {
   paymentPaidLog: DEFAULT_PAYMENT_PAID_LOG,
   cbtProgram: DEFAULT_CBT_PROGRAM,
   quickNotes: DEFAULT_QUICK_NOTES,
+  sleepLog: DEFAULT_SLEEP_LOG,
+  impulseBrakeLog: DEFAULT_IMPULSE_BRAKE_LOG,
+  goodMoments: DEFAULT_GOOD_MOMENTS,
 };
 
 // Panel y Toggle viven a nivel de módulo (no adentro de FocusFlowTDAH) para
@@ -251,6 +264,9 @@ export default function FocusFlowTDAH({
   const [paymentPaidLog, setPaymentPaidLog] = useState(saved.paymentPaidLog);
   const [cbtProgram, setCbtProgram] = useState(saved.cbtProgram);
   const [quickNotes, setQuickNotes] = useState(saved.quickNotes);
+  const [sleepLog, setSleepLog] = useState(saved.sleepLog);
+  const [impulseBrakeLog, setImpulseBrakeLog] = useState(saved.impulseBrakeLog);
+  const [goodMoments, setGoodMoments] = useState(saved.goodMoments);
 
   const firstRender = useRef(true);
   useEffect(() => {
@@ -275,6 +291,9 @@ export default function FocusFlowTDAH({
       paymentPaidLog,
       cbtProgram,
       quickNotes,
+      sleepLog,
+      impulseBrakeLog,
+      goodMoments,
     });
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [
@@ -294,6 +313,9 @@ export default function FocusFlowTDAH({
     paymentPaidLog,
     cbtProgram,
     quickNotes,
+    sleepLog,
+    impulseBrakeLog,
+    goodMoments,
   ]);
 
   // ---- XP + jar ----
@@ -359,6 +381,26 @@ export default function FocusFlowTDAH({
     },
     [grantXp]
   );
+
+  const handleRecordBedtime = useCallback(
+    (time) => {
+      setSleepLog((prev) => recordBedtime(prev, time));
+      grantXp("hora de dormir registrada");
+    },
+    [grantXp]
+  );
+
+  const handleAddGoodMoment = useCallback(
+    (text) => {
+      setGoodMoments((prev) => addGoodMoment(prev, text));
+      grantXp("guardaste un momento bueno");
+    },
+    [grantXp]
+  );
+
+  const handleRemoveGoodMoment = useCallback((id) => {
+    setGoodMoments((prev) => removeGoodMoment(prev, id));
+  }, []);
 
   const handleAddMedication = useCallback((med) => {
     setMedications((prev) => addMedication(prev, med));
@@ -644,12 +686,14 @@ export default function FocusFlowTDAH({
   // ---- Stop & Think ----
   const [stFlowOpen, setStFlowOpen] = useState(false);
   const [stStage, setStStage] = useState(0);
+  const [stContext, setStContext] = useState("general");
   const [breathCountdown, setBreathCountdown] = useState(3);
   const stTimerRef = useRef(null);
 
-  const startStopThink = () => {
+  const startStopThink = (context = "general") => {
     setStFlowOpen(true);
     setStStage(0);
+    setStContext(context);
   };
   const closeStopThink = () => {
     setStFlowOpen(false);
@@ -663,7 +707,8 @@ export default function FocusFlowTDAH({
     } else if (stStage === 2) {
       setStStage(3);
     } else if (stStage === 3) {
-      grantXp("usaste el freno de impulsividad");
+      grantXp(stContext === "compra" ? "usaste el freno antes de una compra" : "usaste el freno de impulsividad");
+      setImpulseBrakeLog((prev) => recordImpulseBrakeUse(prev, stContext));
       closeStopThink();
     }
   };
@@ -778,6 +823,15 @@ export default function FocusFlowTDAH({
     const next = !current;
     setter(next);
     if (next) grantXp(label);
+  };
+
+  // ---- Hora de dormir ----
+  const todayBedtimeEntry = todayBedtime(sleepLog);
+  const [bedtimeInput, setBedtimeInput] = useState("");
+  const saveBedtime = () => {
+    if (!bedtimeInput) return;
+    handleRecordBedtime(bedtimeInput);
+    setBedtimeInput("");
   };
 
   const inputStyle = {
@@ -1054,6 +1108,15 @@ export default function FocusFlowTDAH({
             quickNotes={quickNotes}
             onNavigate={scrollToCompanionSection}
           />
+        </Panel>
+
+        <Panel C={C}
+          accent={C.amber}
+          icon={<Clock size={22} />}
+          title="Línea de tiempo de hoy"
+          subtitle="A qué hora pasó cada cosa que hiciste en Senda hoy — para ver de un vistazo cómo se ha ido el día."
+        >
+          <DayTimelinePanel C={C} jar={jar} />
         </Panel>
 
         <div ref={quickCaptureSectionRef}>
@@ -1462,6 +1525,20 @@ export default function FocusFlowTDAH({
             </Panel>
             </div>
 
+            <Panel C={C}
+              accent={C.rose}
+              icon={<Heart size={22} />}
+              title="Banco de momentos buenos"
+              subtitle="Un momento positivo del día, guardado tal cual — sin IA, solo para volver a verlo."
+            >
+              <GoodMomentsPanel
+                C={C}
+                goodMoments={goodMoments}
+                onAdd={handleAddGoodMoment}
+                onRemove={handleRemoveGoodMoment}
+              />
+            </Panel>
+
             <div ref={cbtSectionRef}>
             <Panel C={C}
               accent={C.lavenderDark}
@@ -1485,6 +1562,26 @@ export default function FocusFlowTDAH({
                 jar={jar}
                 streak={streak}
                 habits={{ screensOff, sleepEnv, ateWell, hydrated, deskCleared }}
+                sleepLog={sleepLog}
+              />
+            </Panel>
+
+            <Panel C={C}
+              accent={C.lavenderDark}
+              icon={<FileText size={22} />}
+              title="Reporte para tu consulta"
+              subtitle="Un resumen de tus últimos 14 días, listo para imprimir o mostrar en pantalla en tu próxima cita."
+            >
+              <ClinicalReportPanel
+                C={C}
+                moodLog={moodLog}
+                energyLog={energyLog}
+                medications={medications}
+                medicationDoseLog={medicationDoseLog}
+                habits={{ screensOff, sleepEnv, ateWell, hydrated, deskCleared }}
+                streak={streak}
+                sleepLog={sleepLog}
+                impulseBrakeLog={impulseBrakeLog}
               />
             </Panel>
 
@@ -1580,16 +1677,34 @@ export default function FocusFlowTDAH({
               subtitle="Alto, respira, evalúa, actúa."
             >
               {!stFlowOpen ? (
-                <button onClick={startStopThink} style={{ ...btnPrimary(C.lavender, C.lavenderText), width: "100%" }}>
-                  Presionar antes de actuar
-                </button>
+                <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
+                  <button onClick={() => startStopThink("general")} style={{ ...btnPrimary(C.lavender, C.lavenderText), width: "100%" }}>
+                    Presionar antes de actuar
+                  </button>
+                  <button
+                    onClick={() => startStopThink("compra")}
+                    style={{
+                      ...btnPrimary(C.surfaceAlt, C.text),
+                      width: "100%",
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "center",
+                      gap: "8px",
+                      border: `1px solid ${C.border}`,
+                    }}
+                  >
+                    <ShoppingCart size={16} /> Antes de una compra no planeada
+                  </button>
+                </div>
               ) : (
                 <div style={{ background: C.surfaceAlt, borderRadius: "6px", padding: "18px", textAlign: "center" }}>
                   {stStage === 0 && (
                     <>
                       <p style={{ fontSize: "20px", fontWeight: 700, margin: "0 0 8px" }}>Alto</p>
                       <p style={{ fontSize: "13px", color: C.textMuted, margin: "0 0 16px" }}>
-                        Pausa un segundo antes de seguir.
+                        {stContext === "compra"
+                          ? "Antes de comprar, una pausa."
+                          : "Pausa un segundo antes de seguir."}
                       </p>
                       <button onClick={advanceStage} style={btnPrimary(C.lavender, C.lavenderText)}>
                         Listo
@@ -1606,7 +1721,9 @@ export default function FocusFlowTDAH({
                     <>
                       <p style={{ fontSize: "20px", fontWeight: 700, margin: "0 0 8px" }}>Evalúa</p>
                       <p style={{ fontSize: "14px", color: C.text, margin: "0 0 16px" }}>
-                        ¿Esta acción te acerca a lo que quieres lograr?
+                        {stContext === "compra"
+                          ? "¿Esta compra está en tu plan, o es un impulso? Si puedes, espera 24 horas antes de decidir."
+                          : "¿Esta acción te acerca a lo que quieres lograr?"}
                       </p>
                       <button onClick={advanceStage} style={btnPrimary(C.lavender, C.lavenderText)}>
                         Ya lo pensé
@@ -1617,7 +1734,9 @@ export default function FocusFlowTDAH({
                     <>
                       <p style={{ fontSize: "20px", fontWeight: 700, margin: "0 0 8px" }}>Actúa</p>
                       <p style={{ fontSize: "13px", color: C.textMuted, margin: "0 0 16px" }}>
-                        Sigue con la decisión que tomaste.
+                        {stContext === "compra"
+                          ? "Sigue con la decisión que tomaste sobre esta compra."
+                          : "Sigue con la decisión que tomaste."}
                       </p>
                       <button onClick={advanceStage} style={btnPrimary(C.lavender, C.lavenderText)}>
                         Terminar
@@ -1785,6 +1904,28 @@ export default function FocusFlowTDAH({
               </p>
               <Toggle C={C} label="Apagué las pantallas a tiempo" checked={screensOff} onChange={(v) => toggleXp(setScreensOff, screensOff, "pantallas apagadas a tiempo")} />
               <Toggle C={C} label="Preparé el entorno para dormir" checked={sleepEnv} onChange={(v) => toggleXp(setSleepEnv, sleepEnv, "entorno de sueño listo")} />
+              <div style={{ marginTop: "10px" }}>
+                {todayBedtimeEntry ? (
+                  <p style={{ fontSize: "13px", color: C.textMuted, margin: "0 0 6px" }}>
+                    Hoy registraste: te dormiste a las <strong>{todayBedtimeEntry.time}</strong>.
+                  </p>
+                ) : (
+                  <p style={{ fontSize: "13px", color: C.textMuted, margin: "0 0 6px" }}>
+                    ¿A qué hora te dormiste anoche?
+                  </p>
+                )}
+                <div style={{ display: "flex", gap: "8px" }}>
+                  <input
+                    type="time"
+                    value={bedtimeInput}
+                    onChange={(e) => setBedtimeInput(e.target.value)}
+                    style={{ ...inputStyle, width: "auto" }}
+                  />
+                  <button onClick={saveBedtime} style={btnGhost}>
+                    Guardar
+                  </button>
+                </div>
+              </div>
             </div>
             <div>
               <p style={{ fontSize: "12px", color: C.textMuted, margin: "0 0 4px", display: "flex", alignItems: "center", gap: "6px" }}>

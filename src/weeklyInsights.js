@@ -2,6 +2,7 @@
 // Se construyen 100% a partir de datos que la app ya guarda (ánimo, tarro
 // de logros, racha): no agregan ningún costo ni dependencia nueva.
 import { recentEntries } from "./moodLog";
+import { recentBedtimes, isLateBedtime } from "./sleepLog";
 
 // Resumen del ánimo de los últimos `days` días (por defecto 7), apoyado en
 // recentEntries() de moodLog.js — esa función ya rellena los días sin
@@ -50,4 +51,24 @@ export const HABIT_LABELS = [
 
 export function pendingHabits(habits = {}) {
   return HABIT_LABELS.filter(({ key }) => !habits[key]);
+}
+
+// Patrón de hora de dormir tardía en los últimos `days` días. Esto NUNCA es
+// un diagnóstico — es una observación neutral armada solo con lo que la
+// persona registró, para que ella (y si quiere, su médico) la tengan en
+// cuenta. El umbral de "patrón" (3 de 7 noches registradas tardías) es
+// arbitrario a propósito: elegido para no disparar la nota con una sola
+// noche distinta de lo normal, pero sin pedir una semana completa de datos.
+export const SLEEP_PATTERN_MIN_LATE_NIGHTS = 3;
+
+export function weekSleepPattern(sleepLog, days = 7, now = new Date()) {
+  const entries = recentBedtimes(sleepLog, days, now);
+  const logged = entries.filter((e) => e.entry);
+  const lateNights = logged.filter((e) => isLateBedtime(e.entry.time)).length;
+  return {
+    entries,
+    loggedNights: logged.length,
+    lateNights,
+    isPattern: lateNights >= SLEEP_PATTERN_MIN_LATE_NIGHTS,
+  };
 }
