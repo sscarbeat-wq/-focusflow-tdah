@@ -71,9 +71,15 @@ export default function PerimenopauseCard({ C }) {
         <Info size={16} color={C.amber} /> TDAH y perimenopausia
       </div>
       <p style={{ margin: "0 0 8px" }}>
-        Si eres mujer y tienes entre 35 y 55 años, esto podría interesarte: un estudio reciente con más de
-        5,000 mujeres encontró que, en quienes tienen TDAH, los síntomas de la perimenopausia suelen empezar
-        antes (hasta 10 años) y se sienten con más intensidad.
+        ¿Por qué aparece esto en una app de TDAH? Porque la relación va en los dos sentidos: los cambios
+        hormonales de la perimenopausia pueden hacer que los síntomas de TDAH se sientan más fuertes, y en
+        algunas mujeres un TDAH que nunca se había reconocido se vuelve mucho más notorio justo en esta
+        etapa.
+      </p>
+      <p style={{ margin: "0 0 8px" }}>
+        Si eres mujer y tienes entre 35 y 55 años: un estudio reciente con más de 5,000 mujeres encontró que,
+        en quienes tienen TDAH, los síntomas de la perimenopausia suelen empezar antes (hasta 10 años) y se
+        sienten con más intensidad que en mujeres sin TDAH.
       </p>
       <p style={{ margin: 0, color: C.textMuted }}>
         Esto no es un diagnóstico ni reemplaza una consulta — si notas cambios de ánimo, sueño o bochornos
