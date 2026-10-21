@@ -1,5 +1,5 @@
 import React from "react";
-import { weekMoodSummary, weekAchievements, pendingHabits } from "./weeklyInsights";
+import { weekMoodSummary, weekAchievements, pendingHabits, weekSleepPattern } from "./weeklyInsights";
 
 const DAY_NAMES = ["domingo", "lunes", "martes", "miércoles", "jueves", "viernes", "sábado"];
 
@@ -14,10 +14,11 @@ function dayLabel(dateKey) {
 // racha y tarro de logros. Nada de esto fabrica datos que el paciente no
 // registró; cuando no hay suficiente historial, lo decimos en vez de
 // inventar un patrón.
-export default function WeeklyInsights({ C, moodLog, jar, streak, habits }) {
+export default function WeeklyInsights({ C, moodLog, jar, streak, habits, sleepLog }) {
   const mood = weekMoodSummary(moodLog, 7);
   const achievements = weekAchievements(jar, 7);
   const pending = pendingHabits(habits);
+  const sleep = weekSleepPattern(sleepLog, 7);
   const showBestWorst = mood.bestDay && mood.worstDay && mood.bestDay.date !== mood.worstDay.date;
 
   return (
@@ -91,6 +92,24 @@ export default function WeeklyInsights({ C, moodLog, jar, streak, habits }) {
             ))}
           </div>
         </div>
+      )}
+
+      {sleep.isPattern && (
+        <p
+          style={{
+            fontSize: "12px",
+            color: C.textMuted,
+            margin: "16px 0 0",
+            lineHeight: 1.5,
+            borderTop: `1px solid ${C.border}`,
+            paddingTop: "12px",
+          }}
+        >
+          Te dormiste después de la medianoche en <strong>{sleep.lateNights}</strong> de las{" "}
+          {sleep.loggedNights} noches que registraste en los últimos 7 días. Esto no es un
+          diagnóstico — solo una observación con tus propios datos, que puede valer la pena
+          comentar con tu médico si quieres.
+        </p>
       )}
     </div>
   );

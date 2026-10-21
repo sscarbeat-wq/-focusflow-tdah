@@ -108,3 +108,40 @@ export function recentDoseHistory(medications, doseLog, days = 7, now = new Date
   }
   return out;
 }
+
+// Resumen de apego POR medicamento en los últimos `days` días — a
+// diferencia de recentDoseHistory() (que junta todos los medicamentos en
+// un solo número por día), esto separa cada medicamento activo con su
+// propio porcentaje y sus propias notas de efecto secundario. Pensado para
+// el Reporte para tu consulta: nunca inventa un efecto secundario, solo
+// junta las notas que la persona ya escribió al marcar una dosis como
+// tomada.
+export function medicationAdherenceSummary(medications, doseLog, days = 14, now = new Date()) {
+  const active = (medications || []).filter((m) => m.active !== false);
+  return active.map((med) => {
+    let expected = 0;
+    let taken = 0;
+    const sideEffectNotes = [];
+    for (let i = 0; i < days; i++) {
+      const d = new Date(now);
+      d.setDate(d.getDate() - i);
+      const key = todayKey(d);
+      expected += (med.doseTimes || []).length;
+      const entries = (doseLog || {})[key] || [];
+      const medEntries = entries.filter((e) => e.medicationId === med.id);
+      taken += medEntries.length;
+      for (const e of medEntries) {
+        if (e.note) sideEffectNotes.push({ date: key, note: e.note });
+      }
+    }
+    sideEffectNotes.sort((a, b) => (a.date < b.date ? 1 : -1)); // más reciente primero
+    return {
+      id: med.id,
+      name: med.name,
+      expected,
+      taken,
+      adherencePercent: expected > 0 ? Math.round((taken / expected) * 100) : null,
+      sideEffectNotes,
+    };
+  });
+}
