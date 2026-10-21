@@ -48,6 +48,20 @@ export function useBodyDouble(userId) {
     reactionTimers.current = [];
   }, []);
 
+  // Agrega una reacción a la lista visible (se usa tanto para las que
+  // llegan de alguien más por broadcast, como para la propia al presionar
+  // un botón — Supabase Realtime Broadcast, por default, NO le regresa su
+  // propio mensaje a quien lo manda, así que sin esto, presionar un emoji
+  // estando solo en la sala no mostraba ningún cambio.
+  const pushReactionToast = useCallback((avatar, emoji) => {
+    const id = `${Date.now()}-${Math.random().toString(36).slice(2)}`;
+    setIncomingReactions((prev) => [...prev, { id, avatar, emoji }]);
+    const timer = setTimeout(() => {
+      setIncomingReactions((prev) => prev.filter((r) => r.id !== id));
+    }, REACTION_TOAST_MS);
+    reactionTimers.current.push(timer);
+  }, []);
+
   const leave = useCallback(() => {
     if (channelRef.current) {
       supabase.removeChannel(channelRef.current);
@@ -65,12 +79,7 @@ export function useBodyDouble(userId) {
     channel
       .on("presence", { event: "sync" }, () => syncParticipants(channel))
       .on("broadcast", { event: "reaction" }, ({ payload }) => {
-        const id = `${Date.now()}-${Math.random().toString(36).slice(2)}`;
-        setIncomingReactions((prev) => [...prev, { id, avatar: payload.avatar, emoji: payload.emoji }]);
-        const timer = setTimeout(() => {
-          setIncomingReactions((prev) => prev.filter((r) => r.id !== id));
-        }, REACTION_TOAST_MS);
-        reactionTimers.current.push(timer);
+        pushReactionToast(payload.avatar, payload.emoji);
       })
       .subscribe(async (status) => {
         if (status === "SUBSCRIBED") {
@@ -79,22 +88,27 @@ export function useBodyDouble(userId) {
         }
       });
     channelRef.current = channel;
-  }, [userId, syncParticipants]);
+  }, [userId, syncParticipants, pushReactionToast]);
 
   // Manda una reacción sin texto a quien esté en la sala — no hace nada si
   // no estás en la sala o si el emoji no es parte del vocabulario fijo
   // (REACTIONS en bodyDoublePure.js), así que se puede llamar siempre sin
-  // validar antes, igual que setStatus.
+  // validar antes, igual que setStatus. También la muestra de inmediato
+  // para quien la manda (ver pushReactionToast arriba), para que presionar
+  // un botón siempre se sienta como que hizo algo, aunque esté solo en la
+  // sala.
   const sendReaction = useCallback(
     (emoji) => {
       if (!channelRef.current || !userId || !isValidReaction(emoji)) return;
+      const avatar = avatarFor(userId);
       channelRef.current.send({
         type: "broadcast",
         event: "reaction",
-        payload: { avatar: avatarFor(userId), emoji },
+        payload: { avatar, emoji },
       });
+      pushReactionToast(avatar, emoji);
     },
-    [userId]
+    [userId, pushReactionToast]
   );
 
   // Si el paciente está en la sala y empieza o termina una sesión de Modo

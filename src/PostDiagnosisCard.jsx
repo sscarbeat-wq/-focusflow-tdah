@@ -63,7 +63,7 @@ export default function PostDiagnosisCard({ C }) {
         <Sparkles size={16} color={C.amber} /> ¿Te diagnosticaron hace poco?
       </div>
       <p style={{ margin: "0 0 10px" }}>
-        Si tu diagnóstico de TDAH es reciente, esta guía breve es para ti — no reemplaza a tu médica, pero puede
+        Si tu diagnóstico de TDAH es reciente, esta guía breve es para ti — no reemplaza a tu médico o médica, pero puede
         ayudarte a entender qué esperar en esta primera etapa.
       </p>
       {POST_DIAGNOSIS_SECTIONS.map((section) => (
@@ -74,7 +74,7 @@ export default function PostDiagnosisCard({ C }) {
       ))}
       <p style={{ margin: 0, color: C.textMuted }}>
         Esto es información general, no un plan de tratamiento — cualquier duda sobre tu caso específico,
-        coméntala con tu médica.
+        coméntala con tu médico o médica.
       </p>
     </div>
   );

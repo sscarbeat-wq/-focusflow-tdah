@@ -3,7 +3,7 @@
 // de psicoeducación ya establecidas (p. ej. CHADD, sobre si contarlo o no)
 // y del conocimiento clínico general sobre titulación de medicación en
 // TDAH. Mismo principio que el resto del contenido clínico de Senda:
-// informativo, nunca prescriptivo, siempre remite a la médica tratante
+// informativo, nunca prescriptivo, siempre remite al médico o médica tratante
 // para decisiones concretas sobre el caso de cada quien.
 //
 // Senda no guarda cuándo fue diagnosticada cada cuenta, así que esta guía
@@ -14,7 +14,7 @@ export const POST_DIAGNOSIS_SECTIONS = [
   {
     id: "primeras-semanas",
     title: "Las primeras semanas con medicación",
-    text: "Encontrar la dosis correcta casi nunca es inmediato — es normal que tu médica empiece con una dosis baja y la vaya ajustando en las primeras semanas, revisando cómo te sientes y qué efectos notas. Los estimulantes suelen mostrar efecto el mismo día que se toman, pero encontrar el ajuste fino puede tomar varias semanas; los no estimulantes (como la atomoxetina) pueden tardar 4 a 6 semanas en mostrar su efecto completo. Ninguno de los dos casos es una señal de que algo salió mal.",
+    text: "Encontrar la dosis correcta casi nunca es inmediato — es normal que tu médico o médica empiece con una dosis baja y la vaya ajustando en las primeras semanas, revisando cómo te sientes y qué efectos notas. Los estimulantes suelen mostrar efecto el mismo día que se toman, pero encontrar el ajuste fino puede tomar varias semanas; los no estimulantes (como la atomoxetina) pueden tardar 4 a 6 semanas en mostrar su efecto completo. Ninguno de los dos casos es una señal de que algo salió mal.",
   },
   {
     id: "no-es-magia",
@@ -24,7 +24,7 @@ export const POST_DIAGNOSIS_SECTIONS = [
   {
     id: "errores-comunes",
     title: "Errores comunes al empezar",
-    text: "Dejar la medicación por tu cuenta en cuanto notas un efecto secundario leve, sin avisarle primero a tu médica — muchos efectos secundarios iniciales se suavizan después de unos días. Compararte con la dosis de alguien más: lo que funciona para otra persona no predice lo que te va a funcionar a ti. Y saltarte dosis \"para probar si ya no las necesitas\" sin platicarlo antes — eso le quita a tu médica la información que necesita para ajustar bien tu tratamiento.",
+    text: "Dejar la medicación por tu cuenta en cuanto notas un efecto secundario leve, sin avisarle primero a tu médico o médica — muchos efectos secundarios iniciales se suavizan después de unos días. Compararte con la dosis de alguien más: lo que funciona para otra persona no predice lo que te va a funcionar a ti. Y saltarte dosis \"para probar si ya no las necesitas\" sin platicarlo antes — eso le quita a tu médico o médica la información que necesita para ajustar bien tu tratamiento.",
   },
   {
     id: "hablarlo-con-tu-gente",
@@ -33,7 +33,7 @@ export const POST_DIAGNOSIS_SECTIONS = [
   },
   {
     id: "cuando-contactar",
-    title: "Cuándo contactar a tu médica antes de tu próxima cita",
+    title: "Cuándo contactar a tu médico o médica antes de tu próxima cita",
     text: "No esperes a tu siguiente consulta si notas: palpitaciones o dolor en el pecho, ansiedad que se siente mucho más fuerte que antes, cambios de ánimo marcados, pérdida de apetito o de sueño que ya te está afectando de verdad, o si sientes que la medicación simplemente no está haciendo nada después de varias semanas al ajuste indicado. Ante cualquier duda, siempre es mejor preguntar antes que esperar.",
   },
 ];
