@@ -45,7 +45,7 @@ import {
 } from "lucide-react";
 
 import InstallBanner from "./InstallBanner";
-import PerimenopauseCard from "./PerimenopauseCard";
+import ScienceCapsulePanel from "./ScienceCapsulePanel";
 import MindfulnessPanel from "./MindfulnessPanel";
 import Mascot from "./Mascot";
 import FocusMode from "./FocusMode";
@@ -1560,7 +1560,7 @@ export default function FocusFlowTDAH({
             </Panel>
             </div>
 
-            <PerimenopauseCard C={C} />
+            <ScienceCapsulePanel C={C} />
 
             <Panel C={C}
               accent={C.amber}
