@@ -44,6 +44,7 @@ import {
   Flower2,
 } from "lucide-react";
 
+import LanguageSwitcher from "./LanguageSwitcher";
 import InstallBanner from "./InstallBanner";
 import PostDiagnosisCard from "./PostDiagnosisCard";
 import ScienceCapsulePanel from "./ScienceCapsulePanel";
@@ -193,6 +194,9 @@ export default function FocusFlowTDAH({
   C,
   theme,
   onToggleTheme,
+  t,
+  lang,
+  onChangeLanguage,
 }) {
   const saved = { ...DEFAULT_PROGRESS, ...(initialProgress || {}) };
 
@@ -349,57 +353,57 @@ export default function FocusFlowTDAH({
       // Confirmación visible del cambio (el ícono solo, Volume2/VolumeX, es
       // difícil de notar a simple vista) + un sonido de muestra al
       // encenderlo, para que quede claro de inmediato qué se activó.
-      setCelebrateMsg(next ? "Sonido y vibración activados" : "Sonido y vibración desactivados");
+      setCelebrateMsg(next ? t.app.soundOnMsg : t.app.soundOffMsg);
       if (celebrateMsgTimeout.current) clearTimeout(celebrateMsgTimeout.current);
       celebrateMsgTimeout.current = setTimeout(() => setCelebrateMsg(""), 2000);
       celebrate(next);
       return next;
     });
-  }, []);
+  }, [t]);
 
   const grantXp = useCallback(
     (label) => {
       setXp((p) => Math.round((p + 0.85) * 100) / 100);
-      setXpMsg(`+0.85 XP — ${label}`);
+      setXpMsg(t.app.xpGained(label));
       setJar((prev) => [{ id: Date.now(), label }, ...prev].slice(0, 12));
       setStreak((prev) => nextStreak(prev));
       celebrate(celebrateOn);
       if (xpTimeout.current) clearTimeout(xpTimeout.current);
       xpTimeout.current = setTimeout(() => setXpMsg(""), 2400);
     },
-    [celebrateOn]
+    [celebrateOn, t]
   );
 
   const handleMoodSave = useCallback(
     (mood, note) => {
       setMoodLog((prev) => recordMood(prev, mood, note));
-      grantXp("registro de ánimo");
+      grantXp(t.app.xpLabels.moodLogged);
     },
-    [grantXp]
+    [grantXp, t]
   );
 
   const handleEnergySave = useCallback(
     (level) => {
       setEnergyLog((prev) => recordEnergy(prev, level));
-      grantXp("registro de energía");
+      grantXp(t.app.xpLabels.energyLogged);
     },
-    [grantXp]
+    [grantXp, t]
   );
 
   const handleRecordBedtime = useCallback(
     (time) => {
       setSleepLog((prev) => recordBedtime(prev, time));
-      grantXp("hora de dormir registrada");
+      grantXp(t.app.xpLabels.bedtimeLogged);
     },
-    [grantXp]
+    [grantXp, t]
   );
 
   const handleAddGoodMoment = useCallback(
     (text) => {
       setGoodMoments((prev) => addGoodMoment(prev, text));
-      grantXp("guardaste un momento bueno");
+      grantXp(t.app.xpLabels.goodMomentSaved);
     },
-    [grantXp]
+    [grantXp, t]
   );
 
   const handleRemoveGoodMoment = useCallback((id) => {
@@ -410,8 +414,8 @@ export default function FocusFlowTDAH({
   // que FocusMode) y solo avisa cuando la práctica completa se terminó —
   // no hay ningún dato nuevo que guardar, solo otorgar el XP.
   const handleMindfulnessComplete = useCallback(() => {
-    grantXp("completaste tu práctica de atención plena");
-  }, [grantXp]);
+    grantXp(t.app.xpLabels.mindfulnessCompleted);
+  }, [grantXp, t]);
 
   const handleAddMedication = useCallback((med) => {
     setMedications((prev) => addMedication(prev, med));
@@ -424,9 +428,9 @@ export default function FocusFlowTDAH({
   const handleLogDose = useCallback(
     (medicationId, time, note) => {
       setMedicationDoseLog((prev) => logDose(prev, medicationId, time, note));
-      grantXp("dosis de medicamento registrada");
+      grantXp(t.app.xpLabels.doseLogged);
     },
-    [grantXp]
+    [grantXp, t]
   );
 
   const handleUndoDose = useCallback((medicationId, time) => {
@@ -445,9 +449,9 @@ export default function FocusFlowTDAH({
   const handleMarkPaymentPaid = useCallback(
     (id, dueDateKey) => {
       setPaymentPaidLog((prev) => markPaid(prev, id, dueDateKey));
-      grantXp("pago marcado como hecho");
+      grantXp(t.app.xpLabels.paymentMarked);
     },
-    [grantXp]
+    [grantXp, t]
   );
 
   const handleUnmarkPaymentPaid = useCallback((id) => {
@@ -502,9 +506,9 @@ export default function FocusFlowTDAH({
   const handleCbtLessonComplete = useCallback(
     (lessonId, title) => {
       setCbtProgram((prev) => markLessonComplete(prev, lessonId));
-      grantXp(`lección completada — ${title}`);
+      grantXp(t.app.xpLabels.lessonCompleted(title));
     },
-    [grantXp]
+    [grantXp, t]
   );
 
   useEffect(() => () => xpTimeout.current && clearTimeout(xpTimeout.current), []);
@@ -527,11 +531,20 @@ export default function FocusFlowTDAH({
   // de "picante" de Magic ToDo, de Goblin Tools) — "normal" es el
   // comportamiento de siempre.
   const [aiGranularity, setAiGranularity] = useState("normal");
+  // Los ids ("pocos"/"normal"/"muchos") son el valor interno que se manda a
+  // la API (ver handleAiBreakdown) — nunca cambian con el idioma. La
+  // etiqueta visible se resuelve con t.app.dismantler.* al renderizar.
   const AI_GRANULARITY_OPTIONS = [
-    { id: "pocos", label: "Pocos pasos", maxSteps: 3 },
-    { id: "normal", label: "Normal", maxSteps: 5 },
-    { id: "muchos", label: "Muchos, bien chiquitos", maxSteps: 8 },
+    { id: "pocos", maxSteps: 3 },
+    { id: "normal", maxSteps: 5 },
+    { id: "muchos", maxSteps: 8 },
   ];
+  const granularityLabel = (id) =>
+    ({
+      pocos: t.app.dismantler.granularityFew,
+      normal: t.app.dismantler.granularityNormal,
+      muchos: t.app.dismantler.granularityMany,
+    }[id]);
 
   // Modo "un paso a la vez" (inspirado en Taskmaster, de Goblin Tools) —
   // preferencia de dispositivo, no de paciente, por eso vive en
@@ -575,7 +588,7 @@ export default function FocusFlowTDAH({
       p.map((s) => {
         if (s.id !== id) return s;
         const done = !s.done;
-        if (done) grantXp(`paso completado — ${s.text}`);
+        if (done) grantXp(t.app.xpLabels.stepCompleted(s.text));
         return { ...s, done };
       })
     );
@@ -620,7 +633,7 @@ export default function FocusFlowTDAH({
       setChooseMsg("");
     } else {
       setChosenStepId(null);
-      setChooseMsg("No tienes pasos pendientes para elegir.");
+      setChooseMsg(t.app.dismantler.noPendingSteps);
     }
   };
   const chosenStep = steps.find((s) => s.id === chosenStepId && !s.done) || null;
@@ -643,7 +656,7 @@ export default function FocusFlowTDAH({
         body: JSON.stringify({ userId, task: bigTask.trim(), granularity: aiGranularity }),
       });
       const data = await res.json();
-      if (!res.ok) throw new Error(data.error || "No se pudo desglosar la tarea.");
+      if (!res.ok) throw new Error(data.error || t.app.dismantler.aiBreakdownError);
       const maxSteps = AI_GRANULARITY_OPTIONS.find((g) => g.id === aiGranularity)?.maxSteps || 5;
       const newSteps = (data.steps || []).slice(0, maxSteps).map((s, i) => ({
         id: Date.now() + i,
@@ -658,7 +671,7 @@ export default function FocusFlowTDAH({
       scheduleStepsOnCalendar(userId, newSteps, { kind: "step" });
       setSteps(newSteps);
     } catch (err) {
-      setAiError(err.message || "Ocurrió un error. Intenta de nuevo.");
+      setAiError(err.message || t.common.genericError);
     } finally {
       setAiLoading(false);
     }
@@ -685,7 +698,7 @@ export default function FocusFlowTDAH({
     if (realMin > 0 && estimateMin > 0) {
       const diff = Math.round(((realMin - estimateMin) / estimateMin) * 100);
       setAudit({ realMin: Math.round(realMin * 10) / 10, diff });
-      grantXp("registraste tu tiempo real");
+      grantXp(t.app.xpLabels.timeAuditRecorded);
     }
   };
   const resetAudit = () => {
@@ -718,7 +731,7 @@ export default function FocusFlowTDAH({
     } else if (stStage === 2) {
       setStStage(3);
     } else if (stStage === 3) {
-      grantXp(stContext === "compra" ? "usaste el freno antes de una compra" : "usaste el freno de impulsividad");
+      grantXp(stContext === "compra" ? t.app.xpLabels.stopThinkPurchase : t.app.xpLabels.stopThinkGeneral);
       setImpulseBrakeLog((prev) => recordImpulseBrakeUse(prev, stContext));
       closeStopThink();
     }
@@ -744,7 +757,7 @@ export default function FocusFlowTDAH({
   const [phase, setPhase] = useState(0);
   const [count, setCount] = useState(4);
   const breathRef = useRef(null);
-  const phaseLabel = ["Inhala", "Retén", "Exhala"];
+  const phaseLabel = [t.app.breathing.inhale, t.app.breathing.hold, t.app.breathing.exhale];
 
   useEffect(() => {
     if (breathingOn) {
@@ -771,7 +784,7 @@ export default function FocusFlowTDAH({
       if (cyclesRef.current > 1 && cyclesRef.current >= 6) {
         setBreathingOn(false);
         cyclesRef.current = 0;
-        grantXp("completaste tu minuto de respiración");
+        grantXp(t.app.xpLabels.breathingCompleted);
       }
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -797,7 +810,7 @@ export default function FocusFlowTDAH({
     else if (rfStage === 1 && rfEvidenceAgainst.trim()) setRfStage(2);
     else if (rfStage === 2 && rfAlternative.trim()) {
       setRfStage(3);
-      grantXp("reestructuraste un pensamiento");
+      grantXp(t.app.xpLabels.reframeCompleted);
     }
   };
   const rfReset = () => {
@@ -820,7 +833,7 @@ export default function FocusFlowTDAH({
           if (s <= 1) {
             setBreakRunning(false);
             setBreakDone(true);
-            grantXp("pausa activa completada");
+            grantXp(t.app.xpLabels.activeBreakCompleted);
             return 0;
           }
           return s - 1;
@@ -828,7 +841,7 @@ export default function FocusFlowTDAH({
       }, 1000);
     }
     return () => breakRef.current && clearInterval(breakRef.current);
-  }, [breakRunning, grantXp]);
+  }, [breakRunning, grantXp, t]);
 
   const toggleXp = (setter, current, label) => {
     const next = !current;
@@ -889,8 +902,8 @@ export default function FocusFlowTDAH({
       }}
     >
       <div style={{ maxWidth: "1000px", margin: "0 auto" }}>
-        <InstallBanner C={C} />
-        <PostDiagnosisCard C={C} />
+        <InstallBanner C={C} t={t} />
+        <PostDiagnosisCard C={C} t={t} />
         {/* Header */}
         <header
           style={{
@@ -903,12 +916,13 @@ export default function FocusFlowTDAH({
           }}
         >
           <div>
-            <h1 style={{ fontSize: "24px", fontWeight: 700, margin: 0 }}>Senda</h1>
+            <h1 style={{ fontSize: "24px", fontWeight: 700, margin: 0 }}>{t.common.appName}</h1>
             <p style={{ fontSize: "13px", color: C.textMuted, margin: "6px 0 0" }}>
-              {userEmail ? `Sesión de ${userEmail}` : "Sistema de habituación y regulación"}
+              {userEmail ? t.app.sessionOf(userEmail) : t.app.noEmailSubtitle}
             </p>
           </div>
           <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
+            {onChangeLanguage && <LanguageSwitcher C={C} lang={lang} onChange={onChangeLanguage} t={t} height="40px" />}
             <div
               style={{
                 background: C.surfaceAlt,
@@ -923,8 +937,8 @@ export default function FocusFlowTDAH({
             >
               <Sparkles size={18} color={C.amber} />
               <div>
-                <div style={{ fontSize: "16px", fontWeight: 600, lineHeight: 1.1 }}>{xp.toFixed(2)} XP</div>
-                <div style={{ fontSize: "11px", color: C.textMuted }}>foco acumulado</div>
+                <div style={{ fontSize: "16px", fontWeight: 600, lineHeight: 1.1 }}>{xp.toFixed(2)} {t.app.xpUnit}</div>
+                <div style={{ fontSize: "11px", color: C.textMuted }}>{t.app.xpCaption}</div>
               </div>
               {xpMsg && (
                 <div
@@ -946,8 +960,8 @@ export default function FocusFlowTDAH({
             </div>
             <button
               onClick={toggleCelebrate}
-              aria-label={celebrateOn ? "Apagar sonido y vibración al completar" : "Encender sonido y vibración al completar"}
-              title={celebrateOn ? "Apagar sonido y vibración al completar" : "Encender sonido y vibración al completar"}
+              aria-label={celebrateOn ? t.app.muteOn : t.app.muteOff}
+              title={celebrateOn ? t.app.muteOn : t.app.muteOff}
               style={{
                 position: "relative",
                 background: "transparent",
@@ -984,8 +998,8 @@ export default function FocusFlowTDAH({
             {onToggleTheme && (
               <button
                 onClick={onToggleTheme}
-                aria-label={theme === "light" ? "Cambiar a modo oscuro" : "Cambiar a modo claro"}
-                title={theme === "light" ? "Cambiar a modo oscuro" : "Cambiar a modo claro"}
+                aria-label={theme === "light" ? t.common.toDarkMode : t.common.toLightMode}
+                title={theme === "light" ? t.common.toDarkMode : t.common.toLightMode}
                 style={{
                   background: "transparent",
                   border: `1px solid ${C.border}`,
@@ -1016,13 +1030,13 @@ export default function FocusFlowTDAH({
                   fontSize: "12px",
                 }}
               >
-                Mi suscripción
+                {t.app.mySubscription}
               </button>
             )}
             {onSignOut && (
               <button
                 onClick={onSignOut}
-                aria-label="Cerrar sesión"
+                aria-label={t.common.signOut}
                 style={{
                   background: "transparent",
                   border: `1px solid ${C.border}`,
@@ -1042,7 +1056,7 @@ export default function FocusFlowTDAH({
           </div>
         </header>
 
-        <Mascot streak={streak} C={C} />
+        <Mascot streak={streak} C={C} t={t} />
 
         {/* Dopamine jar */}
         <div
@@ -1056,11 +1070,11 @@ export default function FocusFlowTDAH({
         >
           <div style={{ display: "flex", alignItems: "center", gap: "8px", marginBottom: jar.length ? "10px" : 0 }}>
             <Award size={16} color={C.lavender} />
-            <span style={{ fontSize: "13px", color: C.textMuted }}>Tarro de logros</span>
+            <span style={{ fontSize: "13px", color: C.textMuted }}>{t.app.jarLabel}</span>
           </div>
           {jar.length === 0 ? (
             <p style={{ fontSize: "13px", color: C.textMuted, margin: 0 }}>
-              Cada micro-logro que completes va a aparecer aquí.
+              {t.app.jarEmpty}
             </p>
           ) : (
             <div style={{ display: "flex", flexWrap: "wrap", gap: "8px" }}>
@@ -1094,20 +1108,18 @@ export default function FocusFlowTDAH({
             lineHeight: 1.6,
           }}
         >
-          Esta app es una herramienta de apoyo de hábitos. La investigación sobre rutinas y hábitos en TDAH está
-          concentrada sobre todo en niños, y hoy no existe un instrumento validado para medir esto en adultos —
-          por eso funciona como acompañamiento práctico, no como algo clínicamente validado, y no reemplaza
-          evaluación o tratamiento profesional.
+          {t.app.disclaimer}
         </div>
 
         <Panel C={C}
           accent={C.lavender}
           icon={<ListChecks size={22} />}
-          title="Hoy"
-          subtitle="Lo que sigue pendiente ahora mismo, juntando lo que ya registraste en la app."
+          title={t.app.panels.today.title}
+          subtitle={t.app.panels.today.subtitle}
         >
           <TodayPanel
             C={C}
+            t={t}
             steps={steps}
             moodLog={moodLog}
             energyLog={energyLog}
@@ -1125,21 +1137,23 @@ export default function FocusFlowTDAH({
         <Panel C={C}
           accent={C.amber}
           icon={<Clock size={22} />}
-          title="Línea de tiempo de hoy"
-          subtitle="A qué hora pasó cada cosa que hiciste en Senda hoy — para ver de un vistazo cómo se ha ido el día."
+          title={t.app.panels.timeline.title}
+          subtitle={t.app.panels.timeline.subtitle}
         >
-          <DayTimelinePanel C={C} jar={jar} />
+          <DayTimelinePanel C={C} t={t} jar={jar} />
         </Panel>
 
         <div ref={quickCaptureSectionRef}>
         <Panel C={C}
           accent={C.lavender}
           icon={<StickyNote size={22} />}
-          title="Captura rápida"
-          subtitle="Deja una idea por voz o texto sin decidir primero en qué panel va — Senda intenta mandarla sola al lugar correcto."
+          title={t.app.panels.quickCapture.title}
+          subtitle={t.app.panels.quickCapture.subtitle}
         >
           <QuickCapturePanel
             C={C}
+            t={t}
+            lang={lang}
             userId={userId}
             quickNotes={quickNotes}
             oldForgottenNoteId={forgottenNoteId}
@@ -1157,10 +1171,10 @@ export default function FocusFlowTDAH({
         <Panel C={C}
           accent={C.rose}
           icon={<HeartHandshake size={22} />}
-          title="Compañero de apoyo"
-          subtitle="Elige lo que estás sintiendo ahora mismo — respuestas pensadas para TDAH, sin que tengas que escribir nada."
+          title={t.app.panels.companion.title}
+          subtitle={t.app.panels.companion.subtitle}
         >
-          <CompanionPanel C={C} userId={userId} onNavigate={scrollToCompanionSection} />
+          <CompanionPanel C={C} t={t} lang={lang} userId={userId} onNavigate={scrollToCompanionSection} />
         </Panel>
 
         <div style={{ display: "grid", gridTemplateColumns: isNarrow ? "1fr" : "1fr 1fr", gap: "0 20px" }}>
@@ -1169,20 +1183,20 @@ export default function FocusFlowTDAH({
             <Panel C={C}
               accent={C.mint}
               icon={<ListTree size={22} />}
-              title="El desglosador"
-              subtitle="Si te cuesta empezar, suele ser porque el primer paso es demasiado grande."
+              title={t.app.panels.dismantler.title}
+              subtitle={t.app.panels.dismantler.subtitle}
             >
               <input
                 type="text"
                 value={bigTask}
                 onChange={(e) => setBigTask(e.target.value)}
-                placeholder="¿Qué tarea estás postergando?"
+                placeholder={t.app.dismantler.taskPlaceholder}
                 style={{ ...inputStyle, marginBottom: "14px" }}
               />
               {bigTask.trim() && (
                 <>
                   <p style={{ fontSize: "11px", color: C.textMuted, margin: "0 0 6px" }}>
-                    Qué tan desglosado, para este momento:
+                    {t.app.dismantler.granularityLabel}
                   </p>
                   <div style={{ display: "flex", gap: "6px", flexWrap: "wrap", marginBottom: "10px" }}>
                     {AI_GRANULARITY_OPTIONS.map((g) => (
@@ -1199,7 +1213,7 @@ export default function FocusFlowTDAH({
                           cursor: "pointer",
                         }}
                       >
-                        {g.label}
+                        {granularityLabel(g.id)}
                       </button>
                     ))}
                   </div>
@@ -1216,20 +1230,20 @@ export default function FocusFlowTDAH({
                       cursor: aiLoading ? "default" : "pointer",
                     }}
                   >
-                    <Sparkles size={14} /> {aiLoading ? "Desglosando..." : "Desglosar con IA"}
+                    <Sparkles size={14} /> {aiLoading ? t.app.dismantler.aiLoading : t.app.dismantler.aiButton}
                   </button>
                   {aiError && (
                     <p style={{ fontSize: "12px", color: C.amber, margin: "0 0 12px", lineHeight: 1.5 }}>{aiError}</p>
                   )}
                   <p style={{ fontSize: "11px", color: C.textMuted, margin: "0 0 14px" }}>
-                    La IA reemplaza la lista de pasos de abajo — también puedes seguir agregándolos tú misma, a mano.
+                    {t.app.dismantler.aiReplacesNote}
                   </p>
                   <div style={{ display: "flex", gap: "8px", marginBottom: "14px", flexWrap: "wrap" }}>
                     <input
                       type="text"
                       value={stepDraft}
                       onChange={(e) => setStepDraft(e.target.value)}
-                      placeholder={`Paso ${steps.length + 1}`}
+                      placeholder={t.app.dismantler.stepPlaceholder(steps.length + 1)}
                       disabled={steps.length >= 5}
                       style={{ ...inputStyle, flex: "1 1 140px" }}
                     />
@@ -1247,13 +1261,13 @@ export default function FocusFlowTDAH({
                     <select
                       value={stepEnergy}
                       onChange={(e) => setStepEnergy(e.target.value)}
-                      title="Energía que requiere este paso (opcional) — se usa para sugerirlo en 'Hoy' según tu check-in de energía"
+                      title={t.app.dismantler.stepEnergyTooltip}
                       style={{ ...inputStyle, width: "auto" }}
                     >
-                      <option value="">Cualquier energía</option>
-                      <option value="baja">Energía baja</option>
-                      <option value="media">Energía media</option>
-                      <option value="alta">Energía alta</option>
+                      <option value="">{t.app.dismantler.anyEnergy}</option>
+                      <option value="baja">{t.app.dismantler.lowEnergy}</option>
+                      <option value="media">{t.app.dismantler.midEnergy}</option>
+                      <option value="alta">{t.app.dismantler.highEnergy}</option>
                     </select>
                     <button
                       onClick={addStep}
@@ -1266,12 +1280,12 @@ export default function FocusFlowTDAH({
                         opacity: steps.length >= 5 ? 0.5 : 1,
                       }}
                     >
-                      <Plus size={14} /> Añadir
+                      <Plus size={14} /> {t.app.dismantler.addButton}
                     </button>
                   </div>
                   {steps.length >= 5 && (
                     <p style={{ fontSize: "11px", color: C.textMuted, margin: "-6px 0 10px" }}>
-                      Ya tienes 5 pasos — es el máximo a la vez. Borra uno (el bote de basura) para poder agregar otro.
+                      {t.app.dismantler.maxStepsNotice}
                     </p>
                   )}
                   {steps.length > 0 && (
@@ -1291,11 +1305,11 @@ export default function FocusFlowTDAH({
                         }}
                       >
                         <ListChecks size={12} />
-                        {oneStepMode ? "Ver todos los pasos" : "Ver un paso a la vez"}
+                        {oneStepMode ? t.app.dismantler.viewAllSteps : t.app.dismantler.viewOneStep}
                       </button>
                       <button
                         onClick={handleChoosePick}
-                        title="Escoge al azar uno de tus pasos pendientes — para cuando no sabes por cuál empezar"
+                        title={t.app.dismantler.pickForMeTitle}
                         style={{
                           background: "transparent",
                           border: "none",
@@ -1309,13 +1323,13 @@ export default function FocusFlowTDAH({
                         }}
                       >
                         <Shuffle size={12} />
-                        Elige por mí
+                        {t.app.dismantler.pickForMe}
                       </button>
                     </div>
                   )}
                   {chosenStep && (
                     <p style={{ fontSize: "12px", color: C.lavenderText, margin: "0 0 8px", fontWeight: 600 }}>
-                      👉 Empieza con: {chosenStep.text}
+                      {t.app.dismantler.startWith(chosenStep.text)}
                     </p>
                   )}
                   {chooseMsg && (
@@ -1379,7 +1393,7 @@ export default function FocusFlowTDAH({
                                 <span style={{ fontSize: "12px", color: C.textMuted }}>{s.min} min</span>
                                 {s.energy && (
                                   <span
-                                    title={`Pensado para energía ${s.energy}`}
+                                    title={t.app.dismantler.energyTagTitle(s.energy)}
                                     style={{
                                       fontSize: "11px",
                                       color: C.textMuted,
@@ -1395,7 +1409,7 @@ export default function FocusFlowTDAH({
                                 <button
                                   onClick={() => removeStep(s.id)}
                                   style={{ background: "transparent", border: "none", cursor: "pointer", color: C.textMuted }}
-                                  aria-label="Eliminar paso"
+                                  aria-label={t.app.dismantler.removeStepAria}
                                 >
                                   <Trash2 size={14} />
                                 </button>
@@ -1405,8 +1419,7 @@ export default function FocusFlowTDAH({
                         </ol>
                         {hiddenPendingCount > 0 && (
                           <p style={{ fontSize: "12px", color: C.textMuted, margin: "8px 0 0" }}>
-                            +{hiddenPendingCount} paso{hiddenPendingCount === 1 ? "" : "s"} más esperando — se irán
-                            mostrando uno a la vez.
+                            {t.app.dismantler.morePendingSteps(hiddenPendingCount)}
                           </p>
                         )}
                       </>
@@ -1421,11 +1434,11 @@ export default function FocusFlowTDAH({
             <Panel C={C}
               accent={C.amber}
               icon={<Timer size={22} />}
-              title="El auditor de tiempo"
-              subtitle="Compara cuánto piensas que va a tardar contra lo que realmente tarda."
+              title={t.app.panels.auditor.title}
+              subtitle={t.app.panels.auditor.subtitle}
             >
               <div style={{ display: "flex", alignItems: "center", gap: "10px", marginBottom: "16px" }}>
-                <label style={{ fontSize: "13px", color: C.textMuted }}>Estimado</label>
+                <label style={{ fontSize: "13px", color: C.textMuted }}>{t.app.auditor.estimateLabel}</label>
                 <input
                   type="number"
                   min={1}
@@ -1434,7 +1447,7 @@ export default function FocusFlowTDAH({
                   disabled={running || elapsed > 0}
                   style={{ ...inputStyle, width: "60px" }}
                 />
-                <span style={{ fontSize: "13px", color: C.textMuted }}>min</span>
+                <span style={{ fontSize: "13px", color: C.textMuted }}>{t.app.auditor.minutesUnit}</span>
               </div>
               <div style={{ display: "flex", alignItems: "center", gap: "16px", marginBottom: "16px" }}>
                 <span style={{ fontSize: "34px", fontWeight: 700, fontVariantNumeric: "tabular-nums" }}>
@@ -1444,7 +1457,7 @@ export default function FocusFlowTDAH({
                   {!running ? (
                     <button
                       onClick={() => setRunning(true)}
-                      aria-label="Iniciar"
+                      aria-label={t.app.auditor.startAria}
                       style={{
                         ...btnPrimary(C.mint, C.mintText),
                         borderRadius: "50%",
@@ -1461,7 +1474,7 @@ export default function FocusFlowTDAH({
                   ) : (
                     <button
                       onClick={stopAudit}
-                      aria-label="Detener"
+                      aria-label={t.app.auditor.stopAria}
                       style={{
                         ...btnPrimary(C.amber, C.amberText),
                         borderRadius: "50%",
@@ -1478,7 +1491,7 @@ export default function FocusFlowTDAH({
                   )}
                   <button
                     onClick={resetAudit}
-                    aria-label="Reiniciar"
+                    aria-label={t.app.auditor.resetAria}
                     style={{
                       ...btnGhost,
                       borderRadius: "50%",
@@ -1496,12 +1509,11 @@ export default function FocusFlowTDAH({
               </div>
               {audit && (
                 <div style={{ background: C.surfaceAlt, borderRadius: "6px", padding: "12px 14px", fontSize: "14px" }}>
-                  Tardaste {audit.realMin} min contra {estimateMin} min estimados —{" "}
                   {audit.diff > 0
-                    ? `un ${audit.diff}% más de lo que pensabas.`
+                    ? t.app.auditor.resultMore(audit.realMin, estimateMin, audit.diff)
                     : audit.diff < 0
-                    ? `un ${Math.abs(audit.diff)}% menos de lo que pensabas.`
-                    : "justo lo estimado."}
+                    ? t.app.auditor.resultLess(audit.realMin, estimateMin, Math.abs(audit.diff))
+                    : t.app.auditor.resultExact(audit.realMin, estimateMin)}
                 </div>
               )}
             </Panel>
@@ -1510,17 +1522,18 @@ export default function FocusFlowTDAH({
             <Panel C={C}
               accent={C.lavender}
               icon={<Headphones size={22} />}
-              title="Modo enfoque"
-              subtitle="Sesiones de trabajo con descansos programados y ruido blanco de fondo."
+              title={t.app.panels.focusMode.title}
+              subtitle={t.app.panels.focusMode.subtitle}
             >
               <FocusMode
                 C={C}
+                t={t}
                 onSessionComplete={() => {
-                  grantXp("sesión de enfoque completada");
+                  grantXp(t.app.xpLabels.focusSessionCompleted);
                   bodyDouble.setStatus("aqui");
                 }}
                 onSessionStart={(min) => {
-                  scheduleStepsOnCalendar(userId, [{ text: "Sesión de enfoque (Senda)", min }], { kind: "focus" });
+                  scheduleStepsOnCalendar(userId, [{ text: t.app.focusSessionEventTitle, min }], { kind: "focus" });
                   bodyDouble.setStatus("enfocando");
                 }}
               />
@@ -1530,21 +1543,23 @@ export default function FocusFlowTDAH({
             <Panel C={C}
               accent={C.rose}
               icon={<Smile size={22} />}
-              title="Registro de ánimo"
-              subtitle="Un check-in rápido al día — te ayuda a ver patrones entre tu ánimo y tus hábitos."
+              title={t.app.panels.mood.title}
+              subtitle={t.app.panels.mood.subtitle}
             >
-              <MoodLog C={C} moodLog={moodLog} onSave={handleMoodSave} />
+              <MoodLog C={C} t={t} moodLog={moodLog} onSave={handleMoodSave} />
             </Panel>
             </div>
 
             <Panel C={C}
               accent={C.rose}
               icon={<Heart size={22} />}
-              title="Banco de momentos buenos"
-              subtitle="Un momento positivo del día, guardado tal cual — sin IA, solo para volver a verlo."
+              title={t.app.panels.goodMoments.title}
+              subtitle={t.app.panels.goodMoments.subtitle}
             >
               <GoodMomentsPanel
                 C={C}
+                t={t}
+                lang={lang}
                 goodMoments={goodMoments}
                 onAdd={handleAddGoodMoment}
                 onRemove={handleRemoveGoodMoment}
@@ -1555,23 +1570,24 @@ export default function FocusFlowTDAH({
             <Panel C={C}
               accent={C.lavenderDark}
               icon={<BookOpen size={22} />}
-              title="Programa breve de TCC"
-              subtitle="Una lección corta al día — psicoeducación práctica para TDAH, a tu propio ritmo."
+              title={t.app.panels.cbt.title}
+              subtitle={t.app.panels.cbt.subtitle}
             >
-              <CbtProgramPanel C={C} program={cbtProgram} onComplete={handleCbtLessonComplete} />
+              <CbtProgramPanel C={C} t={t} program={cbtProgram} onComplete={handleCbtLessonComplete} />
             </Panel>
             </div>
 
-            <ScienceCapsulePanel C={C} />
+            <ScienceCapsulePanel C={C} t={t} />
 
             <Panel C={C}
               accent={C.amber}
               icon={<TrendingUp size={22} />}
-              title="Insights semanales"
-              subtitle="Patrones de tu semana, armados con lo que ya registraste — nada inventado."
+              title={t.app.panels.insights.title}
+              subtitle={t.app.panels.insights.subtitle}
             >
               <WeeklyInsights
                 C={C}
+                t={t}
                 moodLog={moodLog}
                 jar={jar}
                 streak={streak}
@@ -1583,11 +1599,13 @@ export default function FocusFlowTDAH({
             <Panel C={C}
               accent={C.lavenderDark}
               icon={<FileText size={22} />}
-              title="Reporte para tu consulta"
-              subtitle="Un resumen de tus últimos 14 días, listo para imprimir o mostrar en pantalla en tu próxima cita."
+              title={t.app.panels.report.title}
+              subtitle={t.app.panels.report.subtitle}
             >
               <ClinicalReportPanel
                 C={C}
+                t={t}
+                lang={lang}
                 moodLog={moodLog}
                 energyLog={energyLog}
                 medications={medications}
@@ -1602,29 +1620,30 @@ export default function FocusFlowTDAH({
             <Panel C={C}
               accent={C.mint}
               icon={<Bell size={22} />}
-              title="Notificaciones"
-              subtitle="Avisos para acordarte de usar Senda, aunque tengas la app cerrada."
+              title={t.app.panels.notifications.title}
+              subtitle={t.app.panels.notifications.subtitle}
             >
-              <NotificationsPanel C={C} userId={userId} />
+              <NotificationsPanel C={C} t={t} userId={userId} />
             </Panel>
 
             <Panel C={C}
               accent={C.lavender}
               icon={<CalendarRange size={22} />}
-              title="Integración con calendario"
-              subtitle="Bloquea automáticamente en tu Google Calendar el tiempo de tus pasos y sesiones."
+              title={t.app.panels.calendar.title}
+              subtitle={t.app.panels.calendar.subtitle}
             >
-              <CalendarPanel C={C} userId={userId} />
+              <CalendarPanel C={C} t={t} userId={userId} />
             </Panel>
 
             <Panel C={C}
               accent={C.mint}
               icon={<Users size={22} />}
-              title="Cuerpo doble virtual"
-              subtitle="Trabaja en silencio al mismo tiempo que otras personas, sin verlas ni hablarles."
+              title={t.app.panels.bodyDouble.title}
+              subtitle={t.app.panels.bodyDouble.subtitle}
             >
               <BodyDoublePanel
                 C={C}
+                t={t}
                 joined={bodyDouble.joined}
                 participants={bodyDouble.participants}
                 incomingReactions={bodyDouble.incomingReactions}
@@ -1640,10 +1659,10 @@ export default function FocusFlowTDAH({
             <Panel C={C}
               accent={C.amber}
               icon={<BatteryMedium size={22} />}
-              title="Check-in de energía"
-              subtitle="Igual que el de ánimo, pero de energía — se usa para sugerirte qué paso del desglosador conviene intentar primero."
+              title={t.app.panels.energy.title}
+              subtitle={t.app.panels.energy.subtitle}
             >
-              <EnergyLog C={C} energyLog={energyLog} onSave={handleEnergySave} />
+              <EnergyLog C={C} t={t} energyLog={energyLog} onSave={handleEnergySave} />
             </Panel>
             </div>
 
@@ -1651,11 +1670,12 @@ export default function FocusFlowTDAH({
             <Panel C={C}
               accent={C.rose}
               icon={<Pill size={22} />}
-              title="Medicamentos"
-              subtitle="Horarios, registro de dosis tomadas y notas de efectos secundarios — para ti y, si quieres, para compartir con tu médico."
+              title={t.app.panels.medication.title}
+              subtitle={t.app.panels.medication.subtitle}
             >
               <MedicationPanel
                 C={C}
+                t={t}
                 medications={medications}
                 doseLog={medicationDoseLog}
                 onAdd={handleAddMedication}
@@ -1670,11 +1690,12 @@ export default function FocusFlowTDAH({
             <Panel C={C}
               accent={C.mint}
               icon={<CreditCard size={22} />}
-              title="Pagos y suscripciones"
-              subtitle="Una lista manual con aviso antes de la fecha, para no pagar tarde ni olvidar una suscripción."
+              title={t.app.panels.payments.title}
+              subtitle={t.app.panels.payments.subtitle}
             >
               <PaymentsPanel
                 C={C}
+                t={t}
                 payments={payments}
                 paidLog={paymentPaidLog}
                 onAdd={handleAddPayment}
@@ -1689,13 +1710,13 @@ export default function FocusFlowTDAH({
             <Panel C={C}
               accent={C.lavender}
               icon={<Hand size={22} />}
-              title="Freno de impulsividad"
-              subtitle="Alto, respira, evalúa, actúa."
+              title={t.app.panels.stopThink.title}
+              subtitle={t.app.panels.stopThink.subtitle}
             >
               {!stFlowOpen ? (
                 <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
                   <button onClick={() => startStopThink("general")} style={{ ...btnPrimary(C.lavender, C.lavenderText), width: "100%" }}>
-                    Presionar antes de actuar
+                    {t.app.stopThink.pressBeforeActing}
                   </button>
                   <button
                     onClick={() => startStopThink("compra")}
@@ -1709,53 +1730,53 @@ export default function FocusFlowTDAH({
                       border: `1px solid ${C.border}`,
                     }}
                   >
-                    <ShoppingCart size={16} /> Antes de una compra no planeada
+                    <ShoppingCart size={16} /> {t.app.stopThink.beforePurchase}
                   </button>
                 </div>
               ) : (
                 <div style={{ background: C.surfaceAlt, borderRadius: "6px", padding: "18px", textAlign: "center" }}>
                   {stStage === 0 && (
                     <>
-                      <p style={{ fontSize: "20px", fontWeight: 700, margin: "0 0 8px" }}>Alto</p>
+                      <p style={{ fontSize: "20px", fontWeight: 700, margin: "0 0 8px" }}>{t.app.stopThink.stopLabel}</p>
                       <p style={{ fontSize: "13px", color: C.textMuted, margin: "0 0 16px" }}>
                         {stContext === "compra"
-                          ? "Antes de comprar, una pausa."
-                          : "Pausa un segundo antes de seguir."}
+                          ? t.app.stopThink.pausePurchase
+                          : t.app.stopThink.pauseGeneral}
                       </p>
                       <button onClick={advanceStage} style={btnPrimary(C.lavender, C.lavenderText)}>
-                        Listo
+                        {t.app.stopThink.ready}
                       </button>
                     </>
                   )}
                   {stStage === 1 && (
                     <>
-                      <p style={{ fontSize: "20px", fontWeight: 700, margin: "0 0 8px" }}>Respira</p>
+                      <p style={{ fontSize: "20px", fontWeight: 700, margin: "0 0 8px" }}>{t.app.stopThink.breatheLabel}</p>
                       <p style={{ fontSize: "34px", fontWeight: 700, margin: "0 0 8px" }}>{breathCountdown}</p>
                     </>
                   )}
                   {stStage === 2 && (
                     <>
-                      <p style={{ fontSize: "20px", fontWeight: 700, margin: "0 0 8px" }}>Evalúa</p>
+                      <p style={{ fontSize: "20px", fontWeight: 700, margin: "0 0 8px" }}>{t.app.stopThink.evaluateLabel}</p>
                       <p style={{ fontSize: "14px", color: C.text, margin: "0 0 16px" }}>
                         {stContext === "compra"
-                          ? "¿Esta compra está en tu plan, o es un impulso? Si puedes, espera 24 horas antes de decidir."
-                          : "¿Esta acción te acerca a lo que quieres lograr?"}
+                          ? t.app.stopThink.evaluatePurchase
+                          : t.app.stopThink.evaluateGeneral}
                       </p>
                       <button onClick={advanceStage} style={btnPrimary(C.lavender, C.lavenderText)}>
-                        Ya lo pensé
+                        {t.app.stopThink.alreadyThought}
                       </button>
                     </>
                   )}
                   {stStage === 3 && (
                     <>
-                      <p style={{ fontSize: "20px", fontWeight: 700, margin: "0 0 8px" }}>Actúa</p>
+                      <p style={{ fontSize: "20px", fontWeight: 700, margin: "0 0 8px" }}>{t.app.stopThink.actLabel}</p>
                       <p style={{ fontSize: "13px", color: C.textMuted, margin: "0 0 16px" }}>
                         {stContext === "compra"
-                          ? "Sigue con la decisión que tomaste sobre esta compra."
-                          : "Sigue con la decisión que tomaste."}
+                          ? t.app.stopThink.actPurchase
+                          : t.app.stopThink.actGeneral}
                       </p>
                       <button onClick={advanceStage} style={btnPrimary(C.lavender, C.lavenderText)}>
-                        Terminar
+                        {t.app.stopThink.finish}
                       </button>
                     </>
                   )}
@@ -1773,7 +1794,7 @@ export default function FocusFlowTDAH({
                       marginRight: "auto",
                     }}
                   >
-                    Cancelar
+                    {t.common.cancel}
                   </button>
                 </div>
               )}
@@ -1784,8 +1805,8 @@ export default function FocusFlowTDAH({
             <Panel C={C}
               accent={C.mint}
               icon={<Wind size={22} />}
-              title="Burbuja de enfoque"
-              subtitle="Un minuto de respiración guiada para bajar la sobrecarga."
+              title={t.app.panels.breathing.title}
+              subtitle={t.app.panels.breathing.subtitle}
             >
               <div style={{ display: "flex", flexDirection: "column", alignItems: "center" }}>
                 <div
@@ -1803,7 +1824,7 @@ export default function FocusFlowTDAH({
                   }}
                 >
                   <div style={{ textAlign: "center" }}>
-                    <div style={{ fontSize: "13px", fontWeight: 600 }}>{breathingOn ? phaseLabel[phase] : "Listo"}</div>
+                    <div style={{ fontSize: "13px", fontWeight: 600 }}>{breathingOn ? phaseLabel[phase] : t.app.breathing.ready}</div>
                     {breathingOn && <div style={{ fontSize: "20px", fontWeight: 700 }}>{count}</div>}
                   </div>
                 </div>
@@ -1811,7 +1832,7 @@ export default function FocusFlowTDAH({
                   onClick={breathingOn ? () => setBreathingOn(false) : startBreathing}
                   style={breathingOn ? btnGhost : btnPrimary(C.mint, C.mintText)}
                 >
-                  {breathingOn ? "Detener" : "Empezar"}
+                  {breathingOn ? t.app.breathing.stop : t.app.breathing.start}
                 </button>
               </div>
             </Panel>
@@ -1820,45 +1841,45 @@ export default function FocusFlowTDAH({
             <Panel C={C}
               accent={C.lavender}
               icon={<Flower2 size={22} />}
-              title="Atención plena"
-              subtitle="Una práctica breve de mindfulness, guiada paso a paso."
+              title={t.app.panels.mindfulness.title}
+              subtitle={t.app.panels.mindfulness.subtitle}
             >
-              <MindfulnessPanel C={C} onComplete={handleMindfulnessComplete} />
+              <MindfulnessPanel C={C} t={t} lang={lang} onComplete={handleMindfulnessComplete} />
             </Panel>
 
             <div ref={reestructuracionSectionRef}>
             <Panel C={C}
               accent={C.lavender}
               icon={<Brain size={22} />}
-              title="Reestructuración de pensamientos"
-              subtitle="Un pensamiento automático no siempre es un hecho."
+              title={t.app.panels.reframe.title}
+              subtitle={t.app.panels.reframe.subtitle}
             >
               {rfStage === 0 && (
                 <>
                   <p style={{ fontSize: "13px", color: C.textMuted, margin: "0 0 8px" }}>
-                    ¿Qué pensamiento te está pesando ahora?
+                    {t.app.reframe.thoughtQuestion}
                   </p>
                   <textarea
                     value={rfThought}
                     onChange={(e) => setRfThought(e.target.value)}
-                    placeholder='Por ejemplo: "siempre fallo en esto"'
+                    placeholder={t.app.reframe.thoughtPlaceholder}
                     rows={2}
                     style={{ ...inputStyle, resize: "vertical", marginBottom: "12px" }}
                   />
                   <button onClick={rfNext} disabled={!rfThought.trim()} style={btnPrimary(C.lavender, C.lavenderText)}>
-                    Seguir
+                    {t.app.reframe.continueButton}
                   </button>
                 </>
               )}
               {rfStage === 1 && (
                 <>
                   <p style={{ fontSize: "13px", color: C.text, margin: "0 0 8px" }}>
-                    Pensaste: "{rfThought}". ¿Qué evidencia real tienes en contra de eso?
+                    {t.app.reframe.evidenceQuestion(rfThought)}
                   </p>
                   <textarea
                     value={rfEvidenceAgainst}
                     onChange={(e) => setRfEvidenceAgainst(e.target.value)}
-                    placeholder="Por ejemplo: hay veces que sí lo logré, aunque me cueste"
+                    placeholder={t.app.reframe.evidencePlaceholder}
                     rows={2}
                     style={{ ...inputStyle, resize: "vertical", marginBottom: "12px" }}
                   />
@@ -1867,19 +1888,19 @@ export default function FocusFlowTDAH({
                     disabled={!rfEvidenceAgainst.trim()}
                     style={btnPrimary(C.lavender, C.lavenderText)}
                   >
-                    Seguir
+                    {t.app.reframe.continueButton}
                   </button>
                 </>
               )}
               {rfStage === 2 && (
                 <>
                   <p style={{ fontSize: "13px", color: C.text, margin: "0 0 8px" }}>
-                    Con esa evidencia, ¿cómo podrías decirlo de forma más realista?
+                    {t.app.reframe.alternativeQuestion}
                   </p>
                   <textarea
                     value={rfAlternative}
                     onChange={(e) => setRfAlternative(e.target.value)}
-                    placeholder="Por ejemplo: me cuesta esto, pero no siempre fallo"
+                    placeholder={t.app.reframe.alternativePlaceholder}
                     rows={2}
                     style={{ ...inputStyle, resize: "vertical", marginBottom: "12px" }}
                   />
@@ -1888,16 +1909,16 @@ export default function FocusFlowTDAH({
                     disabled={!rfAlternative.trim()}
                     style={btnPrimary(C.lavender, C.lavenderText)}
                   >
-                    Terminar
+                    {t.app.reframe.finishButton}
                   </button>
                 </>
               )}
               {rfStage === 3 && (
                 <div style={{ background: C.surfaceAlt, borderRadius: "6px", padding: "14px" }}>
-                  <p style={{ fontSize: "13px", color: C.textMuted, margin: "0 0 6px" }}>Tu pensamiento alternativo:</p>
+                  <p style={{ fontSize: "13px", color: C.textMuted, margin: "0 0 6px" }}>{t.app.reframe.resultLabel}</p>
                   <p style={{ fontSize: "15px", margin: "0 0 14px" }}>{rfAlternative}</p>
                   <button onClick={rfReset} style={btnGhost}>
-                    Hacer otro
+                    {t.app.reframe.doAnother}
                   </button>
                 </div>
               )}
@@ -1907,10 +1928,10 @@ export default function FocusFlowTDAH({
             <Panel C={C}
               accent={C.mint}
               icon={<MessageSquare size={22} />}
-              title="Ayuda con mensajes"
-              subtitle="Reescribe el tono de un mensaje que vas a mandar, o lee con más calma uno que recibiste."
+              title={t.app.panels.messageTone.title}
+              subtitle={t.app.panels.messageTone.subtitle}
             >
-              <MessageTonePanel C={C} userId={userId} />
+              <MessageTonePanel C={C} t={t} lang={lang} userId={userId} />
             </Panel>
           </div>
         </div>
@@ -1919,24 +1940,24 @@ export default function FocusFlowTDAH({
         <Panel C={C}
           accent={C.amber}
           icon={<Moon size={22} />}
-          title="Rastreador de estilo de vida"
-          subtitle="Sueño, alimentación y movimiento son los hábitos con más evidencia asociada al TDAH. El de abajo a la derecha es un tip práctico adicional, no algo medido en los estudios."
+          title={t.app.panels.habits.title}
+          subtitle={t.app.panels.habits.subtitle}
         >
           <div style={{ display: "grid", gridTemplateColumns: isNarrow ? "1fr" : "1fr 1fr", gap: "0 24px" }}>
             <div>
               <p style={{ fontSize: "12px", color: C.textMuted, margin: "0 0 4px", display: "flex", alignItems: "center", gap: "6px" }}>
-                <Moon size={13} /> Higiene del sueño
+                <Moon size={13} /> {t.app.habits.sleepHygiene}
               </p>
-              <Toggle C={C} label="Apagué las pantallas a tiempo" checked={screensOff} onChange={(v) => toggleXp(setScreensOff, screensOff, "pantallas apagadas a tiempo")} />
-              <Toggle C={C} label="Preparé el entorno para dormir" checked={sleepEnv} onChange={(v) => toggleXp(setSleepEnv, sleepEnv, "entorno de sueño listo")} />
+              <Toggle C={C} label={t.app.habits.screensOff} checked={screensOff} onChange={(v) => toggleXp(setScreensOff, screensOff, t.app.xpLabels.screensOffLabel)} />
+              <Toggle C={C} label={t.app.habits.sleepEnvReady} checked={sleepEnv} onChange={(v) => toggleXp(setSleepEnv, sleepEnv, t.app.xpLabels.sleepEnvLabel)} />
               <div style={{ marginTop: "10px" }}>
                 {todayBedtimeEntry ? (
                   <p style={{ fontSize: "13px", color: C.textMuted, margin: "0 0 6px" }}>
-                    Hoy registraste: te dormiste a las <strong>{todayBedtimeEntry.time}</strong>.
+                    {t.app.habits.bedtimeRegistered(todayBedtimeEntry.time)}
                   </p>
                 ) : (
                   <p style={{ fontSize: "13px", color: C.textMuted, margin: "0 0 6px" }}>
-                    ¿A qué hora te dormiste anoche?
+                    {t.app.habits.bedtimeQuestion}
                   </p>
                 )}
                 <div style={{ display: "flex", gap: "8px" }}>
@@ -1947,21 +1968,21 @@ export default function FocusFlowTDAH({
                     style={{ ...inputStyle, width: "auto" }}
                   />
                   <button onClick={saveBedtime} style={btnGhost}>
-                    Guardar
+                    {t.common.save}
                   </button>
                 </div>
               </div>
             </div>
             <div>
               <p style={{ fontSize: "12px", color: C.textMuted, margin: "0 0 4px", display: "flex", alignItems: "center", gap: "6px" }}>
-                <Utensils size={13} /> Alimentación
+                <Utensils size={13} /> {t.app.habits.nutrition}
               </p>
-              <Toggle C={C} label="Comí algo nutritivo hoy" checked={ateWell} onChange={(v) => toggleXp(setAteWell, ateWell, "comida nutritiva")} />
-              <Toggle C={C} label="Tomé agua a lo largo del día" checked={hydrated} onChange={(v) => toggleXp(setHydrated, hydrated, "hidratación")} />
+              <Toggle C={C} label={t.app.habits.ateWell} checked={ateWell} onChange={(v) => toggleXp(setAteWell, ateWell, t.app.xpLabels.ateWellLabel)} />
+              <Toggle C={C} label={t.app.habits.hydrated} checked={hydrated} onChange={(v) => toggleXp(setHydrated, hydrated, t.app.xpLabels.hydratedLabel)} />
             </div>
             <div style={{ marginTop: "18px" }}>
               <p style={{ fontSize: "12px", color: C.textMuted, margin: "0 0 8px", display: "flex", alignItems: "center", gap: "6px" }}>
-                <Activity size={13} /> Movimiento
+                <Activity size={13} /> {t.app.habits.movement}
               </p>
               {!breakDone ? (
                 <div style={{ display: "flex", alignItems: "center", gap: "14px" }}>
@@ -1969,22 +1990,22 @@ export default function FocusFlowTDAH({
                     onClick={() => setBreakRunning((r) => !r)}
                     style={btnPrimary(breakRunning ? C.surfaceAlt : C.amber, breakRunning ? C.text : C.amberText)}
                   >
-                    {breakRunning ? "Pausar" : "Pausa activa de 5 min"}
+                    {breakRunning ? t.app.habits.pauseButton : t.app.habits.activeBreak}
                   </button>
                   <span style={{ fontSize: "18px", fontVariantNumeric: "tabular-nums" }}>{fmt(breakSec)}</span>
                 </div>
               ) : (
-                <p style={{ fontSize: "14px", color: C.mint, margin: 0 }}>Pausa completada.</p>
+                <p style={{ fontSize: "14px", color: C.mint, margin: 0 }}>{t.app.habits.breakDone}</p>
               )}
             </div>
             <div style={{ marginTop: "18px" }}>
               <p style={{ fontSize: "12px", color: C.textMuted, margin: "0 0 4px", display: "flex", alignItems: "center", gap: "6px" }}>
-                <LayoutIcon size={13} /> Espacio de trabajo
+                <LayoutIcon size={13} /> {t.app.habits.workspace}
               </p>
               <Toggle C={C}
-                label='"Fuera de la vista, fuera de la mente" — orden rápido del escritorio'
+                label={t.app.habits.deskCleared}
                 checked={deskCleared}
-                onChange={(v) => toggleXp(setDeskCleared, deskCleared, "escritorio ordenado")}
+                onChange={(v) => toggleXp(setDeskCleared, deskCleared, t.app.xpLabels.deskClearedLabel)}
               />
             </div>
           </div>
@@ -1992,7 +2013,7 @@ export default function FocusFlowTDAH({
         </div>
 
         <p style={{ fontSize: "12px", color: C.textMuted, textAlign: "center", lineHeight: 1.6, marginTop: "8px" }}>
-          Esto es una herramienta de apoyo y no reemplaza una evaluación o tratamiento profesional.
+          {t.app.footerNote}
         </p>
       </div>
     </div>

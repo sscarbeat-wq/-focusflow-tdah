@@ -15,7 +15,7 @@ function btnStyle(bg, color, border) {
   };
 }
 
-export default function NotificationsPanel({ C, userId }) {
+export default function NotificationsPanel({ C, t, userId }) {
   const [status, setStatus] = useState("checking"); // checking | unsupported | denied | off | on
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
@@ -35,7 +35,7 @@ export default function NotificationsPanel({ C, userId }) {
       await enablePush(userId);
       setStatus("on");
     } catch (err) {
-      setError(err.message || "No se pudo activar. Intenta de nuevo.");
+      setError(err.message || t.notifications.enableError);
       setStatus(await getPushStatus());
     } finally {
       setBusy(false);
@@ -55,8 +55,7 @@ export default function NotificationsPanel({ C, userId }) {
   if (status === "unsupported") {
     return (
       <p style={{ fontSize: "13px", color: C.textMuted, lineHeight: 1.6, margin: 0 }}>
-        Tu navegador no soporta notificaciones push todavía. En iPhone, primero instala Senda a tu pantalla de
-        inicio (botón Compartir → "Agregar a pantalla de inicio") y ábrela desde ahí para poder activarlas.
+        {t.notifications.unsupported}
       </p>
     );
   }
@@ -64,14 +63,12 @@ export default function NotificationsPanel({ C, userId }) {
   return (
     <div>
       <p style={{ fontSize: "13px", color: C.textMuted, lineHeight: 1.6, margin: "0 0 14px" }}>
-        Un aviso si no has hecho tu registro de ánimo hoy, o si tu racha está por perderse — para no depender
-        de acordarte de abrir la app.
+        {t.notifications.intro}
       </p>
 
       {status === "denied" && (
         <p style={{ fontSize: "13px", color: C.amber, marginBottom: "12px", lineHeight: 1.5 }}>
-          Bloqueaste las notificaciones para este sitio. Actívalas desde los ajustes del navegador (el ícono
-          junto a la dirección web) y recarga la página.
+          {t.notifications.deniedWarning}
         </p>
       )}
 
@@ -80,7 +77,7 @@ export default function NotificationsPanel({ C, userId }) {
       {status === "on" ? (
         <button onClick={handleDisable} disabled={busy} style={btnStyle(C.surfaceAlt, C.text, C.border)}>
           <BellOff size={16} style={{ marginRight: "8px", verticalAlign: "-3px" }} />
-          {busy ? "Un momento..." : "Desactivar notificaciones"}
+          {busy ? t.common.loading : t.notifications.disableButton}
         </button>
       ) : (
         <button
@@ -89,7 +86,7 @@ export default function NotificationsPanel({ C, userId }) {
           style={btnStyle(C.mint, C.mintText)}
         >
           <BellRing size={16} style={{ marginRight: "8px", verticalAlign: "-3px" }} />
-          {busy ? "Un momento..." : "Activar notificaciones"}
+          {busy ? t.common.loading : t.notifications.enableButton}
         </button>
       )}
     </div>

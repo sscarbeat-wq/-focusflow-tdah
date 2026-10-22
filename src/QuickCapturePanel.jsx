@@ -15,6 +15,8 @@ import { pendingQuickNotes } from "./quickCapture";
 // "El Regreso" de Eco.
 export default function QuickCapturePanel({
   C,
+  t,
+  lang,
   userId,
   quickNotes,
   oldForgottenNoteId,
@@ -66,10 +68,10 @@ export default function QuickCapturePanel({
       const res = await fetch("/api/quick-capture", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ userId, audioBase64, mimeType, text }),
+        body: JSON.stringify({ userId, audioBase64, mimeType, text, language: lang }),
       });
       const data = await res.json();
-      if (!res.ok) throw new Error(data.error || "No se pudo procesar la nota.");
+      if (!res.ok) throw new Error(data.error || t.common.genericError);
       if (data.unsafe) {
         setUnsafe(true);
         return;
@@ -80,7 +82,7 @@ export default function QuickCapturePanel({
       }
       setSuggestion({ noteText: data.noteText || "", type: data.type || "nota", fields: data.fields || {} });
     } catch (err) {
-      setError(err.message || "Ocurrió un error. Intenta de nuevo.");
+      setError(err.message || t.common.genericError);
     } finally {
       setBusy(false);
     }
@@ -103,7 +105,7 @@ export default function QuickCapturePanel({
         const blob = new Blob(chunksRef.current, { type: recorder.mimeType || "audio/webm" });
         const audioBase64 = await blobToBase64(blob);
         if (!audioBase64) {
-          setError("No se grabó nada. Intenta de nuevo.");
+          setError(t.quickCapture.emptyRecordingError);
           return;
         }
         await sendCapture({ audioBase64, mimeType: recorder.mimeType || "audio/webm" });
@@ -115,7 +117,7 @@ export default function QuickCapturePanel({
       // Sin permiso de micrófono o sin soporte en este navegador — se cae al
       // campo de texto en vez de dejar la función inutilizable.
       setTextMode(true);
-      setError("No se pudo usar el micrófono. Puedes escribir la nota aquí abajo.");
+      setError(t.quickCapture.micError);
     }
   };
 
@@ -139,7 +141,7 @@ export default function QuickCapturePanel({
   const handleSaveAsNote = () => {
     if (!suggestion) return;
     onAddNote(suggestion.noteText);
-    flashSaved("Guardado como nota.");
+    flashSaved(t.quickCapture.savedAsNote);
     setSuggestion(null);
   };
 
@@ -150,7 +152,7 @@ export default function QuickCapturePanel({
     if (suggestion.type === "medicamento") onConfirmMedication(suggestion.fields);
     else if (suggestion.type === "pago") onConfirmPayment(suggestion.fields);
     else if (suggestion.type === "paso") onConfirmStep(suggestion.fields);
-    flashSaved("Agregado.");
+    flashSaved(t.quickCapture.added);
     setSuggestion(null);
   };
 
@@ -235,7 +237,7 @@ export default function QuickCapturePanel({
           onClick={reset}
           style={{ background: "transparent", border: "none", color: C.textMuted, fontSize: "12px", cursor: "pointer", padding: 0 }}
         >
-          Entendido
+          {t.common.understood}
         </button>
       </div>
     );
@@ -244,8 +246,7 @@ export default function QuickCapturePanel({
   return (
     <div>
       <p style={{ fontSize: "11px", color: C.textMuted, margin: "0 0 14px", lineHeight: 1.5 }}>
-        Para cuando una idea se te va a ir si no la dejas ya — habla o escribe, y Senda intenta mandarla sola al
-        lugar correcto. Nunca agrega nada por su cuenta: siempre te pregunta antes.
+        {t.quickCapture.intro}
       </p>
 
       {!suggestion && (
@@ -262,11 +263,11 @@ export default function QuickCapturePanel({
                 }}
               >
                 {recording ? <Square size={14} /> : <Mic size={14} />}
-                {recording ? "Toca para terminar" : busy ? "Procesando..." : "Grabar una nota"}
+                {recording ? t.quickCapture.stopRecording : busy ? t.quickCapture.processing : t.quickCapture.recordButton}
               </button>
               <button onClick={() => setTextMode(true)} disabled={busy} style={btnGhost}>
                 <Keyboard size={13} style={{ verticalAlign: "-2px", marginRight: "5px" }} />
-                Escribir en vez de grabar
+                {t.quickCapture.typeInstead}
               </button>
             </div>
           )}
@@ -276,24 +277,24 @@ export default function QuickCapturePanel({
               <textarea
                 value={draft}
                 onChange={(e) => setDraft(e.target.value)}
-                placeholder="Escribe la idea tal cual se te ocurrió..."
+                placeholder={t.quickCapture.textPlaceholder}
                 rows={2}
                 style={{ ...inputStyle, marginBottom: "8px", display: "block" }}
               />
               <div style={{ display: "flex", gap: "8px", flexWrap: "wrap" }}>
                 <button onClick={handleTextSubmit} disabled={!draft.trim() || busy} style={btnPrimary}>
-                  {busy ? "Procesando..." : "Capturar"}
+                  {busy ? t.quickCapture.processing : t.quickCapture.captureButton}
                 </button>
                 <button onClick={() => setTextMode(false)} disabled={busy} style={btnGhost}>
                   <Mic size={13} style={{ verticalAlign: "-2px", marginRight: "5px" }} />
-                  Grabar en vez de escribir
+                  {t.quickCapture.recordInstead}
                 </button>
               </div>
             </div>
           )}
 
           {busy && !recording && (
-            <p style={{ fontSize: "12px", color: C.textMuted, margin: "8px 0 0" }}>Transcribiendo y revisando...</p>
+            <p style={{ fontSize: "12px", color: C.textMuted, margin: "8px 0 0" }}>{t.quickCapture.transcribing}</p>
           )}
           {error && <p style={{ fontSize: "12px", color: C.amber, margin: "8px 0 0" }}>{error}</p>}
           {savedMsg && <p style={{ fontSize: "12px", color: C.mint, margin: "8px 0 0" }}>{savedMsg}</p>}
@@ -304,42 +305,46 @@ export default function QuickCapturePanel({
         <div style={{ background: C.surfaceAlt, borderRadius: "6px", padding: "14px", marginBottom: "16px" }}>
           <p style={{ fontSize: "13px", color: C.text, lineHeight: 1.6, margin: "0 0 10px" }}>
             {suggestion.type === "medicamento" &&
-              `Parece que quieres que te recuerde tomar ${suggestion.fields?.name || "un medicamento"}${
-                suggestion.fields?.time ? ` a las ${suggestion.fields.time}` : ""
-              }. ¿Lo agrego a Medicamentos?`}
+              t.quickCapture.suggestMedication(
+                suggestion.fields?.name || t.quickCapture.defaultMedicationName,
+                suggestion.fields?.time || ""
+              )}
             {suggestion.type === "pago" &&
-              `Parece un pago o suscripción: ${suggestion.fields?.name || ""}${
-                suggestion.fields?.amount ? `, ${suggestion.fields.amount}` : ""
-              }${suggestion.fields?.dueDay ? `, día ${suggestion.fields.dueDay}` : ""}. ¿Lo agrego a Pagos y suscripciones?`}
+              t.quickCapture.suggestPayment(
+                suggestion.fields?.name || "",
+                suggestion.fields?.amount ? `, ${suggestion.fields.amount}` : "",
+                suggestion.fields?.dueDay ? `, ${t.quickCapture.dueDayPart(suggestion.fields.dueDay)}` : ""
+              )}
             {suggestion.type === "paso" &&
-              `Parece un pendiente: "${suggestion.fields?.text || suggestion.noteText}"${
+              t.quickCapture.suggestStep(
+                suggestion.fields?.text || suggestion.noteText,
                 suggestion.fields?.min ? ` (~${suggestion.fields.min} min)` : ""
-              }. ¿Lo agrego a tus pasos de hoy?`}
-            {suggestion.type === "nota" && `Nota: "${suggestion.noteText}"`}
+              )}
+            {suggestion.type === "nota" && t.quickCapture.noteLabel(suggestion.noteText)}
           </p>
 
           {!canConfirm && suggestion.type !== "nota" && (
             <p style={{ fontSize: "11px", color: C.textMuted, margin: "0 0 10px" }}>
               {suggestion.type === "paso" && canAddStep === false
-                ? "Ya tienes 5 pasos en tu lista de hoy, así que la guardo como nota en vez de agregarla directo."
-                : "Faltó algún dato para agregarlo directo, así que la guardo como nota en vez de adivinar."}
+                ? t.quickCapture.stepsFullNotice
+                : t.quickCapture.missingDataNotice}
             </p>
           )}
 
           <div style={{ display: "flex", gap: "8px", flexWrap: "wrap" }}>
             {suggestion.type === "nota" ? (
               <button onClick={handleSaveAsNote} style={btnPrimary}>
-                <StickyNote size={14} /> Guardar nota
+                <StickyNote size={14} /> {t.quickCapture.saveNoteButton}
               </button>
             ) : (
               <>
                 {canConfirm && (
                   <button onClick={handleConfirmSuggestion} style={btnPrimary}>
-                    Sí, agrégalo
+                    {t.quickCapture.confirmYes}
                   </button>
                 )}
                 <button onClick={handleSaveAsNote} style={btnGhost}>
-                  {canConfirm ? "No, solo guardar como nota" : "Guardar como nota"}
+                  {canConfirm ? t.quickCapture.confirmNoKeep : t.quickCapture.saveAsNoteOnly}
                 </button>
               </>
             )}
@@ -347,7 +352,7 @@ export default function QuickCapturePanel({
               onClick={handleDiscardSuggestion}
               style={{ background: "transparent", border: "none", color: C.textMuted, fontSize: "12px", cursor: "pointer", padding: "9px 4px" }}
             >
-              Descartar
+              {t.quickCapture.discard}
             </button>
           </div>
         </div>
@@ -355,7 +360,7 @@ export default function QuickCapturePanel({
 
       {pending.length > 0 && (
         <div>
-          <p style={{ fontSize: "12px", color: C.textMuted, margin: "0 0 8px", fontWeight: 600 }}>Notas sueltas</p>
+          <p style={{ fontSize: "12px", color: C.textMuted, margin: "0 0 8px", fontWeight: 600 }}>{t.quickCapture.looseNotesLabel}</p>
           {pending.map((n) => {
             const isForgotten = n.id === oldForgottenNoteId;
             return (
@@ -376,7 +381,7 @@ export default function QuickCapturePanel({
                 <div>
                   {isForgotten && (
                     <span style={{ display: "block", fontSize: "11px", color: C.amber, marginBottom: "3px", fontWeight: 600 }}>
-                      Lleva varios días pendiente
+                      {t.quickCapture.oldPending}
                     </span>
                   )}
                   <span style={{ fontSize: "13px", color: C.text }}>{n.text}</span>
@@ -384,14 +389,14 @@ export default function QuickCapturePanel({
                 <div style={{ display: "flex", alignItems: "center", gap: "6px", flexShrink: 0 }}>
                   <button
                     onClick={() => onResolveNote(n.id)}
-                    title="Marcar como resuelta"
+                    title={t.quickCapture.resolveTitle}
                     style={{ background: "transparent", border: "none", color: C.mint, cursor: "pointer" }}
                   >
                     <CheckCircle2 size={15} />
                   </button>
                   <button
                     onClick={() => onRemoveNote(n.id)}
-                    title="Eliminar"
+                    title={t.quickCapture.deleteTitle}
                     style={{ background: "transparent", border: "none", color: C.textMuted, cursor: "pointer" }}
                   >
                     <Trash2 size={15} />

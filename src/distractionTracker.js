@@ -42,21 +42,28 @@ function toSeconds(ms) {
   return Math.round(ms / 1000);
 }
 
+const DEFAULT_FOCUS_MODE_T = {
+  distractionSummary: (count, seconds) =>
+    `🚪 ${count === 1 ? "1 salida" : `${count} salidas`} de la pestaña (${seconds}s fuera en total esta sesión)`,
+  returnToast: (seconds) => `Volviste después de ${seconds}s fuera de la pestaña — tu sesión de enfoque sigue corriendo`,
+};
+
 // Texto del contador persistente (debajo del temporizador). null si todavía
-// no hay nada que mostrar (no ha salido de la pestaña en esta sesión).
-export function formatDistractionSummary(state) {
+// no hay nada que mostrar (no ha salido de la pestaña en esta sesión). `t`
+// es t.focusMode del idioma activo — por defecto cae a español para no
+// romper a quien llame esta función sin pasarlo (p. ej. pruebas existentes).
+export function formatDistractionSummary(state, t = DEFAULT_FOCUS_MODE_T) {
   if (!state || state.count === 0) return null;
   const sec = toSeconds(state.totalAwayMs);
-  const salidas = state.count === 1 ? "1 salida" : `${state.count} salidas`;
-  return `🚪 ${salidas} de la pestaña (${sec}s fuera en total esta sesión)`;
+  return t.distractionSummary(state.count, sec);
 }
 
 // Texto del aviso momentáneo que aparece justo al volver a la pestaña. null
 // si estuvo fuera menos de 2 segundos — eso suele ser solo un parpadeo del
 // sistema (cambio de ventana accidental, captura de pantalla, etc.), no una
 // distracción real, y avisar por tan poco sería más ruido que ayuda.
-export function formatReturnToast(awayMs) {
+export function formatReturnToast(awayMs, t = DEFAULT_FOCUS_MODE_T) {
   if (awayMs == null || awayMs < 2000) return null;
   const sec = toSeconds(awayMs);
-  return `Volviste después de ${sec}s fuera de la pestaña — tu sesión de enfoque sigue corriendo`;
+  return t.returnToast(sec);
 }

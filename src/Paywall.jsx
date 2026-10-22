@@ -1,7 +1,8 @@
 import React, { useState } from "react";
 import { Sparkles, LogOut, Sun, Moon } from "lucide-react";
+import LanguageSwitcher from "./LanguageSwitcher";
 
-export default function Paywall({ userId, userEmail, onSignOut, C, theme, onToggleTheme }) {
+export default function Paywall({ userId, userEmail, onSignOut, C, theme, onToggleTheme, t, lang, onChangeLanguage }) {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
 
@@ -15,10 +16,10 @@ export default function Paywall({ userId, userEmail, onSignOut, C, theme, onTogg
         body: JSON.stringify({ userId, email: userEmail }),
       });
       const data = await res.json();
-      if (!res.ok) throw new Error(data.error || "No se pudo iniciar el pago");
+      if (!res.ok) throw new Error(data.error || t.paywall.checkoutError);
       window.location.href = data.url;
     } catch (err) {
-      setError(err.message || "Ocurrió un error. Intenta de nuevo.");
+      setError(err.message || t.common.genericError);
       setLoading(false);
     }
   };
@@ -47,36 +48,36 @@ export default function Paywall({ userId, userEmail, onSignOut, C, theme, onTogg
           position: "relative",
         }}
       >
-        {onToggleTheme && (
-          <button
-            type="button"
-            onClick={onToggleTheme}
-            aria-label={theme === "light" ? "Cambiar a modo oscuro" : "Cambiar a modo claro"}
-            title={theme === "light" ? "Cambiar a modo oscuro" : "Cambiar a modo claro"}
-            style={{
-              position: "absolute",
-              top: "14px",
-              right: "14px",
-              background: "transparent",
-              border: `1px solid ${C.border}`,
-              borderRadius: "8px",
-              width: "34px",
-              height: "34px",
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-              color: C.textMuted,
-              cursor: "pointer",
-            }}
-          >
-            {theme === "light" ? <Moon size={16} /> : <Sun size={16} />}
-          </button>
-        )}
+        <div style={{ position: "absolute", top: "14px", right: "14px", display: "flex", gap: "8px" }}>
+          <LanguageSwitcher C={C} lang={lang} onChange={onChangeLanguage} t={t} height="34px" />
+          {onToggleTheme && (
+            <button
+              type="button"
+              onClick={onToggleTheme}
+              aria-label={theme === "light" ? t.common.toDarkMode : t.common.toLightMode}
+              title={theme === "light" ? t.common.toDarkMode : t.common.toLightMode}
+              style={{
+                background: "transparent",
+                border: `1px solid ${C.border}`,
+                borderRadius: "8px",
+                width: "34px",
+                height: "34px",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                color: C.textMuted,
+                cursor: "pointer",
+                flexShrink: 0,
+              }}
+            >
+              {theme === "light" ? <Moon size={16} /> : <Sun size={16} />}
+            </button>
+          )}
+        </div>
         <Sparkles size={28} color={C.amber} style={{ marginBottom: "14px" }} />
-        <h1 style={{ fontSize: "22px", fontWeight: 700, margin: "0 0 8px" }}>Desbloquea Senda</h1>
+        <h1 style={{ fontSize: "22px", fontWeight: 700, margin: "0 0 8px" }}>{t.paywall.title}</h1>
         <p style={{ fontSize: "14px", color: C.textMuted, lineHeight: 1.6, margin: "0 0 24px" }}>
-          Acceso completo al desglosador de tareas, auditor de tiempo, freno de impulsividad, respiración guiada,
-          reestructuración de pensamientos y rastreador de hábitos.
+          {t.paywall.pitch}
         </p>
 
         {error && (
@@ -100,7 +101,7 @@ export default function Paywall({ userId, userEmail, onSignOut, C, theme, onTogg
             marginBottom: "18px",
           }}
         >
-          {loading ? "Un momento..." : "Suscribirme"}
+          {loading ? t.common.loading : t.paywall.subscribeButton}
         </button>
 
         <button
@@ -118,7 +119,7 @@ export default function Paywall({ userId, userEmail, onSignOut, C, theme, onTogg
             gap: "6px",
           }}
         >
-          <LogOut size={14} /> Cerrar sesión
+          <LogOut size={14} /> {t.common.signOut}
         </button>
       </div>
     </div>

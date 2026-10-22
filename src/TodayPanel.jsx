@@ -9,6 +9,7 @@ import { buildTodayItems } from "./todayView";
 // dice de forma positiva — nunca una lista vacía que se sienta como un error.
 export default function TodayPanel({
   C,
+  t,
   steps,
   moodLog,
   energyLog,
@@ -32,6 +33,7 @@ export default function TodayPanel({
     cbtProgram,
     habits,
     quickNotes,
+    t,
   });
 
   const itemStyle = {
@@ -66,7 +68,7 @@ export default function TodayPanel({
         }}
       >
         <PartyPopper size={18} style={{ color: C.mint, flexShrink: 0 }} />
-        <span>No tienes nada pendiente por ahora — bien hecho. Vuelve cuando quieras agregar algo.</span>
+        <span>{t.today.empty}</span>
       </div>
     );
   }

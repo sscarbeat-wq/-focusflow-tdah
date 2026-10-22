@@ -10,7 +10,7 @@ import { addPayment, removePayment, paymentsDueSoon, markPaid, unmarkPaid } from
 // (3 días antes o el mismo día), además de aparecer aquí también se avisa
 // por notificación push dentro del recordatorio diario (ver
 // api/send-reminders.js).
-export default function PaymentsPanel({ C, payments, paidLog, onAdd, onRemove, onMarkPaid, onUnmarkPaid }) {
+export default function PaymentsPanel({ C, t, payments, paidLog, onAdd, onRemove, onMarkPaid, onUnmarkPaid }) {
   const [name, setName] = useState("");
   const [amount, setAmount] = useState("");
   const [frequency, setFrequency] = useState("mensual");
@@ -63,21 +63,17 @@ export default function PaymentsPanel({ C, payments, paidLog, onAdd, onRemove, o
     cursor: "pointer",
   };
 
-  const MESES = [
-    "enero", "febrero", "marzo", "abril", "mayo", "junio",
-    "julio", "agosto", "septiembre", "octubre", "noviembre", "diciembre",
-  ];
+  const months = t.payments.months;
 
   return (
     <div>
       <p style={{ fontSize: "11px", color: C.textMuted, margin: "0 0 14px", lineHeight: 1.5 }}>
-        Solo una lista que tú llenas — nunca se conecta a ninguna cuenta ni banco real. El monto es de referencia,
-        texto libre.
+        {t.payments.intro}
       </p>
 
       {dueSoon.length > 0 && (
         <div style={{ marginBottom: "18px" }}>
-          <p style={{ fontSize: "12px", color: C.textMuted, margin: "0 0 8px", fontWeight: 600 }}>Próximos a vencer</p>
+          <p style={{ fontSize: "12px", color: C.textMuted, margin: "0 0 8px", fontWeight: 600 }}>{t.payments.dueSoonLabel}</p>
           {dueSoon.map((p) => (
             <div
               key={p.id}
@@ -97,15 +93,15 @@ export default function PaymentsPanel({ C, payments, paidLog, onAdd, onRemove, o
                 {p.name}
                 {p.amount ? ` — ${p.amount}` : ""}
                 <span style={{ color: C.textMuted, marginLeft: "6px" }}>
-                  ({p.daysUntil === 0 ? "vence hoy" : `vence en ${p.daysUntil} día${p.daysUntil === 1 ? "" : "s"}`})
+                  ({p.daysUntil === 0 ? t.payments.dueToday : t.payments.dueInDays(p.daysUntil)})
                 </span>
               </span>
               <button
                 onClick={() => onMarkPaid(p.id, p.dueDateKey)}
-                title="Marcar como pagado"
+                title={t.payments.markPaidTitle}
                 style={{ ...btnGhost, display: "flex", alignItems: "center", gap: "4px", flexShrink: 0 }}
               >
-                <CheckCircle2 size={13} /> Ya lo pagué
+                <CheckCircle2 size={13} /> {t.payments.markPaidButton}
               </button>
             </div>
           ))}
@@ -115,7 +111,7 @@ export default function PaymentsPanel({ C, payments, paidLog, onAdd, onRemove, o
       {payments && payments.length > 0 && (
         <div style={{ marginBottom: "18px" }}>
           <p style={{ fontSize: "12px", color: C.textMuted, margin: "0 0 8px", fontWeight: 600 }}>
-            Tus pagos y suscripciones
+            {t.payments.yourPayments}
           </p>
           {payments.map((p) => {
             const paidThisCycle = Boolean(paidLog && paidLog[p.id]);
@@ -135,7 +131,9 @@ export default function PaymentsPanel({ C, payments, paidLog, onAdd, onRemove, o
                   <span style={{ fontSize: "13px", color: C.text }}>{p.name}</span>
                   <span style={{ fontSize: "12px", color: C.textMuted, marginLeft: "8px" }}>
                     {p.amount ? `${p.amount} — ` : ""}
-                    {p.frequency === "anual" ? `cada año, ${p.dueDay} de ${MESES[(p.dueMonth || 1) - 1]}` : `cada mes, día ${p.dueDay}`}
+                    {p.frequency === "anual"
+                      ? t.payments.yearly(p.dueDay, months[(p.dueMonth || 1) - 1])
+                      : t.payments.monthly(p.dueDay)}
                   </span>
                   {p.notes && <div style={{ fontSize: "11px", color: C.textMuted, marginTop: "2px" }}>{p.notes}</div>}
                 </div>
@@ -143,7 +141,7 @@ export default function PaymentsPanel({ C, payments, paidLog, onAdd, onRemove, o
                   {paidThisCycle && (
                     <button
                       onClick={() => onUnmarkPaid(p.id)}
-                      title="Deshacer 'pagado'"
+                      title={t.payments.undoPaidTitle}
                       style={{ background: "transparent", border: "none", color: C.textMuted, cursor: "pointer" }}
                     >
                       <Undo2 size={14} />
@@ -151,7 +149,7 @@ export default function PaymentsPanel({ C, payments, paidLog, onAdd, onRemove, o
                   )}
                   <button
                     onClick={() => onRemove(p.id)}
-                    title="Eliminar"
+                    title={t.payments.delete}
                     style={{ background: "transparent", border: "none", color: C.textMuted, cursor: "pointer" }}
                   >
                     <Trash2 size={15} />
@@ -165,28 +163,28 @@ export default function PaymentsPanel({ C, payments, paidLog, onAdd, onRemove, o
 
       <div style={{ background: C.surfaceAlt, borderRadius: "6px", padding: "14px" }}>
         <p style={{ fontSize: "12px", color: C.textMuted, margin: "0 0 10px", fontWeight: 600 }}>
-          Agregar pago o suscripción
+          {t.payments.addTitle}
         </p>
         <input
           value={name}
           onChange={(e) => setName(e.target.value)}
-          placeholder="Nombre (ej. Netflix, renta)"
+          placeholder={t.payments.namePlaceholder}
           style={{ ...inputStyle, width: "100%", marginBottom: "8px" }}
         />
         <input
           value={amount}
           onChange={(e) => setAmount(e.target.value)}
-          placeholder="Monto de referencia (opcional, ej. $219)"
+          placeholder={t.payments.amountPlaceholder}
           style={{ ...inputStyle, width: "100%", marginBottom: "8px" }}
         />
         <div style={{ display: "flex", gap: "8px", marginBottom: "8px", flexWrap: "wrap" }}>
           <select value={frequency} onChange={(e) => setFrequency(e.target.value)} style={{ ...inputStyle, flex: "1 1 100px" }}>
-            <option value="mensual">Cada mes</option>
-            <option value="anual">Cada año</option>
+            <option value="mensual">{t.payments.monthlyOption}</option>
+            <option value="anual">{t.payments.yearlyOption}</option>
           </select>
           {frequency === "anual" && (
             <select value={dueMonth} onChange={(e) => setDueMonth(e.target.value)} style={{ ...inputStyle, flex: "1 1 100px" }}>
-              {MESES.map((m, i) => (
+              {months.map((m, i) => (
                 <option key={m} value={i + 1}>
                   {m}
                 </option>
@@ -199,19 +197,19 @@ export default function PaymentsPanel({ C, payments, paidLog, onAdd, onRemove, o
             max={31}
             value={dueDay}
             onChange={(e) => setDueDay(e.target.value)}
-            placeholder="Día (1-31)"
+            placeholder={t.payments.dayPlaceholder}
             style={{ ...inputStyle, flex: "1 1 90px" }}
           />
         </div>
         <textarea
           value={notes}
           onChange={(e) => setNotes(e.target.value)}
-          placeholder="Notas (opcional)"
+          placeholder={t.payments.notesPlaceholder}
           rows={2}
           style={{ ...inputStyle, width: "100%", resize: "vertical", marginBottom: "10px", display: "block" }}
         />
         <button onClick={handleAdd} disabled={!name.trim() || !dueDay} style={btnPrimary}>
-          <Plus size={14} /> Agregar
+          <Plus size={14} /> {t.payments.addButton}
         </button>
       </div>
     </div>

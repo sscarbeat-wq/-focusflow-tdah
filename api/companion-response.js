@@ -18,6 +18,7 @@
 import { createClient } from "@supabase/supabase-js";
 import { DEFAULT_COMPANION_AI_USAGE, nextCompanionAiUsage, COMPANION_AI_MONTHLY_LIMIT } from "../src/aiUsage.js";
 import { getSituation, containsRiskLanguage } from "../src/companionSituations.js";
+import { aiLanguageName, languageDirective, aiErrorMessages } from "../src/aiLanguage.js";
 
 const supabaseAdmin = createClient(process.env.VITE_SUPABASE_URL, process.env.SUPABASE_SERVICE_ROLE_KEY);
 
@@ -28,7 +29,7 @@ export default async function handler(req, res) {
     return res.status(405).json({ error: "Método no permitido" });
   }
 
-  const { userId, situationId, avoid } = req.body || {};
+  const { userId, situationId, avoid, language } = req.body || {};
   const situation = typeof situationId === "string" ? getSituation(situationId) : null;
   if (!userId || !situation) {
     // Esto también bloquea situationId === "crisis": getSituation() solo
@@ -51,12 +52,12 @@ export default async function handler(req, res) {
 
     if (!allowed) {
       return res.status(429).json({
-        error: `Llegaste al límite de ${COMPANION_AI_MONTHLY_LIMIT} respuestas de apoyo con IA este mes.`,
+        error: aiErrorMessages(language).companionLimit(COMPANION_AI_MONTHLY_LIMIT),
       });
     }
 
     // 2) Llamar a la IA.
-    const text = await callOpenAiCompanion(situation, typeof avoid === "string" ? avoid.slice(0, 500) : "");
+    const text = await callOpenAiCompanion(situation, typeof avoid === "string" ? avoid.slice(0, 500) : "", language);
 
     // 3) Guardar el nuevo contador solo si la llamada a la IA funcionó.
     const { error: writeErr } = await supabaseAdmin
@@ -75,16 +76,17 @@ export default async function handler(req, res) {
     res.status(200).json({ response: text });
   } catch (err) {
     console.error("Error en companion-response:", err);
-    res.status(500).json({ error: "No se pudo generar una respuesta con IA." });
+    res.status(500).json({ error: aiErrorMessages(language).companionFailed });
   }
 }
 
-async function callOpenAiCompanion(situation, avoid) {
+async function callOpenAiCompanion(situation, avoid, language) {
   const apiKey = process.env.OPENAI_API_KEY;
   if (!apiKey) {
     throw new Error("Falta configurar OPENAI_API_KEY en Vercel.");
   }
 
+  const languageName = aiLanguageName(language);
   const avoidLine = avoid
     ? ` No repitas este mensaje que ya se mostró antes — dilo de otra forma: "${avoid}"`
     : "";
@@ -102,13 +104,14 @@ async function callOpenAiCompanion(situation, avoid) {
           role: "system",
           content:
             "Eres parte de Senda, una app para personas con TDAH. Da un mensaje breve de apoyo " +
-            "(2 a 4 frases, español de México) sobre la situación exacta que se te describe — nunca " +
+            `(2 a 4 frases, en ${languageName}) sobre la situación exacta que se te describe — nunca ` +
             "cambies de tema ni inventes otra situación distinta a la dada. Valida lo que siente la " +
             "persona, explica en una frase por qué pasa esto con TDAH, y termina con algo concreto que " +
             "pueda hacer ahora mismo. No diagnostiques, no sugieras medicamentos, no prometas resultados, " +
             "no hagas preguntas ni invites a seguir platicando — es un mensaje de una sola vía, la persona " +
             'ya va a dar clic en un botón después para ir a una herramienta de la app. Responde SOLO con ' +
-            'un objeto JSON de la forma {"response": "..."}.',
+            'un objeto JSON de la forma {"response": "..."}.' +
+            languageDirective(language),
         },
         {
           role: "user",

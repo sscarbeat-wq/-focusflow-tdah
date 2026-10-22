@@ -4,13 +4,15 @@ import { Flame, Trophy } from "lucide-react";
 // Mascota simple basada en emoji + CSS — sin dependencias nuevas ni assets
 // externos. Evoluciona según la racha actual. Pensada para poder cambiarse
 // después por ilustraciones propias sin tocar la lógica del resto de la app.
+// Los textos (label/hint) viven en el diccionario de idioma (t.mascot) — acá
+// solo queda el emoji y el umbral de días, que no cambian con el idioma.
 const STAGES = [
-  { min: 0, emoji: "🥚", label: "Listo para empezar", hint: "Completa algo hoy para incubar tu racha." },
-  { min: 1, emoji: "🐣", label: "Recién nacido", hint: "Día 1 — vuelve mañana para que siga creciendo." },
-  { min: 3, emoji: "🐥", label: "Creciendo", hint: "3+ días seguidos." },
-  { min: 7, emoji: "🦜", label: "Tomando vuelo", hint: "¡Una semana completa!" },
-  { min: 14, emoji: "🦉", label: "Enfocado y sabio", hint: "2 semanas de constancia." },
-  { min: 30, emoji: "🐉", label: "Imparable", hint: "30+ días — nivel leyenda." },
+  { min: 0, emoji: "🥚", labelKey: "stageEggLabel", hintKey: "stageEggHint" },
+  { min: 1, emoji: "🐣", labelKey: "stageHatchlingLabel", hintKey: "stageHatchlingHint" },
+  { min: 3, emoji: "🐥", labelKey: "stageChickLabel", hintKey: "stageChickHint" },
+  { min: 7, emoji: "🦜", labelKey: "stageBirdLabel", hintKey: "stageBirdHint" },
+  { min: 14, emoji: "🦉", labelKey: "stageOwlLabel", hintKey: "stageOwlHint" },
+  { min: 30, emoji: "🐉", labelKey: "stageDragonLabel", hintKey: "stageDragonHint" },
 ];
 
 // Mensaje cuando la racha se acaba de reiniciar (current en 0 pero longest
@@ -21,11 +23,7 @@ const STAGES = [
 // rechazo a la sensibilidad al rechazo (RSD) común en TDAH, que ya está
 // documentado como consideración de diseño en otras partes de la app
 // (Compañero de apoyo, Ayuda con mensajes).
-const RESET_STAGE = {
-  emoji: "🥚",
-  label: "Volviendo a empezar — sin problema",
-  hint: "Las rachas suben y bajan. Lo que ya lograste sigue contando (mira tu mejor racha a la derecha).",
-};
+const RESET_STAGE = { emoji: "🥚", labelKey: "resetLabel", hintKey: "resetHint" };
 
 function stageFor(current, longest) {
   if (current === 0 && longest > 0) return RESET_STAGE;
@@ -36,10 +34,12 @@ function stageFor(current, longest) {
   return stage;
 }
 
-export default function Mascot({ streak, C }) {
+export default function Mascot({ streak, C, t }) {
   const current = streak?.current || 0;
   const longest = streak?.longest || 0;
   const stage = stageFor(current, longest);
+  const label = t.mascot[stage.labelKey];
+  const hint = t.mascot[stage.hintKey];
 
   return (
     <div
@@ -71,8 +71,8 @@ export default function Mascot({ streak, C }) {
         {stage.emoji}
       </div>
       <div style={{ flex: 1, minWidth: 0 }}>
-        <div style={{ fontSize: "14px", fontWeight: 600, color: C.text }}>{stage.label}</div>
-        <div style={{ fontSize: "12px", color: C.textMuted }}>{stage.hint}</div>
+        <div style={{ fontSize: "14px", fontWeight: 600, color: C.text }}>{label}</div>
+        <div style={{ fontSize: "12px", color: C.textMuted }}>{hint}</div>
       </div>
       <div
         style={{
@@ -88,11 +88,11 @@ export default function Mascot({ streak, C }) {
       >
         <Flame size={16} color={C.amber} />
         <span style={{ fontSize: "15px", fontWeight: 700, color: C.text }}>{current}</span>
-        <span style={{ fontSize: "11px", color: C.textMuted }}>{current === 1 ? "día" : "días"}</span>
+        <span style={{ fontSize: "11px", color: C.textMuted }}>{t.mascot.dayWord(current)}</span>
       </div>
       {longest > 0 && (
         <div
-          title="Tu mejor racha — queda guardada aunque la racha actual se reinicie"
+          title={t.mascot.bestStreakTitle}
           style={{
             display: "flex",
             alignItems: "center",
@@ -106,7 +106,7 @@ export default function Mascot({ streak, C }) {
         >
           <Trophy size={16} color={C.lavender} />
           <span style={{ fontSize: "15px", fontWeight: 700, color: C.text }}>{longest}</span>
-          <span style={{ fontSize: "11px", color: C.textMuted }}>mejor racha</span>
+          <span style={{ fontSize: "11px", color: C.textMuted }}>{t.mascot.bestStreakLabel}</span>
         </div>
       )}
     </div>

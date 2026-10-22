@@ -9,7 +9,7 @@ import { capsuleForKey } from "./scienceCapsules.js";
 // cualquiera que abra Senda el mismo día ve la misma cápsula). No es
 // descartable como el banner de instalación, porque el contenido ya cambia
 // solo — no tendría sentido "cerrarla" para siempre.
-export default function ScienceCapsulePanel({ C }) {
+export default function ScienceCapsulePanel({ C, t }) {
   const capsule = capsuleForKey(todayKey(), daysBetween);
   if (!capsule) return null;
 
@@ -27,11 +27,11 @@ export default function ScienceCapsulePanel({ C }) {
       }}
     >
       <div style={{ display: "flex", alignItems: "center", gap: "8px", fontWeight: 600, marginBottom: "6px" }}>
-        <BookOpen size={16} color={C.amber} /> Dato del día sobre TDAH
+        <BookOpen size={16} color={C.amber} /> {t.scienceCapsule.title}
       </div>
       <div style={{ fontWeight: 600, marginBottom: "4px" }}>{capsule.title}</div>
       <p style={{ margin: "0 0 8px" }}>{capsule.text}</p>
-      <p style={{ margin: 0, fontSize: "11px", color: C.textMuted }}>Fuente: {capsule.source}</p>
+      <p style={{ margin: 0, fontSize: "11px", color: C.textMuted }}>{t.scienceCapsule.sourceLabel(capsule.source)}</p>
     </div>
   );
 }

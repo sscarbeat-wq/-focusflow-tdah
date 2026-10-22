@@ -18,12 +18,44 @@ import { programStatus } from "./cbtProgram";
 import { pendingHabits } from "./weeklyInsights";
 import { oldForgottenNote } from "./quickCapture";
 
+// Traducciones por defecto (español) para quien llame a esta función sin
+// pasar `t` — mismo patrón de respaldo que distractionTracker.js, para que
+// la función siga siendo útil fuera de React/sin idioma seleccionado.
+const DEFAULT_TODAY_T = {
+  today: {
+    stepsPending: (n) => (n === 1 ? "1 paso pendiente del desglosador" : `${n} pasos pendientes del desglosador`),
+    stepSuggested: (text) => `Sugerido para tu energía de hoy: ${text}`,
+    moodNotLogged: "Todavía no registras cómo te sientes hoy",
+    energyNotLogged: "Todavía no registras tu energía de hoy",
+    medicationPending: (n) => (n === 1 ? "1 dosis de medicamento pendiente hoy" : `${n} dosis de medicamento pendientes hoy`),
+    medicationDetail: (time, name) => `${time} — ${name}`,
+    paymentsPending: (n) => (n === 1 ? "1 pago por vencer" : `${n} pagos por vencer`),
+    paymentDetail: (name, amountPart, whenPart) => `${name}${amountPart} (${whenPart})`,
+    paymentDueToday: "hoy",
+    paymentDueInDays: (n) => `en ${n} día${n === 1 ? "" : "s"}`,
+    cbtNewLesson: "Nueva lección del programa de TCC disponible",
+    habitsPending: (n) => (n === 1 ? "1 hábito de autocuidado pendiente" : `${n} hábitos de autocuidado pendientes`),
+    quickNoteReturned: "Una nota de hace unos días volvió a aparecer",
+  },
+  weeklyInsights: {
+    habitLabels: {
+      screensOff: "Apagar pantallas a tiempo",
+      sleepEnv: "Preparar el entorno para dormir",
+      ateWell: "Comer algo nutritivo",
+      hydrated: "Hidratarte durante el día",
+      deskCleared: "Ordenar el escritorio",
+    },
+  },
+};
+
 // steps: array de pasos del desglosador (forma: {id, text, min, done,
 // energy?}) — energy es opcional ("baja"/"media"/"alta"), solo en pasos
 // agregados a mano.
 // moodLog, cbtProgram, habits: mismas formas que ya usa el resto de la app.
 // energyLog: mismo patrón que moodLog, para el check-in de energía.
 // medications, medicationDoseLog: mismas formas que usa MedicationPanel.
+// t: objeto de traducciones completo (de src/i18n.js) — opcional, cae a
+// español si no se pasa.
 export function buildTodayItems({
   steps,
   moodLog,
@@ -36,6 +68,7 @@ export function buildTodayItems({
   habits,
   quickNotes,
   now = new Date(),
+  t = DEFAULT_TODAY_T,
 } = {}) {
   const items = [];
 
@@ -50,11 +83,8 @@ export function buildTodayItems({
     items.push({
       id: "steps",
       sectionRef: "desglosador",
-      label:
-        pendingSteps.length === 1
-          ? "1 paso pendiente del desglosador"
-          : `${pendingSteps.length} pasos pendientes del desglosador`,
-      detail: matching ? `Sugerido para tu energía de hoy: ${suggested.text}` : suggested.text,
+      label: t.today.stepsPending(pendingSteps.length),
+      detail: matching ? t.today.stepSuggested(suggested.text) : suggested.text,
     });
   }
 
@@ -62,7 +92,7 @@ export function buildTodayItems({
     items.push({
       id: "mood",
       sectionRef: "mood",
-      label: "Todavía no registras cómo te sientes hoy",
+      label: t.today.moodNotLogged,
       detail: null,
     });
   }
@@ -71,7 +101,7 @@ export function buildTodayItems({
     items.push({
       id: "energy",
       sectionRef: "energy",
-      label: "Todavía no registras tu energía de hoy",
+      label: t.today.energyNotLogged,
       detail: null,
     });
   }
@@ -83,11 +113,8 @@ export function buildTodayItems({
     items.push({
       id: "medication",
       sectionRef: "medication",
-      label:
-        pendingDoses.length === 1
-          ? "1 dosis de medicamento pendiente hoy"
-          : `${pendingDoses.length} dosis de medicamento pendientes hoy`,
-      detail: `${pendingDoses[0].time} — ${pendingDoses[0].medicationName}`,
+      label: t.today.medicationPending(pendingDoses.length),
+      detail: t.today.medicationDetail(pendingDoses[0].time, pendingDoses[0].medicationName),
     });
   }
 
@@ -97,13 +124,12 @@ export function buildTodayItems({
     items.push({
       id: "payments",
       sectionRef: "payments",
-      label:
-        duePayments.length === 1
-          ? "1 pago por vencer"
-          : `${duePayments.length} pagos por vencer`,
-      detail: `${first.name}${first.amount ? ` — ${first.amount}` : ""} (${
-        first.daysUntil === 0 ? "hoy" : `en ${first.daysUntil} día${first.daysUntil === 1 ? "" : "s"}`
-      })`,
+      label: t.today.paymentsPending(duePayments.length),
+      detail: t.today.paymentDetail(
+        first.name,
+        first.amount ? ` — ${first.amount}` : "",
+        first.daysUntil === 0 ? t.today.paymentDueToday : t.today.paymentDueInDays(first.daysUntil)
+      ),
     });
   }
 
@@ -112,7 +138,7 @@ export function buildTodayItems({
     items.push({
       id: "cbt",
       sectionRef: "cbt",
-      label: "Nueva lección del programa de TCC disponible",
+      label: t.today.cbtNewLesson,
       detail: cbt.nextLesson.title,
     });
   }
@@ -122,11 +148,8 @@ export function buildTodayItems({
     items.push({
       id: "habits",
       sectionRef: "habits",
-      label:
-        pending.length === 1
-          ? "1 hábito de autocuidado pendiente"
-          : `${pending.length} hábitos de autocuidado pendientes`,
-      detail: pending.map((h) => h.label).join(", "),
+      label: t.today.habitsPending(pending.length),
+      detail: pending.map((h) => t.weeklyInsights.habitLabels[h.key] || h.label).join(", "),
     });
   }
 
@@ -138,7 +161,7 @@ export function buildTodayItems({
     items.push({
       id: "quicknote",
       sectionRef: "quickCapture",
-      label: "Una nota de hace unos días volvió a aparecer",
+      label: t.today.quickNoteReturned,
       detail: forgotten.text,
     });
   }

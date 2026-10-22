@@ -17,6 +17,7 @@ function btnStyle(bg, color, border) {
 
 export default function BodyDoublePanel({
   C,
+  t,
   joined,
   participants,
   incomingReactions = [],
@@ -28,13 +29,11 @@ export default function BodyDoublePanel({
     return (
       <>
         <p style={{ fontSize: "13px", color: C.textMuted, lineHeight: 1.6, margin: "0 0 14px" }}>
-          Únete a una sala en vivo y trabaja en silencio al mismo tiempo que otras personas — nadie te ve, nadie te
-          escribe, pero sientes que no estás solo. Es la técnica de "cuerpo doble", que a muchas personas con TDAH
-          les ayuda a sostener el enfoque.
+          {t.bodyDouble.intro}
         </p>
         <button onClick={join} style={btnStyle(C.mint, C.mintText)}>
           <Users size={16} style={{ marginRight: "8px", verticalAlign: "-3px" }} />
-          Unirme a la sala
+          {t.bodyDouble.joinButton}
         </button>
       </>
     );
@@ -45,20 +44,17 @@ export default function BodyDoublePanel({
   return (
     <>
       <p style={{ fontSize: "13px", color: C.mint, marginBottom: "4px" }}>
-        {count <= 1
-          ? "Estás solo en la sala por ahora — queda abierta, alguien más puede llegar."
-          : `${count} personas en la sala ahora mismo, incluyéndote.`}
+        {count <= 1 ? t.bodyDouble.aloneInRoom : t.bodyDouble.roomCount(count)}
       </p>
       <p style={{ fontSize: "12px", color: C.textMuted, marginBottom: "14px", lineHeight: 1.5 }}>
-        Nadie puede escribirte — solo saben que hay alguien más aquí, trabajando en silencio al mismo tiempo que
-        tú. Lo único que pueden mandarse es una reacción rápida y anónima, sin palabras.
+        {t.bodyDouble.privacyNote}
       </p>
 
       <div style={{ display: "flex", flexWrap: "wrap", gap: "10px", marginBottom: "14px" }}>
         {participants.map((p, i) => (
           <div
             key={i}
-            title={p.isMe ? "Tú" : p.status === "enfocando" ? "Enfocándose" : "Aquí"}
+            title={p.isMe ? t.bodyDouble.youTitle : p.status === "enfocando" ? t.bodyDouble.focusingTitle : t.bodyDouble.hereTitle}
             style={{
               width: "40px",
               height: "40px",
@@ -100,8 +96,8 @@ export default function BodyDoublePanel({
           <button
             key={r.emoji}
             onClick={() => sendReaction?.(r.emoji)}
-            title={r.label}
-            aria-label={r.label}
+            title={t.bodyDouble.reactionLabels[r.emoji] || r.label}
+            aria-label={t.bodyDouble.reactionLabels[r.emoji] || r.label}
             style={{
               fontSize: "18px",
               background: C.surfaceAlt,
@@ -118,7 +114,7 @@ export default function BodyDoublePanel({
 
       <button onClick={leave} style={{ ...btnStyle(C.surfaceAlt, C.text, C.border) }}>
         <LogOut size={16} style={{ marginRight: "8px", verticalAlign: "-3px" }} />
-        Salir de la sala
+        {t.bodyDouble.leaveButton}
       </button>
     </>
   );

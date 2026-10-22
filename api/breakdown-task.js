@@ -35,6 +35,7 @@ import {
 import { containsRiskLanguage } from "../src/companionSituations.js";
 import { MODES, isValidMode, isValidTone, cleanMessageText, toneHint } from "../src/messageToneOptions.js";
 import { ENERGY_LEVELS } from "../src/energyLog.js";
+import { aiLanguageName, languageDirective, aiErrorMessages } from "../src/aiLanguage.js";
 
 const supabaseAdmin = createClient(process.env.VITE_SUPABASE_URL, process.env.SUPABASE_SERVICE_ROLE_KEY);
 
@@ -67,7 +68,7 @@ export default async function handler(req, res) {
 // se movió dentro de esta función para compartir archivo con el de abajo).
 // ---------------------------------------------------------------------
 async function handleBreakdown(req, res, body) {
-  const { userId, task, granularity } = body;
+  const { userId, task, granularity, language } = body;
   if (!userId || typeof task !== "string" || !task.trim()) {
     return res.status(400).json({ error: "Falta la tarea o el usuario." });
   }
@@ -89,12 +90,12 @@ async function handleBreakdown(req, res, body) {
 
     if (!allowed) {
       return res.status(429).json({
-        error: `Llegaste al límite de ${AI_BREAKDOWN_MONTHLY_LIMIT} desgloses con IA este mes. Mientras tanto puedes seguir usando el desglosador manual, aquí mismo.`,
+        error: aiErrorMessages(language).breakdownLimit(AI_BREAKDOWN_MONTHLY_LIMIT),
       });
     }
 
     // 2) Llamar a la IA.
-    const steps = await callOpenAiBreakdown(cleanTask, granularityKey);
+    const steps = await callOpenAiBreakdown(cleanTask, granularityKey, language);
 
     // 3) Guardar el nuevo contador solo si la llamada a la IA funcionó.
     const { error: writeErr } = await supabaseAdmin
@@ -109,17 +110,18 @@ async function handleBreakdown(req, res, body) {
     res.status(200).json({ steps });
   } catch (err) {
     console.error("Error en breakdown-task:", err);
-    res.status(500).json({ error: "No se pudo desglosar la tarea con IA. Intenta de nuevo en un momento." });
+    res.status(500).json({ error: aiErrorMessages(language).breakdownFailed });
   }
 }
 
-async function callOpenAiBreakdown(task, granularityKey) {
+async function callOpenAiBreakdown(task, granularityKey, language) {
   const apiKey = process.env.OPENAI_API_KEY;
   if (!apiKey) {
     throw new Error("Falta configurar OPENAI_API_KEY en Vercel.");
   }
 
   const preset = GRANULARITY_PRESETS[granularityKey];
+  const languageName = aiLanguageName(language);
 
   const response = await fetch("https://api.openai.com/v1/chat/completions", {
     method: "POST",
@@ -135,12 +137,13 @@ async function callOpenAiBreakdown(task, granularityKey) {
           content:
             'Ayudas a personas con TDAH a desglosar una tarea grande en pasos pequeños y concretos. ' +
             `Responde SOLO con un objeto JSON de la forma {"steps": [...]}, donde "steps" es un arreglo de ` +
-            `${preset.range} objetos (${preset.hint}). Cada objeto debe tener "text" (el paso, en español de ` +
-            'México, una frase corta y accionable, sin numerarla), "min" (minutos estimados, un entero entre ' +
+            `${preset.range} objetos (${preset.hint}). Cada objeto debe tener "text" (el paso, en ${languageName}, ` +
+            'una frase corta y accionable, sin numerarla), "min" (minutos estimados, un entero entre ' +
             '2 y 20) y "energy" (qué tanta energía física/mental pide ese paso en concreto: "baja", "media" o ' +
             '"alta" — por ejemplo, "junta tus papeles en un montón" es energía baja, y "redacta el primer ' +
             'párrafo" es energía alta; varía el nivel entre los pasos cuando tenga sentido, no pongas el mismo ' +
-            "en todos). No incluyas nada más que ese objeto JSON.",
+            "en todos). No incluyas nada más que ese objeto JSON." +
+            languageDirective(language),
         },
         { role: "user", content: `Tarea: ${task}` },
       ],
@@ -201,7 +204,7 @@ async function callOpenAiBreakdown(task, granularityKey) {
 // que regresa la IA.
 // ---------------------------------------------------------------------
 async function handleMessageTone(req, res, body) {
-  const { userId, mode, text, tone } = body;
+  const { userId, mode, text, tone, language } = body;
   const cleanText = cleanMessageText(text);
   if (!userId || !isValidMode(mode) || !cleanText) {
     return res.status(400).json({ error: "Falta el mensaje, el modo o el usuario." });
@@ -230,11 +233,11 @@ async function handleMessageTone(req, res, body) {
 
     if (!allowed) {
       return res.status(429).json({
-        error: `Llegaste al límite de ${MESSAGE_TONE_AI_MONTHLY_LIMIT} usos de ayuda con mensajes este mes.`,
+        error: aiErrorMessages(language).messageToneLimit(MESSAGE_TONE_AI_MONTHLY_LIMIT),
       });
     }
 
-    const result = await callOpenAiMessageTone(mode, cleanText, tone);
+    const result = await callOpenAiMessageTone(mode, cleanText, tone, language);
 
     const { error: writeErr } = await supabaseAdmin
       .from("progress")
@@ -252,29 +255,32 @@ async function handleMessageTone(req, res, body) {
     res.status(200).json({ result });
   } catch (err) {
     console.error("Error en message-tone:", err);
-    res.status(500).json({ error: "No se pudo procesar el mensaje con IA." });
+    res.status(500).json({ error: aiErrorMessages(language).messageToneFailed });
   }
 }
 
-async function callOpenAiMessageTone(mode, text, tone) {
+async function callOpenAiMessageTone(mode, text, tone, language) {
   const apiKey = process.env.OPENAI_API_KEY;
   if (!apiKey) {
     throw new Error("Falta configurar OPENAI_API_KEY en Vercel.");
   }
 
+  const languageName = aiLanguageName(language);
+
   const systemPrompt =
-    mode === MODES.REWRITE
-      ? "Reescribes un mensaje que la persona está por mandar, en español de México, manteniendo la idea " +
+    (mode === MODES.REWRITE
+      ? `Reescribes un mensaje que la persona está por mandar, en ${languageName}, manteniendo la idea ` +
         `y los datos tal cual (fechas, nombres, números), pero con un tono ${toneHint(tone)}. Nunca agregues ` +
         "información nueva ni cambies lo que la persona quiere decir. Responde SOLO con un objeto JSON de " +
         'la forma {"result": "..."} con el mensaje reescrito, nada más.'
       : "Te dan un mensaje que la persona ya recibió de alguien más, y tu trabajo es ayudarla a leerlo con " +
         "más calma — no confirmes la lectura más catastrófica ni asegures que sabes la intención real de " +
-        "quien lo escribió (eso nadie puede saberlo con certeza). En 2 a 4 frases, en español de México: " +
+        `quien lo escribió (eso nadie puede saberlo con certeza). En 2 a 4 frases, en ${languageName}: ` +
         "describe 2 o 3 formas distintas y razonables en que ese mensaje se pudo haber querido decir — " +
         "incluyendo al menos una lectura neutral o benigna, no solo la más alarmante — y evita afirmar cuál " +
         "es la correcta. No analices a la otra persona, no la diagnostiques, no sugieras cómo responder a " +
-        'menos que se pida. Responde SOLO con un objeto JSON de la forma {"result": "..."}.';
+        'menos que se pida. Responde SOLO con un objeto JSON de la forma {"result": "..."}.') +
+    languageDirective(language);
 
   const response = await fetch("https://api.openai.com/v1/chat/completions", {
     method: "POST",

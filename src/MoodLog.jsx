@@ -2,22 +2,21 @@ import React, { useState } from "react";
 import { todayEntry, recentEntries } from "./moodLog";
 
 // Registro de ánimo + journaling diario — 5 emojis + nota corta opcional,
-// más una tira de los últimos 7 días. Sin dependencias nuevas.
-const MOODS = [
-  { value: 1, emoji: "😞", label: "Muy mal" },
-  { value: 2, emoji: "😕", label: "Mal" },
-  { value: 3, emoji: "😐", label: "Regular" },
-  { value: 4, emoji: "🙂", label: "Bien" },
-  { value: 5, emoji: "😄", label: "Muy bien" },
-];
+// más una tira de los últimos 7 días. Sin dependencias nuevas. Las
+// etiquetas visibles viven en t.moodLog — acá solo quedan los valores
+// internos (1-5) y los emojis, que no cambian con el idioma.
+const MOOD_VALUES = [1, 2, 3, 4, 5];
+const MOOD_EMOJIS = { 1: "😞", 2: "😕", 3: "😐", 4: "🙂", 5: "😄" };
 
-export default function MoodLog({ C, moodLog, onSave }) {
+export default function MoodLog({ C, t, moodLog, onSave }) {
   const existing = todayEntry(moodLog);
   const [mood, setMood] = useState(existing?.mood || 0);
   const [note, setNote] = useState(existing?.note || "");
   const [justSaved, setJustSaved] = useState(false);
 
   const history = recentEntries(moodLog, 7);
+  const labelFor = (value) =>
+    ({ 1: t.moodLog.veryBad, 2: t.moodLog.bad, 3: t.moodLog.regular, 4: t.moodLog.good, 5: t.moodLog.veryGood }[value]);
 
   const handleSave = () => {
     if (!mood) return;
@@ -39,15 +38,15 @@ export default function MoodLog({ C, moodLog, onSave }) {
   return (
     <div>
       <div style={{ display: "flex", gap: "8px", marginBottom: "14px", flexWrap: "wrap" }}>
-        {MOODS.map((m) => (
+        {MOOD_VALUES.map((value) => (
           <button
-            key={m.value}
-            onClick={() => setMood(m.value)}
-            aria-label={m.label}
-            title={m.label}
-            style={chipStyle(mood === m.value)}
+            key={value}
+            onClick={() => setMood(value)}
+            aria-label={labelFor(value)}
+            title={labelFor(value)}
+            style={chipStyle(mood === value)}
           >
-            {m.emoji}
+            {MOOD_EMOJIS[value]}
           </button>
         ))}
       </div>
@@ -55,7 +54,7 @@ export default function MoodLog({ C, moodLog, onSave }) {
       <textarea
         value={note}
         onChange={(e) => setNote(e.target.value)}
-        placeholder="¿Qué influyó en tu ánimo hoy? (opcional)"
+        placeholder={t.moodLog.notePlaceholder}
         rows={2}
         style={{
           width: "100%",
@@ -86,12 +85,12 @@ export default function MoodLog({ C, moodLog, onSave }) {
           cursor: mood ? "pointer" : "not-allowed",
         }}
       >
-        {justSaved ? "Guardado ✓" : existing ? "Actualizar registro de hoy" : "Guardar registro de hoy"}
+        {justSaved ? t.moodLog.saved : existing ? t.moodLog.updateButton : t.moodLog.saveButton}
       </button>
 
       <div style={{ display: "flex", gap: "6px", marginTop: "16px" }}>
         {history.map(({ date, entry }) => {
-          const m = MOODS.find((x) => x.value === entry?.mood);
+          const emoji = entry?.mood ? MOOD_EMOJIS[entry.mood] : null;
           return (
             <div
               key={date}
@@ -106,12 +105,12 @@ export default function MoodLog({ C, moodLog, onSave }) {
                 opacity: entry ? 1 : 0.3,
               }}
             >
-              {m ? m.emoji : "·"}
+              {emoji || "·"}
             </div>
           );
         })}
       </div>
-      <p style={{ fontSize: "11px", color: C.textMuted, margin: "6px 0 0" }}>Últimos 7 días</p>
+      <p style={{ fontSize: "11px", color: C.textMuted, margin: "6px 0 0" }}>{t.moodLog.last7Days}</p>
     </div>
   );
 }

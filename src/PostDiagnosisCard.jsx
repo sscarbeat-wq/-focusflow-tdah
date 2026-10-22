@@ -15,7 +15,7 @@ function readDismissed() {
 // Tarjeta descartable, autoidentificada (nadie en Senda tiene guardada una
 // fecha de diagnóstico) — mismo patrón que InstallBanner.jsx y la cápsula
 // de perimenopausia. Contenido en ./postDiagnosisGuide.js.
-export default function PostDiagnosisCard({ C }) {
+export default function PostDiagnosisCard({ C, t }) {
   const [dismissed, setDismissed] = useState(readDismissed);
 
   const dismiss = () => {
@@ -46,7 +46,7 @@ export default function PostDiagnosisCard({ C }) {
     >
       <button
         onClick={dismiss}
-        aria-label="Cerrar"
+        aria-label={t.postDiagnosis.closeAria}
         style={{
           position: "absolute",
           top: "10px",
@@ -60,11 +60,10 @@ export default function PostDiagnosisCard({ C }) {
         <X size={16} />
       </button>
       <div style={{ display: "flex", alignItems: "center", gap: "8px", fontWeight: 600, marginBottom: "6px" }}>
-        <Sparkles size={16} color={C.amber} /> ¿Te diagnosticaron hace poco?
+        <Sparkles size={16} color={C.amber} /> {t.postDiagnosis.title}
       </div>
       <p style={{ margin: "0 0 10px" }}>
-        Si tu diagnóstico de TDAH es reciente, esta guía breve es para ti — no reemplaza a tu médico o médica, pero puede
-        ayudarte a entender qué esperar en esta primera etapa.
+        {t.postDiagnosis.intro}
       </p>
       {POST_DIAGNOSIS_SECTIONS.map((section) => (
         <div key={section.id} style={{ marginBottom: "10px" }}>
@@ -73,8 +72,7 @@ export default function PostDiagnosisCard({ C }) {
         </div>
       ))}
       <p style={{ margin: 0, color: C.textMuted }}>
-        Esto es información general, no un plan de tratamiento — cualquier duda sobre tu caso específico,
-        coméntala con tu médico o médica.
+        {t.postDiagnosis.footer}
       </p>
     </div>
   );

@@ -19,7 +19,7 @@ import {
 // recibe un recordatorio push a la hora exacta de cada dosis (ver
 // api/send-reminders.js); si no, el aviso diario normal de la app sigue
 // mencionando medicamentos pendientes de hoy.
-export default function MedicationPanel({ C, medications, doseLog, onAdd, onRemove, onLogDose, onUndoDose }) {
+export default function MedicationPanel({ C, t, medications, doseLog, onAdd, onRemove, onLogDose, onUndoDose }) {
   const [name, setName] = useState("");
   const [times, setTimes] = useState([""]);
   const [notes, setNotes] = useState("");
@@ -92,7 +92,7 @@ export default function MedicationPanel({ C, medications, doseLog, onAdd, onRemo
     <div>
       {doses.length > 0 && (
         <div style={{ marginBottom: "18px" }}>
-          <p style={{ fontSize: "12px", color: C.textMuted, margin: "0 0 8px", fontWeight: 600 }}>Dosis de hoy</p>
+          <p style={{ fontSize: "12px", color: C.textMuted, margin: "0 0 8px", fontWeight: 600 }}>{t.medication.todayDoses}</p>
           {doses.map((d) => {
             const taken = doseTaken(doseLog, d.medicationId, d.time);
             const isDraft = noteDraftFor && noteDraftFor.medicationId === d.medicationId && noteDraftFor.time === d.time;
@@ -134,7 +134,7 @@ export default function MedicationPanel({ C, medications, doseLog, onAdd, onRemo
                   {taken && (
                     <button
                       onClick={() => onUndoDose(d.medicationId, d.time)}
-                      title="Deshacer"
+                      title={t.medication.undo}
                       style={{ background: "transparent", border: "none", color: C.textMuted, cursor: "pointer", padding: "2px" }}
                     >
                       <Undo2 size={14} />
@@ -147,14 +147,14 @@ export default function MedicationPanel({ C, medications, doseLog, onAdd, onRemo
                     <input
                       value={noteDraft}
                       onChange={(e) => setNoteDraft(e.target.value)}
-                      placeholder="¿Algún efecto secundario? (opcional)"
+                      placeholder={t.medication.sideEffectPlaceholder}
                       style={{ ...inputStyle, flex: 1, minWidth: "160px" }}
                     />
                     <button onClick={() => confirmDose(d.medicationId, d.time, noteDraft)} style={btnPrimary}>
-                      Marcar como tomada
+                      {t.medication.markTaken}
                     </button>
                     <button onClick={() => setNoteDraftFor(null)} style={btnGhost}>
-                      Cancelar
+                      {t.medication.cancel}
                     </button>
                   </div>
                 )}
@@ -166,7 +166,7 @@ export default function MedicationPanel({ C, medications, doseLog, onAdd, onRemo
 
       {medications && medications.length > 0 && (
         <div style={{ marginBottom: "18px" }}>
-          <p style={{ fontSize: "12px", color: C.textMuted, margin: "0 0 8px", fontWeight: 600 }}>Tus medicamentos</p>
+          <p style={{ fontSize: "12px", color: C.textMuted, margin: "0 0 8px", fontWeight: 600 }}>{t.medication.yourMedications}</p>
           {medications.map((med) => (
             <div
               key={med.id}
@@ -190,7 +190,7 @@ export default function MedicationPanel({ C, medications, doseLog, onAdd, onRemo
               </div>
               <button
                 onClick={() => onRemove(med.id)}
-                title="Eliminar"
+                title={t.medication.delete}
                 style={{ background: "transparent", border: "none", color: C.textMuted, cursor: "pointer", flexShrink: 0 }}
               >
                 <Trash2 size={15} />
@@ -201,40 +201,40 @@ export default function MedicationPanel({ C, medications, doseLog, onAdd, onRemo
       )}
 
       <div style={{ background: C.surfaceAlt, borderRadius: "6px", padding: "14px" }}>
-        <p style={{ fontSize: "12px", color: C.textMuted, margin: "0 0 10px", fontWeight: 600 }}>Agregar medicamento</p>
+        <p style={{ fontSize: "12px", color: C.textMuted, margin: "0 0 10px", fontWeight: 600 }}>{t.medication.addMedicationTitle}</p>
         <input
           value={name}
           onChange={(e) => setName(e.target.value)}
-          placeholder="Nombre del medicamento"
+          placeholder={t.medication.namePlaceholder}
           style={{ ...inputStyle, width: "100%", marginBottom: "8px" }}
         />
-        {times.map((t, i) => (
+        {times.map((time, i) => (
           <div key={i} style={{ display: "flex", gap: "8px", marginBottom: "8px" }}>
             <input
               type="time"
-              value={t}
+              value={time}
               onChange={(e) => updateTime(i, e.target.value)}
               style={{ ...inputStyle, flex: 1 }}
             />
             {times.length > 1 && (
               <button onClick={() => removeTimeField(i)} style={btnGhost}>
-                Quitar
+                {t.medication.removeTime}
               </button>
             )}
           </div>
         ))}
         <button onClick={addTimeField} style={{ ...btnGhost, marginBottom: "8px" }}>
-          + Otro horario
+          {t.medication.addTime}
         </button>
         <textarea
           value={notes}
           onChange={(e) => setNotes(e.target.value)}
-          placeholder="Notas (opcional) — ej. para qué es, indicaciones del médico"
+          placeholder={t.medication.notesPlaceholder}
           rows={2}
           style={{ ...inputStyle, width: "100%", resize: "vertical", marginBottom: "10px", display: "block" }}
         />
         <button onClick={handleAdd} disabled={!name.trim()} style={btnPrimary}>
-          <Plus size={14} /> Agregar
+          <Plus size={14} /> {t.medication.addButton}
         </button>
       </div>
 
@@ -261,7 +261,7 @@ export default function MedicationPanel({ C, medications, doseLog, onAdd, onRemo
             ))}
           </div>
           <p style={{ fontSize: "11px", color: C.textMuted, margin: "6px 0 0" }}>
-            Dosis tomadas / esperadas — últimos 7 días
+            {t.medication.historyCaption}
           </p>
         </div>
       )}

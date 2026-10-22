@@ -15,7 +15,7 @@ import { SITUATIONS, CRISIS, getSituation, nextResponseIndex } from "./companion
 // responde (límite mensual, red, error del servidor) se usa en su lugar uno
 // de los textos fijos de respaldo (fallbackResponses), rotando sin repetir —
 // la paciente nunca se queda sin un mensaje de apoyo.
-export default function CompanionPanel({ C, userId, onNavigate }) {
+export default function CompanionPanel({ C, t, lang, userId, onNavigate }) {
   const [activeId, setActiveId] = useState(null); // id de SITUATIONS, "crisis", o null
   const [textBySituation, setTextBySituation] = useState({});
   const [loadingId, setLoadingId] = useState(null);
@@ -36,10 +36,10 @@ export default function CompanionPanel({ C, userId, onNavigate }) {
       const res = await fetch("/api/companion-response", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ userId, situationId, avoid: avoidText || "" }),
+        body: JSON.stringify({ userId, situationId, avoid: avoidText || "", language: lang }),
       });
       const data = await res.json();
-      if (!res.ok) throw new Error(data.error || "No se pudo generar una respuesta.");
+      if (!res.ok) throw new Error(data.error || t.companion.aiError);
       if (data.unsafe) {
         // Salvaguarda: la IA tocó un tema de riesgo — nunca se muestra su
         // texto, se trata exactamente como si hubieran elegido el botón de
@@ -140,7 +140,7 @@ export default function CompanionPanel({ C, userId, onNavigate }) {
           <p style={{ fontSize: "14px", color: C.text, lineHeight: 1.6, margin: 0 }}>{CRISIS.message}</p>
         </div>
         <button onClick={goBack} style={btnBack}>
-          Volver
+          {t.companion.back}
         </button>
       </div>
     );
@@ -160,7 +160,7 @@ export default function CompanionPanel({ C, userId, onNavigate }) {
       <div>
         {isLoading && !text ? (
           <p style={{ fontSize: "13px", color: C.textMuted, lineHeight: 1.6, margin: "0 0 14px" }}>
-            Pensando una respuesta para esto…
+            {t.companion.thinking}
           </p>
         ) : (
           <p style={{ fontSize: "14px", color: C.text, lineHeight: 1.6, margin: "0 0 14px" }}>{text}</p>
@@ -175,11 +175,11 @@ export default function CompanionPanel({ C, userId, onNavigate }) {
             style={{ ...btnBack, padding: 0, ...(isLoading ? btnDisabled : {}) }}
           >
             <RotateCcw size={12} style={{ verticalAlign: "-1px", marginRight: "4px" }} />
-            Otra idea para esto
+            {t.companion.anotherIdea}
           </button>
         </div>
         <button onClick={goBack} style={btnBack}>
-          Elegir otra situación
+          {t.companion.chooseOther}
         </button>
       </div>
     );
