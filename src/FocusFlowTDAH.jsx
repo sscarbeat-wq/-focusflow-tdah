@@ -45,6 +45,7 @@ import {
 } from "lucide-react";
 
 import InstallBanner from "./InstallBanner";
+import PostDiagnosisCard from "./PostDiagnosisCard";
 import ScienceCapsulePanel from "./ScienceCapsulePanel";
 import MindfulnessPanel from "./MindfulnessPanel";
 import Mascot from "./Mascot";
@@ -889,6 +890,7 @@ export default function FocusFlowTDAH({
     >
       <div style={{ maxWidth: "1000px", margin: "0 auto" }}>
         <InstallBanner C={C} />
+        <PostDiagnosisCard C={C} />
         {/* Header */}
         <header
           style={{
@@ -1625,8 +1627,10 @@ export default function FocusFlowTDAH({
                 C={C}
                 joined={bodyDouble.joined}
                 participants={bodyDouble.participants}
+                incomingReactions={bodyDouble.incomingReactions}
                 join={bodyDouble.join}
                 leave={bodyDouble.leave}
+                sendReaction={bodyDouble.sendReaction}
               />
             </Panel>
           </div>

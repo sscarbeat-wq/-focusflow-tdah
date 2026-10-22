@@ -1,5 +1,6 @@
 import React from "react";
 import { Users, LogOut } from "lucide-react";
+import { REACTIONS } from "./bodyDoublePure";
 
 function btnStyle(bg, color, border) {
   return {
@@ -14,7 +15,15 @@ function btnStyle(bg, color, border) {
   };
 }
 
-export default function BodyDoublePanel({ C, joined, participants, join, leave }) {
+export default function BodyDoublePanel({
+  C,
+  joined,
+  participants,
+  incomingReactions = [],
+  join,
+  leave,
+  sendReaction,
+}) {
   if (!joined) {
     return (
       <>
@@ -41,11 +50,11 @@ export default function BodyDoublePanel({ C, joined, participants, join, leave }
           : `${count} personas en la sala ahora mismo, incluyéndote.`}
       </p>
       <p style={{ fontSize: "12px", color: C.textMuted, marginBottom: "14px", lineHeight: 1.5 }}>
-        Nadie puede verte ni escribirte — solo saben que hay alguien más aquí, trabajando en silencio al mismo
-        tiempo que tú.
+        Nadie puede escribirte — solo saben que hay alguien más aquí, trabajando en silencio al mismo tiempo que
+        tú. Lo único que pueden mandarse es una reacción rápida y anónima, sin palabras.
       </p>
 
-      <div style={{ display: "flex", flexWrap: "wrap", gap: "10px", marginBottom: "18px" }}>
+      <div style={{ display: "flex", flexWrap: "wrap", gap: "10px", marginBottom: "14px" }}>
         {participants.map((p, i) => (
           <div
             key={i}
@@ -64,6 +73,46 @@ export default function BodyDoublePanel({ C, joined, participants, join, leave }
           >
             {p.avatar}
           </div>
+        ))}
+      </div>
+
+      {incomingReactions.length > 0 && (
+        <div style={{ display: "flex", flexWrap: "wrap", gap: "8px", marginBottom: "10px" }}>
+          {incomingReactions.map((r) => (
+            <div
+              key={r.id}
+              style={{
+                fontSize: "13px",
+                background: C.surfaceAlt,
+                border: `1px solid ${C.border}`,
+                borderRadius: "999px",
+                padding: "4px 10px",
+              }}
+            >
+              {r.avatar} {r.emoji}
+            </div>
+          ))}
+        </div>
+      )}
+
+      <div style={{ display: "flex", gap: "8px", marginBottom: "18px" }}>
+        {REACTIONS.map((r) => (
+          <button
+            key={r.emoji}
+            onClick={() => sendReaction?.(r.emoji)}
+            title={r.label}
+            aria-label={r.label}
+            style={{
+              fontSize: "18px",
+              background: C.surfaceAlt,
+              border: `1px solid ${C.border}`,
+              borderRadius: "8px",
+              padding: "8px 12px",
+              cursor: "pointer",
+            }}
+          >
+            {r.emoji}
+          </button>
         ))}
       </div>
 
