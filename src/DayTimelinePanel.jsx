@@ -5,16 +5,14 @@ import { todayTimelineItems, groupByDayPart } from "./dayTimeline";
 // Senda, agrupada por momento del día, en vez de una lista plana. Pensada
 // para "sentir" cómo se fue el día, no para planear nada: por eso solo
 // muestra lo que de verdad ya pasó.
-export default function DayTimelinePanel({ C, jar }) {
+export default function DayTimelinePanel({ C, t, jar }) {
   const { items, capped } = todayTimelineItems(jar);
   const groups = groupByDayPart(items).filter((g) => g.items.length > 0);
 
   if (items.length === 0) {
     return (
       <p style={{ fontSize: "13px", color: C.textMuted, margin: 0, lineHeight: 1.5 }}>
-        Todavía no hay nada registrado hoy — en cuanto hagas algo en Senda (registrar tu ánimo,
-        tomar un medicamento, completar un paso...) va a aparecer aquí, a la hora en que lo
-        hiciste.
+        {t.dayTimeline.empty}
       </p>
     );
   }
@@ -32,7 +30,7 @@ export default function DayTimelinePanel({ C, jar }) {
               letterSpacing: "0.03em",
             }}
           >
-            {group.label}
+            {t.dayTimeline.dayParts[group.key] || group.label}
           </p>
           {group.items.map((item, i) => (
             <div key={item.id} style={{ display: "flex", gap: "12px" }}>
@@ -70,8 +68,7 @@ export default function DayTimelinePanel({ C, jar }) {
       ))}
       {capped && (
         <p style={{ fontSize: "11px", color: C.textMuted, margin: "4px 0 0" }}>
-          Puede que algo de más temprano hoy ya no aparezca — Senda solo guarda las últimas 12
-          acciones en total, no por día.
+          {t.dayTimeline.cappedNote}
         </p>
       )}
     </div>

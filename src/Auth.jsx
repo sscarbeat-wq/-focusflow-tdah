@@ -2,8 +2,9 @@ import React, { useState } from "react";
 import { Sun, Moon } from "lucide-react";
 import { supabase } from "./supabaseClient";
 import InstallBanner from "./InstallBanner";
+import LanguageSwitcher from "./LanguageSwitcher";
 
-export default function Auth({ C, theme, onToggleTheme }) {
+export default function Auth({ C, theme, onToggleTheme, t, lang, onChangeLanguage }) {
   const [mode, setMode] = useState("signin"); // signin | signup
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -14,7 +15,7 @@ export default function Auth({ C, theme, onToggleTheme }) {
     e.preventDefault();
     setMessage("");
     if (!email.trim() || !password.trim()) {
-      setMessage("Completa tu correo y contraseña.");
+      setMessage(t.auth.incompleteFields);
       return;
     }
     setLoading(true);
@@ -22,13 +23,13 @@ export default function Auth({ C, theme, onToggleTheme }) {
       if (mode === "signup") {
         const { error } = await supabase.auth.signUp({ email, password });
         if (error) throw error;
-        setMessage("Cuenta creada. Revisa tu correo para confirmar tu cuenta antes de entrar.");
+        setMessage(t.auth.accountCreated);
       } else {
         const { error } = await supabase.auth.signInWithPassword({ email, password });
         if (error) throw error;
       }
     } catch (err) {
-      setMessage(err.message || "Ocurrió un error. Intenta de nuevo.");
+      setMessage(err.message || t.common.genericError);
     } finally {
       setLoading(false);
     }
@@ -70,42 +71,43 @@ export default function Auth({ C, theme, onToggleTheme }) {
           position: "relative",
         }}
       >
-        {onToggleTheme && (
-          <button
-            type="button"
-            onClick={onToggleTheme}
-            aria-label={theme === "light" ? "Cambiar a modo oscuro" : "Cambiar a modo claro"}
-            title={theme === "light" ? "Cambiar a modo oscuro" : "Cambiar a modo claro"}
-            style={{
-              position: "absolute",
-              top: "14px",
-              right: "14px",
-              background: "transparent",
-              border: `1px solid ${C.border}`,
-              borderRadius: "8px",
-              width: "34px",
-              height: "34px",
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-              color: C.textMuted,
-              cursor: "pointer",
-            }}
-          >
-            {theme === "light" ? <Moon size={16} /> : <Sun size={16} />}
-          </button>
-        )}
-        <div style={{ marginBottom: "-8px" }}>
-          <InstallBanner C={C} />
+        <div style={{ position: "absolute", top: "14px", right: "14px", display: "flex", gap: "8px" }}>
+          <LanguageSwitcher C={C} lang={lang} onChange={onChangeLanguage} t={t} height="34px" />
+          {onToggleTheme && (
+            <button
+              type="button"
+              onClick={onToggleTheme}
+              aria-label={theme === "light" ? t.common.toDarkMode : t.common.toLightMode}
+              title={theme === "light" ? t.common.toDarkMode : t.common.toLightMode}
+              style={{
+                background: "transparent",
+                border: `1px solid ${C.border}`,
+                borderRadius: "8px",
+                width: "34px",
+                height: "34px",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                color: C.textMuted,
+                cursor: "pointer",
+                flexShrink: 0,
+              }}
+            >
+              {theme === "light" ? <Moon size={16} /> : <Sun size={16} />}
+            </button>
+          )}
         </div>
-        <h1 style={{ fontSize: "22px", fontWeight: 700, margin: "0 0 6px" }}>Senda</h1>
+        <div style={{ marginBottom: "-8px" }}>
+          <InstallBanner C={C} t={t} />
+        </div>
+        <h1 style={{ fontSize: "22px", fontWeight: 700, margin: "0 0 6px" }}>{t.common.appName}</h1>
         <p style={{ fontSize: "13px", color: C.textMuted, margin: "0 0 24px" }}>
-          {mode === "signin" ? "Entra a tu cuenta" : "Crea tu cuenta"}
+          {mode === "signin" ? t.auth.signInTitle : t.auth.signUpTitle}
         </p>
 
         <input
           type="email"
-          placeholder="Tu correo"
+          placeholder={t.auth.emailPlaceholder}
           value={email}
           onChange={(e) => setEmail(e.target.value)}
           style={inputStyle}
@@ -113,7 +115,7 @@ export default function Auth({ C, theme, onToggleTheme }) {
         />
         <input
           type="password"
-          placeholder="Tu contraseña"
+          placeholder={t.auth.passwordPlaceholder}
           value={password}
           onChange={(e) => setPassword(e.target.value)}
           style={inputStyle}
@@ -141,7 +143,7 @@ export default function Auth({ C, theme, onToggleTheme }) {
             marginBottom: "16px",
           }}
         >
-          {loading ? "Un momento..." : mode === "signin" ? "Entrar" : "Crear cuenta"}
+          {loading ? t.common.loading : mode === "signin" ? t.auth.signInButton : t.auth.signUpButton}
         </button>
 
         <button
@@ -159,7 +161,7 @@ export default function Auth({ C, theme, onToggleTheme }) {
             cursor: "pointer",
           }}
         >
-          {mode === "signin" ? "¿No tienes cuenta? Créala aquí" : "¿Ya tienes cuenta? Entra aquí"}
+          {mode === "signin" ? t.auth.toggleToSignUp : t.auth.toggleToSignIn}
         </button>
       </form>
     </div>

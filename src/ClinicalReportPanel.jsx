@@ -4,10 +4,15 @@ import { buildClinicalReport, CLINICAL_REPORT_DAYS } from "./clinicalReport";
 
 const DATE_FMT = { day: "2-digit", month: "2-digit", year: "numeric" };
 
-function formatDate(isoOrKey) {
+// Un locale de formato de fecha por idioma de la app — no tiene que ver con
+// el país de la persona, solo con que día/mes/año se vea en el orden
+// esperado para el idioma que elige.
+const DATE_LOCALES = { es: "es-MX", en: "en-US", fr: "fr-FR", pt: "pt-BR" };
+
+function formatDate(isoOrKey, lang) {
   // Acepta tanto un ISO completo (generatedAt) como un YYYY-MM-DD (dateKey).
   const d = isoOrKey.length === 10 ? new Date(`${isoOrKey}T00:00:00`) : new Date(isoOrKey);
-  return d.toLocaleDateString("es-MX", DATE_FMT);
+  return d.toLocaleDateString(DATE_LOCALES[lang] || DATE_LOCALES.es, DATE_FMT);
 }
 
 // Vista de solo lectura, pensada para imprimirse o mostrarse en pantalla
@@ -16,6 +21,8 @@ function formatDate(isoOrKey) {
 // mismo principio que ya usan los Insights semanales y la vista "Hoy".
 export default function ClinicalReportPanel({
   C,
+  t,
+  lang,
   moodLog,
   energyLog,
   medications,
@@ -61,16 +68,14 @@ export default function ClinicalReportPanel({
       `}</style>
 
       <div data-print-only style={{ display: "none", marginBottom: "16px" }}>
-        <h2 style={{ fontSize: "18px", margin: "0 0 4px", color: C.text }}>Reporte para tu consulta — Senda</h2>
+        <h2 style={{ fontSize: "18px", margin: "0 0 4px", color: C.text }}>{t.clinicalReport.printOnlyTitle}</h2>
         <p style={{ fontSize: "12px", color: C.textMuted, margin: 0 }}>
-          Últimos {CLINICAL_REPORT_DAYS} días, generado el {formatDate(report.generatedAt)}.
+          {t.clinicalReport.printOnlyRange(CLINICAL_REPORT_DAYS, formatDate(report.generatedAt, lang))}
         </p>
       </div>
 
       <p style={{ fontSize: "12px", color: C.textMuted, margin: "0 0 16px", lineHeight: 1.6 }}>
-        Resumen de tus últimos {CLINICAL_REPORT_DAYS} días en Senda, armado solo con lo que ya
-        registraste — nada generado por IA. Es un apoyo para platicar en tu consulta, no un
-        diagnóstico ni una evaluación clínica.
+        {t.clinicalReport.intro(CLINICAL_REPORT_DAYS)}
       </p>
 
       <button
@@ -93,45 +98,51 @@ export default function ClinicalReportPanel({
           marginBottom: "20px",
         }}
       >
-        <Printer size={16} /> Imprimir o guardar como PDF
+        <Printer size={16} /> {t.clinicalReport.printButton}
       </button>
 
       <div style={sectionStyle}>
-        <p style={labelStyle}>Ánimo</p>
+        <p style={labelStyle}>{t.clinicalReport.moodLabel}</p>
         <p style={valueStyle}>
           {report.mood.loggedDays === 0
-            ? "Sin registros de ánimo en este periodo."
-            : `Registrado ${report.mood.loggedDays} de ${report.mood.totalDays} días${
-                report.mood.average != null ? ` — promedio ${report.mood.average}/5` : ""
-              }.`}
+            ? t.clinicalReport.moodNone
+            : t.clinicalReport.moodRegistered(report.mood.loggedDays, report.mood.totalDays, report.mood.average)}
         </p>
       </div>
 
       <div style={sectionStyle}>
-        <p style={labelStyle}>Energía</p>
+        <p style={labelStyle}>{t.clinicalReport.energyLabel}</p>
         <p style={valueStyle}>
           {report.energy.loggedDays === 0
-            ? "Sin registros de energía en este periodo."
-            : `Registrada ${report.energy.loggedDays} de ${report.energy.totalDays} días — baja: ${report.energy.levelCounts.baja}, media: ${report.energy.levelCounts.media}, alta: ${report.energy.levelCounts.alta}.`}
+            ? t.clinicalReport.energyNone
+            : t.clinicalReport.energyRegistered(
+                report.energy.loggedDays,
+                report.energy.totalDays,
+                report.energy.levelCounts.baja,
+                report.energy.levelCounts.media,
+                report.energy.levelCounts.alta
+              )}
         </p>
       </div>
 
       <div style={sectionStyle}>
-        <p style={labelStyle}>Medicamentos</p>
+        <p style={labelStyle}>{t.clinicalReport.medicationsLabel}</p>
         {report.medications.length === 0 ? (
-          <p style={valueStyle}>Sin medicamentos activos registrados.</p>
+          <p style={valueStyle}>{t.clinicalReport.noMedications}</p>
         ) : (
           report.medications.map((med) => (
             <div key={med.id} style={{ marginBottom: "10px" }}>
               <p style={valueStyle}>
                 <strong>{med.name}</strong>
-                {med.adherencePercent != null ? ` — ${med.taken}/${med.expected} dosis (${med.adherencePercent}%)` : ""}
+                {med.adherencePercent != null
+                  ? t.clinicalReport.medAdherence(med.taken, med.expected, med.adherencePercent)
+                  : ""}
               </p>
               {med.sideEffectNotes.length > 0 && (
                 <ul style={{ margin: "4px 0 0", paddingLeft: "18px" }}>
                   {med.sideEffectNotes.map((n, i) => (
                     <li key={i} style={{ fontSize: "13px", color: C.textMuted, lineHeight: 1.5 }}>
-                      {formatDate(n.date)}: {n.note}
+                      {formatDate(n.date, lang)}: {n.note}
                     </li>
                   ))}
                 </ul>
@@ -142,34 +153,35 @@ export default function ClinicalReportPanel({
       </div>
 
       <div style={sectionStyle}>
-        <p style={labelStyle}>Sueño</p>
+        <p style={labelStyle}>{t.clinicalReport.sleepLabel}</p>
         <p style={valueStyle}>
           {report.sleep.loggedNights === 0
-            ? "Sin registros de hora de dormir en este periodo."
-            : `Registrada ${report.sleep.loggedNights} de ${report.sleep.totalDays} noches — ${report.sleep.lateNights} de esas noches fue después de la medianoche.`}
+            ? t.clinicalReport.sleepNone
+            : t.clinicalReport.sleepRegistered(report.sleep.loggedNights, report.sleep.totalDays, report.sleep.lateNights)}
         </p>
       </div>
 
       <div style={sectionStyle}>
-        <p style={labelStyle}>Freno de impulsividad</p>
+        <p style={labelStyle}>{t.clinicalReport.impulseBrakeLabel}</p>
         <p style={valueStyle}>
-          Usado {report.impulseBrake.total} vez{report.impulseBrake.total === 1 ? "" : "es"} en los
-          últimos {CLINICAL_REPORT_DAYS} días
-          {report.impulseBrake.purchase > 0 ? `, ${report.impulseBrake.purchase} de ellas antes de una compra no planeada` : ""}.
+          {t.clinicalReport.impulseBrakeUsed(
+            report.impulseBrake.total,
+            CLINICAL_REPORT_DAYS,
+            report.impulseBrake.purchase > 0 ? t.clinicalReport.impulseBrakePurchasePart(report.impulseBrake.purchase) : ""
+          )}
         </p>
       </div>
 
       <div style={sectionStyle}>
-        <p style={labelStyle}>Racha y hábitos</p>
+        <p style={labelStyle}>{t.clinicalReport.streakHabitsLabel}</p>
         <p style={valueStyle}>
-          Racha actual: {report.streak.current} día{report.streak.current === 1 ? "" : "s"} (mejor
-          racha: {report.streak.longest}).
-          {report.pendingHabits.length > 0 ? ` Hábitos pendientes ahora mismo: ${report.pendingHabits.join(", ")}.` : ""}
+          {t.clinicalReport.streakSummary(report.streak.current, report.streak.longest)}
+          {report.pendingHabits.length > 0 ? t.clinicalReport.pendingHabitsSuffix(report.pendingHabits.join(", ")) : ""}
         </p>
       </div>
 
       <p style={{ fontSize: "11px", color: C.textMuted, margin: "4px 0 0" }}>
-        Generado el {formatDate(report.generatedAt)}.
+        {t.clinicalReport.generatedOn(formatDate(report.generatedAt, lang))}
       </p>
     </div>
   );

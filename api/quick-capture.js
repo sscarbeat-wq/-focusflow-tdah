@@ -29,6 +29,7 @@ import {
   QUICK_CAPTURE_AI_MONTHLY_LIMIT,
 } from "../src/aiUsage.js";
 import { containsRiskLanguage } from "../src/companionSituations.js";
+import { aiLanguageName, whisperLanguageCode, aiErrorMessages } from "../src/aiLanguage.js";
 
 const supabaseAdmin = createClient(process.env.VITE_SUPABASE_URL, process.env.SUPABASE_SERVICE_ROLE_KEY);
 
@@ -41,7 +42,7 @@ export default async function handler(req, res) {
     return res.status(405).json({ error: "Método no permitido" });
   }
 
-  const { userId, audioBase64, mimeType, text } = req.body || {};
+  const { userId, audioBase64, mimeType, text, language } = req.body || {};
   if (!userId || (!audioBase64 && !String(text || "").trim())) {
     return res.status(400).json({ error: "Falta el audio, el texto o el usuario." });
   }
@@ -61,17 +62,17 @@ export default async function handler(req, res) {
 
     if (!allowed) {
       return res.status(429).json({
-        error: `Llegaste al límite de ${QUICK_CAPTURE_AI_MONTHLY_LIMIT} capturas rápidas con IA este mes.`,
+        error: aiErrorMessages(language).quickCaptureLimit(QUICK_CAPTURE_AI_MONTHLY_LIMIT),
       });
     }
 
     // 2) Transcribir el audio si vino por voz; si ya vino como texto
     // escrito (la persona usó el teclado en vez del micrófono), se usa tal
     // cual.
-    const rawText = audioBase64 ? await transcribeAudio(audioBase64, mimeType) : String(text || "").trim();
+    const rawText = audioBase64 ? await transcribeAudio(audioBase64, mimeType, language) : String(text || "").trim();
     const cleanText = rawText.trim().slice(0, 500);
     if (!cleanText) {
-      return res.status(200).json({ error: "No se entendió ninguna palabra. Intenta de nuevo." });
+      return res.status(200).json({ error: aiErrorMessages(language).quickCaptureEmpty });
     }
 
     // 3) Filtro de seguridad — mismo que "Ayuda con mensajes": si el texto
@@ -85,14 +86,14 @@ export default async function handler(req, res) {
     }
 
     // 4) Clasificar con IA.
-    const suggestion = await classifyNote(cleanText);
+    const suggestion = await classifyNote(cleanText, language);
 
     await saveUsage(userId, progressData, usage);
 
     res.status(200).json({ noteText: suggestion.noteText || cleanText, type: suggestion.type, fields: suggestion.fields });
   } catch (err) {
     console.error("Error en quick-capture:", err);
-    res.status(500).json({ error: "No se pudo procesar la nota. Intenta de nuevo en un momento." });
+    res.status(500).json({ error: aiErrorMessages(language).quickCaptureFailed });
   }
 }
 
@@ -107,7 +108,7 @@ async function saveUsage(userId, progressData, usage) {
   if (writeErr) throw writeErr;
 }
 
-async function transcribeAudio(audioBase64, mimeType) {
+async function transcribeAudio(audioBase64, mimeType, language) {
   const apiKey = process.env.OPENAI_API_KEY;
   if (!apiKey) {
     throw new Error("Falta configurar OPENAI_API_KEY en Vercel.");
@@ -118,7 +119,10 @@ async function transcribeAudio(audioBase64, mimeType) {
   const form = new FormData();
   form.append("file", blob, "nota.webm");
   form.append("model", TRANSCRIBE_MODEL);
-  form.append("language", "es");
+  // El idioma que la paciente eligió en la app — nunca se detecta del
+  // audio, porque forzarlo evita que Whisper "adivine mal" con acentos o
+  // palabras sueltas en otro idioma (ver src/aiLanguage.js).
+  form.append("language", whisperLanguageCode(language));
 
   const response = await fetch("https://api.openai.com/v1/audio/transcriptions", {
     method: "POST",
@@ -136,11 +140,13 @@ async function transcribeAudio(audioBase64, mimeType) {
   return String(data.text || "").trim();
 }
 
-async function classifyNote(text) {
+async function classifyNote(text, language) {
   const apiKey = process.env.OPENAI_API_KEY;
   if (!apiKey) {
     throw new Error("Falta configurar OPENAI_API_KEY en Vercel.");
   }
+
+  const languageName = aiLanguageName(language);
 
   const response = await fetch("https://api.openai.com/v1/chat/completions", {
     method: "POST",
@@ -179,7 +185,9 @@ async function classifyNote(text) {
             '"medicamento", porque es comprar/surtir, no tomar una dosis.\n\n' +
             'Si tienes cualquier duda de la categoría, usa "nota" — es la opción segura por default. ' +
             '"noteText" siempre lleva una versión breve y limpia (sin relleno) de lo que la persona dijo, en ' +
-            "español de México, sin importar el type elegido — es lo que se guarda como la nota en sí.",
+            `${languageName}, sin importar el type elegido — es lo que se guarda como la nota en sí (tradúcela ` +
+            `a ${languageName} si el texto original vino en otro idioma). El valor de "type" SIEMPRE se queda ` +
+            "en uno de los 4 valores exactos de arriba (medicamento/pago/paso/nota), nunca se traduce.",
         },
         { role: "user", content: text },
       ],

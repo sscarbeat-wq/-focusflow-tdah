@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from "react";
 import { Download, Share, X, ExternalLink } from "lucide-react";
 import { DARK_THEME } from "./theme";
+import DEFAULT_T from "./i18n/es.js";
 
 function detectEnv() {
   const ua = navigator.userAgent || "";
@@ -14,7 +15,8 @@ function detectEnv() {
   return { isStandalone, isIOS, isAndroid, isInAppBrowser, isChromeIOS, isDesktop };
 }
 
-export default function InstallBanner({ C = DARK_THEME }) {
+export default function InstallBanner({ C = DARK_THEME, t = DEFAULT_T }) {
+  const tb = t.installBanner;
   const [env] = useState(detectEnv);
   const [dismissed, setDismissed] = useState(() => localStorage.getItem("ff_install_dismissed") === "1");
   const [deferredPrompt, setDeferredPrompt] = useState(null);
@@ -76,14 +78,17 @@ export default function InstallBanner({ C = DARK_THEME }) {
   if (env.isInAppBrowser) {
     return (
       <div style={{ ...wrapperStyle, borderColor: C.amber }}>
-        <button onClick={dismiss} style={closeBtnStyle} aria-label="Cerrar">
+        <button onClick={dismiss} style={closeBtnStyle} aria-label={tb.closeAria}>
           <X size={16} />
         </button>
         <div style={titleStyle}>
-          <ExternalLink size={16} color={C.amber} /> Abre esto en tu navegador
+          <ExternalLink size={16} color={C.amber} /> {tb.inAppTitle}
         </div>
-        Para instalar la app, toca los tres puntos <strong>(⋯)</strong> o el menú de esta pantalla y elige{" "}
-        <strong>"Abrir en el navegador"</strong> (Chrome o Safari). Desde aquí dentro no se puede instalar.
+        {tb.inAppBody1}
+        <strong>{tb.inAppBodyEllipsis}</strong>
+        {tb.inAppBody2}
+        <strong>{tb.inAppOpenInBrowser}</strong>
+        {tb.inAppBody3}
       </div>
     );
   }
@@ -92,15 +97,15 @@ export default function InstallBanner({ C = DARK_THEME }) {
   if (env.isAndroid) {
     return (
       <div style={wrapperStyle}>
-        <button onClick={dismiss} style={closeBtnStyle} aria-label="Cerrar">
+        <button onClick={dismiss} style={closeBtnStyle} aria-label={tb.closeAria}>
           <X size={16} />
         </button>
         <div style={titleStyle}>
-          <Download size={16} color={C.mint} /> Instala Senda en tu celular
+          <Download size={16} color={C.mint} /> {tb.androidTitle}
         </div>
         {deferredPrompt ? (
           <>
-            <p style={{ margin: "0 0 10px" }}>Tenla como una app, con su ícono y sin barra del navegador.</p>
+            <p style={{ margin: "0 0 10px" }}>{tb.androidPromptBody}</p>
             <button
               onClick={handleAndroidInstall}
               style={{
@@ -114,13 +119,18 @@ export default function InstallBanner({ C = DARK_THEME }) {
                 fontSize: "13px",
               }}
             >
-              Instalar app
+              {tb.androidInstallButton}
             </button>
           </>
         ) : (
           <>
-            Toca los tres puntos <strong>⋮</strong> arriba del navegador → <strong>"Instalar aplicación"</strong> o{" "}
-            <strong>"Añadir a pantalla de inicio"</strong>.
+            {tb.androidManualBody1}
+            <strong>{tb.androidManualDots}</strong>
+            {tb.androidManualBody2}
+            <strong>{tb.androidManualInstall}</strong>
+            {tb.androidManualBody3}
+            <strong>{tb.androidManualAddHome}</strong>
+            {tb.androidManualBody4}
           </>
         )}
       </div>
@@ -132,27 +142,29 @@ export default function InstallBanner({ C = DARK_THEME }) {
     if (env.isChromeIOS) {
       return (
         <div style={wrapperStyle}>
-          <button onClick={dismiss} style={closeBtnStyle} aria-label="Cerrar">
+          <button onClick={dismiss} style={closeBtnStyle} aria-label={tb.closeAria}>
             <X size={16} />
           </button>
           <div style={titleStyle}>
-            <Download size={16} color={C.mint} /> Instala Senda en tu iPhone
+            <Download size={16} color={C.mint} /> {tb.iosChromeTitle}
           </div>
-          Para instalarla necesitas abrir este link en <strong>Safari</strong> (no en Chrome) — en iPhone, solo
-          Safari puede agregarla a tu pantalla de inicio.
+          {tb.iosChromeBody}
         </div>
       );
     }
     return (
       <div style={wrapperStyle}>
-        <button onClick={dismiss} style={closeBtnStyle} aria-label="Cerrar">
+        <button onClick={dismiss} style={closeBtnStyle} aria-label={tb.closeAria}>
           <X size={16} />
         </button>
         <div style={titleStyle}>
-          <Download size={16} color={C.mint} /> Instala Senda en tu iPhone
+          <Download size={16} color={C.mint} /> {tb.iosSafariTitle}
         </div>
-        Toca <Share size={14} style={{ verticalAlign: "-2px" }} /> <strong>Compartir</strong> (abajo, al centro) →{" "}
-        <strong>"Agregar a pantalla de inicio"</strong>.
+        {tb.iosSafariBody1}
+        <Share size={14} style={{ verticalAlign: "-2px" }} /> <strong>{tb.iosSafariShare}</strong>
+        {tb.iosSafariBody2}
+        <strong>{tb.iosSafariAddHome}</strong>
+        {tb.iosSafariBody3}
       </div>
     );
   }
@@ -160,13 +172,13 @@ export default function InstallBanner({ C = DARK_THEME }) {
   // Desktop
   return (
     <div style={wrapperStyle}>
-      <button onClick={dismiss} style={closeBtnStyle} aria-label="Cerrar">
+      <button onClick={dismiss} style={closeBtnStyle} aria-label={tb.closeAria}>
         <X size={16} />
       </button>
       <div style={titleStyle}>
-        <Download size={16} color={C.mint} /> ¿La vas a usar desde el celular?
+        <Download size={16} color={C.mint} /> {tb.desktopTitle}
       </div>
-      Abre este mismo link desde tu celular para instalarla como app, con ícono propio.
+      {tb.desktopBody}
     </div>
   );
 }

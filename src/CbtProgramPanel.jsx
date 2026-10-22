@@ -8,7 +8,7 @@ import { LESSONS, programStatus } from "./cbtProgram";
 // (desglosador, freno de impulsividad, respiración, reestructuración), esto
 // es contenido progresivo: cada día desbloquea la siguiente lección, nunca
 // antes.
-export default function CbtProgramPanel({ C, program, onComplete }) {
+export default function CbtProgramPanel({ C, t, program, onComplete }) {
   const status = programStatus(program);
 
   const progressBar = (
@@ -33,7 +33,7 @@ export default function CbtProgramPanel({ C, program, onComplete }) {
       <div>
         {progressBar}
         <p style={{ fontSize: "14px", color: C.text, margin: "0 0 12px" }}>
-          Completaste las {status.total} lecciones de la Semana 1 🎉 Puedes repasarlas cuando quieras.
+          {t.cbtProgram.finishedMessage(status.total)}
         </p>
         <div>
           {LESSONS.map((lesson) => (
@@ -54,10 +54,10 @@ export default function CbtProgramPanel({ C, program, onComplete }) {
       <div>
         {progressBar}
         <p style={{ fontSize: "13px", color: C.textMuted, margin: "0 0 4px" }}>
-          Lección {completedCount} de {total} completada hoy.
+          {t.cbtProgram.lessonOfTotalToday(completedCount, total)}
         </p>
         <p style={{ fontSize: "14px", color: C.text, margin: 0 }}>
-          Vuelve mañana para "{nextLesson.title}" — una lección al día, para que de verdad se asiente.
+          {t.cbtProgram.comeBackTomorrow(nextLesson.title)}
         </p>
       </div>
     );
@@ -67,7 +67,7 @@ export default function CbtProgramPanel({ C, program, onComplete }) {
     <div>
       {progressBar}
       <p style={{ fontSize: "12px", color: C.textMuted, margin: "0 0 4px" }}>
-        Día {nextLesson.day} de {total} · {nextLesson.minutes} min de lectura
+        {t.cbtProgram.dayOfTotal(nextLesson.day, total, nextLesson.minutes)}
       </p>
       <h3 style={{ fontSize: "15px", fontWeight: 600, color: C.text, margin: "0 0 10px" }}>{nextLesson.title}</h3>
       {nextLesson.body.map((paragraph, i) => (
@@ -86,7 +86,7 @@ export default function CbtProgramPanel({ C, program, onComplete }) {
             letterSpacing: "0.03em",
           }}
         >
-          Para hoy
+          {t.cbtProgram.todayLabel}
         </p>
         <p style={{ fontSize: "13px", color: C.text, margin: 0, lineHeight: 1.5 }}>{nextLesson.exercise}</p>
       </div>
@@ -103,7 +103,7 @@ export default function CbtProgramPanel({ C, program, onComplete }) {
           cursor: "pointer",
         }}
       >
-        Marcar como completada
+        {t.cbtProgram.completeButton}
       </button>
     </div>
   );

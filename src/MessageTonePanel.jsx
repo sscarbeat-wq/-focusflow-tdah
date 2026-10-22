@@ -12,7 +12,7 @@ import { MODES, TONE_OPTIONS, cleanMessageText } from "./messageToneOptions";
 // revisa el texto antes y después de pasar por la IA; si toca algo de
 // riesgo, este panel muestra el mismo mensaje fijo de crisis que el
 // Compañero de apoyo, nunca el resultado generado.
-export default function MessageTonePanel({ C, userId }) {
+export default function MessageTonePanel({ C, t, lang, userId }) {
   const [mode, setMode] = useState(MODES.REWRITE);
   const [text, setText] = useState("");
   const [tone, setTone] = useState(TONE_OPTIONS[0].id);
@@ -52,17 +52,18 @@ export default function MessageTonePanel({ C, userId }) {
           mode,
           text: cleanText,
           tone: mode === MODES.REWRITE ? tone : undefined,
+          language: lang,
         }),
       });
       const data = await res.json();
-      if (!res.ok) throw new Error(data.error || "No se pudo procesar el mensaje.");
+      if (!res.ok) throw new Error(data.error || t.messageTone.submitError);
       if (data.unsafe) {
         setUnsafe(true);
         return;
       }
       setResult(data.result);
     } catch (err) {
-      setError(err.message || "Ocurrió un error. Intenta de nuevo.");
+      setError(err.message || t.common.genericError);
     } finally {
       setLoading(false);
     }
@@ -147,7 +148,7 @@ export default function MessageTonePanel({ C, userId }) {
           </p>
         </div>
         <button onClick={reset} style={{ background: "transparent", border: "none", color: C.textMuted, fontSize: "12px", cursor: "pointer", padding: 0 }}>
-          Entendido
+          {t.common.understood}
         </button>
       </div>
     );
@@ -157,37 +158,34 @@ export default function MessageTonePanel({ C, userId }) {
     <div>
       <div style={{ display: "flex", gap: "8px", marginBottom: "12px" }}>
         <button onClick={() => switchMode(MODES.REWRITE)} style={modeBtn(mode === MODES.REWRITE)}>
-          Reescribir un mensaje mío
+          {t.messageTone.modeRewrite}
         </button>
         <button onClick={() => switchMode(MODES.READ)} style={modeBtn(mode === MODES.READ)}>
-          Leer uno que recibí
+          {t.messageTone.modeRead}
         </button>
       </div>
 
       <textarea
         value={text}
         onChange={(e) => setText(e.target.value)}
-        placeholder={
-          mode === MODES.REWRITE
-            ? "Pega aquí el mensaje que estás por mandar..."
-            : "Pega aquí el mensaje que recibiste..."
-        }
+        placeholder={mode === MODES.REWRITE ? t.messageTone.placeholderRewrite : t.messageTone.placeholderRead}
         rows={4}
         style={textareaStyle}
       />
 
       {mode === MODES.REWRITE && (
         <div style={{ display: "flex", gap: "6px", flexWrap: "wrap", marginBottom: "12px" }}>
-          {TONE_OPTIONS.map((t) => (
-            <button key={t.id} onClick={() => setTone(t.id)} style={toneBtn(tone === t.id)}>
-              {t.label}
+          {TONE_OPTIONS.map((opt) => (
+            <button key={opt.id} onClick={() => setTone(opt.id)} style={toneBtn(tone === opt.id)}>
+              {t.messageTone.tones[opt.id] || opt.label}
             </button>
           ))}
         </div>
       )}
 
       <button onClick={handleSubmit} disabled={!text.trim() || loading} style={btnPrimary}>
-        <Wand2 size={14} /> {loading ? "Pensando..." : mode === MODES.REWRITE ? "Reescribir" : "Ayúdame a leerlo"}
+        <Wand2 size={14} />{" "}
+        {loading ? t.messageTone.thinking : mode === MODES.REWRITE ? t.messageTone.rewriteButton : t.messageTone.readButton}
       </button>
 
       {error && <p style={{ fontSize: "12px", color: C.amber, margin: "10px 0 0" }}>{error}</p>}
@@ -202,7 +200,7 @@ export default function MessageTonePanel({ C, userId }) {
               onClick={handleCopy}
               style={{ background: "transparent", border: `1px solid ${C.border}`, borderRadius: "6px", padding: "6px 10px", color: C.text, fontSize: "12px", cursor: "pointer" }}
             >
-              {copied ? "¡Copiado!" : "Copiar"}
+              {copied ? t.messageTone.copied : t.messageTone.copyButton}
             </button>
           )}
         </div>

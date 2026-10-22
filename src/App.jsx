@@ -4,6 +4,7 @@ import Auth from "./Auth";
 import FocusFlowTDAH from "./FocusFlowTDAH";
 import Paywall from "./Paywall";
 import { DARK_THEME, LIGHT_THEME, getStoredTheme, storeTheme } from "./theme";
+import { getStoredLanguage, storeLanguage, getTranslations } from "./i18n";
 
 const ACTIVE_STATUSES = ["active", "trialing"];
 
@@ -31,6 +32,19 @@ export default function App() {
   useEffect(() => {
     document.body.style.background = C.bg;
   }, [C.bg]);
+
+  // Idioma — preferencia de DISPOSITIVO, mismo patrón y mismo motivo que el
+  // tema claro/oscuro justo arriba (ver src/i18n.js): vive en localStorage,
+  // no en el progreso clínico que viaja con la cuenta en Supabase. `t` es el
+  // diccionario completo del idioma activo; se pasa como prop a cada
+  // componente exactamente igual que `C` y `theme`, sin usar Context — así
+  // se mantiene el único patrón que ya usa esta base de código.
+  const [lang, setLang] = useState(getStoredLanguage);
+  const t = getTranslations(lang);
+  const changeLanguage = (next) => {
+    setLang(next);
+    storeLanguage(next);
+  };
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data }) => setSession(data.session));
@@ -117,7 +131,10 @@ export default function App() {
   };
 
   if (session === undefined) return null; // cargando sesión inicial
-  if (!session) return <Auth C={C} theme={theme} onToggleTheme={toggleTheme} />;
+  if (!session)
+    return (
+      <Auth C={C} theme={theme} onToggleTheme={toggleTheme} t={t} lang={lang} onChangeLanguage={changeLanguage} />
+    );
   if (loadingProgress || subscription === undefined) return null; // cargando datos
 
   const isActive = subscription && ACTIVE_STATUSES.includes(subscription.status);
@@ -131,6 +148,9 @@ export default function App() {
         C={C}
         theme={theme}
         onToggleTheme={toggleTheme}
+        t={t}
+        lang={lang}
+        onChangeLanguage={changeLanguage}
       />
     );
   }
@@ -146,6 +166,9 @@ export default function App() {
       C={C}
       theme={theme}
       onToggleTheme={toggleTheme}
+      t={t}
+      lang={lang}
+      onChangeLanguage={changeLanguage}
     />
   );
 }

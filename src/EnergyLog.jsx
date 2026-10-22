@@ -5,15 +5,17 @@ import { todayEnergyEntry, recentEnergyEntries } from "./energyLog";
 // Check-in de energía — mismo espíritu que MoodLog.jsx pero con 3 niveles en
 // vez de 5, porque lo único que importa aquí es poder sugerir qué tipo de
 // paso conviene intentar primero (ver TodayPanel), no medir con precisión.
-const LEVELS = [
-  { value: "baja", Icon: BatteryLow, label: "Baja" },
-  { value: "media", Icon: BatteryMedium, label: "Media" },
-  { value: "alta", Icon: BatteryFull, label: "Alta" },
-];
+// Los VALUES ("baja"/"media"/"alta") son claves internas fijas que se
+// guardan en Supabase y se comparan en otras partes de la app (desglosador,
+// TodayPanel) — nunca se traducen; solo la etiqueta visible cambia de
+// idioma.
+const LEVEL_VALUES = ["baja", "media", "alta"];
+const LEVEL_ICONS = { baja: BatteryLow, media: BatteryMedium, alta: BatteryFull };
 
-export default function EnergyLog({ C, energyLog, onSave }) {
+export default function EnergyLog({ C, t, energyLog, onSave }) {
   const existing = todayEnergyEntry(energyLog);
   const history = recentEnergyEntries(energyLog, 7);
+  const labelFor = (value) => ({ baja: t.energyLog.low, media: t.energyLog.medium, alta: t.energyLog.high }[value]);
 
   const chipStyle = (active) => ({
     display: "flex",
@@ -31,22 +33,25 @@ export default function EnergyLog({ C, energyLog, onSave }) {
   });
 
   const dotFor = (level) => {
-    const l = LEVELS.find((x) => x.value === level);
-    return l ? l.label[0] : "·";
+    const label = labelFor(level);
+    return label ? label[0] : "·";
   };
 
   return (
     <div>
       <p style={{ fontSize: "12px", color: C.textMuted, margin: "0 0 10px" }}>
-        {existing ? `Hoy registraste: energía ${existing.level}.` : "¿Cómo está tu energía ahora mismo?"}
+        {existing ? t.energyLog.todayRegistered(labelFor(existing.level)) : t.energyLog.prompt}
       </p>
       <div style={{ display: "flex", gap: "8px", marginBottom: "14px" }}>
-        {LEVELS.map(({ value, Icon, label }) => (
-          <button key={value} onClick={() => onSave(value)} style={chipStyle(existing?.level === value)}>
-            <Icon size={18} />
-            {label}
-          </button>
-        ))}
+        {LEVEL_VALUES.map((value) => {
+          const Icon = LEVEL_ICONS[value];
+          return (
+            <button key={value} onClick={() => onSave(value)} style={chipStyle(existing?.level === value)}>
+              <Icon size={18} />
+              {labelFor(value)}
+            </button>
+          );
+        })}
       </div>
 
       <div style={{ display: "flex", gap: "6px" }}>
@@ -70,7 +75,7 @@ export default function EnergyLog({ C, energyLog, onSave }) {
           </div>
         ))}
       </div>
-      <p style={{ fontSize: "11px", color: C.textMuted, margin: "6px 0 0" }}>Últimos 7 días</p>
+      <p style={{ fontSize: "11px", color: C.textMuted, margin: "6px 0 0" }}>{t.energyLog.last7Days}</p>
     </div>
   );
 }

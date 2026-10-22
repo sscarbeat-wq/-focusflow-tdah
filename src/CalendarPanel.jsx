@@ -32,7 +32,7 @@ function readRedirectMessage() {
   return value;
 }
 
-export default function CalendarPanel({ C, userId }) {
+export default function CalendarPanel({ C, userId, t }) {
   const [status, setStatus] = useState("checking"); // checking | disconnected | connected
   const [prefs, setPrefs] = useState({ syncSteps: true, syncFocusSessions: true });
   const [busy, setBusy] = useState(false);
@@ -45,7 +45,7 @@ export default function CalendarPanel({ C, userId }) {
       setStatus(data.connected ? "connected" : "disconnected");
       setPrefs({ syncSteps: data.syncSteps, syncFocusSessions: data.syncFocusSessions });
     } catch (err) {
-      setError(err.message || "No se pudo consultar el estado del calendario.");
+      setError(err.message || t.calendar.statusError);
       setStatus("disconnected");
     }
   };
@@ -67,7 +67,7 @@ export default function CalendarPanel({ C, userId }) {
       await disconnectCalendar(userId);
       setStatus("disconnected");
     } catch (err) {
-      setError(err.message || "No se pudo desconectar.");
+      setError(err.message || t.calendar.disconnectError);
     } finally {
       setBusy(false);
     }
@@ -80,7 +80,7 @@ export default function CalendarPanel({ C, userId }) {
       await updateCalendarPreferences(userId, { [key]: next[key] });
     } catch (err) {
       setPrefs(prefs); // revierte si no se pudo guardar
-      setError(err.message || "No se pudo guardar la preferencia.");
+      setError(err.message || t.calendar.prefError);
     }
   };
 
@@ -96,35 +96,33 @@ export default function CalendarPanel({ C, userId }) {
     <div>
       {message === "connected" && (
         <p style={{ fontSize: "13px", color: C.mint, marginBottom: "12px", lineHeight: 1.5 }}>
-          ✓ Tu Google Calendar quedó conectado.
+          {t.calendar.connectedMessage}
         </p>
       )}
       {message === "denied" && (
         <p style={{ fontSize: "13px", color: C.textMuted, marginBottom: "12px", lineHeight: 1.5 }}>
-          No se completó la conexión — si cambias de opinión, puedes intentarlo de nuevo cuando quieras.
+          {t.calendar.deniedMessage}
         </p>
       )}
       {message === "error" && (
         <p style={{ fontSize: "13px", color: C.amber, marginBottom: "12px", lineHeight: 1.5 }}>
-          Algo falló al conectar tu calendario. Intenta de nuevo en un momento.
+          {t.calendar.errorMessage}
         </p>
       )}
       {error && <p style={{ fontSize: "13px", color: C.amber, marginBottom: "12px", lineHeight: 1.5 }}>{error}</p>}
 
       {status === "checking" && (
-        <p style={{ fontSize: "13px", color: C.textMuted, margin: 0 }}>Consultando...</p>
+        <p style={{ fontSize: "13px", color: C.textMuted, margin: 0 }}>{t.calendar.checking}</p>
       )}
 
       {status === "disconnected" && (
         <>
           <p style={{ fontSize: "13px", color: C.textMuted, lineHeight: 1.6, margin: "0 0 14px" }}>
-            Conecta tu Google Calendar para que los pasos del desglosador y tus sesiones de Modo Enfoque se
-            bloqueen automáticamente como eventos — para que ese tiempo quede apartado de antemano, no solo
-            registrado aquí dentro de Senda.
+            {t.calendar.disconnectedIntro}
           </p>
           <button onClick={handleConnect} disabled={busy} style={btnStyle(C.mint, C.mintText)}>
             <Link2 size={16} style={{ marginRight: "8px", verticalAlign: "-3px" }} />
-            {busy ? "Abriendo Google..." : "Conectar con Google Calendar"}
+            {busy ? t.calendar.connectingButton : t.calendar.connectButton}
           </button>
         </>
       )}
@@ -133,11 +131,11 @@ export default function CalendarPanel({ C, userId }) {
         <>
           <p style={{ fontSize: "13px", color: C.mint, marginBottom: "16px" }}>
             <CalendarCheck size={16} style={{ marginRight: "6px", verticalAlign: "-3px" }} />
-            Conectado
+            {t.calendar.connectedLabel}
           </p>
 
           <div style={toggleRowStyle}>
-            <span style={{ fontSize: "13px", color: C.text }}>Bloquear tiempo para pasos del desglosador</span>
+            <span style={{ fontSize: "13px", color: C.text }}>{t.calendar.syncStepsLabel}</span>
             <button
               onClick={() => handleTogglePref("syncSteps")}
               style={{
@@ -150,7 +148,7 @@ export default function CalendarPanel({ C, userId }) {
                 position: "relative",
                 flexShrink: 0,
               }}
-              aria-label="Sincronizar pasos del desglosador"
+              aria-label={t.calendar.syncStepsAria}
             >
               <span
                 style={{
@@ -168,7 +166,7 @@ export default function CalendarPanel({ C, userId }) {
           </div>
 
           <div style={{ ...toggleRowStyle, borderBottom: "none" }}>
-            <span style={{ fontSize: "13px", color: C.text }}>Bloquear tiempo para sesiones de Modo Enfoque</span>
+            <span style={{ fontSize: "13px", color: C.text }}>{t.calendar.syncFocusLabel}</span>
             <button
               onClick={() => handleTogglePref("syncFocusSessions")}
               style={{
@@ -181,7 +179,7 @@ export default function CalendarPanel({ C, userId }) {
                 position: "relative",
                 flexShrink: 0,
               }}
-              aria-label="Sincronizar sesiones de Modo Enfoque"
+              aria-label={t.calendar.syncFocusAria}
             >
               <span
                 style={{
@@ -204,7 +202,7 @@ export default function CalendarPanel({ C, userId }) {
             style={{ ...btnStyle(C.surfaceAlt, C.text, C.border), marginTop: "16px" }}
           >
             <Unlink size={16} style={{ marginRight: "8px", verticalAlign: "-3px" }} />
-            {busy ? "Un momento..." : "Desconectar"}
+            {busy ? t.common.loading : t.calendar.disconnectButton}
           </button>
         </>
       )}

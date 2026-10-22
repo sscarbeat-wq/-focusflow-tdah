@@ -4,8 +4,15 @@ import { recentGoodMoments, pickRandomGoodMoment } from "./goodMoments";
 
 const DATE_FMT = { day: "2-digit", month: "short", hour: "2-digit", minute: "2-digit" };
 
-function formatWhen(iso) {
-  return new Date(iso).toLocaleString("es-MX", DATE_FMT);
+// Mismo locale de formato de fecha por idioma de la app que usa
+// ClinicalReportPanel.jsx.
+const DATE_LOCALES = { es: "es-MX", en: "en-US", fr: "fr-FR", pt: "pt-BR" };
+// El reconocimiento de voz del navegador (Web Speech API) necesita un BCP-47
+// completo, no solo el código de 2 letras.
+const SPEECH_LOCALES = { es: "es-MX", en: "en-US", fr: "fr-FR", pt: "pt-BR" };
+
+function formatWhen(iso, lang) {
+  return new Date(iso).toLocaleString(DATE_LOCALES[lang] || DATE_LOCALES.es, DATE_FMT);
 }
 
 // Reconocimiento de voz del propio navegador (Web Speech API) — a
@@ -21,7 +28,7 @@ function getSpeechRecognition() {
 // "Banco de momentos buenos" — guarda un momento positivo del día (voz o
 // texto) tal cual se escribió, sin IA de por medio, solo para poder
 // volver a verlo después.
-export default function GoodMomentsPanel({ C, goodMoments, onAdd, onRemove }) {
+export default function GoodMomentsPanel({ C, t, lang, goodMoments, onAdd, onRemove }) {
   const [text, setText] = useState("");
   const [listening, setListening] = useState(false);
   const [revisiting, setRevisiting] = useState(null);
@@ -32,7 +39,7 @@ export default function GoodMomentsPanel({ C, goodMoments, onAdd, onRemove }) {
   const startListening = () => {
     if (!SpeechRecognition) return;
     const recognition = new SpeechRecognition();
-    recognition.lang = "es-MX";
+    recognition.lang = SPEECH_LOCALES[lang] || SPEECH_LOCALES.es;
     recognition.interimResults = false;
     recognition.maxAlternatives = 1;
     recognition.onresult = (event) => {
@@ -62,14 +69,13 @@ export default function GoodMomentsPanel({ C, goodMoments, onAdd, onRemove }) {
   return (
     <div>
       <p style={{ fontSize: "12px", color: C.textMuted, margin: "0 0 14px", lineHeight: 1.6 }}>
-        Un momento bueno de hoy, en pocas palabras — nada que resolver, solo para volver a verlo
-        cuando quieras.
+        {t.goodMoments.intro}
       </p>
 
       <textarea
         value={text}
         onChange={(e) => setText(e.target.value)}
-        placeholder="Algo que te sacó una sonrisa hoy..."
+        placeholder={t.goodMoments.placeholder}
         rows={2}
         style={{
           width: "100%",
@@ -104,7 +110,7 @@ export default function GoodMomentsPanel({ C, goodMoments, onAdd, onRemove }) {
             }}
           >
             {listening ? <Square size={14} /> : <Mic size={14} />}
-            {listening ? "Detener" : "Grabar por voz"}
+            {listening ? t.goodMoments.stop : t.goodMoments.recordVoice}
           </button>
         )}
         <button
@@ -120,7 +126,7 @@ export default function GoodMomentsPanel({ C, goodMoments, onAdd, onRemove }) {
             cursor: "pointer",
           }}
         >
-          Guardar momento
+          {t.goodMoments.saveButton}
         </button>
       </div>
 
@@ -135,7 +141,7 @@ export default function GoodMomentsPanel({ C, goodMoments, onAdd, onRemove }) {
           }}
         >
           <p style={{ fontSize: "11px", color: C.textMuted, margin: "0 0 6px" }}>
-            Revisitando — {formatWhen(revisiting.createdAt)}
+            {t.goodMoments.revisiting(formatWhen(revisiting.createdAt, lang))}
           </p>
           <p style={{ fontSize: "14px", color: C.text, margin: 0, lineHeight: 1.5 }}>{revisiting.text}</p>
         </div>
@@ -143,7 +149,7 @@ export default function GoodMomentsPanel({ C, goodMoments, onAdd, onRemove }) {
 
       {recent.length === 0 ? (
         <p style={{ fontSize: "13px", color: C.textMuted, margin: "16px 0 0" }}>
-          Todavía no guardas ningún momento bueno.
+          {t.goodMoments.empty}
         </p>
       ) : (
         <div style={{ marginTop: "18px" }}>
@@ -162,7 +168,7 @@ export default function GoodMomentsPanel({ C, goodMoments, onAdd, onRemove }) {
               marginBottom: "10px",
             }}
           >
-            <Shuffle size={13} /> Revisitar uno al azar
+            <Shuffle size={13} /> {t.goodMoments.revisitRandom}
           </button>
           {recent.map((m) => (
             <div
@@ -178,12 +184,12 @@ export default function GoodMomentsPanel({ C, goodMoments, onAdd, onRemove }) {
             >
               <div>
                 <p style={{ fontSize: "13px", color: C.text, margin: 0, lineHeight: 1.5 }}>{m.text}</p>
-                <p style={{ fontSize: "11px", color: C.textMuted, margin: "2px 0 0" }}>{formatWhen(m.createdAt)}</p>
+                <p style={{ fontSize: "11px", color: C.textMuted, margin: "2px 0 0" }}>{formatWhen(m.createdAt, lang)}</p>
               </div>
               <button
                 onClick={() => onRemove(m.id)}
                 style={{ background: "transparent", border: "none", color: C.textMuted, cursor: "pointer", flexShrink: 0 }}
-                aria-label="Borrar"
+                aria-label={t.goodMoments.delete}
               >
                 <Trash2 size={14} />
               </button>

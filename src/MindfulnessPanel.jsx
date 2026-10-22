@@ -22,7 +22,9 @@ function getSpeechSynthesis() {
 // mismo patrón que FocusMode.jsx: lleva su propio temporizador y solo
 // avisa al padre cuando la práctica se completa (`onComplete`) para que
 // ahí se otorgue el XP — este componente nunca toca el progreso guardado.
-export default function MindfulnessPanel({ C, onComplete }) {
+const SPEECH_LOCALES = { es: "es-MX", en: "en-US", fr: "fr-FR", pt: "pt-BR" };
+
+export default function MindfulnessPanel({ C, t, lang, onComplete }) {
   const [running, setRunning] = useState(false);
   const [elapsed, setElapsed] = useState(0);
   const [justFinished, setJustFinished] = useState(false);
@@ -72,7 +74,7 @@ export default function MindfulnessPanel({ C, onComplete }) {
     if (!speechSynthesis || !step || typeof window === "undefined" || !window.SpeechSynthesisUtterance) return;
     speechSynthesis.cancel();
     const utterance = new window.SpeechSynthesisUtterance(step.text);
-    utterance.lang = "es-MX";
+    utterance.lang = SPEECH_LOCALES[lang] || SPEECH_LOCALES.es;
     speechSynthesis.speak(utterance);
   };
 
@@ -81,13 +83,12 @@ export default function MindfulnessPanel({ C, onComplete }) {
   return (
     <div>
       <p style={{ fontSize: "12px", color: C.textMuted, margin: "0 0 14px", lineHeight: 1.6 }}>
-        Unos {minutes} minutos de atención plena guiada — entre todo lo investigado para TDAH en adultos,
-        es la práctica no farmacológica con más respaldo directo en un metaanálisis reciente.
+        {t.mindfulness.intro(minutes)}
       </p>
 
       {!running && justFinished && (
         <p style={{ fontSize: "13px", color: C.mint, margin: "0 0 12px" }}>
-          Listo — practicaste {minutes} minutos de atención plena.
+          {t.mindfulness.justFinished(minutes)}
         </p>
       )}
 
@@ -108,7 +109,7 @@ export default function MindfulnessPanel({ C, onComplete }) {
             cursor: "pointer",
           }}
         >
-          <Play size={16} /> Empezar
+          <Play size={16} /> {t.mindfulness.start}
         </button>
       ) : (
         <div style={{ background: C.surfaceAlt, borderRadius: "6px", padding: "18px", textAlign: "center" }}>
@@ -120,7 +121,7 @@ export default function MindfulnessPanel({ C, onComplete }) {
             {speechSynthesis && (
               <button
                 onClick={speak}
-                aria-label="Escuchar"
+                aria-label={t.mindfulness.listenAria}
                 style={{
                   display: "flex",
                   alignItems: "center",
@@ -134,7 +135,7 @@ export default function MindfulnessPanel({ C, onComplete }) {
                   cursor: "pointer",
                 }}
               >
-                <Volume2 size={14} /> Escuchar
+                <Volume2 size={14} /> {t.mindfulness.listenButton}
               </button>
             )}
             <button
@@ -152,7 +153,7 @@ export default function MindfulnessPanel({ C, onComplete }) {
                 cursor: "pointer",
               }}
             >
-              <Square size={14} /> Detener
+              <Square size={14} /> {t.mindfulness.stopButton}
             </button>
           </div>
         </div>

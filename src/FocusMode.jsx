@@ -29,7 +29,7 @@ function fmt(sec) {
   return `${String(m).padStart(2, "0")}:${String(s).padStart(2, "0")}`;
 }
 
-export default function FocusMode({ C, onSessionComplete, onSessionStart }) {
+export default function FocusMode({ C, t, onSessionComplete, onSessionStart }) {
   const [workMin, setWorkMin] = useState(25);
   const [breakMin, setBreakMin] = useState(5);
   const [mode, setMode] = useState("work"); // "work" | "break"
@@ -80,7 +80,7 @@ export default function FocusMode({ C, onSessionComplete, onSessionStart }) {
       } else {
         setDistraction((s) => {
           const { state, awayMs } = recordReturn(s, Date.now());
-          const toast = formatReturnToast(awayMs);
+          const toast = formatReturnToast(awayMs, t.focusMode);
           if (toast) {
             setDistractionToast(toast);
             if (distractionToastTimeout.current) clearTimeout(distractionToastTimeout.current);
@@ -255,7 +255,7 @@ export default function FocusMode({ C, onSessionComplete, onSessionStart }) {
   return (
     <div>
       <div style={{ display: "flex", gap: "10px", marginBottom: "16px", flexWrap: "wrap", alignItems: "center" }}>
-        <label style={{ fontSize: "12px", color: C.textMuted }}>Enfoque</label>
+        <label style={{ fontSize: "12px", color: C.textMuted }}>{t.focusMode.workLabel}</label>
         <select
           value={workMin}
           onChange={(e) => changeWork(Number(e.target.value))}
@@ -268,7 +268,7 @@ export default function FocusMode({ C, onSessionComplete, onSessionStart }) {
             </option>
           ))}
         </select>
-        <label style={{ fontSize: "12px", color: C.textMuted }}>Descanso</label>
+        <label style={{ fontSize: "12px", color: C.textMuted }}>{t.focusMode.breakLabel}</label>
         <select
           value={breakMin}
           onChange={(e) => changeBreak(Number(e.target.value))}
@@ -289,11 +289,12 @@ export default function FocusMode({ C, onSessionComplete, onSessionStart }) {
             {fmt(secondsLeft)}
           </div>
           <div style={{ fontSize: "12px", color: C.textMuted, marginTop: "4px" }}>
-            {mode === "work" ? "Sesión de enfoque" : "Descanso"} · {cyclesDone} completadas hoy
+            {mode === "work" ? t.focusMode.focusSession : t.focusMode.breakLabel} ·{" "}
+            {t.focusMode.completedToday(cyclesDone)}
           </div>
-          {mode === "work" && formatDistractionSummary(distraction) && (
+          {mode === "work" && formatDistractionSummary(distraction, t.focusMode) && (
             <div style={{ fontSize: "12px", color: C.textMuted, marginTop: "4px" }}>
-              {formatDistractionSummary(distraction)}
+              {formatDistractionSummary(distraction, t.focusMode)}
             </div>
           )}
           {distractionToast && (
@@ -320,31 +321,29 @@ export default function FocusMode({ C, onSessionComplete, onSessionStart }) {
         </div>
         <div style={{ display: "flex", gap: "8px" }}>
           {!running ? (
-            <button onClick={start} aria-label="Iniciar" style={btnPrimary(C.mint, C.mintText)}>
+            <button onClick={start} aria-label={t.focusMode.start} style={btnPrimary(C.mint, C.mintText)}>
               <Play size={18} />
             </button>
           ) : (
-            <button onClick={pause} aria-label="Pausar" style={btnPrimary(C.amber, C.amberText)}>
+            <button onClick={pause} aria-label={t.focusMode.pause} style={btnPrimary(C.amber, C.amberText)}>
               <Pause size={18} />
             </button>
           )}
-          <button onClick={reset} aria-label="Reiniciar" style={btnGhost}>
+          <button onClick={reset} aria-label={t.focusMode.reset} style={btnGhost}>
             <RotateCcw size={16} />
           </button>
           <button
             onClick={toggleNoise}
-            aria-label={noiseOn ? "Apagar ruido blanco" : "Encender ruido blanco"}
+            aria-label={noiseOn ? t.focusMode.noiseOff : t.focusMode.noiseOn}
             style={noiseOn ? btnPrimary(C.lavender, C.lavenderText) : btnGhost}
-            title="Ruido blanco de fondo"
+            title={t.focusMode.noiseTitle}
           >
             {noiseOn ? <Volume2 size={18} /> : <VolumeX size={18} />}
           </button>
         </div>
       </div>
       <p style={{ fontSize: "12px", color: C.textMuted, margin: 0 }}>
-        El ruido blanco se genera en el dispositivo, sin descargar nada. Al terminar cada sesión de enfoque suena una
-        campana suave. Si dejas esta pestaña mientras una sesión de enfoque está corriendo, Senda te avisa al volver
-        — no puede bloquear otras apps desde el navegador, pero sí puede avisarte cuánto tiempo estuviste fuera.
+        {t.focusMode.footerNote}
       </p>
     </div>
   );
