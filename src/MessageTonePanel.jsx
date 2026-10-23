@@ -1,6 +1,5 @@
 import React, { useState } from "react";
 import { Wand2, AlertTriangle } from "lucide-react";
-import { CRISIS } from "./companionSituations";
 import { MODES, TONE_OPTIONS, cleanMessageText } from "./messageToneOptions";
 
 // "Ayuda con mensajes" (inspirado en Formalizer/Judge de Goblin Tools) —
@@ -144,7 +143,7 @@ export default function MessageTonePanel({ C, t, lang, userId }) {
         >
           <p style={{ fontSize: "14px", color: C.text, lineHeight: 1.6, margin: 0 }}>
             <AlertTriangle size={14} style={{ verticalAlign: "-2px", marginRight: "6px", color: C.rose }} />
-            {CRISIS.message}
+            {t.crisis.message}
           </p>
         </div>
         <button onClick={reset} style={{ background: "transparent", border: "none", color: C.textMuted, fontSize: "12px", cursor: "pointer", padding: 0 }}>

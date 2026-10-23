@@ -1,6 +1,6 @@
 import React, { useState } from "react";
 import { ArrowRight, AlertTriangle, RotateCcw } from "lucide-react";
-import { SITUATIONS, CRISIS, getSituation, nextResponseIndex } from "./companionSituations";
+import { SITUATIONS, getSituation, nextResponseIndex } from "./companionSituations";
 
 // Compañero de apoyo situacional — SOLO botones de entrada rápida, nunca
 // texto libre (decisión explícita de la usuaria, para acotar el riesgo
@@ -23,10 +23,10 @@ export default function CompanionPanel({ C, t, lang, userId, onNavigate }) {
   const [fallbackIndexBySituation, setFallbackIndexBySituation] = useState({});
 
   const showFallback = (situationId) => {
-    const idx = nextResponseIndex(situationId, fallbackIndexBySituation[situationId]);
+    const responses = t.companionSituationContent[situationId].fallbackResponses;
+    const idx = nextResponseIndex(responses.length, fallbackIndexBySituation[situationId]);
     setFallbackIndexBySituation((prev) => ({ ...prev, [situationId]: idx }));
-    const situation = getSituation(situationId);
-    setTextBySituation((prev) => ({ ...prev, [situationId]: situation.fallbackResponses[idx] }));
+    setTextBySituation((prev) => ({ ...prev, [situationId]: responses[idx] }));
     setUsingFallback((prev) => ({ ...prev, [situationId]: true }));
   };
 
@@ -137,7 +137,7 @@ export default function CompanionPanel({ C, t, lang, userId, onNavigate }) {
             marginBottom: "4px",
           }}
         >
-          <p style={{ fontSize: "14px", color: C.text, lineHeight: 1.6, margin: 0 }}>{CRISIS.message}</p>
+          <p style={{ fontSize: "14px", color: C.text, lineHeight: 1.6, margin: 0 }}>{t.crisis.message}</p>
         </div>
         <button onClick={goBack} style={btnBack}>
           {t.companion.back}
@@ -154,6 +154,7 @@ export default function CompanionPanel({ C, t, lang, userId, onNavigate }) {
       setActiveId(null);
       return null;
     }
+    const situationContent = t.companionSituationContent[activeId];
     const isLoading = loadingId === activeId;
     const text = textBySituation[activeId];
     return (
@@ -167,7 +168,7 @@ export default function CompanionPanel({ C, t, lang, userId, onNavigate }) {
         )}
         <div style={{ display: "flex", alignItems: "center", gap: "12px", flexWrap: "wrap" }}>
           <button onClick={() => onNavigate?.(situation.linkRef)} style={btnLink}>
-            {situation.linkLabel} <ArrowRight size={14} />
+            {situationContent.linkLabel} <ArrowRight size={14} />
           </button>
           <button
             onClick={() => !isLoading && otraIdea(activeId)}
@@ -190,12 +191,12 @@ export default function CompanionPanel({ C, t, lang, userId, onNavigate }) {
     <div>
       {SITUATIONS.map((s) => (
         <button key={s.id} onClick={() => openSituation(s.id)} style={btnOption}>
-          {s.label}
+          {t.companionSituationContent[s.id].label}
         </button>
       ))}
       <button onClick={() => setActiveId("crisis")} style={btnCrisis}>
         <AlertTriangle size={13} style={{ verticalAlign: "-2px", marginRight: "6px" }} />
-        {CRISIS.label}
+        {t.crisis.label}
       </button>
     </div>
   );

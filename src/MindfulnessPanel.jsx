@@ -70,10 +70,12 @@ export default function MindfulnessPanel({ C, t, lang, onComplete }) {
   const step = stepIndex === null ? null : MINDFULNESS_STEPS[stepIndex];
   const secondsLeft = running ? secondsLeftInStep(elapsed) : 0;
 
+  const stepText = step ? t.mindfulnessSteps[step.id] : null;
+
   const speak = () => {
-    if (!speechSynthesis || !step || typeof window === "undefined" || !window.SpeechSynthesisUtterance) return;
+    if (!speechSynthesis || !stepText || typeof window === "undefined" || !window.SpeechSynthesisUtterance) return;
     speechSynthesis.cancel();
-    const utterance = new window.SpeechSynthesisUtterance(step.text);
+    const utterance = new window.SpeechSynthesisUtterance(stepText);
     utterance.lang = SPEECH_LOCALES[lang] || SPEECH_LOCALES.es;
     speechSynthesis.speak(utterance);
   };
@@ -114,7 +116,7 @@ export default function MindfulnessPanel({ C, t, lang, onComplete }) {
       ) : (
         <div style={{ background: C.surfaceAlt, borderRadius: "6px", padding: "18px", textAlign: "center" }}>
           <p style={{ fontSize: "14px", color: C.text, margin: "0 0 10px", lineHeight: 1.6, minHeight: "48px" }}>
-            {step?.text}
+            {stepText}
           </p>
           <p style={{ fontSize: "20px", fontWeight: 700, margin: "0 0 14px" }}>{secondsLeft}</p>
           <div style={{ display: "flex", gap: "8px", justifyContent: "center" }}>

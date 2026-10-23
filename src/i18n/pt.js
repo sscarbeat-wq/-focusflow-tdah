@@ -74,6 +74,65 @@ const pt = {
     disconnectButton: "Desconectar",
   },
 
+  cbtLessons: {
+    sobrecarga: {
+      title: "O que é a sobrecarga executiva?",
+      body: [
+        "Quando você tem TDAH, o cérebro não filtra as informações da mesma forma que o de alguém sem TDAH — tudo pede atenção ao mesmo tempo: o ruído de fundo, a notificação que acabou de chegar, a tarefa pendente, o pensamento que passou pela sua cabeça. Isso se chama sobrecarga executiva, e não é falta de vontade nem de disciplina: é que as funções executivas (as que organizam, priorizam e filtram) trabalham com menos margem.",
+        "Reconhecê-la a tempo evita que se transforme em paralisia total — aquele momento em que há tanto a fazer que você acaba não fazendo nada.",
+      ],
+      exercise: 'Hoje, na próxima vez que sentir que "é tudo demais", pare por 10 segundos e nomeie em voz baixa (ou por escrito) as 3 coisas que estão pedindo sua atenção ao mesmo tempo. Nomeá-las não as resolve, mas tira a pressão da sua cabeça.',
+    },
+    evitacion: {
+      title: "Por que começar custa tanto",
+      body: [
+        "Evitar uma tarefa importante não é preguiça — com TDAH, o cérebro precisa de mais estímulo ou urgência real para se ativar. Quanto maior ou mais entediante parecer uma tarefa, mais difícil é começar, mesmo sabendo perfeitamente que ela é importante.",
+        "Por isso a ferramenta de desmembrar tarefas do Senda não é só uma lista de passos: o primeiro passo deve ser sempre tão pequeno que pareça quase bobo não fazê-lo. Começar gera seu próprio impulso.",
+      ],
+      exercise: 'Escolha uma tarefa que você está evitando. Escreva o primeiro passo tão pequeno que possa fazê-lo em menos de 2 minutos (ex.: não "organizar o armário", mas "tirar 5 peças de roupa do armário"). Faça agora, se puder.',
+    },
+    "ceguera-tiempo": {
+      title: "A cegueira temporal",
+      body: [
+        'Muitas pessoas com TDAH vivem o tempo em apenas duas categorias: "agora" e "não agora" — por isso é tão difícil sentir que algo previsto para "semana que vem" já importa de verdade. Isso é conhecido como cegueira temporal, e explica por que uma tarefa parece ficar urgente do nada, justo quando já quase não há tempo.',
+        "Não é um defeito de caráter — é que o relógio interno não avisa com a mesma antecedência que o de outras pessoas.",
+      ],
+      exercise: "Escolha algo que precisa fazer esta semana. Coloque um alarme HOJE, com o nome da tarefa, para 2 dias antes do prazo real — não para o próprio dia. Esse alarme adiantado é o seu relógio interno pedindo reforço.",
+    },
+    "pausa-impulsividad": {
+      title: "A pausa de 10 segundos",
+      body: [
+        'A impulsividade no TDAH não é "agir sem pensar" no sentido moral — é que o impulso chega e é executado antes que a parte reflexiva do cérebro tenha chance de opinar. A boa notícia é que essa margem, mesmo pequena, pode ser treinada.',
+        "O Senda já tem uma ferramenta para isso — o freio de impulsividade — pensada justamente para inserir uma pausa real antes de agir.",
+      ],
+      exercise: "Na próxima vez que sentir o impulso de mandar uma mensagem, comprar algo ou reagir com intensidade, use antes o freio de impulsividade do Senda. Se não tiver à mão, conte até 10 respirando devagar — é o mesmo princípio.",
+    },
+    "regular-emocion": {
+      title: "Regular a emoção antes da tarefa",
+      body: [
+        'Antes de conseguir se concentrar em uma tarefa, muitas vezes é preciso primeiro diminuir a emoção que vem com ela — frustração por não ter começado antes, ansiedade pelo que falta, vergonha por sentir que "deveria conseguir sozinha". Tentar se concentrar sem cuidar dessa emoção primeiro costuma falhar, porque o cérebro continua ocupado com o lado emocional.',
+        "Por isso o exercício de respiração guiada do Senda não é um extra — é, muitas vezes, o passo zero antes de qualquer tarefa.",
+      ],
+      exercise: 'Antes da sua próxima sessão do Modo Foco, dedique 1 minuto à respiração guiada do Senda (a "Bolha de foco"), mesmo sentindo que "não tem tempo". Note se depois fica mais fácil começar.',
+    },
+    "rutinas-sostenibles": {
+      title: "Construir rotinas que realmente se sustentam",
+      body: [
+        "Rotinas rígidas (acordar exatamente às 6h, tudo sempre na mesma ordem) costumam falhar rápido no TDAH, porque um único dia diferente as quebra por completo e parece um fracasso. As rotinas que realmente duram são flexíveis por design: têm uma ordem geral, não horários exatos, e permitem pular um passo sem que toda a estrutura caia.",
+        "Sua sequência no Senda funciona assim de propósito — o que conta é voltar, não ser perfeita.",
+      ],
+      exercise: 'Escolha UMA rotina sua que já tenha se quebrado várias vezes. Reescreva-a removendo um horário exato (troque por "de manhã" ou "antes de dormir") e removendo um passo que não seja essencial.',
+    },
+    "revisar-sin-autocritica": {
+      title: "Revisar a semana sem autocrítica",
+      body: [
+        "Terminar a semana se julgando pelo que não conseguiu fazer quase nunca ajuda a fazer mais na semana seguinte — geralmente só soma vergonha, e vergonha não é combustível sustentável. A revisão que realmente funciona é descritiva, não avaliativa: ver o que aconteceu, sem atribuir uma nota moral a isso.",
+        'Seus Insights semanais no Senda são feitos para isso — mostram padrões reais, nunca uma "nota" de o quanto você se saiu bem na semana.',
+      ],
+      exercise: 'Abra seus Insights semanais e leia-os como se estivesse descrevendo o clima, não como um boletim escolar. Escolha UMA coisa que notou, sem a palavra "deveria" na frase.',
+    },
+  },
+
   cbtProgram: {
     finishedMessage: (total) => `Você completou as ${total} lições da Semana 1 🎉 Pode revisá-las quando quiser.`,
     lessonOfTotalToday: (completed, total) => `Lição ${completed} de ${total} concluída hoje.`,
@@ -115,6 +174,63 @@ const pt = {
     anotherIdea: "Outra ideia para isso",
     back: "Voltar",
     chooseOther: "Escolher outra situação",
+  },
+
+  companionSituationContent: {
+    "no-puedo-empezar": {
+      label: "Não consigo começar",
+      linkLabel: "Ir para o desmembrador de tarefas",
+      fallbackResponses: [
+        "Não conseguir começar não é preguiça — com TDAH o cérebro precisa que a tarefa pareça muito menor antes de conseguir começar. Não tente atacá-la por completo.",
+        "Começar é quase sempre a parte mais difícil, não o resto da tarefa. Procure o menor passo possível — um que você possa fazer em menos de 2 minutos — e comece só por aí.",
+      ],
+    },
+    "cabeza-llena": {
+      label: "Minha cabeça está muito cheia, não consigo pensar",
+      linkLabel: "Ir para a bolha de foco",
+      fallbackResponses: [
+        "Quando tudo pede atenção ao mesmo tempo, o cérebro fica sobrecarregado — você não está falhando, é sobrecarga executiva. Antes de tentar resolver algo, diminua a intensidade por um momento.",
+        "Não é preciso resolver tudo agora. Um minuto de respiração antes de continuar quase sempre tira a pressão da cabeça, mesmo que sinta que não tem tempo para pausar.",
+      ],
+    },
+    "ceguera-tiempo": {
+      label: "Não sei há quanto tempo estou nisso",
+      linkLabel: "Ir para o auditor de tempo",
+      fallbackResponses: [
+        "A cegueira temporal é real no TDAH — o relógio interno não avisa da mesma forma que o de outras pessoas. Não é que você não se importe, é que custa mais sentir isso.",
+        "Se perdeu a noção do tempo, não se julgue por isso — melhor colocar um número real na frente da próxima vez, para que deixe de ser uma sensação e se torne um dado.",
+      ],
+    },
+    impulso: {
+      label: "Tive um impulso que não quero seguir",
+      linkLabel: "Ir para o freio de impulsividade",
+      fallbackResponses: [
+        "O fato de o impulso ter chegado não significa que você precise segui-lo. A margem entre sentir e agir pode ser treinada, mesmo que seja pequena.",
+        "Muito bem por notar antes de agir — essa é a parte mais difícil. Dê a ele uma pausa real antes de decidir o que fazer.",
+      ],
+    },
+    autocritica: {
+      label: "Me sinto mal comigo mesma por um erro ou uma crítica",
+      linkLabel: "Ir para reestruturação de pensamentos",
+      fallbackResponses: [
+        "Um erro ou uma crítica não define o seu valor — com TDAH é comum que a reação emocional pareça muito maior do que o momento realmente foi. Isso tem nome (sensibilidade à rejeição) e não significa que você está exagerando.",
+        'Antes de acreditar ao pé da letra no pensamento "sou um desastre", vale a pena colocá-lo à prova — quase nunca resiste à evidência real.',
+      ],
+    },
+    "varias-tareas": {
+      label: "Tenho mais de duas tarefas pendentes ao mesmo tempo",
+      linkLabel: "Ir para o desmembrador de tarefas",
+      fallbackResponses: [
+        "Com TDAH, ter várias tarefas pendentes ao mesmo tempo pode parecer que todas estão gritando ao mesmo tempo — isso torna quase impossível escolher uma. Não se trata de resolver todas agora: escolha apenas uma para os próximos minutos e deixe as demais esperando anotadas em algum lugar.",
+        "Manter várias tarefas na cabeça ao mesmo tempo gasta energia antes mesmo de começar uma. Anote todas em algum lugar onde não vá esquecer, e escolha apenas uma para focar agora — o resto continua lá, não desaparece.",
+      ],
+    },
+  },
+
+  crisis: {
+    label: "Estou tendo pensamentos de me machucar",
+    message:
+      "O que você está descrevendo é sério, e você merece ajuda de uma pessoa real agora mesmo, não de um aplicativo. Se estiver em perigo imediato, ligue para o SAMU (192) ou o número de emergência local. No Brasil, você também pode ligar, de forma gratuita e 24 horas por dia, para o CVV (Centro de Valorização da Vida): 188. Se estiver no México, pode ligar também, grátis e 24 horas: Línea de la Vida 800 911 2000, ou SAPTEL 55 5259 8121. Se você tem um médico ou terapeuta, contate-o diretamente também.",
   },
 
   dayTimeline: {
@@ -250,6 +366,14 @@ const pt = {
     stopButton: "Parar",
   },
 
+  mindfulnessSteps: {
+    llegar: "Sente-se confortavelmente. Não precisa fechar os olhos se não quiser — só pare o que estava fazendo por um momento.",
+    cuerpo: "Note como seu corpo se sente agora, sem mudar nada ainda. Os pés no chão, as costas apoiadas.",
+    respiracion: "Leve sua atenção para a respiração, sem forçá-la. Só note o ar entrando e saindo.",
+    mente: "É normal que a mente se distraia — com TDAH, mais ainda. Quando notar, volte para a respiração, sem se julgar por ter se distraído.",
+    cierre: "Antes de terminar, note como você se sente agora comparado a um momento atrás. O que quer que você note, está tudo bem.",
+  },
+
   moodLog: {
     veryBad: "Muito mal",
     bad: "Mal",
@@ -302,6 +426,29 @@ const pt = {
     footer: "Isto é uma informação geral, não um plano de tratamento — qualquer dúvida sobre o seu caso específico, converse com o seu médico.",
   },
 
+  postDiagnosisSections: {
+    "primeras-semanas": {
+      title: "As primeiras semanas com medicação",
+      text: "Encontrar a dose certa quase nunca é imediato — é normal que seu médico comece com uma dose baixa e vá ajustando nas primeiras semanas, verificando como você se sente e quais efeitos nota. Os estimulantes costumam mostrar efeito no mesmo dia em que são tomados, mas encontrar o ajuste fino pode levar várias semanas; os não estimulantes (como a atomoxetina) podem levar de 4 a 6 semanas para mostrar seu efeito completo. Nenhum dos dois casos é sinal de que algo deu errado.",
+    },
+    "no-es-magia": {
+      title: "A medicação não é mágica — e está tudo bem que não seja",
+      text: "O tratamento farmacológico ajuda com a atenção e o controle de impulsos, mas não constrói por si só os hábitos, rotinas ou estratégias que estão faltando há anos. Para isso existem as outras ferramentas do Senda (o desmembrador de tarefas, o auditor de tempo, o freio de impulsividade) — pensadas para serem usadas junto com o tratamento, não em seu lugar.",
+    },
+    "errores-comunes": {
+      title: "Erros comuns ao começar",
+      text: 'Parar a medicação por conta própria logo que nota um efeito colateral leve, sem avisar primeiro seu médico — muitos efeitos colaterais iniciais diminuem depois de alguns dias. Se comparar com a dose de outra pessoa: o que funciona para outra pessoa não prevê o que vai funcionar para você. E pular doses "para testar se já não precisa mais" sem conversar antes — isso tira do seu médico a informação de que ele precisa para ajustar bem o seu tratamento.',
+    },
+    "hablarlo-con-tu-gente": {
+      title: "Falar (ou não) sobre isso com as pessoas ao seu redor",
+      text: 'Não existe uma regra única sobre a quem contar — depende de quanto você confia nessa pessoa e de quão aberta ela é com esses temas. Pode ajudar testar o terreno mencionando o assunto de forma geral antes de falar do seu próprio diagnóstico, e às vezes é mais fácil começar descrevendo comportamentos concretos ("esqueço as coisas com frequência") do que usar o rótulo diretamente. No trabalho, vale mais cautela do que em casa — se você precisar de ajustes, geralmente é melhor focar no que ajudaria você a ter um desempenho melhor, não no diagnóstico em si.',
+    },
+    "cuando-contactar": {
+      title: "Quando contatar seu médico antes da sua próxima consulta",
+      text: "Não espere até sua próxima consulta se notar: palpitações ou dor no peito, ansiedade que parece muito mais forte do que antes, mudanças de humor marcantes, perda de apetite ou de sono que já está afetando você de verdade, ou se sentir que a medicação simplesmente não está fazendo nada depois de várias semanas no ajuste indicado. Em caso de qualquer dúvida, é sempre melhor perguntar do que esperar.",
+    },
+  },
+
   quickCapture: {
     intro: "Para quando uma ideia vai escapar se você não registrá-la agora — fale ou escreva, e o Senda tenta enviá-la sozinho para o lugar certo. Ele nunca adiciona nada por conta própria: sempre pergunta antes.",
     stopRecording: "Toque para terminar",
@@ -338,6 +485,84 @@ const pt = {
   scienceCapsule: {
     title: "Fato do dia sobre TDAH",
     sourceLabel: (source) => `Fonte: ${source}`,
+  },
+
+  scienceCapsuleContent: {
+    "herencia-genetica": {
+      title: "TDAH e genética",
+      text: 'O TDAH é um dos transtornos psiquiátricos com maior carga genética conhecida: estudos com gêmeos estimam que a herdabilidade fica em torno de 70-80%. Isso não significa que esteja "escrito" sem remédio — o ambiente e as estratégias de manejo fazem sim uma diferença real — mas ajuda a entender por que o TDAH costuma aparecer em várias gerações de uma mesma família.',
+      source: "Estudos com gêmeos, revisados em Faraone & Larsson, Molecular Psychiatry (2019) — número amplamente replicado desde então.",
+    },
+    "ejercicio-control-inhibitorio": {
+      title: "O exercício ajuda sim — mas não qualquer um igualmente",
+      text: "Uma metanálise de 2025 com 14 estudos encontrou que a atividade física melhora de forma mensurável o controle inibitório (a capacidade de frear um impulso) em adultos com TDAH. O exercício sustentado ao longo do tempo mostrou mais benefício do que uma única sessão isolada — a constância importa mais do que a intensidade de um dia específico.",
+      source: "Metanálise, Journal of Global Health (2025) — 8 artigos, 14 estudos, ~372 participantes.",
+    },
+    "medicacion-mortalidad": {
+      title: "O que um estudo sueco encontrou sobre a medicação",
+      text: "Um estudo com quase 150 mil pessoas na Suécia encontrou que começar o tratamento farmacológico para o TDAH foi associado a 25% menos mortes por causas não naturais (como acidentes) nos dois anos seguintes ao diagnóstico. É um estudo observacional — não prova causa e efeito a 100% — mas é um dos maiores já feitos sobre o tema até agora.",
+      source: "Estudo populacional sueco, Nature Mental Health (2024) — ~150 mil pessoas, acompanhamento de 2 anos.",
+    },
+    "sueno-tdah": {
+      title: "O sono e o TDAH estão mais conectados do que parece",
+      text: 'Em um estudo com 3.691 adultos com TDAH em clínicas dos Países Baixos, quase dois em cada três tiveram triagem positiva para algum problema de sono — os mais comuns foram o atraso de fase do sono (dormir tarde de forma crônica), a insônia e a síndrome das pernas inquietas. Se você dorme mal, vale a pena comentar na consulta — não é "só" cansaço.',
+      source: "Estudo em 46 clínicas de TDAH, Países Baixos, 2018-2020 — 3.691 adultos (triagem, não diagnóstico clínico confirmado).",
+    },
+    "mindfulness-evidencia": {
+      title: "Por que o Senda tem uma prática de atenção plena",
+      text: "Uma metanálise em rede de 113 ensaios clínicos encontrou que, entre as intervenções psicológicas para o TDAH, o mindfulness foi a única com benefício tanto nos sintomas centrais quanto na velocidade de processamento às 12 semanas. Por isso a prática guiada do Senda não é um complemento genérico de bem-estar — tem evidência própria dentro do tratamento do TDAH.",
+      source: "Metanálise em rede, The Lancet Psychiatry (2025) — 113 ensaios clínicos.",
+    },
+    perimenopausia: {
+      title: "TDAH e perimenopausa",
+      text: "A relação acontece nos dois sentidos: as mudanças hormonais da perimenopausa podem fazer os sintomas de TDAH parecerem mais fortes, e em algumas mulheres um TDAH que nunca havia sido reconhecido se torna muito mais evidente justamente nessa fase. Um estudo na Islândia com mais de 5.000 mulheres encontrou que, entre as que têm TDAH, os sintomas da perimenopausa costumam começar antes (até 10 anos) e são sentidos com mais intensidade. É um único estudo em uma população diferente da nossa — trate como uma pista a considerar, não como uma regra geral. Isso não é um diagnóstico: se notar mudanças de humor, sono ou ondas de calor diferentes do habitual, vale a pena comentar com seu médico.",
+      source: "Coorte SAGA, European Psychiatry (2025) — 5.392 mulheres, Islândia.",
+    },
+    "redes-sociales-atencion": {
+      title: "Redes sociais vs. videogames: não é a mesma coisa para a atenção",
+      text: "Um estudo que acompanhou mais de 8.300 crianças durante 4 anos encontrou que mais tempo em redes sociais previa um aumento gradual de sintomas de desatenção — mas jogar videogame ou ver TV não mostrou esse mesmo efeito. É um estudo com crianças, não com adultos, mas o padrão (redes sociais especificamente, não telas em geral) é interessante para qualquer pessoa que note que sua atenção piora em períodos de mais scroll.",
+      source: "Estudo longitudinal, 8.324 crianças nos EUA (Instituto Karolinska, divulgado em 2025).",
+    },
+    "body-doubling-ojo-con-la-evidencia": {
+      title: "Corpo duplo: resultados promissores, mas leia com cuidado",
+      text: 'Uma pesquisa com 117 adultos com TDAH que usaram sessões de "corpo duplo" virtual durante 12 semanas relatou melhoras na concentração sustentada (69% disseram que custava muito menos se concentrar) e menos ansiedade autorrelatada. Mas atenção: foi uma pesquisa antes/depois, sem grupo controle, financiada pela própria plataforma que oferece o serviço — promissor, não uma prova definitiva. Por isso a sala de corpo duplo do Senda é gratuita e anônima, não uma promessa de resultado garantido.',
+      source: "Pesquisa da FLOWN (Reino Unido), 117 usuários, 12 semanas, sem grupo controle — financiada pelo próprio provedor.",
+    },
+    "comorbilidad-ansiedad-depresion": {
+      title: "O TDAH quase nunca vem sozinho",
+      text: 'Uma revisão sistemática encontrou que a ansiedade e a depressão são muito comuns junto com o TDAH em adultos — embora os números variem muito entre os estudos (de 4% a mais de 80%, dependendo da população e da ferramenta usada), quase todos concordam que é a regra, não a exceção. Se além do TDAH você sente ansiedade ou ânimo baixo, não é que "você está exagerando" — é esperado, e vale a pena tratar isso também.',
+      source: "Revisão sistemática, PLOS ONE (2023) — faixas muito variáveis por heterogeneidade metodológica entre os estudos.",
+    },
+    "disforia-rechazo-honestidad": {
+      title: 'Sobre a "disforia de sensibilidade à rejeição" — com honestidade',
+      text: "É um termo muito usado em comunidades de TDAH para descrever uma dor emocional intensa diante da rejeição ou da crítica, real e validada por muitas experiências — mas, até agora, não é um diagnóstico formal nem tem o mesmo nível de evidência científica controlada que outros achados desta lista. Isso não retira valor da experiência: só significa que convém ainda não tratá-lo como um fato médico estabelecido.",
+      source: "Revisão informal da literatura (2025-2026) — sem consenso diagnóstico formal (DSM) sobre o termo.",
+    },
+    "omega-3-modesto": {
+      title: "Ômega-3: ajuda modesta, não é mágica",
+      text: "Várias metanálises de ensaios controlados encontram que a suplementação com ácidos graxos ômega-3 tem um efeito pequeno, mas real, sobre os sintomas centrais do TDAH — muito menor do que o da medicação estimulante. Pode valer a pena como complemento, conversado com seu médico, mas não como substituto de um tratamento já estabelecido.",
+      source: "Metanálises de ensaios controlados randomizados sobre ômega-3 e TDAH (vários, 2015-2024).",
+    },
+    "tdah-mujeres-diagnostico-tardio": {
+      title: "Por que tantas mulheres são diagnosticadas na vida adulta",
+      text: 'Pesquisas recentes descrevem que, em mulheres, o TDAH frequentemente não se encaixa no estereótipo infantil de hiperatividade visível, e o caminho até o diagnóstico costuma ser diferente e mais longo. Um estudo qualitativo de 2025 com mulheres diagnosticadas na vida adulta documentou anos se sentindo "diferentes" sem saber por quê — um diagnóstico tardio não significa que o TDAH tenha "aparecido" de repente.',
+      source: "Estudo qualitativo (2025) — amostra pequena, 14 mulheres; não permite estimar quão comuns são essas experiências.",
+    },
+    "tdah-no-es-falta-de-voluntad": {
+      title: 'Por que "só se esforce mais" não funciona',
+      text: 'A evidência de neuroimagem mostra diferenças mensuráveis em como o cérebro com TDAH regula a dopamina nos circuitos de atenção e motivação — não é um problema de "força de vontade", é uma diferença real em como o cérebro prioriza e sustenta o esforço. Entender isso não é uma desculpa para não tentar estratégias — é o motivo pelo qual as estratégias certas funcionam melhor do que a autocrítica.',
+      source: "Consenso da literatura em neurociência da dopamina e TDAH, amplamente revisado em estudos de neuroimagem.",
+    },
+    "tdah-adultos-prevalencia": {
+      title: "O TDAH em adultos não é raro",
+      text: "As estimativas atuais colocam a prevalência de TDAH em adultos em torno de 2,5% globalmente usando critérios estritos, mas os números sobem consideravelmente ao incluir quem cumpre os critérios mas nunca foi diagnosticado na infância. Se você foi diagnosticada na vida adulta, não é um caso raro — faz parte de uma população que só nos últimos anos começou a ser bem reconhecida.",
+      source: "Estimativas de prevalência global em adultos, revisadas em múltiplas metanálises (ex.: Song et al. 2021, atualizadas por literatura posterior).",
+    },
+    "hiperfoco-fortaleza": {
+      title: "O hiperfoco também faz parte do TDAH",
+      text: 'Nem tudo no TDAH é dificuldade de prestar atenção — muitas pessoas descrevem episódios de hiperfoco, em que a concentração em algo que realmente engaja se torna intensa e sustentada, às vezes por horas. A pesquisa ainda está definindo bem esse fenômeno, mas reconhecê-lo como parte real de como sua atenção funciona (não apenas como um "déficit") ajuda a organizar seu dia em torno dos seus próprios padrões, em vez de contra eles.',
+      source: "Fenômeno cada vez mais descrito na literatura sobre TDAH adulto; ainda sem uma definição operacional única consensual.",
+    },
   },
 
   today: {

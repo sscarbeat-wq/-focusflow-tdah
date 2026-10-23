@@ -12,6 +12,7 @@ import { capsuleForKey } from "./scienceCapsules.js";
 export default function ScienceCapsulePanel({ C, t }) {
   const capsule = capsuleForKey(todayKey(), daysBetween);
   if (!capsule) return null;
+  const content = t.scienceCapsuleContent[capsule.id];
 
   return (
     <div
@@ -29,9 +30,9 @@ export default function ScienceCapsulePanel({ C, t }) {
       <div style={{ display: "flex", alignItems: "center", gap: "8px", fontWeight: 600, marginBottom: "6px" }}>
         <BookOpen size={16} color={C.amber} /> {t.scienceCapsule.title}
       </div>
-      <div style={{ fontWeight: 600, marginBottom: "4px" }}>{capsule.title}</div>
-      <p style={{ margin: "0 0 8px" }}>{capsule.text}</p>
-      <p style={{ margin: 0, fontSize: "11px", color: C.textMuted }}>{t.scienceCapsule.sourceLabel(capsule.source)}</p>
+      <div style={{ fontWeight: 600, marginBottom: "4px" }}>{content.title}</div>
+      <p style={{ margin: "0 0 8px" }}>{content.text}</p>
+      <p style={{ margin: 0, fontSize: "11px", color: C.textMuted }}>{t.scienceCapsule.sourceLabel(content.source)}</p>
     </div>
   );
 }

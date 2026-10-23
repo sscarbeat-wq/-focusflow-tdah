@@ -15,32 +15,15 @@
 // dispositivo, sin ningún costo ni dependencia nueva, y sin guardar ningún
 // dato nuevo (el componente visual solo avisa cuando se completa, para que
 // se otorgue XP, igual que la respiración).
+// El texto guiado de cada paso vive en los diccionarios de i18n, bajo
+// mindfulnessSteps[id] — este archivo solo guarda el orden y la duración de
+// cada paso (en segundos), que es estructural y no se traduce.
 export const MINDFULNESS_STEPS = [
-  {
-    id: "llegar",
-    seconds: 25,
-    text: "Siéntate cómodo. No hace falta cerrar los ojos si no quieres — solo deja de hacer lo que estabas haciendo por un momento.",
-  },
-  {
-    id: "cuerpo",
-    seconds: 35,
-    text: "Nota cómo se siente tu cuerpo ahora mismo, sin cambiar nada todavía. Los pies en el piso, la espalda apoyada.",
-  },
-  {
-    id: "respiracion",
-    seconds: 40,
-    text: "Lleva tu atención a la respiración, sin forzarla. Solo nota el aire entrando y saliendo.",
-  },
-  {
-    id: "mente",
-    seconds: 45,
-    text: "Es normal que la mente se vaya — con TDAH, más seguido. Cuando lo notes, regresa a la respiración, sin juzgarte por haberte ido.",
-  },
-  {
-    id: "cierre",
-    seconds: 20,
-    text: "Antes de terminar, nota cómo te sientes ahora comparado con hace un momento. Lo que sea que notes está bien.",
-  },
+  { id: "llegar", seconds: 25 },
+  { id: "cuerpo", seconds: 35 },
+  { id: "respiracion", seconds: 40 },
+  { id: "mente", seconds: 45 },
+  { id: "cierre", seconds: 20 },
 ];
 
 export const MINDFULNESS_TOTAL_SECONDS = MINDFULNESS_STEPS.reduce((sum, s) => sum + s.seconds, 0);
