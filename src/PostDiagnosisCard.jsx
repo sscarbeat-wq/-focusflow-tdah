@@ -65,12 +65,15 @@ export default function PostDiagnosisCard({ C, t }) {
       <p style={{ margin: "0 0 10px" }}>
         {t.postDiagnosis.intro}
       </p>
-      {POST_DIAGNOSIS_SECTIONS.map((section) => (
-        <div key={section.id} style={{ marginBottom: "10px" }}>
-          <div style={{ fontWeight: 600, marginBottom: "2px" }}>{section.title}</div>
-          <p style={{ margin: 0 }}>{section.text}</p>
-        </div>
-      ))}
+      {POST_DIAGNOSIS_SECTIONS.map((section) => {
+        const content = t.postDiagnosisSections[section.id];
+        return (
+          <div key={section.id} style={{ marginBottom: "10px" }}>
+            <div style={{ fontWeight: 600, marginBottom: "2px" }}>{content.title}</div>
+            <p style={{ margin: 0 }}>{content.text}</p>
+          </div>
+        );
+      })}
       <p style={{ margin: 0, color: C.textMuted }}>
         {t.postDiagnosis.footer}
       </p>

@@ -1,6 +1,5 @@
 import React, { useRef, useState } from "react";
 import { Mic, Square, Keyboard, Trash2, CheckCircle2, StickyNote, AlertTriangle } from "lucide-react";
-import { CRISIS } from "./companionSituations";
 import { pendingQuickNotes } from "./quickCapture";
 
 // "Captura rápida" (inspirado en Eco, de Bitblocks SAS) — un solo botón
@@ -230,7 +229,7 @@ export default function QuickCapturePanel({
         >
           <p style={{ fontSize: "14px", color: C.text, lineHeight: 1.6, margin: 0 }}>
             <AlertTriangle size={14} style={{ verticalAlign: "-2px", marginRight: "6px", color: C.rose }} />
-            {CRISIS.message}
+            {t.crisis.message}
           </p>
         </div>
         <button

@@ -16,7 +16,7 @@ export default function CbtProgramPanel({ C, t, program, onComplete }) {
       {LESSONS.map((lesson, i) => (
         <div
           key={lesson.id}
-          title={lesson.title}
+          title={t.cbtLessons[lesson.id].title}
           style={{
             flex: 1,
             height: "6px",
@@ -39,7 +39,7 @@ export default function CbtProgramPanel({ C, t, program, onComplete }) {
           {LESSONS.map((lesson) => (
             <div key={lesson.id} style={{ display: "flex", alignItems: "center", gap: "8px", padding: "5px 0" }}>
               <CheckCircle2 size={15} color={C.lavenderDark} style={{ flexShrink: 0 }} />
-              <span style={{ fontSize: "13px", color: C.textMuted }}>{lesson.title}</span>
+              <span style={{ fontSize: "13px", color: C.textMuted }}>{t.cbtLessons[lesson.id].title}</span>
             </div>
           ))}
         </div>
@@ -57,11 +57,13 @@ export default function CbtProgramPanel({ C, t, program, onComplete }) {
           {t.cbtProgram.lessonOfTotalToday(completedCount, total)}
         </p>
         <p style={{ fontSize: "14px", color: C.text, margin: 0 }}>
-          {t.cbtProgram.comeBackTomorrow(nextLesson.title)}
+          {t.cbtProgram.comeBackTomorrow(t.cbtLessons[nextLesson.id].title)}
         </p>
       </div>
     );
   }
+
+  const nextLessonContent = t.cbtLessons[nextLesson.id];
 
   return (
     <div>
@@ -69,8 +71,8 @@ export default function CbtProgramPanel({ C, t, program, onComplete }) {
       <p style={{ fontSize: "12px", color: C.textMuted, margin: "0 0 4px" }}>
         {t.cbtProgram.dayOfTotal(nextLesson.day, total, nextLesson.minutes)}
       </p>
-      <h3 style={{ fontSize: "15px", fontWeight: 600, color: C.text, margin: "0 0 10px" }}>{nextLesson.title}</h3>
-      {nextLesson.body.map((paragraph, i) => (
+      <h3 style={{ fontSize: "15px", fontWeight: 600, color: C.text, margin: "0 0 10px" }}>{nextLessonContent.title}</h3>
+      {nextLessonContent.body.map((paragraph, i) => (
         <p key={i} style={{ fontSize: "13px", color: C.text, lineHeight: 1.6, margin: "0 0 10px" }}>
           {paragraph}
         </p>
@@ -88,10 +90,10 @@ export default function CbtProgramPanel({ C, t, program, onComplete }) {
         >
           {t.cbtProgram.todayLabel}
         </p>
-        <p style={{ fontSize: "13px", color: C.text, margin: 0, lineHeight: 1.5 }}>{nextLesson.exercise}</p>
+        <p style={{ fontSize: "13px", color: C.text, margin: 0, lineHeight: 1.5 }}>{nextLessonContent.exercise}</p>
       </div>
       <button
-        onClick={() => onComplete(nextLesson.id, nextLesson.title)}
+        onClick={() => onComplete(nextLesson.id, nextLessonContent.title)}
         style={{
           background: C.lavenderDark,
           border: "none",

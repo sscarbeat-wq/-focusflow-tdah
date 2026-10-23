@@ -70,6 +70,65 @@ const en = {
     disconnectButton: "Disconnect",
   },
 
+  cbtLessons: {
+    sobrecarga: {
+      title: "What is executive overload?",
+      body: [
+        "When you have ADHD, your brain doesn't filter information the same way a brain without ADHD does — everything asks for attention at the same time: the background noise, the notification that just came in, the pending task, the thought that just crossed your mind. This is called executive overload, and it isn't a lack of willpower or discipline: it's that your executive functions (the ones that organize, prioritize, and filter) have less margin to work with.",
+        "Recognizing it in time keeps it from turning into total paralysis — that moment when there's so much to do that you end up doing nothing at all.",
+      ],
+      exercise: 'Today, the next time you feel like "it\'s all too much," stop for 10 seconds and name out loud (or in writing) the 3 things asking for your attention at the same time. Naming them doesn\'t solve them, but it takes pressure off your head.',
+    },
+    evitacion: {
+      title: "Why starting is so hard",
+      body: [
+        "Avoiding an important task isn't laziness — with ADHD, the brain needs more real stimulation or urgency to get going. The bigger or more boring a task looks, the harder it is to start, even when you know perfectly well it matters.",
+        "That's why Senda's task breakdown tool isn't just a list of steps: the first step should always be so small it feels almost silly not to do it. Starting creates its own momentum.",
+      ],
+      exercise: 'Pick a task you\'ve been avoiding. Write down a first step so tiny you can do it in under 2 minutes (e.g., not "organize the closet," but "pull 5 items out of the closet"). Do it right now if you can.',
+    },
+    "ceguera-tiempo": {
+      title: "Time blindness",
+      body: [
+        'Many people with ADHD experience time in just two categories: "now" and "not now" — which is why it\'s so hard to feel that something that\'s "next week" actually matters already. This is known as time blindness, and it explains why a task suddenly feels urgent out of nowhere, right when there\'s almost no time left.',
+        "It isn't a character flaw — it's that your internal clock doesn't give you the same advance warning other people's does.",
+      ],
+      exercise: "Pick something you need to do this week. Set an alarm TODAY, with the task's name, for 2 days before the real deadline — not for the day itself. That extra-early alarm is your internal clock asking for backup.",
+    },
+    "pausa-impulsividad": {
+      title: "The 10-second pause",
+      body: [
+        'Impulsivity in ADHD isn\'t "acting without thinking" in a moral sense — it\'s that the impulse arrives and gets acted on before the reflective part of the brain has a chance to weigh in. The good news is that this margin, however small, can be trained.',
+        "Senda already has a tool for this — the impulse brake — built specifically to insert a real pause before you act.",
+      ],
+      exercise: "The next time you feel the urge to send a message, buy something, or react strongly, use Senda's impulse brake first. If you don't have it handy, count to 10 breathing slowly — it's the same principle.",
+    },
+    "regular-emocion": {
+      title: "Regulating emotion before the task",
+      body: [
+        'Before you can concentrate on a task, you often need to turn down the emotion that comes with it first — frustration at not having started sooner, anxiety about what\'s left, shame at feeling like "I should be able to do this on my own." Trying to concentrate without addressing that emotion first usually fails, because the brain is still busy with the emotional part.',
+        "That's why Senda's guided breathing exercise isn't an extra — it's often step zero before any task.",
+      ],
+      exercise: 'Before your next Focus Mode session, spend 1 minute on Senda\'s guided breathing (the "Focus bubble"), even if it feels like "you don\'t have time." Notice whether starting feels easier afterward.',
+    },
+    "rutinas-sostenibles": {
+      title: "Building routines that actually hold up",
+      body: [
+        "Rigid routines (waking up at exactly 6:00, everything in the same order every time) tend to break down fast with ADHD, because a single different day shatters the whole thing and feels like a failure. Routines that actually last are flexible by design: they have a general order, not exact schedules, and let you skip a step without the whole structure collapsing.",
+        "Your streak in Senda is built this way on purpose — what counts is coming back, not being perfect.",
+      ],
+      exercise: 'Pick ONE of your routines that\'s broken down several times. Rewrite it by removing one exact time (swap it for "in the morning" or "before bed") and dropping one step that isn\'t essential.',
+    },
+    "revisar-sin-autocritica": {
+      title: "Reviewing the week without self-criticism",
+      body: [
+        "Closing out the week by judging yourself for what you didn't get done almost never helps you do more next week — it usually just adds shame, and shame isn't sustainable fuel. The kind of review that actually works is descriptive, not evaluative: seeing what happened, without attaching a moral grade to it.",
+        'Your Weekly Insights in Senda are designed for this — they show real patterns, never a "grade" for how well you did that week.',
+      ],
+      exercise: 'Open your Weekly Insights and read them the way you\'d describe the weather, not like a report card. Pick ONE thing you noticed, without the word "should" in the sentence.',
+    },
+  },
+
   cbtProgram: {
     finishedMessage: (total) => `You completed all ${total} Week 1 lessons 🎉 Feel free to review them anytime.`,
     lessonOfTotalToday: (completed, total) => `Lesson ${completed} of ${total} completed today.`,
@@ -111,6 +170,63 @@ const en = {
     anotherIdea: "Another idea for this",
     back: "Back",
     chooseOther: "Choose another situation",
+  },
+
+  companionSituationContent: {
+    "no-puedo-empezar": {
+      label: "I can't get started",
+      linkLabel: "Go to the task breakdown tool",
+      fallbackResponses: [
+        "Not being able to start isn't laziness — with ADHD, the brain needs the task to feel much smaller before it can begin. Don't try to tackle it all at once.",
+        "Starting is almost always the hardest part, not the rest of the task. Find the smallest possible step — one you can do in under 2 minutes — and start with just that.",
+      ],
+    },
+    "cabeza-llena": {
+      label: "My head is too full, I can't think",
+      linkLabel: "Go to the focus bubble",
+      fallbackResponses: [
+        "When everything demands attention at once, the brain overloads — you're not failing, it's executive overload. Before trying to solve anything, turn the intensity down for a moment.",
+        "You don't need to solve everything right now. One minute of breathing before continuing almost always takes pressure off your head, even if it feels like you don't have time to pause.",
+      ],
+    },
+    "ceguera-tiempo": {
+      label: "I don't know how long I've been at this",
+      linkLabel: "Go to the time auditor",
+      fallbackResponses: [
+        "Time blindness is real in ADHD — your internal clock doesn't give the same warning other people's does. It's not that you don't care, it's that it's harder to feel.",
+        "If you lost track of time, don't judge yourself for it — next time, put a real number in front of it instead, so it stops being a feeling and becomes data.",
+      ],
+    },
+    impulso: {
+      label: "I had an impulse I don't want to follow",
+      linkLabel: "Go to the impulse brake",
+      fallbackResponses: [
+        "Just because the impulse showed up doesn't mean you have to follow it. The margin between feeling it and acting on it can be trained, even if it's small.",
+        "Nice work noticing it before acting — that's the hardest part. Give it a real pause before deciding what to do.",
+      ],
+    },
+    autocritica: {
+      label: "I feel bad about myself over a mistake or some criticism",
+      linkLabel: "Go to thought reframing",
+      fallbackResponses: [
+        "A mistake or a piece of criticism doesn't define your worth — with ADHD it's common for the emotional reaction to feel much bigger than the moment actually was. That has a name (rejection sensitivity) and it doesn't mean you're exaggerating.",
+        'Before taking the thought "I\'m a disaster" at face value, it\'s worth putting it to the test — it almost never holds up against the real evidence.',
+      ],
+    },
+    "varias-tareas": {
+      label: "I have more than two pending tasks at once",
+      linkLabel: "Go to the task breakdown tool",
+      fallbackResponses: [
+        "With ADHD, having several tasks pending at once can feel like they're all shouting at the same time — that makes it almost impossible to pick one. It's not about solving them all right now: choose just one for the next few minutes and let the rest wait, written down somewhere.",
+        "Holding several tasks in your head at once burns energy before you even start one. Write them all down somewhere you won't forget, and pick just one to focus on now — the rest is still there, it doesn't disappear.",
+      ],
+    },
+  },
+
+  crisis: {
+    label: "I'm having thoughts of hurting myself",
+    message:
+      "What you're describing is serious, and you deserve help from a real person right now, not an app. If you're in immediate danger, call 911. You can also call, free and 24 hours a day anywhere in Mexico: Línea de la Vida 800 911 2000, or SAPTEL 55 5259 8121. If you have a doctor or therapist, contact them directly too.",
   },
 
   dayTimeline: {
@@ -246,6 +362,14 @@ const en = {
     stopButton: "Stop",
   },
 
+  mindfulnessSteps: {
+    llegar: "Sit comfortably. You don't need to close your eyes if you don't want to — just stop whatever you were doing for a moment.",
+    cuerpo: "Notice how your body feels right now, without changing anything yet. Your feet on the floor, your back supported.",
+    respiracion: "Bring your attention to your breathing, without forcing it. Just notice the air moving in and out.",
+    mente: "It's normal for your mind to wander — with ADHD, more often. When you notice it, come back to your breathing, without judging yourself for having drifted.",
+    cierre: "Before finishing, notice how you feel now compared to a moment ago. Whatever you notice is fine.",
+  },
+
   moodLog: {
     veryBad: "Very bad",
     bad: "Bad",
@@ -298,6 +422,29 @@ const en = {
     footer: "This is general information, not a treatment plan — bring up any question about your specific case with your doctor.",
   },
 
+  postDiagnosisSections: {
+    "primeras-semanas": {
+      title: "The first weeks on medication",
+      text: "Finding the right dose is almost never immediate — it's normal for your doctor to start with a low dose and adjust it over the first weeks, checking in on how you feel and what effects you notice. Stimulants usually show an effect the same day they're taken, but fine-tuning can take several weeks; non-stimulants (like atomoxetine) can take 4 to 6 weeks to show their full effect. Neither case is a sign that something went wrong.",
+    },
+    "no-es-magia": {
+      title: "Medication isn't magic — and that's okay",
+      text: "Pharmacological treatment helps with attention and impulse control, but it doesn't build on its own the habits, routines, or strategies that have been missing for years. That's what Senda's other tools are for (the task breakdown tool, the time auditor, the impulse brake) — built to be used alongside treatment, not instead of it.",
+    },
+    "errores-comunes": {
+      title: "Common mistakes when starting out",
+      text: 'Stopping medication on your own as soon as you notice a mild side effect, without telling your doctor first — many initial side effects ease up after a few days. Comparing yourself to someone else\'s dose: what works for another person doesn\'t predict what will work for you. And skipping doses "to test whether you still need them" without discussing it first — that takes away the information your doctor needs to properly adjust your treatment.',
+    },
+    "hablarlo-con-tu-gente": {
+      title: "Talking about it (or not) with your people",
+      text: 'There\'s no single rule about who to tell — it depends on how much you trust that person and how open they are to these topics. It can help to test the waters by bringing up the subject in general before talking about your own diagnosis, and sometimes it\'s easier to start by describing specific behaviors ("I forget things a lot") than to use the label directly. More caution is warranted at work than at home — if you end up needing accommodations, it\'s usually better to frame them around what would help you perform better, not around the diagnosis itself.',
+    },
+    "cuando-contactar": {
+      title: "When to contact your doctor before your next appointment",
+      text: "Don't wait for your next appointment if you notice: heart palpitations or chest pain, anxiety that feels much stronger than before, marked mood changes, loss of appetite or sleep that's really starting to affect you, or if you feel the medication simply isn't doing anything after several weeks at the prescribed dose. Whenever in doubt, it's always better to ask than to wait.",
+    },
+  },
+
   quickCapture: {
     intro: "For when an idea will slip away if you don't capture it right now — speak or type, and Senda tries to send it to the right place on its own. It never adds anything on its own: it always asks you first.",
     stopRecording: "Tap to finish",
@@ -334,6 +481,84 @@ const en = {
   scienceCapsule: {
     title: "ADHD fact of the day",
     sourceLabel: (source) => `Source: ${source}`,
+  },
+
+  scienceCapsuleContent: {
+    "herencia-genetica": {
+      title: "ADHD and genetics",
+      text: 'ADHD is one of the psychiatric disorders with the highest known genetic loading: twin studies estimate heritability at around 70-80%. This doesn\'t mean it\'s "written in stone" — environment and management strategies do make a real difference — but it helps explain why ADHD often shows up across several generations of the same family.',
+      source: "Twin studies, reviewed in Faraone & Larsson, Molecular Psychiatry (2019) — a figure widely replicated since.",
+    },
+    "ejercicio-control-inhibitorio": {
+      title: "Exercise does help — but not all of it equally",
+      text: "A 2025 meta-analysis of 14 studies found that physical activity measurably improves inhibitory control (the ability to stop an impulse) in adults with ADHD. Exercise sustained over time showed more benefit than a single isolated session — consistency matters more than how intense any one day is.",
+      source: "Meta-analysis, Journal of Global Health (2025) — 8 articles, 14 studies, ~372 participants.",
+    },
+    "medicacion-mortalidad": {
+      title: "What a Swedish study found about medication",
+      text: "A study of nearly 150,000 people in Sweden found that starting pharmacological treatment for ADHD was associated with 25% fewer deaths from unnatural causes (such as accidents) in the two years following diagnosis. It's an observational study — it doesn't prove cause and effect with 100% certainty — but it's one of the largest ever done on the topic.",
+      source: "Swedish population study, Nature Mental Health (2024) — ~150,000 people, 2-year follow-up.",
+    },
+    "sueno-tdah": {
+      title: "Sleep and ADHD are more connected than they seem",
+      text: 'In a study of 3,691 adults with ADHD at clinics in the Netherlands, almost two out of three screened positive for some kind of sleep problem — the most common were delayed sleep phase (chronically going to bed late), insomnia, and restless legs syndrome. If you\'re sleeping poorly, it\'s worth bringing up with your doctor — it\'s not "just" tiredness.',
+      source: "Study across 46 ADHD clinics, Netherlands, 2018-2020 — 3,691 adults (screening, not confirmed clinical diagnosis).",
+    },
+    "mindfulness-evidencia": {
+      title: "Why Senda has a mindfulness practice",
+      text: "A network meta-analysis of 113 clinical trials found that, among psychological interventions for ADHD, mindfulness was the only one with benefits for both core symptoms and processing speed at 12 weeks. That's why Senda's guided practice isn't a generic wellness add-on — it has its own evidence base within ADHD treatment.",
+      source: "Network meta-analysis, The Lancet Psychiatry (2025) — 113 clinical trials.",
+    },
+    perimenopausia: {
+      title: "ADHD and perimenopause",
+      text: "The relationship runs both ways: the hormonal changes of perimenopause can make ADHD symptoms feel stronger, and in some women an ADHD that had never been recognized becomes much more noticeable right around this stage. A study in Iceland with more than 5,000 women found that, among those with ADHD, perimenopause symptoms tend to start earlier (by up to 10 years) and feel more intense. It's a single study in a different population from ours — take it as a lead worth considering, not a general rule. This isn't a diagnosis: if you notice mood changes, sleep changes, or hot flashes unlike your usual pattern, it's worth discussing with your doctor.",
+      source: "SAGA cohort, European Psychiatry (2025) — 5,392 women, Iceland.",
+    },
+    "redes-sociales-atencion": {
+      title: "Social media vs. video games: not the same for attention",
+      text: "A study that followed more than 8,300 children over 4 years found that more time on social media predicted a gradual increase in inattention symptoms — but playing video games or watching TV didn't show that same effect. It's a study in children, not adults, but the pattern (social media specifically, not screens in general) is interesting for anyone who notices their attention gets worse during periods of heavier scrolling.",
+      source: "Longitudinal study, 8,324 children in the U.S. (Karolinska Institutet, published 2025).",
+    },
+    "body-doubling-ojo-con-la-evidencia": {
+      title: "Body doubling: promising results, but read them carefully",
+      text: 'A survey of 117 adults with ADHD who used virtual "body doubling" sessions for 12 weeks reported improvements in sustained focus (69% said concentrating was much easier) and less self-reported anxiety. But a caveat: it was a before/after survey, with no control group, funded by the same platform offering the service — promising, not conclusive proof. That\'s why Senda\'s body doubling room is free and anonymous, not a promise of guaranteed results.',
+      source: "FLOWN survey (UK), 117 users, 12 weeks, no control group — funded by the provider itself.",
+    },
+    "comorbilidad-ansiedad-depresion": {
+      title: "ADHD almost never comes alone",
+      text: 'A systematic review found that anxiety and depression are very common alongside ADHD in adults — although the numbers vary a lot across studies (from 4% to over 80%, depending on the population and tool used), almost all agree it\'s the rule, not the exception. If you feel anxious or down on top of ADHD, it\'s not that "you\'re exaggerating" — it\'s expected, and it\'s worth treating too.',
+      source: "Systematic review, PLOS ONE (2023) — very variable ranges due to methodological heterogeneity across studies.",
+    },
+    "disforia-rechazo-honestidad": {
+      title: 'On "rejection sensitive dysphoria" — with honesty',
+      text: "This is a term widely used in ADHD communities to describe intense emotional pain in response to rejection or criticism — real and validated by many people's experiences — but, so far, it isn't a formal diagnosis and doesn't have the same level of controlled scientific evidence as other findings on this list. That doesn't take away from the experience itself: it just means it shouldn't yet be treated as an established medical fact.",
+      source: "Informal literature review (2025-2026) — no formal diagnostic (DSM) consensus on the term.",
+    },
+    "omega-3-modesto": {
+      title: "Omega-3: a modest help, not magic",
+      text: "Several meta-analyses of controlled trials find that omega-3 fatty acid supplementation has a small but real effect on core ADHD symptoms — much smaller than that of stimulant medication. It may be worth it as a supplement, discussed with your doctor, but not as a substitute for an already-established treatment.",
+      source: "Meta-analyses of randomized controlled trials on omega-3 and ADHD (several, 2015-2024).",
+    },
+    "tdah-mujeres-diagnostico-tardio": {
+      title: "Why so many women are diagnosed as adults",
+      text: 'Recent research describes how, in women, ADHD frequently doesn\'t fit the childhood stereotype of visible hyperactivity, and the path to diagnosis tends to be different and longer. A 2025 qualitative study of women diagnosed in adulthood documented years of feeling "different" without knowing why — a late diagnosis doesn\'t mean the ADHD just "appeared" out of nowhere.',
+      source: "Qualitative study (2025) — small sample, 14 women; doesn't allow estimating how common these experiences are.",
+    },
+    "tdah-no-es-falta-de-voluntad": {
+      title: 'Why "just try harder" doesn\'t work',
+      text: 'Neuroimaging evidence shows measurable differences in how the ADHD brain regulates dopamine in attention and motivation circuits — it\'s not a matter of "willpower," it\'s a real difference in how the brain prioritizes and sustains effort. Understanding this isn\'t an excuse to not try strategies — it\'s the reason the right strategies work better than self-criticism.',
+      source: "Consensus across the dopamine-and-ADHD neuroscience literature, widely reviewed in neuroimaging studies.",
+    },
+    "tdah-adultos-prevalencia": {
+      title: "ADHD in adults isn't rare",
+      text: "Current estimates put adult ADHD prevalence at around 2.5% globally using strict criteria, but the numbers rise considerably when including people who meet criteria but were never diagnosed in childhood. If you were diagnosed as an adult, you're not a rare case — you're part of a population that has only recently started being properly recognized.",
+      source: "Global adult prevalence estimates, reviewed across multiple meta-analyses (e.g., Song et al. 2021, updated by later literature).",
+    },
+    "hiperfoco-fortaleza": {
+      title: "Hyperfocus is part of ADHD too",
+      text: 'Not everything about ADHD is difficulty paying attention — many people describe episodes of hyperfocus, where concentration on something truly engaging becomes intense and sustained, sometimes for hours. Research is still working out a precise definition of this phenomenon, but recognizing it as a real part of how your attention works (not just as a "deficit") helps you design your day around your own patterns, instead of against them.',
+      source: "A phenomenon increasingly described in the adult ADHD literature; still without a single agreed-upon operational definition.",
+    },
   },
 
   today: {
