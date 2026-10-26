@@ -5,7 +5,7 @@
 
 const en = {
   common: {
-    appName: "Senda",
+    appName: "ANRO TDAH",
     toDarkMode: "Switch to dark mode",
     toLightMode: "Switch to light mode",
     signOut: "Sign out",
@@ -32,7 +32,7 @@ const en = {
   },
 
   paywall: {
-    title: "Unlock Senda",
+    title: "Unlock ANRO TDAH",
     pitch: "Full access to the task breakdown tool, time auditor, impulse brake, guided breathing, thought reframing, and habit tracker.",
     checkoutError: "Couldn't start checkout",
     subscribeButton: "Subscribe",
@@ -59,7 +59,7 @@ const en = {
     deniedMessage: "The connection wasn't completed — if you change your mind, you can try again anytime.",
     errorMessage: "Something failed while connecting your calendar. Try again in a moment.",
     checking: "Checking...",
-    disconnectedIntro: "Connect your Google Calendar so that the breakdown tool's steps and your Focus Mode sessions automatically block time as events — so that time is set aside in advance, not just logged here inside Senda.",
+    disconnectedIntro: "Connect your Google Calendar so that the breakdown tool's steps and your Focus Mode sessions automatically block time as events — so that time is set aside in advance, not just logged here inside ANRO TDAH.",
     connectButton: "Connect Google Calendar",
     connectingButton: "Opening Google...",
     connectedLabel: "Connected",
@@ -83,7 +83,7 @@ const en = {
       title: "Why starting is so hard",
       body: [
         "Avoiding an important task isn't laziness — with ADHD, the brain needs more real stimulation or urgency to get going. The bigger or more boring a task looks, the harder it is to start, even when you know perfectly well it matters.",
-        "That's why Senda's task breakdown tool isn't just a list of steps: the first step should always be so small it feels almost silly not to do it. Starting creates its own momentum.",
+        "That's why ANRO TDAH's task breakdown tool isn't just a list of steps: the first step should always be so small it feels almost silly not to do it. Starting creates its own momentum.",
       ],
       exercise: 'Pick a task you\'ve been avoiding. Write down a first step so tiny you can do it in under 2 minutes (e.g., not "organize the closet," but "pull 5 items out of the closet"). Do it right now if you can.',
     },
@@ -99,23 +99,23 @@ const en = {
       title: "The 10-second pause",
       body: [
         'Impulsivity in ADHD isn\'t "acting without thinking" in a moral sense — it\'s that the impulse arrives and gets acted on before the reflective part of the brain has a chance to weigh in. The good news is that this margin, however small, can be trained.',
-        "Senda already has a tool for this — the impulse brake — built specifically to insert a real pause before you act.",
+        "ANRO TDAH already has a tool for this — the impulse brake — built specifically to insert a real pause before you act.",
       ],
-      exercise: "The next time you feel the urge to send a message, buy something, or react strongly, use Senda's impulse brake first. If you don't have it handy, count to 10 breathing slowly — it's the same principle.",
+      exercise: "The next time you feel the urge to send a message, buy something, or react strongly, use ANRO TDAH's impulse brake first. If you don't have it handy, count to 10 breathing slowly — it's the same principle.",
     },
     "regular-emocion": {
       title: "Regulating emotion before the task",
       body: [
         'Before you can concentrate on a task, you often need to turn down the emotion that comes with it first — frustration at not having started sooner, anxiety about what\'s left, shame at feeling like "I should be able to do this on my own." Trying to concentrate without addressing that emotion first usually fails, because the brain is still busy with the emotional part.',
-        "That's why Senda's guided breathing exercise isn't an extra — it's often step zero before any task.",
+        "That's why ANRO TDAH's guided breathing exercise isn't an extra — it's often step zero before any task.",
       ],
-      exercise: 'Before your next Focus Mode session, spend 1 minute on Senda\'s guided breathing (the "Focus bubble"), even if it feels like "you don\'t have time." Notice whether starting feels easier afterward.',
+      exercise: 'Before your next Focus Mode session, spend 1 minute on ANRO TDAH\'s guided breathing (the "Focus bubble"), even if it feels like "you don\'t have time." Notice whether starting feels easier afterward.',
     },
     "rutinas-sostenibles": {
       title: "Building routines that actually hold up",
       body: [
         "Rigid routines (waking up at exactly 6:00, everything in the same order every time) tend to break down fast with ADHD, because a single different day shatters the whole thing and feels like a failure. Routines that actually last are flexible by design: they have a general order, not exact schedules, and let you skip a step without the whole structure collapsing.",
-        "Your streak in Senda is built this way on purpose — what counts is coming back, not being perfect.",
+        "Your streak in ANRO TDAH is built this way on purpose — what counts is coming back, not being perfect.",
       ],
       exercise: 'Pick ONE of your routines that\'s broken down several times. Rewrite it by removing one exact time (swap it for "in the morning" or "before bed") and dropping one step that isn\'t essential.',
     },
@@ -123,7 +123,7 @@ const en = {
       title: "Reviewing the week without self-criticism",
       body: [
         "Closing out the week by judging yourself for what you didn't get done almost never helps you do more next week — it usually just adds shame, and shame isn't sustainable fuel. The kind of review that actually works is descriptive, not evaluative: seeing what happened, without attaching a moral grade to it.",
-        'Your Weekly Insights in Senda are designed for this — they show real patterns, never a "grade" for how well you did that week.',
+        'Your Weekly Insights in ANRO TDAH are designed for this — they show real patterns, never a "grade" for how well you did that week.',
       ],
       exercise: 'Open your Weekly Insights and read them the way you\'d describe the weather, not like a report card. Pick ONE thing you noticed, without the word "should" in the sentence.',
     },
@@ -139,9 +139,9 @@ const en = {
   },
 
   clinicalReport: {
-    printOnlyTitle: "Report for your appointment — Senda",
+    printOnlyTitle: "Report for your appointment — ANRO TDAH",
     printOnlyRange: (days, date) => `Last ${days} days, generated on ${date}.`,
-    intro: (days) => `Summary of your last ${days} days in Senda, built only from what you already logged — nothing generated by AI. It's a support for your appointment conversation, not a diagnosis or a clinical evaluation.`,
+    intro: (days) => `Summary of your last ${days} days in ANRO TDAH, built only from what you already logged — nothing generated by AI. It's a support for your appointment conversation, not a diagnosis or a clinical evaluation.`,
     printButton: "Print or save as PDF",
     moodLabel: "Mood",
     moodNone: "No mood entries in this period.",
@@ -230,8 +230,8 @@ const en = {
   },
 
   dayTimeline: {
-    empty: "Nothing logged today yet — as soon as you do something in Senda (log your mood, take a medication, complete a step...) it will show up here, at the time you did it.",
-    cappedNote: "Something from earlier today may no longer show — Senda only keeps the last 12 actions in total, not per day.",
+    empty: "Nothing logged today yet — as soon as you do something in ANRO TDAH (log your mood, take a medication, complete a step...) it will show up here, at the time you did it.",
+    cappedNote: "Something from earlier today may no longer show — ANRO TDAH only keeps the last 12 actions in total, not per day.",
     dayParts: { madrugada: "Early morning", manana: "Morning", tarde: "Afternoon", noche: "Evening" },
   },
 
@@ -255,7 +255,7 @@ const en = {
     noiseOff: "Turn off white noise",
     noiseOn: "Turn on white noise",
     noiseTitle: "Background white noise",
-    footerNote: "White noise is generated on your device, nothing is downloaded. A soft chime plays when each focus session ends. If you leave this tab while a focus session is running, Senda lets you know when you return how long you were away — it can't block other apps from the browser, but it can tell you how long you were gone.",
+    footerNote: "White noise is generated on your device, nothing is downloaded. A soft chime plays when each focus session ends. If you leave this tab while a focus session is running, ANRO TDAH lets you know when you return how long you were away — it can't block other apps from the browser, but it can tell you how long you were gone.",
     distractionSummary: (count, seconds) => `🚪 ${count} tab exit${count === 1 ? "" : "s"} (${seconds}s away in total this session)`,
     returnToast: (seconds) => `You're back after ${seconds}s away from the tab — your focus session is still running`,
   },
@@ -280,7 +280,7 @@ const en = {
     inAppBody2: " or this screen's menu and choose ",
     inAppOpenInBrowser: '"Open in browser"',
     inAppBody3: " (Chrome or Safari). It can't be installed from inside here.",
-    androidTitle: "Install Senda on your phone",
+    androidTitle: "Install ANRO TDAH on your phone",
     androidPromptBody: "Have it as an app, with its own icon and no browser bar.",
     androidInstallButton: "Install app",
     androidManualBody1: "Tap the three dots ",
@@ -290,9 +290,9 @@ const en = {
     androidManualBody3: " or ",
     androidManualAddHome: '"Add to Home screen"',
     androidManualBody4: ".",
-    iosChromeTitle: "Install Senda on your iPhone",
+    iosChromeTitle: "Install ANRO TDAH on your iPhone",
     iosChromeBody: "To install it you need to open this link in Safari (not Chrome) — on iPhone, only Safari can add it to your home screen.",
-    iosSafariTitle: "Install Senda on your iPhone",
+    iosSafariTitle: "Install ANRO TDAH on your iPhone",
     iosSafariBody1: "Tap ",
     iosSafariShare: "Share",
     iosSafariBody2: " (bottom, center) → ",
@@ -384,7 +384,7 @@ const en = {
   },
 
   notifications: {
-    unsupported: 'Your browser doesn\'t support push notifications yet. On iPhone, first install Senda to your home screen (Share button → "Add to Home Screen") and open it from there to be able to turn them on.',
+    unsupported: 'Your browser doesn\'t support push notifications yet. On iPhone, first install ANRO TDAH to your home screen (Share button → "Add to Home Screen") and open it from there to be able to turn them on.',
     intro: "A reminder if you haven't logged your mood today, or if your streak is about to run out — so you don't have to rely on remembering to open the app.",
     deniedWarning: "You blocked notifications for this site. Turn them on from your browser settings (the icon next to the web address) and reload the page.",
     enableError: "Couldn't turn it on. Try again.",
@@ -429,7 +429,7 @@ const en = {
     },
     "no-es-magia": {
       title: "Medication isn't magic — and that's okay",
-      text: "Pharmacological treatment helps with attention and impulse control, but it doesn't build on its own the habits, routines, or strategies that have been missing for years. That's what Senda's other tools are for (the task breakdown tool, the time auditor, the impulse brake) — built to be used alongside treatment, not instead of it.",
+      text: "Pharmacological treatment helps with attention and impulse control, but it doesn't build on its own the habits, routines, or strategies that have been missing for years. That's what ANRO TDAH's other tools are for (the task breakdown tool, the time auditor, the impulse brake) — built to be used alongside treatment, not instead of it.",
     },
     "errores-comunes": {
       title: "Common mistakes when starting out",
@@ -446,7 +446,7 @@ const en = {
   },
 
   quickCapture: {
-    intro: "For when an idea will slip away if you don't capture it right now — speak or type, and Senda tries to send it to the right place on its own. It never adds anything on its own: it always asks you first.",
+    intro: "For when an idea will slip away if you don't capture it right now — speak or type, and ANRO TDAH tries to send it to the right place on its own. It never adds anything on its own: it always asks you first.",
     stopRecording: "Tap to finish",
     processing: "Processing...",
     recordButton: "Record a note",
@@ -505,8 +505,8 @@ const en = {
       source: "Study across 46 ADHD clinics, Netherlands, 2018-2020 — 3,691 adults (screening, not confirmed clinical diagnosis).",
     },
     "mindfulness-evidencia": {
-      title: "Why Senda has a mindfulness practice",
-      text: "A network meta-analysis of 113 clinical trials found that, among psychological interventions for ADHD, mindfulness was the only one with benefits for both core symptoms and processing speed at 12 weeks. That's why Senda's guided practice isn't a generic wellness add-on — it has its own evidence base within ADHD treatment.",
+      title: "Why ANRO TDAH has a mindfulness practice",
+      text: "A network meta-analysis of 113 clinical trials found that, among psychological interventions for ADHD, mindfulness was the only one with benefits for both core symptoms and processing speed at 12 weeks. That's why ANRO TDAH's guided practice isn't a generic wellness add-on — it has its own evidence base within ADHD treatment.",
       source: "Network meta-analysis, The Lancet Psychiatry (2025) — 113 clinical trials.",
     },
     perimenopausia: {
@@ -521,7 +521,7 @@ const en = {
     },
     "body-doubling-ojo-con-la-evidencia": {
       title: "Body doubling: promising results, but read them carefully",
-      text: 'A survey of 117 adults with ADHD who used virtual "body doubling" sessions for 12 weeks reported improvements in sustained focus (69% said concentrating was much easier) and less self-reported anxiety. But a caveat: it was a before/after survey, with no control group, funded by the same platform offering the service — promising, not conclusive proof. That\'s why Senda\'s body doubling room is free and anonymous, not a promise of guaranteed results.',
+      text: 'A survey of 117 adults with ADHD who used virtual "body doubling" sessions for 12 weeks reported improvements in sustained focus (69% said concentrating was much easier) and less self-reported anxiety. But a caveat: it was a before/after survey, with no control group, funded by the same platform offering the service — promising, not conclusive proof. That\'s why ANRO TDAH\'s body doubling room is free and anonymous, not a promise of guaranteed results.',
       source: "FLOWN survey (UK), 117 users, 12 weeks, no control group — funded by the provider itself.",
     },
     "comorbilidad-ansiedad-depresion": {
@@ -613,12 +613,12 @@ const en = {
     jarEmpty: "Every micro-achievement you complete will show up here.",
     disclaimer: "This app is a habit-support tool. Research on routines and habits in ADHD is mostly focused on children, and there's currently no validated instrument to measure this in adults — so it works as practical companionship, not as something clinically validated, and it doesn't replace a professional evaluation or treatment.",
     footerNote: "This is a support tool and doesn't replace a professional evaluation or treatment.",
-    focusSessionEventTitle: "Focus session (Senda)",
+    focusSessionEventTitle: "Focus session (ANRO TDAH)",
 
     panels: {
       today: { title: "Today", subtitle: "What's still pending right now, pulled together from what you've already logged in the app." },
-      timeline: { title: "Today's timeline", subtitle: "What time each thing you did in Senda today happened — to get a quick sense of how the day has gone." },
-      quickCapture: { title: "Quick capture", subtitle: "Leave an idea by voice or text without deciding first which panel it belongs in — Senda tries to route it to the right place on its own." },
+      timeline: { title: "Today's timeline", subtitle: "What time each thing you did in ANRO TDAH today happened — to get a quick sense of how the day has gone." },
+      quickCapture: { title: "Quick capture", subtitle: "Leave an idea by voice or text without deciding first which panel it belongs in — ANRO TDAH tries to route it to the right place on its own." },
       companion: { title: "Support companion", subtitle: "Pick what you're feeling right now — responses designed for ADHD, with nothing to type." },
       dismantler: { title: "The breakdown tool", subtitle: "If it's hard to start, it's usually because the first step is too big." },
       auditor: { title: "The time auditor", subtitle: "Compare how long you think something will take against how long it actually takes." },
@@ -628,7 +628,7 @@ const en = {
       cbt: { title: "Brief CBT program", subtitle: "One short lesson a day — practical ADHD psychoeducation, at your own pace." },
       insights: { title: "Weekly insights", subtitle: "Patterns from your week, built from what you already logged — nothing made up." },
       report: { title: "Report for your appointment", subtitle: "A summary of your last 14 days, ready to print or show on screen at your next appointment." },
-      notifications: { title: "Notifications", subtitle: "Reminders to use Senda, even with the app closed." },
+      notifications: { title: "Notifications", subtitle: "Reminders to use ANRO TDAH, even with the app closed." },
       calendar: { title: "Calendar integration", subtitle: "Automatically blocks time on your Google Calendar for your steps and sessions." },
       bodyDouble: { title: "Virtual body double", subtitle: "Work in silence alongside other people, without seeing or talking to them." },
       energy: { title: "Energy check-in", subtitle: "Just like the mood one, but for energy — used to suggest which breakdown step is best to try first." },
