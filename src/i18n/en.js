@@ -226,7 +226,7 @@ const en = {
   crisis: {
     label: "I'm having thoughts of hurting myself",
     message:
-      "What you're describing is serious, and you deserve help from a real person right now, not an app. If you're in immediate danger, call 911. You can also call, free and 24 hours a day anywhere in Mexico: Línea de la Vida 800 911 2000, or SAPTEL 55 5259 8121. If you have a doctor or therapist, contact them directly too.",
+      "What you're describing is serious, and you deserve help from a real person right now, not an app. If you're in immediate danger, call your local emergency number (911 in the US, Canada, and Mexico; 999 in the UK; 000 in Australia). If you're in Mexico, you can also call, free and 24 hours a day: Línea de la Vida 800 911 2000, or SAPTEL 55 5259 8121. If you have a doctor or therapist, contact them directly too.",
   },
 
   dayTimeline: {
