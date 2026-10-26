@@ -87,7 +87,7 @@ const pt = {
       title: "Por que começar custa tanto",
       body: [
         "Evitar uma tarefa importante não é preguiça — com TDAH, o cérebro precisa de mais estímulo ou urgência real para se ativar. Quanto maior ou mais entediante parecer uma tarefa, mais difícil é começar, mesmo sabendo perfeitamente que ela é importante.",
-        "Por isso a ferramenta de desmembrar tarefas do Senda não é só uma lista de passos: o primeiro passo deve ser sempre tão pequeno que pareça quase bobo não fazê-lo. Começar gera seu próprio impulso.",
+        "Por isso o detalhador do Senda não é só uma lista de passos: o primeiro passo deve ser sempre tão pequeno que pareça quase bobo não fazê-lo. Começar gera seu próprio impulso.",
       ],
       exercise: 'Escolha uma tarefa que você está evitando. Escreva o primeiro passo tão pequeno que possa fazê-lo em menos de 2 minutos (ex.: não "organizar o armário", mas "tirar 5 peças de roupa do armário"). Faça agora, se puder.',
     },
@@ -179,7 +179,7 @@ const pt = {
   companionSituationContent: {
     "no-puedo-empezar": {
       label: "Não consigo começar",
-      linkLabel: "Ir para o desmembrador de tarefas",
+      linkLabel: "Ir para o detalhador",
       fallbackResponses: [
         "Não conseguir começar não é preguiça — com TDAH o cérebro precisa que a tarefa pareça muito menor antes de conseguir começar. Não tente atacá-la por completo.",
         "Começar é quase sempre a parte mais difícil, não o resto da tarefa. Procure o menor passo possível — um que você possa fazer em menos de 2 minutos — e comece só por aí.",
@@ -219,7 +219,7 @@ const pt = {
     },
     "varias-tareas": {
       label: "Tenho mais de duas tarefas pendentes ao mesmo tempo",
-      linkLabel: "Ir para o desmembrador de tarefas",
+      linkLabel: "Ir para o detalhador",
       fallbackResponses: [
         "Com TDAH, ter várias tarefas pendentes ao mesmo tempo pode parecer que todas estão gritando ao mesmo tempo — isso torna quase impossível escolher uma. Não se trata de resolver todas agora: escolha apenas uma para os próximos minutos e deixe as demais esperando anotadas em algum lugar.",
         "Manter várias tarefas na cabeça ao mesmo tempo gasta energia antes mesmo de começar uma. Anote todas em algum lugar onde não vá esquecer, e escolha apenas uma para focar agora — o resto continua lá, não desaparece.",
@@ -433,7 +433,7 @@ const pt = {
     },
     "no-es-magia": {
       title: "A medicação não é mágica — e está tudo bem que não seja",
-      text: "O tratamento farmacológico ajuda com a atenção e o controle de impulsos, mas não constrói por si só os hábitos, rotinas ou estratégias que estão faltando há anos. Para isso existem as outras ferramentas do Senda (o desmembrador de tarefas, o auditor de tempo, o freio de impulsividade) — pensadas para serem usadas junto com o tratamento, não em seu lugar.",
+      text: "O tratamento farmacológico ajuda com a atenção e o controle de impulsos, mas não constrói por si só os hábitos, rotinas ou estratégias que estão faltando há anos. Para isso existem as outras ferramentas do Senda (o detalhador, o auditor de tempo, o freio de impulsividade) — pensadas para serem usadas junto com o tratamento, não em seu lugar.",
     },
     "errores-comunes": {
       title: "Erros comuns ao começar",
@@ -567,7 +567,7 @@ const pt = {
 
   today: {
     empty: "Você não tem nada pendente por agora — muito bem. Volte quando quiser adicionar algo.",
-    stepsPending: (n) => (n === 1 ? "1 etapa pendente do desmembrador" : `${n} etapas pendentes do desmembrador`),
+    stepsPending: (n) => (n === 1 ? "1 etapa pendente do detalhador" : `${n} etapas pendentes do detalhador`),
     stepSuggested: (text) => `Sugerido para sua energia de hoje: ${text}`,
     moodNotLogged: "Você ainda não registrou como está se sentindo hoje",
     energyNotLogged: "Você ainda não registrou sua energia hoje",

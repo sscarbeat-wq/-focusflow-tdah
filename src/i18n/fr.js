@@ -176,7 +176,7 @@ const fr = {
   companionSituationContent: {
     "no-puedo-empezar": {
       label: "Je n'arrive pas à commencer",
-      linkLabel: "Aller au découpeur de tâches",
+      linkLabel: "Aller à l'outil de découpage",
       fallbackResponses: [
         "Ne pas réussir à démarrer n'est pas de la paresse — avec un TDAH, le cerveau a besoin que la tâche paraisse bien plus petite avant de pouvoir commencer. N'essaie pas de l'attaquer en entier.",
         "Commencer est presque toujours la partie la plus difficile, pas le reste de la tâche. Trouve l'étape la plus petite possible — une que tu peux faire en moins de 2 minutes — et commence juste par là.",
@@ -216,7 +216,7 @@ const fr = {
     },
     "varias-tareas": {
       label: "J'ai plus de deux tâches en attente en même temps",
-      linkLabel: "Aller au découpeur de tâches",
+      linkLabel: "Aller à l'outil de découpage",
       fallbackResponses: [
         "Avec le TDAH, avoir plusieurs tâches en attente en même temps peut donner l'impression qu'elles crient toutes à la fois — ce qui rend presque impossible le choix d'une seule. Il ne s'agit pas de toutes les résoudre maintenant : choisis-en une seule pour les prochaines minutes et laisse les autres attendre, notées quelque part.",
         "Garder plusieurs tâches en tête en même temps épuise de l'énergie avant même d'en commencer une. Note-les toutes quelque part où tu ne les oublieras pas, et choisis-en une seule pour te concentrer maintenant — le reste est toujours là, il ne disparaît pas.",
@@ -430,7 +430,7 @@ const fr = {
     },
     "no-es-magia": {
       title: "Le traitement médicamenteux n'est pas magique — et c'est normal",
-      text: "Le traitement pharmacologique aide pour l'attention et le contrôle des impulsions, mais il ne construit pas seul les habitudes, routines ou stratégies qui manquent depuis des années. C'est à cela que servent les autres outils de Senda (le découpeur de tâches, l'auditeur de temps, le frein d'impulsivité) — pensés pour être utilisés en complément du traitement, pas à sa place.",
+      text: "Le traitement pharmacologique aide pour l'attention et le contrôle des impulsions, mais il ne construit pas seul les habitudes, routines ou stratégies qui manquent depuis des années. C'est à cela que servent les autres outils de Senda (l'outil de découpage, l'auditeur de temps, le frein d'impulsivité) — pensés pour être utilisés en complément du traitement, pas à sa place.",
     },
     "errores-comunes": {
       title: "Erreurs courantes au début",
