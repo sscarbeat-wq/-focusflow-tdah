@@ -24,8 +24,8 @@ export default defineConfig({
       },
       includeAssets: ["icon-192.png", "icon-512.png", "icon-maskable-512.png"],
       manifest: {
-        name: "Senda — TDAH",
-        short_name: "Senda",
+        name: "ANRO TDAH",
+        short_name: "ANRO TDAH",
         description: "Sistema de habituación y regulación para TDAH",
         theme_color: "#141B2E",
         background_color: "#141B2E",

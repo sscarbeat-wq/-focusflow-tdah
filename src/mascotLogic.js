@@ -3,13 +3,24 @@
 // del proyecto (streak.js, choosePick.js, etc.).
 //
 // 27 de octubre de 2026 — se agregó la elección de especie (la paciente
-// puede elegir entre 4 personajes distintos, ver SPECIES_OPTIONS). Las
+// puede elegir entre varios personajes distintos, ver SPECIES_OPTIONS). Las
 // etapas (umbrales de días y los textos de label/hint en el diccionario de
 // idioma, ej. `stageEggLabel`) se quedaron exactamente igual que antes —
 // son genéricas sobre el avance de la racha ("3+ días seguidos", "¡Una
 // semana completa!"), nunca mencionan al animal en sí, así que sirven para
 // cualquier especie sin tener que traducir contenido nuevo. Lo único que
 // cambia por especie es el emoji de cada etapa.
+//
+// Misma fecha, segunda pasada — la doctora pidió más animales y que "se
+// vean mejor". Se agregaron 2 especies más (perro, pez) y se corrigieron
+// dos etapas finales que no tenían sentido: "ave" terminaba en 🐉 (un
+// dragón, no un ave — error de cuando se escribió este archivo por primera
+// vez, probablemente de copiar/pegar la fila de "dragon") y "dragon"
+// terminaba en 🔥 (fuego, no una criatura — rompía la idea de "ver crecer a
+// tu mascota" justo en el momento más importante, la etapa máxima). También
+// se le agregó un "✨" a la etapa final de las 6 especies, a manera de
+// adorno visual consistente que marque claramente "esta es la forma
+// máxima" — no cambia el emoji base de cada una, solo le suma el brillo.
 
 // Metadatos de cada etapa — iguales para las 4 especies. El nombre interno
 // de las claves (Egg/Hatchling/Chick/...) viene de cuando solo existía la
@@ -26,10 +37,12 @@ const STAGE_META = [
 
 // Un emoji por etapa, en el mismo orden que STAGE_META, para cada especie.
 export const SPECIES_EMOJI = {
-  ave: ["🥚", "🐣", "🐥", "🦜", "🦉", "🐉"],
-  gato: ["🐾", "🐱", "🐈", "🐯", "🦁", "🐆"],
-  planta: ["🌰", "🌱", "🌿", "🪴", "🌳", "🌺"],
-  dragon: ["🥚", "🦎", "🐍", "🐲", "🐉", "🔥"],
+  ave: ["🥚", "🐣", "🐥", "🐦", "🦜", "🦚✨"],
+  gato: ["🐾", "🐱", "🐈", "🐯", "🦁", "🐆✨"],
+  planta: ["🌰", "🌱", "🌿", "🪴", "🌳", "🌺✨"],
+  dragon: ["🥚", "🦎", "🐍", "🐲", "🐉", "🐉✨"],
+  perro: ["🐾", "🐶", "🐕", "🐕‍🦺", "🦮", "🐺✨"],
+  pez: ["🥚", "🐟", "🐠", "🐡", "🦈", "🐋✨"],
 };
 
 export const SPECIES_OPTIONS = Object.keys(SPECIES_EMOJI);

@@ -39,6 +39,12 @@ export const DARK_THEME = {
   sky: "#8FB8D9",
   skyDark: "#5F90B8",
   skyText: "#0D2238",
+  gray: "#9BA7C2",
+  grayText: "#1B2133",
+  white: "#F2F4FA",
+  whiteText: "#1E2433",
+  black: "#5B6478",
+  blackText: "#F2F4FA",
 };
 
 export const LIGHT_THEME = {
@@ -64,6 +70,12 @@ export const LIGHT_THEME = {
   sky: "#3F7FB0",
   skyDark: "#326690",
   skyText: "#FFFFFF",
+  gray: "#6B7390",
+  grayText: "#FFFFFF",
+  white: "#C9CEDC",
+  whiteText: "#1E2433",
+  black: "#1E2433",
+  blackText: "#FFFFFF",
 };
 
 export const THEME_STORAGE_KEY = "senda-theme";
@@ -101,11 +113,23 @@ export function storeTheme(theme) {
 
 // --- Acento personal -------------------------------------------------
 //
-// Las 6 claves son las mismas 6 que ya existen en DARK_THEME/LIGHT_THEME —
-// a propósito, para no inventar una séptima paleta: el componente que use
-// el acento personal solo necesita leer `C[accentKey]`, que ya cambia solo
+// Las claves son las mismas que ya existen en DARK_THEME/LIGHT_THEME — a
+// propósito, para no inventar una paleta aparte: el componente que use el
+// acento personal solo necesita leer `C[accentKey]`, que ya cambia solo
 // entre modo claro/oscuro igual que el resto de los colores.
-export const ACCENT_OPTIONS = ["lavender", "mint", "coral", "rose", "amber", "sky"];
+//
+// 27 de octubre de 2026 — se agregaron gray/white/black a petición de la
+// doctora. Ojo con un detalle de contraste que vale la pena tener presente:
+// "white" y "black" no pueden ser un blanco/negro puro en los dos temas a
+// la vez, porque el fondo de la app YA es casi blanco en modo claro y casi
+// negro en modo oscuro — un acento literalmente blanco sería invisible
+// sobre un fondo claro, y uno literalmente negro sería invisible sobre un
+// fondo oscuro. Por eso cada uno usa un tono distinto por tema (igual que
+// ya hacían lavender/mint/etc., que tampoco son el mismo hex en los dos
+// temas): "white" es un blanco casi puro en modo oscuro pero un gris perla
+// en modo claro, y "black" es lo opuesto — así siempre se alcanza a ver
+// contra el fondo, sea cual sea el tema activo.
+export const ACCENT_OPTIONS = ["lavender", "mint", "coral", "rose", "amber", "sky", "gray", "white", "black"];
 export const DEFAULT_ACCENT = "lavender";
 export const ACCENT_STORAGE_KEY = "anro-accent";
 

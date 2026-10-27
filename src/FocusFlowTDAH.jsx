@@ -927,7 +927,14 @@ export default function FocusFlowTDAH({
   return (
     <div
       style={{
-        background: C.bg,
+        // 27 de octubre de 2026 — a petición de la doctora, el fondo de TODA
+        // la app ahora sigue el color de acento que elige la paciente (antes
+        // solo lo usaban la mascota y el panel "Hoy"). Es un lavado muy
+        // suave del acento sobre el fondo normal del tema claro/oscuro, no
+        // un color plano — así los 24 paneles, que sí mantienen su color
+        // fijo por categoría (ver Panel más abajo), siguen contrastando bien
+        // encima en vez de perderse contra un fondo saturado.
+        background: `linear-gradient(160deg, ${tint(personalAccent, 0.12)}, ${C.bg} 60%)`,
         color: C.text,
         fontFamily: "-apple-system, BlinkMacSystemFont, 'Inter', 'Segoe UI', sans-serif",
         minHeight: "100vh",
@@ -1073,6 +1080,7 @@ export default function FocusFlowTDAH({
                       height: "18px",
                       borderRadius: "50%",
                       background: personalAccent,
+                      boxShadow: `0 0 0 1px ${C.border}`,
                       display: "block",
                     }}
                     aria-hidden="true"
@@ -1090,7 +1098,7 @@ export default function FocusFlowTDAH({
                       padding: "12px",
                       boxShadow: "0 8px 20px rgba(0,0,0,0.18)",
                       zIndex: 10,
-                      width: "190px",
+                      width: "176px",
                     }}
                   >
                     <div style={{ fontSize: "12px", color: C.textMuted, marginBottom: "10px" }}>
@@ -1111,7 +1119,14 @@ export default function FocusFlowTDAH({
                             height: "32px",
                             borderRadius: "50%",
                             background: C[key],
-                            border: key === accentKey ? `3px solid ${C.text}` : `3px solid transparent`,
+                            // Borde delgado siempre visible (no solo cuando está
+                            // seleccionado) — 27 de octubre de 2026, necesario
+                            // desde que se agregaron blanco y negro: un círculo
+                            // blanco sin borde se pierde contra este popover
+                            // (C.surface, casi blanco en modo claro), y uno negro
+                            // se perdería igual contra un fondo oscuro.
+                            boxShadow: key === accentKey ? `0 0 0 3px ${C.text}` : `0 0 0 1px ${C.border}`,
+                            border: "none",
                             cursor: "pointer",
                             padding: 0,
                           }}
@@ -1138,10 +1153,12 @@ export default function FocusFlowTDAH({
                     alignItems: "center",
                     justifyContent: "center",
                     cursor: "pointer",
-                    fontSize: "18px",
+                    fontSize: "20px",
                   }}
                 >
-                  <span aria-hidden="true">{matureEmoji(species || DEFAULT_SPECIES)}</span>
+                  <span aria-hidden="true" style={{ filter: "drop-shadow(0 1px 2px rgba(0,0,0,0.18))" }}>
+                    {matureEmoji(species || DEFAULT_SPECIES)}
+                  </span>
                 </button>
                 {speciesPickerOpen && (
                   <div
@@ -1152,42 +1169,60 @@ export default function FocusFlowTDAH({
                       background: C.surface,
                       border: `1px solid ${C.border}`,
                       borderRadius: "16px",
-                      padding: "12px",
+                      padding: "14px",
                       boxShadow: "0 8px 20px rgba(0,0,0,0.18)",
                       zIndex: 10,
-                      width: "210px",
+                      width: "236px",
                     }}
                   >
                     <div style={{ fontSize: "12px", color: C.textMuted, marginBottom: "10px" }}>
                       {t.app.speciesPicker.prompt}
                     </div>
                     <div style={{ display: "flex", flexWrap: "wrap", gap: "8px" }}>
-                      {SPECIES_OPTIONS.map((key) => (
-                        <button
-                          key={key}
-                          onClick={() => {
-                            onChangeSpecies(key);
-                            setSpeciesPickerOpen(false);
-                          }}
-                          style={{
-                            display: "flex",
-                            flexDirection: "column",
-                            alignItems: "center",
-                            gap: "4px",
-                            width: "44px",
-                            padding: "8px 4px",
-                            borderRadius: "12px",
-                            background: key === (species || DEFAULT_SPECIES) ? tint(personalAccent, 0.18) : "transparent",
-                            border: key === (species || DEFAULT_SPECIES) ? `2px solid ${personalAccent}` : "2px solid transparent",
-                            cursor: "pointer",
-                          }}
-                        >
-                          <span style={{ fontSize: "20px" }} aria-hidden="true">
-                            {matureEmoji(key)}
-                          </span>
-                          <span style={{ fontSize: "10px", color: C.textMuted }}>{t.app.speciesPicker.names[key]}</span>
-                        </button>
-                      ))}
+                      {SPECIES_OPTIONS.map((key) => {
+                        const selected = key === (species || DEFAULT_SPECIES);
+                        return (
+                          <button
+                            key={key}
+                            onClick={() => {
+                              onChangeSpecies(key);
+                              setSpeciesPickerOpen(false);
+                            }}
+                            style={{
+                              display: "flex",
+                              flexDirection: "column",
+                              alignItems: "center",
+                              gap: "6px",
+                              width: "64px",
+                              padding: "10px 4px 8px",
+                              borderRadius: "14px",
+                              background: selected ? tint(personalAccent, 0.18) : tint(C.textMuted, 0.06),
+                              border: selected ? `2px solid ${personalAccent}` : "2px solid transparent",
+                              cursor: "pointer",
+                            }}
+                          >
+                            <span
+                              aria-hidden="true"
+                              style={{
+                                width: "40px",
+                                height: "40px",
+                                borderRadius: "50%",
+                                background: C.surfaceAlt,
+                                display: "flex",
+                                alignItems: "center",
+                                justifyContent: "center",
+                                fontSize: "24px",
+                                filter: "drop-shadow(0 1px 2px rgba(0,0,0,0.18))",
+                              }}
+                            >
+                              {matureEmoji(key)}
+                            </span>
+                            <span style={{ fontSize: "10px", color: C.textMuted, textAlign: "center" }}>
+                              {t.app.speciesPicker.names[key]}
+                            </span>
+                          </button>
+                        );
+                      })}
                     </div>
                   </div>
                 )}
