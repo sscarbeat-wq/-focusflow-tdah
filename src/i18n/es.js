@@ -9,7 +9,7 @@
 
 const es = {
   common: {
-    appName: "ANRO TDAH",
+    appName: "Senda",
     toDarkMode: "Cambiar a modo oscuro",
     toLightMode: "Cambiar a modo claro",
     signOut: "Cerrar sesión",
@@ -36,7 +36,7 @@ const es = {
   },
 
   paywall: {
-    title: "Desbloquea ANRO TDAH",
+    title: "Desbloquea Senda",
     pitch: "Acceso completo al desglosador de tareas, auditor de tiempo, freno de impulsividad, respiración guiada, reestructuración de pensamientos y rastreador de hábitos.",
     checkoutError: "No se pudo iniciar el pago",
     subscribeButton: "Suscribirme",
@@ -63,7 +63,7 @@ const es = {
     deniedMessage: "No se completó la conexión — si cambias de opinión, puedes intentarlo de nuevo cuando quieras.",
     errorMessage: "Algo falló al conectar tu calendario. Intenta de nuevo en un momento.",
     checking: "Consultando...",
-    disconnectedIntro: "Conecta tu Google Calendar para que los pasos del desglosador y tus sesiones de Modo Enfoque se bloqueen automáticamente como eventos — para que ese tiempo quede apartado de antemano, no solo registrado aquí dentro de ANRO TDAH.",
+    disconnectedIntro: "Conecta tu Google Calendar para que los pasos del desglosador y tus sesiones de Modo Enfoque se bloqueen automáticamente como eventos — para que ese tiempo quede apartado de antemano, no solo registrado aquí dentro de Senda.",
     connectButton: "Conectar con Google Calendar",
     connectingButton: "Abriendo Google...",
     connectedLabel: "Conectado",
@@ -87,7 +87,7 @@ const es = {
       title: "Por qué cuesta tanto empezar",
       body: [
         "Evitar una tarea importante no es flojera — con TDAH, el cerebro necesita más estímulo o urgencia real para activarse. Entre más grande o aburrida se vea una tarea, más cuesta arrancar, aunque sepas perfectamente que es importante.",
-        "Por eso el desglosador de ANRO TDAH no es solo una lista de pasos: el primer paso siempre debe ser tan pequeño que dé casi pena no hacerlo. Empezar genera su propio impulso.",
+        "Por eso el desglosador de Senda no es solo una lista de pasos: el primer paso siempre debe ser tan pequeño que dé casi pena no hacerlo. Empezar genera su propio impulso.",
       ],
       exercise: 'Toma una tarea que llevas evitando. Escribe el primer paso tan chiquito que puedas hacerlo en menos de 2 minutos (ej. no "organizar el clóset", sino "sacar 5 prendas del clóset"). Hazlo ahora si puedes.',
     },
@@ -103,23 +103,23 @@ const es = {
       title: "La pausa de 10 segundos",
       body: [
         'La impulsividad en el TDAH no es "actuar sin pensar" en el sentido moral — es que el impulso llega y se ejecuta antes de que la parte reflexiva del cerebro alcance a opinar. La buena noticia es que ese margen, aunque sea chiquito, se puede entrenar.',
-        "ANRO TDAH ya tiene una herramienta para esto — el freno de impulsividad — pensada justo para insertar una pausa real antes de actuar.",
+        "Senda ya tiene una herramienta para esto — el freno de impulsividad — pensada justo para insertar una pausa real antes de actuar.",
       ],
-      exercise: "La próxima vez que sientas el impulso de mandar un mensaje, comprar algo o reaccionar fuerte, usa el freno de impulsividad de ANRO TDAH antes. Si no lo tienes a la mano, cuenta hasta 10 respirando lento — es el mismo principio.",
+      exercise: "La próxima vez que sientas el impulso de mandar un mensaje, comprar algo o reaccionar fuerte, usa el freno de impulsividad de Senda antes. Si no lo tienes a la mano, cuenta hasta 10 respirando lento — es el mismo principio.",
     },
     "regular-emocion": {
       title: "Regular la emoción antes de la tarea",
       body: [
         'Antes de poder concentrarte en una tarea, muchas veces hay que bajarle a la emoción que trae encima — frustración por no haber empezado antes, ansiedad por lo que falta, vergüenza por sentir que "debería poder sola". Intentar concentrarte sin atender esa emoción primero suele fallar, porque el cerebro sigue ocupado con lo emocional.',
-        "Por eso el ejercicio de respiración guiada de ANRO TDAH no es un extra — es, muchas veces, el paso cero antes de cualquier tarea.",
+        "Por eso el ejercicio de respiración guiada de Senda no es un extra — es, muchas veces, el paso cero antes de cualquier tarea.",
       ],
-      exercise: 'Antes de tu próxima sesión de Modo Enfoque, dedica 1 minuto a la respiración guiada de ANRO TDAH ("Burbuja de enfoque"), aunque sientas que "no tienes tiempo". Nota si después te cuesta menos empezar.',
+      exercise: 'Antes de tu próxima sesión de Modo Enfoque, dedica 1 minuto a la respiración guiada de Senda ("Burbuja de enfoque"), aunque sientas que "no tienes tiempo". Nota si después te cuesta menos empezar.',
     },
     "rutinas-sostenibles": {
       title: "Construir rutinas que sí se sostienen",
       body: [
         "Las rutinas rígidas (despertar a las 6:00 en punto, todo en el mismo orden siempre) suelen fallar rápido en TDAH, porque un solo día distinto las rompe por completo y se siente como un fracaso. Las rutinas que sí duran son flexibles por diseño: tienen un orden general, no horarios exactos, y permiten saltarse un paso sin que se caiga toda la estructura.",
-        "Tu racha en ANRO TDAH funciona así a propósito — lo que cuenta es volver, no ser perfecta.",
+        "Tu racha en Senda funciona así a propósito — lo que cuenta es volver, no ser perfecta.",
       ],
       exercise: 'Elige UNA rutina tuya que se haya roto varias veces. Reescríbela quitándole un horario exacto (cámbialo por "en la mañana" o "antes de dormir") y quitándole un paso que no sea esencial.',
     },
@@ -127,7 +127,7 @@ const es = {
       title: "Revisar la semana sin autocrítica",
       body: [
         "Cerrar la semana juzgándote por lo que no lograste casi nunca ayuda a hacer más la próxima — generalmente solo suma vergüenza, y la vergüenza no es combustible sostenible. La revisión que sí funciona es descriptiva, no evaluativa: ver qué pasó, sin ponerle una calificación moral.",
-        'Tus Insights semanales en ANRO TDAH están diseñados para esto — muestran patrones reales, nunca una "nota" de qué tan bien hiciste la semana.',
+        'Tus Insights semanales en Senda están diseñados para esto — muestran patrones reales, nunca una "nota" de qué tan bien hiciste la semana.',
       ],
       exercise: 'Abre tus Insights semanales y léelos como si describieras el clima, no como una boleta de calificaciones. Elige UNA cosa que notaste, sin la palabra "debería" en la frase.',
     },
@@ -143,9 +143,9 @@ const es = {
   },
 
   clinicalReport: {
-    printOnlyTitle: "Reporte para tu consulta — ANRO TDAH",
+    printOnlyTitle: "Reporte para tu consulta — Senda",
     printOnlyRange: (days, date) => `Últimos ${days} días, generado el ${date}.`,
-    intro: (days) => `Resumen de tus últimos ${days} días en ANRO TDAH, armado solo con lo que ya registraste — nada generado por IA. Es un apoyo para platicar en tu consulta, no un diagnóstico ni una evaluación clínica.`,
+    intro: (days) => `Resumen de tus últimos ${days} días en Senda, armado solo con lo que ya registraste — nada generado por IA. Es un apoyo para platicar en tu consulta, no un diagnóstico ni una evaluación clínica.`,
     printButton: "Imprimir o guardar como PDF",
     moodLabel: "Ánimo",
     moodNone: "Sin registros de ánimo en este periodo.",
@@ -234,8 +234,8 @@ const es = {
   },
 
   dayTimeline: {
-    empty: "Todavía no hay nada registrado hoy — en cuanto hagas algo en ANRO TDAH (registrar tu ánimo, tomar un medicamento, completar un paso...) va a aparecer aquí, a la hora en que lo hiciste.",
-    cappedNote: "Puede que algo de más temprano hoy ya no aparezca — ANRO TDAH solo guarda las últimas 12 acciones en total, no por día.",
+    empty: "Todavía no hay nada registrado hoy — en cuanto hagas algo en Senda (registrar tu ánimo, tomar un medicamento, completar un paso...) va a aparecer aquí, a la hora en que lo hiciste.",
+    cappedNote: "Puede que algo de más temprano hoy ya no aparezca — Senda solo guarda las últimas 12 acciones en total, no por día.",
     dayParts: { madrugada: "Madrugada", manana: "Mañana", tarde: "Tarde", noche: "Noche" },
   },
 
@@ -259,7 +259,7 @@ const es = {
     noiseOff: "Apagar ruido blanco",
     noiseOn: "Encender ruido blanco",
     noiseTitle: "Ruido blanco de fondo",
-    footerNote: "El ruido blanco se genera en el dispositivo, sin descargar nada. Al terminar cada sesión de enfoque suena una campana suave. Si dejas esta pestaña mientras una sesión de enfoque está corriendo, ANRO TDAH te avisa al volver — no puede bloquear otras apps desde el navegador, pero sí puede avisarte cuánto tiempo estuviste fuera.",
+    footerNote: "El ruido blanco se genera en el dispositivo, sin descargar nada. Al terminar cada sesión de enfoque suena una campana suave. Si dejas esta pestaña mientras una sesión de enfoque está corriendo, Senda te avisa al volver — no puede bloquear otras apps desde el navegador, pero sí puede avisarte cuánto tiempo estuviste fuera.",
     distractionSummary: (count, seconds) => `🚪 ${count === 1 ? "1 salida" : `${count} salidas`} de la pestaña (${seconds}s fuera en total esta sesión)`,
     returnToast: (seconds) => `Volviste después de ${seconds}s fuera de la pestaña — tu sesión de enfoque sigue corriendo`,
   },
@@ -284,7 +284,7 @@ const es = {
     inAppBody2: " o el menú de esta pantalla y elige ",
     inAppOpenInBrowser: '"Abrir en el navegador"',
     inAppBody3: " (Chrome o Safari). Desde aquí dentro no se puede instalar.",
-    androidTitle: "Instala ANRO TDAH en tu celular",
+    androidTitle: "Instala Senda en tu celular",
     androidPromptBody: "Tenla como una app, con su ícono y sin barra del navegador.",
     androidInstallButton: "Instalar app",
     androidManualBody1: "Toca los tres puntos ",
@@ -294,9 +294,9 @@ const es = {
     androidManualBody3: " o ",
     androidManualAddHome: '"Añadir a pantalla de inicio"',
     androidManualBody4: ".",
-    iosChromeTitle: "Instala ANRO TDAH en tu iPhone",
+    iosChromeTitle: "Instala Senda en tu iPhone",
     iosChromeBody: "Para instalarla necesitas abrir este link en Safari (no en Chrome) — en iPhone, solo Safari puede agregarla a tu pantalla de inicio.",
-    iosSafariTitle: "Instala ANRO TDAH en tu iPhone",
+    iosSafariTitle: "Instala Senda en tu iPhone",
     iosSafariBody1: "Toca ",
     iosSafariShare: "Compartir",
     iosSafariBody2: " (abajo, al centro) → ",
@@ -388,7 +388,7 @@ const es = {
   },
 
   notifications: {
-    unsupported: 'Tu navegador no soporta notificaciones push todavía. En iPhone, primero instala ANRO TDAH a tu pantalla de inicio (botón Compartir → "Agregar a pantalla de inicio") y ábrela desde ahí para poder activarlas.',
+    unsupported: 'Tu navegador no soporta notificaciones push todavía. En iPhone, primero instala Senda a tu pantalla de inicio (botón Compartir → "Agregar a pantalla de inicio") y ábrela desde ahí para poder activarlas.',
     intro: "Un aviso si no has hecho tu registro de ánimo hoy, o si tu racha está por perderse — para no depender de acordarte de abrir la app.",
     deniedWarning: "Bloqueaste las notificaciones para este sitio. Actívalas desde los ajustes del navegador (el ícono junto a la dirección web) y recarga la página.",
     enableError: "No se pudo activar. Intenta de nuevo.",
@@ -433,7 +433,7 @@ const es = {
     },
     "no-es-magia": {
       title: "La medicación no es magia — y está bien que no lo sea",
-      text: "El tratamiento farmacológico ayuda con la atención y el control de impulsos, pero no construye solo los hábitos, rutinas o estrategias que llevan años sin existir. Para eso están las demás herramientas de ANRO TDAH (el desglosador, el auditor de tiempo, el freno de impulsividad) — pensadas para usarse junto con el tratamiento, no en lugar de él.",
+      text: "El tratamiento farmacológico ayuda con la atención y el control de impulsos, pero no construye solo los hábitos, rutinas o estrategias que llevan años sin existir. Para eso están las demás herramientas de Senda (el desglosador, el auditor de tiempo, el freno de impulsividad) — pensadas para usarse junto con el tratamiento, no en lugar de él.",
     },
     "errores-comunes": {
       title: "Errores comunes al empezar",
@@ -450,7 +450,7 @@ const es = {
   },
 
   quickCapture: {
-    intro: "Para cuando una idea se te va a ir si no la dejas ya — habla o escribe, y ANRO TDAH intenta mandarla sola al lugar correcto. Nunca agrega nada por su cuenta: siempre te pregunta antes.",
+    intro: "Para cuando una idea se te va a ir si no la dejas ya — habla o escribe, y Senda intenta mandarla sola al lugar correcto. Nunca agrega nada por su cuenta: siempre te pregunta antes.",
     stopRecording: "Toca para terminar",
     processing: "Procesando...",
     recordButton: "Grabar una nota",
@@ -509,8 +509,8 @@ const es = {
       source: "Estudio en 46 clínicas de TDAH, Países Bajos, 2018-2020 — 3,691 adultos (cribado, no diagnóstico clínico confirmado).",
     },
     "mindfulness-evidencia": {
-      title: "Por qué ANRO TDAH tiene una práctica de atención plena",
-      text: "Un metaanálisis en red de 113 ensayos clínicos encontró que, entre las intervenciones psicológicas para TDAH, mindfulness fue la única con beneficio tanto en síntomas centrales como en velocidad de procesamiento a las 12 semanas. Por eso la práctica guiada de ANRO TDAH no es un añadido genérico de bienestar — tiene evidencia propia dentro del tratamiento de TDAH.",
+      title: "Por qué Senda tiene una práctica de atención plena",
+      text: "Un metaanálisis en red de 113 ensayos clínicos encontró que, entre las intervenciones psicológicas para TDAH, mindfulness fue la única con beneficio tanto en síntomas centrales como en velocidad de procesamiento a las 12 semanas. Por eso la práctica guiada de Senda no es un añadido genérico de bienestar — tiene evidencia propia dentro del tratamiento de TDAH.",
       source: "Metaanálisis en red, The Lancet Psychiatry (2025) — 113 ensayos clínicos.",
     },
     perimenopausia: {
@@ -525,7 +525,7 @@ const es = {
     },
     "body-doubling-ojo-con-la-evidencia": {
       title: "Cuerpo doble: resultados prometedores, pero léelos con cuidado",
-      text: 'Una encuesta con 117 adultos con TDAH que usaron sesiones de "cuerpo doble" virtual durante 12 semanas reportó mejoras en concentración sostenida (69% dijo que le costaba mucho menos concentrarse) y menos ansiedad autorreportada. Pero ojo: fue una encuesta antes/después, sin grupo de control, financiada por la misma plataforma que ofrece el servicio — prometedora, no una prueba definitiva. Por eso la sala de cuerpo doble de ANRO TDAH es gratuita y anónima, no una promesa de resultado garantizado.',
+      text: 'Una encuesta con 117 adultos con TDAH que usaron sesiones de "cuerpo doble" virtual durante 12 semanas reportó mejoras en concentración sostenida (69% dijo que le costaba mucho menos concentrarse) y menos ansiedad autorreportada. Pero ojo: fue una encuesta antes/después, sin grupo de control, financiada por la misma plataforma que ofrece el servicio — prometedora, no una prueba definitiva. Por eso la sala de cuerpo doble de Senda es gratuita y anónima, no una promesa de resultado garantizado.',
       source: "Encuesta de FLOWN (Reino Unido), 117 usuarios, 12 semanas, sin grupo control — financiada por el propio proveedor.",
     },
     "comorbilidad-ansiedad-depresion": {
@@ -612,17 +612,39 @@ const es = {
     muteOff: "Encender sonido y vibración al completar",
     soundOnMsg: "Sonido y vibración activados",
     soundOffMsg: "Sonido y vibración desactivados",
+    accentPicker: {
+      label: "Elige tu color",
+      prompt: "Elige el color que más te guste para tu mascota y tu pantalla de Hoy.",
+      names: {
+        lavender: "Lavanda",
+        mint: "Menta",
+        coral: "Durazno",
+        rose: "Rosa",
+        amber: "Ámbar",
+        sky: "Cielo",
+      },
+    },
+    speciesPicker: {
+      label: "Elige tu mascota",
+      prompt: "Elige qué personaje quieres que crezca con tu racha.",
+      names: {
+        ave: "Ave",
+        gato: "Gato",
+        planta: "Planta",
+        dragon: "Dragón",
+      },
+    },
     mySubscription: "Mi suscripción",
     jarLabel: "Tarro de logros",
     jarEmpty: "Cada micro-logro que completes va a aparecer aquí.",
     disclaimer: "Esta app es una herramienta de apoyo de hábitos. La investigación sobre rutinas y hábitos en TDAH está concentrada sobre todo en niños, y hoy no existe un instrumento validado para medir esto en adultos — por eso funciona como acompañamiento práctico, no como algo clínicamente validado, y no reemplaza evaluación o tratamiento profesional.",
     footerNote: "Esto es una herramienta de apoyo y no reemplaza una evaluación o tratamiento profesional.",
-    focusSessionEventTitle: "Sesión de enfoque (ANRO TDAH)",
+    focusSessionEventTitle: "Sesión de enfoque (Senda)",
 
     panels: {
       today: { title: "Hoy", subtitle: "Lo que sigue pendiente ahora mismo, juntando lo que ya registraste en la app." },
-      timeline: { title: "Línea de tiempo de hoy", subtitle: "A qué hora pasó cada cosa que hiciste en ANRO TDAH hoy — para ver de un vistazo cómo se ha ido el día." },
-      quickCapture: { title: "Captura rápida", subtitle: "Deja una idea por voz o texto sin decidir primero en qué panel va — ANRO TDAH intenta mandarla sola al lugar correcto." },
+      timeline: { title: "Línea de tiempo de hoy", subtitle: "A qué hora pasó cada cosa que hiciste en Senda hoy — para ver de un vistazo cómo se ha ido el día." },
+      quickCapture: { title: "Captura rápida", subtitle: "Deja una idea por voz o texto sin decidir primero en qué panel va — Senda intenta mandarla sola al lugar correcto." },
       companion: { title: "Compañero de apoyo", subtitle: "Elige lo que estás sintiendo ahora mismo — respuestas pensadas para TDAH, sin que tengas que escribir nada." },
       dismantler: { title: "El desglosador", subtitle: "Si te cuesta empezar, suele ser porque el primer paso es demasiado grande." },
       auditor: { title: "El auditor de tiempo", subtitle: "Compara cuánto piensas que va a tardar contra lo que realmente tarda." },
@@ -632,7 +654,7 @@ const es = {
       cbt: { title: "Programa breve de TCC", subtitle: "Una lección corta al día — psicoeducación práctica para TDAH, a tu propio ritmo." },
       insights: { title: "Insights semanales", subtitle: "Patrones de tu semana, armados con lo que ya registraste — nada inventado." },
       report: { title: "Reporte para tu consulta", subtitle: "Un resumen de tus últimos 14 días, listo para imprimir o mostrar en pantalla en tu próxima cita." },
-      notifications: { title: "Notificaciones", subtitle: "Avisos para acordarte de usar ANRO TDAH, aunque tengas la app cerrada." },
+      notifications: { title: "Notificaciones", subtitle: "Avisos para acordarte de usar Senda, aunque tengas la app cerrada." },
       calendar: { title: "Integración con calendario", subtitle: "Bloquea automáticamente en tu Google Calendar el tiempo de tus pasos y sesiones." },
       bodyDouble: { title: "Cuerpo doble virtual", subtitle: "Trabaja en silencio al mismo tiempo que otras personas, sin verlas ni hablarles." },
       energy: { title: "Check-in de energía", subtitle: "Igual que el de ánimo, pero de energía — se usa para sugerirte qué paso del desglosador conviene intentar primero." },

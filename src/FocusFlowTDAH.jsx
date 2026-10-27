@@ -102,6 +102,8 @@ import {
 import { DEFAULT_SLEEP_LOG, recordBedtime, todayBedtime } from "./sleepLog";
 import { DEFAULT_IMPULSE_BRAKE_LOG, recordImpulseBrakeUse } from "./impulseBrakeLog";
 import { DEFAULT_GOOD_MOMENTS, addGoodMoment, removeGoodMoment } from "./goodMoments";
+import { tint, ACCENT_OPTIONS } from "./theme";
+import { SPECIES_OPTIONS, matureEmoji, DEFAULT_SPECIES } from "./mascotLogic";
 
 const DEFAULT_PROGRESS = {
   xp: 0,
@@ -132,21 +134,41 @@ const DEFAULT_PROGRESS = {
 // el foco a cualquier input que esté adentro mientras el paciente escribe.
 // Reciben `C` (el tema activo) como prop para seguir cambiando de color
 // junto con el resto de la app entre modo claro y oscuro.
+// Rediseño del 26 de octubre de 2026 (estilo inspirado en Tiimo, ver la
+// propuesta visual aprobada): esquinas más redondeadas, más espacio, y un
+// lavado suave del color de acento de fondo en vez de solo una línea en el
+// borde superior — mismo principio de "colores suaves, nunca alarmantes"
+// que ya regía la paleta, solo que ahora cada panel se reconoce por su
+// color de categoría de un vistazo, no solo por el ícono/título.
 function Panel({ accent, icon, title, subtitle, children, C }) {
   return (
     <div
       style={{
         background: C.surface,
-        borderTop: `3px solid ${accent}`,
-        borderRadius: "6px",
-        padding: "22px 22px 24px",
+        borderRadius: "22px",
+        padding: "24px 24px 26px",
         marginBottom: "20px",
+        boxShadow: "0 4px 14px rgba(0,0,0,0.08)",
       }}
     >
-      <div style={{ display: "flex", gap: "12px", alignItems: "flex-start", marginBottom: "16px" }}>
-        <div style={{ color: accent, marginTop: "2px", flexShrink: 0 }}>{icon}</div>
+      <div style={{ display: "flex", gap: "14px", alignItems: "flex-start", marginBottom: "18px" }}>
+        <div
+          style={{
+            width: "40px",
+            height: "40px",
+            borderRadius: "13px",
+            background: tint(accent, 0.16),
+            color: accent,
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            flexShrink: 0,
+          }}
+        >
+          {icon}
+        </div>
         <div>
-          <h2 style={{ fontSize: "17px", fontWeight: 600, margin: 0, color: C.text }}>{title}</h2>
+          <h2 style={{ fontSize: "17px", fontWeight: 700, margin: 0, color: C.text }}>{title}</h2>
           {subtitle && (
             <p style={{ fontSize: "13px", color: C.textMuted, margin: "5px 0 0", lineHeight: 1.5 }}>{subtitle}</p>
           )}
@@ -194,14 +216,25 @@ export default function FocusFlowTDAH({
   C,
   theme,
   onToggleTheme,
+  accentKey,
+  onChangeAccent,
+  species,
+  onChangeSpecies,
   t,
   lang,
   onChangeLanguage,
 }) {
   const saved = { ...DEFAULT_PROGRESS, ...(initialProgress || {}) };
+  // Acento personal — 26 de octubre de 2026. `accentKey` puede no venir
+  // todavía (pantallas que no pasan por App.jsx, o una prop opcional no
+  // enviada) — C.lavender como respaldo es el mismo color que ya se usaba
+  // fijo antes de este cambio, así que nunca se ve distinto si falta.
+  const personalAccent = (accentKey && C[accentKey]) || C.lavender;
 
   const bodyDouble = useBodyDouble(userId);
 
+  const [accentPickerOpen, setAccentPickerOpen] = useState(false);
+  const [speciesPickerOpen, setSpeciesPickerOpen] = useState(false);
   const [isNarrow, setIsNarrow] = useState(false);
   useEffect(() => {
     const check = () => setIsNarrow(window.innerWidth < 760);
@@ -1016,6 +1049,150 @@ export default function FocusFlowTDAH({
                 {theme === "light" ? <Moon size={16} /> : <Sun size={16} />}
               </button>
             )}
+            {onChangeAccent && (
+              <div style={{ position: "relative" }}>
+                <button
+                  onClick={() => setAccentPickerOpen((prev) => !prev)}
+                  aria-label={t.app.accentPicker.label}
+                  title={t.app.accentPicker.label}
+                  style={{
+                    background: "transparent",
+                    border: `1px solid ${C.border}`,
+                    borderRadius: "8px",
+                    width: "40px",
+                    height: "40px",
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    cursor: "pointer",
+                  }}
+                >
+                  <span
+                    style={{
+                      width: "18px",
+                      height: "18px",
+                      borderRadius: "50%",
+                      background: personalAccent,
+                      display: "block",
+                    }}
+                    aria-hidden="true"
+                  />
+                </button>
+                {accentPickerOpen && (
+                  <div
+                    style={{
+                      position: "absolute",
+                      top: "48px",
+                      right: 0,
+                      background: C.surface,
+                      border: `1px solid ${C.border}`,
+                      borderRadius: "16px",
+                      padding: "12px",
+                      boxShadow: "0 8px 20px rgba(0,0,0,0.18)",
+                      zIndex: 10,
+                      width: "190px",
+                    }}
+                  >
+                    <div style={{ fontSize: "12px", color: C.textMuted, marginBottom: "10px" }}>
+                      {t.app.accentPicker.prompt}
+                    </div>
+                    <div style={{ display: "flex", flexWrap: "wrap", gap: "10px" }}>
+                      {ACCENT_OPTIONS.map((key) => (
+                        <button
+                          key={key}
+                          onClick={() => {
+                            onChangeAccent(key);
+                            setAccentPickerOpen(false);
+                          }}
+                          aria-label={t.app.accentPicker.names[key]}
+                          title={t.app.accentPicker.names[key]}
+                          style={{
+                            width: "32px",
+                            height: "32px",
+                            borderRadius: "50%",
+                            background: C[key],
+                            border: key === accentKey ? `3px solid ${C.text}` : `3px solid transparent`,
+                            cursor: "pointer",
+                            padding: 0,
+                          }}
+                        />
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
+            {onChangeSpecies && (
+              <div style={{ position: "relative" }}>
+                <button
+                  onClick={() => setSpeciesPickerOpen((prev) => !prev)}
+                  aria-label={t.app.speciesPicker.label}
+                  title={t.app.speciesPicker.label}
+                  style={{
+                    background: "transparent",
+                    border: `1px solid ${C.border}`,
+                    borderRadius: "8px",
+                    width: "40px",
+                    height: "40px",
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    cursor: "pointer",
+                    fontSize: "18px",
+                  }}
+                >
+                  <span aria-hidden="true">{matureEmoji(species || DEFAULT_SPECIES)}</span>
+                </button>
+                {speciesPickerOpen && (
+                  <div
+                    style={{
+                      position: "absolute",
+                      top: "48px",
+                      right: 0,
+                      background: C.surface,
+                      border: `1px solid ${C.border}`,
+                      borderRadius: "16px",
+                      padding: "12px",
+                      boxShadow: "0 8px 20px rgba(0,0,0,0.18)",
+                      zIndex: 10,
+                      width: "210px",
+                    }}
+                  >
+                    <div style={{ fontSize: "12px", color: C.textMuted, marginBottom: "10px" }}>
+                      {t.app.speciesPicker.prompt}
+                    </div>
+                    <div style={{ display: "flex", flexWrap: "wrap", gap: "8px" }}>
+                      {SPECIES_OPTIONS.map((key) => (
+                        <button
+                          key={key}
+                          onClick={() => {
+                            onChangeSpecies(key);
+                            setSpeciesPickerOpen(false);
+                          }}
+                          style={{
+                            display: "flex",
+                            flexDirection: "column",
+                            alignItems: "center",
+                            gap: "4px",
+                            width: "44px",
+                            padding: "8px 4px",
+                            borderRadius: "12px",
+                            background: key === (species || DEFAULT_SPECIES) ? tint(personalAccent, 0.18) : "transparent",
+                            border: key === (species || DEFAULT_SPECIES) ? `2px solid ${personalAccent}` : "2px solid transparent",
+                            cursor: "pointer",
+                          }}
+                        >
+                          <span style={{ fontSize: "20px" }} aria-hidden="true">
+                            {matureEmoji(key)}
+                          </span>
+                          <span style={{ fontSize: "10px", color: C.textMuted }}>{t.app.speciesPicker.names[key]}</span>
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
             {onManageSubscription && (
               <button
                 onClick={onManageSubscription}
@@ -1056,7 +1233,7 @@ export default function FocusFlowTDAH({
           </div>
         </header>
 
-        <Mascot streak={streak} C={C} t={t} />
+        <Mascot streak={streak} C={C} t={t} accent={personalAccent} species={species} />
 
         {/* Dopamine jar */}
         <div
@@ -1112,7 +1289,7 @@ export default function FocusFlowTDAH({
         </div>
 
         <Panel C={C}
-          accent={C.lavender}
+          accent={personalAccent}
           icon={<ListChecks size={22} />}
           title={t.app.panels.today.title}
           subtitle={t.app.panels.today.subtitle}
@@ -1140,12 +1317,12 @@ export default function FocusFlowTDAH({
           title={t.app.panels.timeline.title}
           subtitle={t.app.panels.timeline.subtitle}
         >
-          <DayTimelinePanel C={C} t={t} jar={jar} />
+          <DayTimelinePanel C={C} t={t} jar={jar} accent={personalAccent} />
         </Panel>
 
         <div ref={quickCaptureSectionRef}>
         <Panel C={C}
-          accent={C.lavender}
+          accent={C.amber}
           icon={<StickyNote size={22} />}
           title={t.app.panels.quickCapture.title}
           subtitle={t.app.panels.quickCapture.subtitle}
@@ -1169,7 +1346,7 @@ export default function FocusFlowTDAH({
         </div>
 
         <Panel C={C}
-          accent={C.rose}
+          accent={C.lavender}
           icon={<HeartHandshake size={22} />}
           title={t.app.panels.companion.title}
           subtitle={t.app.panels.companion.subtitle}
@@ -1181,7 +1358,7 @@ export default function FocusFlowTDAH({
           <div>
             <div ref={desglosadorSectionRef}>
             <Panel C={C}
-              accent={C.mint}
+              accent={C.coral}
               icon={<ListTree size={22} />}
               title={t.app.panels.dismantler.title}
               subtitle={t.app.panels.dismantler.subtitle}
@@ -1432,7 +1609,7 @@ export default function FocusFlowTDAH({
 
             <div ref={auditorSectionRef}>
             <Panel C={C}
-              accent={C.amber}
+              accent={C.coral}
               icon={<Timer size={22} />}
               title={t.app.panels.auditor.title}
               subtitle={t.app.panels.auditor.subtitle}
@@ -1520,7 +1697,7 @@ export default function FocusFlowTDAH({
             </div>
 
             <Panel C={C}
-              accent={C.lavender}
+              accent={C.coral}
               icon={<Headphones size={22} />}
               title={t.app.panels.focusMode.title}
               subtitle={t.app.panels.focusMode.subtitle}
@@ -1541,7 +1718,7 @@ export default function FocusFlowTDAH({
 
             <div ref={moodSectionRef}>
             <Panel C={C}
-              accent={C.rose}
+              accent={C.lavender}
               icon={<Smile size={22} />}
               title={t.app.panels.mood.title}
               subtitle={t.app.panels.mood.subtitle}
@@ -1551,7 +1728,7 @@ export default function FocusFlowTDAH({
             </div>
 
             <Panel C={C}
-              accent={C.rose}
+              accent={C.lavender}
               icon={<Heart size={22} />}
               title={t.app.panels.goodMoments.title}
               subtitle={t.app.panels.goodMoments.subtitle}
@@ -1568,7 +1745,7 @@ export default function FocusFlowTDAH({
 
             <div ref={cbtSectionRef}>
             <Panel C={C}
-              accent={C.lavenderDark}
+              accent={C.lavender}
               icon={<BookOpen size={22} />}
               title={t.app.panels.cbt.title}
               subtitle={t.app.panels.cbt.subtitle}
@@ -1597,7 +1774,7 @@ export default function FocusFlowTDAH({
             </Panel>
 
             <Panel C={C}
-              accent={C.lavenderDark}
+              accent={C.amber}
               icon={<FileText size={22} />}
               title={t.app.panels.report.title}
               subtitle={t.app.panels.report.subtitle}
@@ -1618,7 +1795,7 @@ export default function FocusFlowTDAH({
             </Panel>
 
             <Panel C={C}
-              accent={C.mint}
+              accent={C.sky}
               icon={<Bell size={22} />}
               title={t.app.panels.notifications.title}
               subtitle={t.app.panels.notifications.subtitle}
@@ -1627,7 +1804,7 @@ export default function FocusFlowTDAH({
             </Panel>
 
             <Panel C={C}
-              accent={C.lavender}
+              accent={C.sky}
               icon={<CalendarRange size={22} />}
               title={t.app.panels.calendar.title}
               subtitle={t.app.panels.calendar.subtitle}
@@ -1636,7 +1813,7 @@ export default function FocusFlowTDAH({
             </Panel>
 
             <Panel C={C}
-              accent={C.mint}
+              accent={C.rose}
               icon={<Users size={22} />}
               title={t.app.panels.bodyDouble.title}
               subtitle={t.app.panels.bodyDouble.subtitle}
@@ -1657,7 +1834,7 @@ export default function FocusFlowTDAH({
           <div>
             <div ref={energySectionRef}>
             <Panel C={C}
-              accent={C.amber}
+              accent={C.mint}
               icon={<BatteryMedium size={22} />}
               title={t.app.panels.energy.title}
               subtitle={t.app.panels.energy.subtitle}
@@ -1668,7 +1845,7 @@ export default function FocusFlowTDAH({
 
             <div ref={medicationSectionRef}>
             <Panel C={C}
-              accent={C.rose}
+              accent={C.mint}
               icon={<Pill size={22} />}
               title={t.app.panels.medication.title}
               subtitle={t.app.panels.medication.subtitle}
@@ -1688,7 +1865,7 @@ export default function FocusFlowTDAH({
 
             <div ref={paymentsSectionRef}>
             <Panel C={C}
-              accent={C.mint}
+              accent={C.sky}
               icon={<CreditCard size={22} />}
               title={t.app.panels.payments.title}
               subtitle={t.app.panels.payments.subtitle}
@@ -1849,7 +2026,7 @@ export default function FocusFlowTDAH({
 
             <div ref={reestructuracionSectionRef}>
             <Panel C={C}
-              accent={C.lavender}
+              accent={C.rose}
               icon={<Brain size={22} />}
               title={t.app.panels.reframe.title}
               subtitle={t.app.panels.reframe.subtitle}
@@ -1926,7 +2103,7 @@ export default function FocusFlowTDAH({
             </div>
 
             <Panel C={C}
-              accent={C.mint}
+              accent={C.rose}
               icon={<MessageSquare size={22} />}
               title={t.app.panels.messageTone.title}
               subtitle={t.app.panels.messageTone.subtitle}
@@ -1938,7 +2115,7 @@ export default function FocusFlowTDAH({
 
         <div ref={habitsSectionRef}>
         <Panel C={C}
-          accent={C.amber}
+          accent={C.coral}
           icon={<Moon size={22} />}
           title={t.app.panels.habits.title}
           subtitle={t.app.panels.habits.subtitle}
