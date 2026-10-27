@@ -3,8 +3,9 @@ import { supabase } from "./supabaseClient";
 import Auth from "./Auth";
 import FocusFlowTDAH from "./FocusFlowTDAH";
 import Paywall from "./Paywall";
-import { DARK_THEME, LIGHT_THEME, getStoredTheme, storeTheme } from "./theme";
+import { DARK_THEME, LIGHT_THEME, getStoredTheme, storeTheme, getStoredAccent, storeAccent } from "./theme";
 import { getStoredLanguage, storeLanguage, getTranslations } from "./i18n";
+import { getStoredSpecies, storeSpecies } from "./mascotLogic";
 
 const ACTIVE_STATUSES = ["active", "trialing"];
 
@@ -32,6 +33,31 @@ export default function App() {
   useEffect(() => {
     document.body.style.background = C.bg;
   }, [C.bg]);
+
+  // Acento personal — 26 de octubre de 2026, mismo patrón y mismo motivo
+  // que el tema claro/oscuro justo arriba: preferencia de DISPOSITIVO, no
+  // del progreso clínico. La paciente elige uno de los 6 colores que ya
+  // tiene la app para los elementos que no pertenecen a ninguna categoría
+  // fija (la mascota, el panel "Hoy") — los paneles con categoría propia
+  // (medicamentos, ánimo, etc.) siguen con su color fijo sin importar el
+  // acento elegido, para no perder esa señal visual de "qué tipo de cosa es
+  // esta tarjeta".
+  const [accentKey, setAccentKey] = useState(getStoredAccent);
+  const changeAccent = (next) => {
+    setAccentKey(next);
+    storeAccent(next);
+  };
+
+  // Especie de la mascota — 27 de octubre de 2026, mismo patrón: la
+  // paciente elige su personaje (ave, gato, planta o dragón) y la app
+  // recuerda la elección por dispositivo. "ave" es el default — el mismo
+  // personaje que ya veían todas las pacientes antes de que existiera esta
+  // elección, así que nadie ve un cambio sin haberlo pedido.
+  const [species, setSpecies] = useState(getStoredSpecies);
+  const changeSpecies = (next) => {
+    setSpecies(next);
+    storeSpecies(next);
+  };
 
   // Idioma — preferencia de DISPOSITIVO, mismo patrón y mismo motivo que el
   // tema claro/oscuro justo arriba (ver src/i18n.js): vive en localStorage,
@@ -166,6 +192,10 @@ export default function App() {
       C={C}
       theme={theme}
       onToggleTheme={toggleTheme}
+      accentKey={accentKey}
+      onChangeAccent={changeAccent}
+      species={species}
+      onChangeSpecies={changeSpecies}
       t={t}
       lang={lang}
       onChangeLanguage={changeLanguage}
