@@ -22,7 +22,7 @@ export default function LanguageSwitcher({ C, lang, onChange, t, height = "40px"
         style={{
           background: "transparent",
           border: `1px solid ${C.border}`,
-          borderRadius: "8px",
+          borderRadius: "12px",
           height,
           padding: "0 10px 0 30px",
           color: C.textMuted,

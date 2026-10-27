@@ -11,7 +11,7 @@ function btnStyle(bg, color, border) {
   return {
     background: bg,
     border: border ? `1px solid ${border}` : "none",
-    borderRadius: "6px",
+    borderRadius: "12px",
     padding: "12px 18px",
     color,
     fontWeight: 600,

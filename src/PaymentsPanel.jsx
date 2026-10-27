@@ -31,7 +31,7 @@ export default function PaymentsPanel({ C, t, payments, paidLog, onAdd, onRemove
   const inputStyle = {
     background: C.surface,
     border: `1px solid ${C.border}`,
-    borderRadius: "6px",
+    borderRadius: "12px",
     padding: "8px 10px",
     color: C.text,
     fontSize: "13px",
@@ -42,7 +42,7 @@ export default function PaymentsPanel({ C, t, payments, paidLog, onAdd, onRemove
   const btnGhost = {
     background: "transparent",
     border: `1px solid ${C.border}`,
-    borderRadius: "6px",
+    borderRadius: "12px",
     padding: "7px 10px",
     color: C.text,
     fontSize: "12px",
@@ -55,7 +55,7 @@ export default function PaymentsPanel({ C, t, payments, paidLog, onAdd, onRemove
     gap: "6px",
     background: C.mint,
     border: "none",
-    borderRadius: "6px",
+    borderRadius: "12px",
     padding: "9px 14px",
     color: "#064e3b",
     fontSize: "13px",
@@ -84,7 +84,7 @@ export default function PaymentsPanel({ C, t, payments, paidLog, onAdd, onRemove
                 gap: "10px",
                 background: C.surfaceAlt,
                 border: `1px solid ${C.border}`,
-                borderRadius: "6px",
+                borderRadius: "12px",
                 padding: "10px 12px",
                 marginBottom: "8px",
               }}
@@ -161,7 +161,7 @@ export default function PaymentsPanel({ C, t, payments, paidLog, onAdd, onRemove
         </div>
       )}
 
-      <div style={{ background: C.surfaceAlt, borderRadius: "6px", padding: "14px" }}>
+      <div style={{ background: C.surfaceAlt, borderRadius: "12px", padding: "14px" }}>
         <p style={{ fontSize: "12px", color: C.textMuted, margin: "0 0 10px", fontWeight: 600 }}>
           {t.payments.addTitle}
         </p>

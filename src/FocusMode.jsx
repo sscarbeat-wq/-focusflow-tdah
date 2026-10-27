@@ -221,7 +221,7 @@ export default function FocusMode({ C, t, onSessionComplete, onSessionStart }) {
   const inputStyle = {
     background: C.surfaceAlt,
     border: `1px solid ${C.border}`,
-    borderRadius: "6px",
+    borderRadius: "12px",
     padding: "6px 10px",
     color: C.text,
     fontSize: "13px",
@@ -308,7 +308,7 @@ export default function FocusMode({ C, t, onSessionComplete, onSessionStart }) {
                 color: "#fff",
                 fontSize: "12px",
                 padding: "6px 10px",
-                borderRadius: "6px",
+                borderRadius: "12px",
                 width: "240px",
                 lineHeight: 1.4,
                 zIndex: 1,

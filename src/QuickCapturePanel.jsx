@@ -183,7 +183,7 @@ export default function QuickCapturePanel({
     gap: "6px",
     background: C.lavender,
     border: "none",
-    borderRadius: "6px",
+    borderRadius: "12px",
     padding: "9px 14px",
     color: C.lavenderText,
     fontSize: "13px",
@@ -195,7 +195,7 @@ export default function QuickCapturePanel({
   const btnGhost = {
     background: "transparent",
     border: `1px solid ${C.border}`,
-    borderRadius: "6px",
+    borderRadius: "12px",
     padding: "8px 12px",
     color: C.text,
     fontSize: "12px",
@@ -207,7 +207,7 @@ export default function QuickCapturePanel({
     boxSizing: "border-box",
     background: C.surface,
     border: `1px solid ${C.border}`,
-    borderRadius: "6px",
+    borderRadius: "12px",
     padding: "10px 12px",
     color: C.text,
     fontSize: "13px",
@@ -222,7 +222,7 @@ export default function QuickCapturePanel({
           style={{
             background: C.surfaceAlt,
             border: `1px solid ${C.rose}`,
-            borderRadius: "6px",
+            borderRadius: "12px",
             padding: "16px",
             marginBottom: "10px",
           }}
@@ -301,7 +301,7 @@ export default function QuickCapturePanel({
       )}
 
       {suggestion && (
-        <div style={{ background: C.surfaceAlt, borderRadius: "6px", padding: "14px", marginBottom: "16px" }}>
+        <div style={{ background: C.surfaceAlt, borderRadius: "12px", padding: "14px", marginBottom: "16px" }}>
           <p style={{ fontSize: "13px", color: C.text, lineHeight: 1.6, margin: "0 0 10px" }}>
             {suggestion.type === "medicamento" &&
               t.quickCapture.suggestMedication(
@@ -372,7 +372,7 @@ export default function QuickCapturePanel({
                   gap: "10px",
                   background: isForgotten ? C.surfaceAlt : "transparent",
                   border: `1px solid ${isForgotten ? C.amber : C.border}`,
-                  borderRadius: "6px",
+                  borderRadius: "12px",
                   padding: "10px 12px",
                   marginBottom: "8px",
                 }}

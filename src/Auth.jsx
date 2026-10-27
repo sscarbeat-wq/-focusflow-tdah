@@ -40,7 +40,7 @@ export default function Auth({ C, theme, onToggleTheme, t, lang, onChangeLanguag
     boxSizing: "border-box",
     background: C.surfaceAlt,
     border: `1px solid ${C.border}`,
-    borderRadius: "6px",
+    borderRadius: "12px",
     padding: "12px 14px",
     color: C.text,
     fontSize: "15px",
@@ -64,7 +64,7 @@ export default function Auth({ C, theme, onToggleTheme, t, lang, onChangeLanguag
         onSubmit={handleSubmit}
         style={{
           background: C.surface,
-          borderRadius: "8px",
+          borderRadius: "12px",
           padding: "32px",
           width: "100%",
           maxWidth: "360px",
@@ -82,7 +82,7 @@ export default function Auth({ C, theme, onToggleTheme, t, lang, onChangeLanguag
               style={{
                 background: "transparent",
                 border: `1px solid ${C.border}`,
-                borderRadius: "8px",
+                borderRadius: "12px",
                 width: "34px",
                 height: "34px",
                 display: "flex",
@@ -133,7 +133,7 @@ export default function Auth({ C, theme, onToggleTheme, t, lang, onChangeLanguag
             width: "100%",
             background: C.mint,
             border: "none",
-            borderRadius: "6px",
+            borderRadius: "12px",
             padding: "12px",
             color: C.mintText,
             fontWeight: 600,

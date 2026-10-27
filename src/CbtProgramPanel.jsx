@@ -77,7 +77,7 @@ export default function CbtProgramPanel({ C, t, program, onComplete }) {
           {paragraph}
         </p>
       ))}
-      <div style={{ background: C.surfaceAlt, borderRadius: "6px", padding: "10px 12px", marginBottom: "14px" }}>
+      <div style={{ background: C.surfaceAlt, borderRadius: "12px", padding: "10px 12px", marginBottom: "14px" }}>
         <p
           style={{
             fontSize: "11px",
@@ -97,7 +97,7 @@ export default function CbtProgramPanel({ C, t, program, onComplete }) {
         style={{
           background: C.lavenderDark,
           border: "none",
-          borderRadius: "6px",
+          borderRadius: "12px",
           padding: "8px 16px",
           color: "#fff",
           fontWeight: 600,

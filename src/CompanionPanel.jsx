@@ -81,7 +81,7 @@ export default function CompanionPanel({ C, t, lang, userId, onNavigate }) {
     textAlign: "left",
     background: C.surfaceAlt,
     border: `1px solid ${C.border}`,
-    borderRadius: "6px",
+    borderRadius: "12px",
     padding: "11px 14px",
     color: C.text,
     fontSize: "13px",
@@ -104,7 +104,7 @@ export default function CompanionPanel({ C, t, lang, userId, onNavigate }) {
     gap: "6px",
     background: C.mint,
     border: "none",
-    borderRadius: "6px",
+    borderRadius: "12px",
     padding: "9px 14px",
     color: C.mintText,
     fontSize: "13px",
@@ -132,7 +132,7 @@ export default function CompanionPanel({ C, t, lang, userId, onNavigate }) {
           style={{
             background: C.surfaceAlt,
             border: `1px solid ${C.rose}`,
-            borderRadius: "6px",
+            borderRadius: "12px",
             padding: "16px",
             marginBottom: "4px",
           }}

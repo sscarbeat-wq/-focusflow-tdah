@@ -104,7 +104,7 @@ export default function MindfulnessPanel({ C, t, lang, onComplete }) {
             background: C.lavender,
             color: C.lavenderText,
             border: "none",
-            borderRadius: "6px",
+            borderRadius: "12px",
             padding: "10px 16px",
             fontSize: "13px",
             fontWeight: 600,
@@ -114,7 +114,7 @@ export default function MindfulnessPanel({ C, t, lang, onComplete }) {
           <Play size={16} /> {t.mindfulness.start}
         </button>
       ) : (
-        <div style={{ background: C.surfaceAlt, borderRadius: "6px", padding: "18px", textAlign: "center" }}>
+        <div style={{ background: C.surfaceAlt, borderRadius: "12px", padding: "18px", textAlign: "center" }}>
           <p style={{ fontSize: "14px", color: C.text, margin: "0 0 10px", lineHeight: 1.6, minHeight: "48px" }}>
             {stepText}
           </p>
@@ -130,7 +130,7 @@ export default function MindfulnessPanel({ C, t, lang, onComplete }) {
                   gap: "6px",
                   background: "transparent",
                   border: `1px solid ${C.border}`,
-                  borderRadius: "6px",
+                  borderRadius: "12px",
                   padding: "8px 12px",
                   color: C.text,
                   fontSize: "13px",
@@ -148,7 +148,7 @@ export default function MindfulnessPanel({ C, t, lang, onComplete }) {
                 gap: "6px",
                 background: "transparent",
                 border: `1px solid ${C.border}`,
-                borderRadius: "6px",
+                borderRadius: "12px",
                 padding: "8px 12px",
                 color: C.textMuted,
                 fontSize: "13px",

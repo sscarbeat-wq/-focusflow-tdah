@@ -896,7 +896,7 @@ export default function FocusFlowTDAH({
     boxSizing: "border-box",
     background: C.surfaceAlt,
     border: `1px solid ${C.border}`,
-    borderRadius: "6px",
+    borderRadius: "12px",
     padding: "10px 12px",
     color: C.text,
     fontSize: "14px",
@@ -906,7 +906,7 @@ export default function FocusFlowTDAH({
   const btnPrimary = (bg, textColor) => ({
     background: bg,
     border: "none",
-    borderRadius: "6px",
+    borderRadius: "12px",
     padding: "10px 16px",
     color: textColor,
     fontWeight: 600,
@@ -917,7 +917,7 @@ export default function FocusFlowTDAH({
   const btnGhost = {
     background: "transparent",
     border: `1px solid ${C.border}`,
-    borderRadius: "6px",
+    borderRadius: "12px",
     padding: "10px 16px",
     color: C.text,
     cursor: "pointer",
@@ -956,8 +956,31 @@ export default function FocusFlowTDAH({
           }}
         >
           <div>
-            <h1 style={{ fontSize: "24px", fontWeight: 700, margin: 0 }}>{t.common.appName}</h1>
-            <p style={{ fontSize: "13px", color: C.textMuted, margin: "6px 0 0" }}>
+            <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
+              {/* 27 de octubre de 2026 — marca pequeña junto al nombre, estilo
+                  "ícono de app" (cuadrado redondeado con degradado), ya que no
+                  hay forma de generar un logo ilustrado en este espacio de
+                  trabajo. Usa el acento personal para que, igual que el resto
+                  de la pantalla, se sienta propia de cada paciente. */}
+              <div
+                aria-hidden="true"
+                style={{
+                  width: "36px",
+                  height: "36px",
+                  borderRadius: "12px",
+                  background: `linear-gradient(135deg, ${personalAccent}, ${tint(personalAccent, 0.55)})`,
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  flexShrink: 0,
+                  boxShadow: "0 3px 8px rgba(0,0,0,0.18)",
+                }}
+              >
+                <Sparkles size={18} color="#FFFFFF" />
+              </div>
+              <h1 style={{ fontSize: "24px", fontWeight: 700, margin: 0 }}>{t.common.appName}</h1>
+            </div>
+            <p style={{ fontSize: "13px", color: C.textMuted, margin: "6px 0 0 46px" }}>
               {userEmail ? t.app.sessionOf(userEmail) : t.app.noEmailSubtitle}
             </p>
           </div>
@@ -967,7 +990,7 @@ export default function FocusFlowTDAH({
               style={{
                 background: C.surfaceAlt,
                 border: `1px solid ${C.border}`,
-                borderRadius: "8px",
+                borderRadius: "12px",
                 padding: "10px 16px",
                 display: "flex",
                 alignItems: "center",
@@ -990,7 +1013,7 @@ export default function FocusFlowTDAH({
                     color: C.mintText,
                     fontSize: "12px",
                     padding: "5px 10px",
-                    borderRadius: "6px",
+                    borderRadius: "12px",
                     whiteSpace: "nowrap",
                   }}
                 >
@@ -1006,7 +1029,7 @@ export default function FocusFlowTDAH({
                 position: "relative",
                 background: "transparent",
                 border: `1px solid ${C.border}`,
-                borderRadius: "8px",
+                borderRadius: "12px",
                 width: "40px",
                 height: "40px",
                 display: "flex",
@@ -1027,7 +1050,7 @@ export default function FocusFlowTDAH({
                     color: C.mintText,
                     fontSize: "12px",
                     padding: "5px 10px",
-                    borderRadius: "6px",
+                    borderRadius: "12px",
                     whiteSpace: "nowrap",
                   }}
                 >
@@ -1043,7 +1066,7 @@ export default function FocusFlowTDAH({
                 style={{
                   background: "transparent",
                   border: `1px solid ${C.border}`,
-                  borderRadius: "8px",
+                  borderRadius: "12px",
                   width: "40px",
                   height: "40px",
                   display: "flex",
@@ -1065,7 +1088,7 @@ export default function FocusFlowTDAH({
                   style={{
                     background: "transparent",
                     border: `1px solid ${C.border}`,
-                    borderRadius: "8px",
+                    borderRadius: "12px",
                     width: "40px",
                     height: "40px",
                     display: "flex",
@@ -1146,7 +1169,7 @@ export default function FocusFlowTDAH({
                   style={{
                     background: "transparent",
                     border: `1px solid ${C.border}`,
-                    borderRadius: "8px",
+                    borderRadius: "12px",
                     width: "40px",
                     height: "40px",
                     display: "flex",
@@ -1234,7 +1257,7 @@ export default function FocusFlowTDAH({
                 style={{
                   background: "transparent",
                   border: `1px solid ${C.border}`,
-                  borderRadius: "8px",
+                  borderRadius: "12px",
                   padding: "0 14px",
                   height: "40px",
                   color: C.textMuted,
@@ -1252,7 +1275,7 @@ export default function FocusFlowTDAH({
                 style={{
                   background: "transparent",
                   border: `1px solid ${C.border}`,
-                  borderRadius: "8px",
+                  borderRadius: "12px",
                   width: "40px",
                   height: "40px",
                   display: "flex",
@@ -1275,7 +1298,7 @@ export default function FocusFlowTDAH({
           style={{
             background: C.surface,
             border: `1px solid ${C.border}`,
-            borderRadius: "6px",
+            borderRadius: "12px",
             padding: "14px 18px",
             marginBottom: "20px",
           }}
@@ -1312,7 +1335,7 @@ export default function FocusFlowTDAH({
         <div
           style={{
             background: C.surfaceAlt,
-            borderRadius: "6px",
+            borderRadius: "12px",
             padding: "12px 16px",
             marginBottom: "24px",
             fontSize: "12px",
@@ -1417,7 +1440,7 @@ export default function FocusFlowTDAH({
                         onClick={() => setAiGranularity(g.id)}
                         style={{
                           padding: "6px 10px",
-                          borderRadius: "6px",
+                          borderRadius: "12px",
                           border: `1px solid ${aiGranularity === g.id ? C.lavender : C.border}`,
                           background: aiGranularity === g.id ? C.lavender : "transparent",
                           color: aiGranularity === g.id ? C.lavenderText : C.textMuted,
@@ -1720,7 +1743,7 @@ export default function FocusFlowTDAH({
                 </div>
               </div>
               {audit && (
-                <div style={{ background: C.surfaceAlt, borderRadius: "6px", padding: "12px 14px", fontSize: "14px" }}>
+                <div style={{ background: C.surfaceAlt, borderRadius: "12px", padding: "12px 14px", fontSize: "14px" }}>
                   {audit.diff > 0
                     ? t.app.auditor.resultMore(audit.realMin, estimateMin, audit.diff)
                     : audit.diff < 0
@@ -1946,7 +1969,7 @@ export default function FocusFlowTDAH({
                   </button>
                 </div>
               ) : (
-                <div style={{ background: C.surfaceAlt, borderRadius: "6px", padding: "18px", textAlign: "center" }}>
+                <div style={{ background: C.surfaceAlt, borderRadius: "12px", padding: "18px", textAlign: "center" }}>
                   {stStage === 0 && (
                     <>
                       <p style={{ fontSize: "20px", fontWeight: 700, margin: "0 0 8px" }}>{t.app.stopThink.stopLabel}</p>
@@ -2126,7 +2149,7 @@ export default function FocusFlowTDAH({
                 </>
               )}
               {rfStage === 3 && (
-                <div style={{ background: C.surfaceAlt, borderRadius: "6px", padding: "14px" }}>
+                <div style={{ background: C.surfaceAlt, borderRadius: "12px", padding: "14px" }}>
                   <p style={{ fontSize: "13px", color: C.textMuted, margin: "0 0 6px" }}>{t.app.reframe.resultLabel}</p>
                   <p style={{ fontSize: "15px", margin: "0 0 14px" }}>{rfAlternative}</p>
                   <button onClick={rfReset} style={btnGhost}>

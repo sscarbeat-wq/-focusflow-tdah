@@ -56,7 +56,7 @@ export default function MedicationPanel({ C, t, medications, doseLog, onAdd, onR
   const inputStyle = {
     background: C.surface,
     border: `1px solid ${C.border}`,
-    borderRadius: "6px",
+    borderRadius: "12px",
     padding: "8px 10px",
     color: C.text,
     fontSize: "13px",
@@ -67,7 +67,7 @@ export default function MedicationPanel({ C, t, medications, doseLog, onAdd, onR
   const btnGhost = {
     background: "transparent",
     border: `1px solid ${C.border}`,
-    borderRadius: "6px",
+    borderRadius: "12px",
     padding: "7px 10px",
     color: C.text,
     fontSize: "12px",
@@ -80,7 +80,7 @@ export default function MedicationPanel({ C, t, medications, doseLog, onAdd, onR
     gap: "6px",
     background: C.mint,
     border: "none",
-    borderRadius: "6px",
+    borderRadius: "12px",
     padding: "9px 14px",
     color: "#064e3b",
     fontSize: "13px",
@@ -102,7 +102,7 @@ export default function MedicationPanel({ C, t, medications, doseLog, onAdd, onR
                 style={{
                   background: C.surfaceAlt,
                   border: `1px solid ${C.border}`,
-                  borderRadius: "6px",
+                  borderRadius: "12px",
                   padding: "10px 12px",
                   marginBottom: "8px",
                 }}
@@ -200,7 +200,7 @@ export default function MedicationPanel({ C, t, medications, doseLog, onAdd, onR
         </div>
       )}
 
-      <div style={{ background: C.surfaceAlt, borderRadius: "6px", padding: "14px" }}>
+      <div style={{ background: C.surfaceAlt, borderRadius: "12px", padding: "14px" }}>
         <p style={{ fontSize: "12px", color: C.textMuted, margin: "0 0 10px", fontWeight: 600 }}>{t.medication.addMedicationTitle}</p>
         <input
           value={name}
@@ -250,7 +250,7 @@ export default function MedicationPanel({ C, t, medications, doseLog, onAdd, onR
                   textAlign: "center",
                   fontSize: "11px",
                   background: C.surfaceAlt,
-                  borderRadius: "6px",
+                  borderRadius: "12px",
                   padding: "6px 0",
                   color: expected === 0 ? C.textMuted : taken >= expected ? C.mint : C.amberText,
                   opacity: expected === 0 ? 0.3 : 1,

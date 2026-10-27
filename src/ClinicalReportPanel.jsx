@@ -90,7 +90,7 @@ export default function ClinicalReportPanel({
           background: C.lavender,
           color: C.lavenderText,
           border: "none",
-          borderRadius: "6px",
+          borderRadius: "12px",
           padding: "10px 16px",
           fontSize: "13px",
           fontWeight: 600,

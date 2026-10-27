@@ -53,7 +53,7 @@ export default function InstallBanner({ C = DARK_THEME, t = DEFAULT_T }) {
   const wrapperStyle = {
     background: C.surface,
     border: `1px solid ${C.border}`,
-    borderRadius: "8px",
+    borderRadius: "12px",
     padding: "14px 16px",
     marginBottom: "20px",
     position: "relative",
@@ -111,7 +111,7 @@ export default function InstallBanner({ C = DARK_THEME, t = DEFAULT_T }) {
               style={{
                 background: C.mint,
                 border: "none",
-                borderRadius: "6px",
+                borderRadius: "12px",
                 padding: "8px 16px",
                 color: C.mintText,
                 fontWeight: 600,
