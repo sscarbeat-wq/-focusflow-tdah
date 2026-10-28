@@ -46,6 +46,7 @@ import {
   Inbox,
   Repeat,
   Compass,
+  CalendarClock,
 } from "lucide-react";
 
 import LanguageSwitcher from "./LanguageSwitcher";
@@ -122,6 +123,16 @@ import {
   advanceRoutineSession,
   exitRoutineSession,
 } from "./routines";
+import {
+  DEFAULT_SCHEDULE_BLOCKS,
+  addScheduleBlock,
+  removeScheduleBlock,
+  updateScheduleBlock,
+  moveScheduleBlock,
+  scheduleBlocksForDay,
+  detectConflicts,
+} from "./scheduleBlocks";
+import ScheduleAgendaPanel from "./ScheduleAgendaPanel";
 import { tint, ACCENT_OPTIONS } from "./theme";
 import { SPECIES_OPTIONS, matureEmoji, DEFAULT_SPECIES } from "./mascotLogic";
 
@@ -147,6 +158,7 @@ const DEFAULT_PROGRESS = {
   goodMoments: DEFAULT_GOOD_MOMENTS,
   oneThing: DEFAULT_ONE_THING,
   routines: DEFAULT_ROUTINES,
+  scheduleBlocks: DEFAULT_SCHEDULE_BLOCKS,
 };
 
 // Panel y Toggle viven a nivel de módulo (no adentro de FocusFlowTDAH) para
@@ -286,6 +298,7 @@ export default function FocusFlowTDAH({
   const desglosadorSectionRef = useRef(null);
   const oneThingSectionRef = useRef(null);
   const routinesSectionRef = useRef(null);
+  const scheduleSectionRef = useRef(null);
   const auditorSectionRef = useRef(null);
   const reestructuracionSectionRef = useRef(null);
   const moodSectionRef = useRef(null);
@@ -341,6 +354,7 @@ export default function FocusFlowTDAH({
     quickCapture: quickCaptureSectionRef,
     brainDump: brainDumpSectionRef,
     routines: routinesSectionRef,
+    schedule: scheduleSectionRef,
     today: todaySectionRef,
     timeline: timelineSectionRef,
     companion: companionPanelSectionRef,
@@ -367,6 +381,7 @@ export default function FocusFlowTDAH({
   const quickNavSections = [
     { key: "today", icon: <ListChecks size={18} />, label: t.app.panels.today.title },
     { key: "timeline", icon: <Clock size={18} />, label: t.app.panels.timeline.title },
+    { key: "schedule", icon: <CalendarClock size={18} />, label: t.app.panels.schedule.title },
     { key: "quickCapture", icon: <StickyNote size={18} />, label: t.app.panels.quickCapture.title },
     { key: "brainDump", icon: <Inbox size={18} />, label: t.app.panels.brainDump.title },
     { key: "routines", icon: <Repeat size={18} />, label: t.app.panels.routines.title },
@@ -416,6 +431,7 @@ export default function FocusFlowTDAH({
   const [goodMoments, setGoodMoments] = useState(saved.goodMoments);
   const [oneThing, setOneThing] = useState(saved.oneThing);
   const [routines, setRoutines] = useState(saved.routines);
+  const [scheduleBlocks, setScheduleBlocks] = useState(saved.scheduleBlocks);
 
   const firstRender = useRef(true);
   useEffect(() => {
@@ -445,6 +461,7 @@ export default function FocusFlowTDAH({
       goodMoments,
       oneThing,
       routines,
+      scheduleBlocks,
     });
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [
@@ -469,6 +486,7 @@ export default function FocusFlowTDAH({
     goodMoments,
     oneThing,
     routines,
+    scheduleBlocks,
   ]);
 
   // ---- XP + jar ----
@@ -789,6 +807,17 @@ export default function FocusFlowTDAH({
     setRoutines(state);
     if (completed && template) grantXp(t.app.xpLabels.routineCompleted(template.name));
   };
+
+  // Agenda visual interactiva (Módulo 2) — ver scheduleBlocks.js para la
+  // decisión de alcance (sin sincronizar con Google Calendar todavía).
+  const handleAddScheduleBlock = (fields) => setScheduleBlocks((prev) => addScheduleBlock(prev, fields));
+  const handleRemoveScheduleBlock = (blockId) => setScheduleBlocks((prev) => removeScheduleBlock(prev, blockId));
+  const handleUpdateScheduleBlock = (blockId, fields) =>
+    setScheduleBlocks((prev) => updateScheduleBlock(prev, blockId, fields));
+  const handleMoveScheduleBlock = (blockId, newStartMin) =>
+    setScheduleBlocks((prev) => moveScheduleBlock(prev, blockId, newStartMin));
+  const todaysScheduleBlocks = scheduleBlocksForDay(scheduleBlocks);
+  const scheduleConflicts = detectConflicts(todaysScheduleBlocks);
 
   // Igual que addStep, pero a partir de lo que propuso la IA de "Captura
   // rápida" (ver api/quick-capture.js) — solo se llama cuando la persona ya
@@ -1556,6 +1585,26 @@ export default function FocusFlowTDAH({
             subtitle={t.app.panels.timeline.subtitle}
           >
             <DayTimelinePanel C={C} t={t} jar={jar} accent={personalAccent} />
+          </Panel>
+        </div>
+
+        <div ref={scheduleSectionRef}>
+          <Panel C={C}
+            accent={C.sky}
+            icon={<CalendarClock size={22} />}
+            title={t.app.panels.schedule.title}
+            subtitle={t.app.panels.schedule.subtitle}
+          >
+            <ScheduleAgendaPanel
+              C={C}
+              t={t}
+              blocks={todaysScheduleBlocks}
+              conflicts={scheduleConflicts}
+              onAdd={handleAddScheduleBlock}
+              onRemove={handleRemoveScheduleBlock}
+              onUpdate={handleUpdateScheduleBlock}
+              onMove={handleMoveScheduleBlock}
+            />
           </Panel>
         </div>
 
