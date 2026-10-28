@@ -45,6 +45,7 @@ import {
   Target,
   Inbox,
   Repeat,
+  Compass,
 } from "lucide-react";
 
 import LanguageSwitcher from "./LanguageSwitcher";
@@ -73,6 +74,7 @@ import RoutinesPanel from "./RoutinesPanel";
 import ClinicalReportPanel from "./ClinicalReportPanel";
 import GoodMomentsPanel from "./GoodMomentsPanel";
 import DayTimelinePanel from "./DayTimelinePanel";
+import QuickNavMenu from "./QuickNavMenu";
 import { scheduleStepsOnCalendar } from "./calendarSync";
 import { useBodyDouble } from "./bodyDouble";
 import { celebrate } from "./celebrate";
@@ -294,6 +296,21 @@ export default function FocusFlowTDAH({
   const habitsSectionRef = useRef(null);
   const quickCaptureSectionRef = useRef(null);
   const brainDumpSectionRef = useRef(null);
+  // Refs agregadas en el Módulo 1 (navegación) para que el menú flotante
+  // "Ir a..." (ver QuickNavMenu.jsx) pueda saltar a CUALQUIER sección de la
+  // página, no solo a las que ya enlazaba el Compañero de apoyo/vista Hoy.
+  const todaySectionRef = useRef(null);
+  const timelineSectionRef = useRef(null);
+  const companionPanelSectionRef = useRef(null);
+  const focusModeSectionRef = useRef(null);
+  const goodMomentsSectionRef = useRef(null);
+  const insightsSectionRef = useRef(null);
+  const reportSectionRef = useRef(null);
+  const notificationsSectionRef = useRef(null);
+  const calendarSectionRef = useRef(null);
+  const bodyDoubleSectionRef = useRef(null);
+  const mindfulnessSectionRef = useRef(null);
+  const messageToneSectionRef = useRef(null);
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
     const atajo = params.get("atajo");
@@ -324,11 +341,58 @@ export default function FocusFlowTDAH({
     quickCapture: quickCaptureSectionRef,
     brainDump: brainDumpSectionRef,
     routines: routinesSectionRef,
+    today: todaySectionRef,
+    timeline: timelineSectionRef,
+    companion: companionPanelSectionRef,
+    focusMode: focusModeSectionRef,
+    goodMoments: goodMomentsSectionRef,
+    insights: insightsSectionRef,
+    report: reportSectionRef,
+    notifications: notificationsSectionRef,
+    calendar: calendarSectionRef,
+    bodyDouble: bodyDoubleSectionRef,
+    mindfulness: mindfulnessSectionRef,
+    messageTone: messageToneSectionRef,
   };
   const scrollToCompanionSection = (key) => {
     const ref = companionSectionRefs[key];
     if (ref?.current) ref.current.scrollIntoView({ behavior: "smooth", block: "center" });
   };
+
+  // Lista completa y en orden de las secciones de la página, para el menú
+  // flotante "Ir a..." (Módulo 1). Reutiliza los mismos íconos que ya
+  // identifican a cada panel en su encabezado (ver <Panel icon={...}> más
+  // abajo) en vez de inventar un segundo set — así el ícono del menú
+  // siempre coincide con el del panel al que lleva.
+  const quickNavSections = [
+    { key: "today", icon: <ListChecks size={18} />, label: t.app.panels.today.title },
+    { key: "timeline", icon: <Clock size={18} />, label: t.app.panels.timeline.title },
+    { key: "quickCapture", icon: <StickyNote size={18} />, label: t.app.panels.quickCapture.title },
+    { key: "brainDump", icon: <Inbox size={18} />, label: t.app.panels.brainDump.title },
+    { key: "routines", icon: <Repeat size={18} />, label: t.app.panels.routines.title },
+    { key: "companion", icon: <HeartHandshake size={18} />, label: t.app.panels.companion.title },
+    { key: "desglosador", icon: <ListTree size={18} />, label: t.app.panels.dismantler.title },
+    { key: "auditor", icon: <Timer size={18} />, label: t.app.panels.auditor.title },
+    { key: "oneThing", icon: <Target size={18} />, label: t.app.panels.oneThing.title },
+    { key: "focusMode", icon: <Headphones size={18} />, label: t.app.panels.focusMode.title },
+    { key: "mood", icon: <Smile size={18} />, label: t.app.panels.mood.title },
+    { key: "goodMoments", icon: <Heart size={18} />, label: t.app.panels.goodMoments.title },
+    { key: "cbt", icon: <BookOpen size={18} />, label: t.app.panels.cbt.title },
+    { key: "insights", icon: <TrendingUp size={18} />, label: t.app.panels.insights.title },
+    { key: "report", icon: <FileText size={18} />, label: t.app.panels.report.title },
+    { key: "notifications", icon: <Bell size={18} />, label: t.app.panels.notifications.title },
+    { key: "calendar", icon: <CalendarRange size={18} />, label: t.app.panels.calendar.title },
+    { key: "bodyDouble", icon: <Users size={18} />, label: t.app.panels.bodyDouble.title },
+    { key: "energy", icon: <BatteryMedium size={18} />, label: t.app.panels.energy.title },
+    { key: "medication", icon: <Pill size={18} />, label: t.app.panels.medication.title },
+    { key: "payments", icon: <CreditCard size={18} />, label: t.app.panels.payments.title },
+    { key: "freno", icon: <Hand size={18} />, label: t.app.panels.stopThink.title },
+    { key: "burbuja", icon: <Wind size={18} />, label: t.app.panels.breathing.title },
+    { key: "mindfulness", icon: <Flower2 size={18} />, label: t.app.panels.mindfulness.title },
+    { key: "reestructuracion", icon: <Brain size={18} />, label: t.app.panels.reframe.title },
+    { key: "messageTone", icon: <MessageSquare size={18} />, label: t.app.panels.messageTone.title },
+    { key: "habits", icon: <Moon size={18} />, label: t.app.panels.habits.title },
+  ];
 
   // ---- Persisted state ----
   const [xp, setXp] = useState(saved.xp);
@@ -1399,6 +1463,38 @@ export default function FocusFlowTDAH({
 
         <Mascot streak={streak} C={C} t={t} accent={personalAccent} species={species} />
 
+        {/* Módulo 1 (8 de noviembre de 2026): "Hoy" se mueve a ser el
+            PRIMER panel bajo el saludo/mascota — antes quedaba enterrado
+            después del frasco de recompensas y el disclaimer, lejos de
+            funcionar como una verdadera pantalla de inicio. Ahora es lo
+            primero que se ve al abrir la app, y ya conoce las Rutinas
+            (Módulo 5) además de todo lo que ya cubría. */}
+        <div ref={todaySectionRef}>
+          <Panel C={C}
+            accent={personalAccent}
+            icon={<ListChecks size={22} />}
+            title={t.app.panels.today.title}
+            subtitle={t.app.panels.today.subtitle}
+          >
+            <TodayPanel
+              C={C}
+              t={t}
+              steps={steps}
+              moodLog={moodLog}
+              energyLog={energyLog}
+              medications={medications}
+              medicationDoseLog={medicationDoseLog}
+              payments={payments}
+              paymentPaidLog={paymentPaidLog}
+              cbtProgram={cbtProgram}
+              habits={{ screensOff, sleepEnv, ateWell, hydrated, deskCleared }}
+              quickNotes={quickNotes}
+              routines={routines}
+              onNavigate={scrollToCompanionSection}
+            />
+          </Panel>
+        </div>
+
         {/* Dopamine jar */}
         <div
           style={{
@@ -1452,37 +1548,16 @@ export default function FocusFlowTDAH({
           {t.app.disclaimer}
         </div>
 
-        <Panel C={C}
-          accent={personalAccent}
-          icon={<ListChecks size={22} />}
-          title={t.app.panels.today.title}
-          subtitle={t.app.panels.today.subtitle}
-        >
-          <TodayPanel
-            C={C}
-            t={t}
-            steps={steps}
-            moodLog={moodLog}
-            energyLog={energyLog}
-            medications={medications}
-            medicationDoseLog={medicationDoseLog}
-            payments={payments}
-            paymentPaidLog={paymentPaidLog}
-            cbtProgram={cbtProgram}
-            habits={{ screensOff, sleepEnv, ateWell, hydrated, deskCleared }}
-            quickNotes={quickNotes}
-            onNavigate={scrollToCompanionSection}
-          />
-        </Panel>
-
-        <Panel C={C}
-          accent={C.amber}
-          icon={<Clock size={22} />}
-          title={t.app.panels.timeline.title}
-          subtitle={t.app.panels.timeline.subtitle}
-        >
-          <DayTimelinePanel C={C} t={t} jar={jar} accent={personalAccent} />
-        </Panel>
+        <div ref={timelineSectionRef}>
+          <Panel C={C}
+            accent={C.amber}
+            icon={<Clock size={22} />}
+            title={t.app.panels.timeline.title}
+            subtitle={t.app.panels.timeline.subtitle}
+          >
+            <DayTimelinePanel C={C} t={t} jar={jar} accent={personalAccent} />
+          </Panel>
+        </div>
 
         <div ref={quickCaptureSectionRef}>
         <Panel C={C}
@@ -1553,14 +1628,16 @@ export default function FocusFlowTDAH({
         </Panel>
         </div>
 
-        <Panel C={C}
-          accent={C.lavender}
-          icon={<HeartHandshake size={22} />}
-          title={t.app.panels.companion.title}
-          subtitle={t.app.panels.companion.subtitle}
-        >
-          <CompanionPanel C={C} t={t} lang={lang} userId={userId} onNavigate={scrollToCompanionSection} />
-        </Panel>
+        <div ref={companionPanelSectionRef}>
+          <Panel C={C}
+            accent={C.lavender}
+            icon={<HeartHandshake size={22} />}
+            title={t.app.panels.companion.title}
+            subtitle={t.app.panels.companion.subtitle}
+          >
+            <CompanionPanel C={C} t={t} lang={lang} userId={userId} onNavigate={scrollToCompanionSection} />
+          </Panel>
+        </div>
 
         <div style={{ display: "grid", gridTemplateColumns: isNarrow ? "1fr" : "1fr 1fr", gap: "0 20px" }}>
           <div>
@@ -1936,6 +2013,7 @@ export default function FocusFlowTDAH({
             </Panel>
             </div>
 
+            <div ref={focusModeSectionRef}>
             <Panel C={C}
               accent={C.coral}
               icon={<Headphones size={22} />}
@@ -1955,6 +2033,7 @@ export default function FocusFlowTDAH({
                 }}
               />
             </Panel>
+            </div>
 
             <div ref={moodSectionRef}>
             <Panel C={C}
@@ -1967,6 +2046,7 @@ export default function FocusFlowTDAH({
             </Panel>
             </div>
 
+            <div ref={goodMomentsSectionRef}>
             <Panel C={C}
               accent={C.lavender}
               icon={<Heart size={22} />}
@@ -1982,6 +2062,7 @@ export default function FocusFlowTDAH({
                 onRemove={handleRemoveGoodMoment}
               />
             </Panel>
+            </div>
 
             <div ref={cbtSectionRef}>
             <Panel C={C}
@@ -1996,6 +2077,7 @@ export default function FocusFlowTDAH({
 
             <ScienceCapsulePanel C={C} t={t} />
 
+            <div ref={insightsSectionRef}>
             <Panel C={C}
               accent={C.amber}
               icon={<TrendingUp size={22} />}
@@ -2012,7 +2094,9 @@ export default function FocusFlowTDAH({
                 sleepLog={sleepLog}
               />
             </Panel>
+            </div>
 
+            <div ref={reportSectionRef}>
             <Panel C={C}
               accent={C.amber}
               icon={<FileText size={22} />}
@@ -2033,7 +2117,9 @@ export default function FocusFlowTDAH({
                 impulseBrakeLog={impulseBrakeLog}
               />
             </Panel>
+            </div>
 
+            <div ref={notificationsSectionRef}>
             <Panel C={C}
               accent={C.sky}
               icon={<Bell size={22} />}
@@ -2042,7 +2128,9 @@ export default function FocusFlowTDAH({
             >
               <NotificationsPanel C={C} t={t} userId={userId} />
             </Panel>
+            </div>
 
+            <div ref={calendarSectionRef}>
             <Panel C={C}
               accent={C.sky}
               icon={<CalendarRange size={22} />}
@@ -2051,7 +2139,9 @@ export default function FocusFlowTDAH({
             >
               <CalendarPanel C={C} t={t} userId={userId} />
             </Panel>
+            </div>
 
+            <div ref={bodyDoubleSectionRef}>
             <Panel C={C}
               accent={C.rose}
               icon={<Users size={22} />}
@@ -2069,6 +2159,7 @@ export default function FocusFlowTDAH({
                 sendReaction={bodyDouble.sendReaction}
               />
             </Panel>
+            </div>
           </div>
 
           <div>
@@ -2255,6 +2346,7 @@ export default function FocusFlowTDAH({
             </Panel>
             </div>
 
+            <div ref={mindfulnessSectionRef}>
             <Panel C={C}
               accent={C.lavender}
               icon={<Flower2 size={22} />}
@@ -2263,6 +2355,7 @@ export default function FocusFlowTDAH({
             >
               <MindfulnessPanel C={C} t={t} lang={lang} onComplete={handleMindfulnessComplete} />
             </Panel>
+            </div>
 
             <div ref={reestructuracionSectionRef}>
             <Panel C={C}
@@ -2342,6 +2435,7 @@ export default function FocusFlowTDAH({
             </Panel>
             </div>
 
+            <div ref={messageToneSectionRef}>
             <Panel C={C}
               accent={C.rose}
               icon={<MessageSquare size={22} />}
@@ -2350,6 +2444,7 @@ export default function FocusFlowTDAH({
             >
               <MessageTonePanel C={C} t={t} lang={lang} userId={userId} />
             </Panel>
+            </div>
           </div>
         </div>
 
@@ -2433,6 +2528,17 @@ export default function FocusFlowTDAH({
           {t.app.footerNote}
         </p>
       </div>
+
+      {/* Módulo 1 (navegación): botón flotante que deja saltar a cualquiera
+          de los 27 paneles desde cualquier punto del scroll — posición fija,
+          así que no importa en qué parte del árbol de JSX se declare. */}
+      <QuickNavMenu
+        C={C}
+        t={t}
+        accent={personalAccent}
+        sections={quickNavSections}
+        onNavigate={scrollToCompanionSection}
+      />
     </div>
   );
 }

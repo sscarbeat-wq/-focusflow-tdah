@@ -20,6 +20,7 @@ export default function TodayPanel({
   cbtProgram,
   habits,
   quickNotes,
+  routines,
   onNavigate,
 }) {
   const items = buildTodayItems({
@@ -33,6 +34,7 @@ export default function TodayPanel({
     cbtProgram,
     habits,
     quickNotes,
+    routines,
     t,
   });
 

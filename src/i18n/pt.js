@@ -540,6 +540,12 @@ const pt = {
     exitSession: "Sair",
   },
 
+  quickNav: {
+    title: "Ir para...",
+    openLabel: "Ir para uma seção",
+    closeLabel: "Fechar menu de navegação",
+  },
+
   scienceCapsule: {
     title: "Fato do dia sobre TDAH",
     sourceLabel: (source) => `Fonte: ${source}`,
@@ -638,6 +644,7 @@ const pt = {
     cbtNewLesson: "Nova lição do programa de TCC disponível",
     habitsPending: (n) => (n === 1 ? "1 hábito de autocuidado pendente" : `${n} hábitos de autocuidado pendentes`),
     quickNoteReturned: "Uma nota de alguns dias atrás voltou a aparecer",
+    routinesPending: (n) => (n === 1 ? "1 rotina não concluída hoje" : `${n} rotinas não concluídas hoje`),
   },
 
   weeklyInsights: {
