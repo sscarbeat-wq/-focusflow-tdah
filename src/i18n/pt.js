@@ -496,6 +496,28 @@ const pt = {
     deleteTitle: "Excluir",
   },
 
+  brainDump: {
+    intro: "Quando várias coisas estão passando pela sua cabeça ao mesmo tempo — diga ou escreva tudo junto, em qualquer ordem, e o ANRO TDAH separa para você em pendências individuais.",
+    placeholder: "Escreva tudo exatamente como vem à mente, uma coisa após a outra...",
+    submitButton: "Separar em pendências",
+    itemsIntro: (n) => (n === 1 ? "Encontrei 1 pendência:" : `Encontrei ${n} pendências:`),
+    allDone: "Você já revisou tudo. Quando quiser, pode esvaziar a cabeça de novo.",
+    newDumpButton: "Nova descarga mental",
+  },
+
+  oneThing: {
+    intro: "Escolha uma única tarefa para focar agora — o resto da sua lista continua lá, nada se perde.",
+    fromSteps: "Ou escolha um dos seus passos pendentes:",
+    placeholder: "No que você vai focar agora?",
+    start: "Começar",
+    needHelp: "Não sei por onde começar",
+    focusingOn: "Focando em",
+    finish: "Concluí",
+    splitIntoSteps: "Dividir em passos",
+    switchTask: "Trocar de tarefa",
+    exit: "Sair",
+  },
+
   scienceCapsule: {
     title: "Fato do dia sobre TDAH",
     sourceLabel: (source) => `Fonte: ${source}`,
@@ -664,6 +686,7 @@ const pt = {
       today: { title: "Hoje", subtitle: "O que ainda está pendente agora, reunindo o que você já registrou no app." },
       timeline: { title: "Linha do tempo de hoje", subtitle: "A que horas aconteceu cada coisa que você fez no ANRO TDAH hoje — para ver de um olhar como foi o dia." },
       quickCapture: { title: "Captura rápida", subtitle: "Deixe uma ideia por voz ou texto sem decidir antes em qual painel ela vai — o ANRO TDAH tenta enviá-la sozinho ao lugar certo." },
+      brainDump: { title: "Descarga mental com IA", subtitle: "Quando são várias coisas de uma vez — diga ou escreva tudo junto e o ANRO TDAH separa para você." },
       companion: { title: "Companheiro de apoio", subtitle: "Escolha o que você está sentindo agora — respostas pensadas para TDAH, sem precisar escrever nada." },
       oneThing: { title: "Só uma coisa", subtitle: "Escolha uma única tarefa e foque somente nela — sem ver o resto da sua lista." },
       dismantler: { title: "O detalhador", subtitle: "Se é difícil começar, geralmente é porque o primeiro passo é muito grande." },
@@ -808,19 +831,6 @@ const pt = {
       hydratedLabel: "hidratação",
       deskClearedLabel: "mesa organizada",
       oneThingCompleted: (text) => `concluído — ${text}`,
-    },
-
-    oneThing: {
-      intro: "Escolha uma única tarefa para focar agora — o resto da sua lista continua lá, nada se perde.",
-      fromSteps: "Ou escolha um dos seus passos pendentes:",
-      placeholder: "No que você vai focar agora?",
-      start: "Começar",
-      needHelp: "Não sei por onde começar",
-      focusingOn: "Focando em",
-      finish: "Concluí",
-      splitIntoSteps: "Dividir em passos",
-      switchTask: "Trocar de tarefa",
-      exit: "Sair",
     },
   },
 };
