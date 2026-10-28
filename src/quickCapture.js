@@ -64,3 +64,61 @@ export function oldForgottenNote(list, now = new Date(), minDays = FORGOTTEN_NOT
     .sort((a, b) => new Date(a.createdAt) - new Date(b.createdAt));
   return candidates[0] || null;
 }
+
+// --- Compartido entre QuickCapturePanel.jsx y BrainDumpPanel.jsx (Módulo 3
+// de ANRO TDAH 2.0, 8 de noviembre de 2026) ---
+// Las dos pantallas muestran la MISMA tarjeta de confirmación por cada
+// sugerencia que propone la IA de api/quick-capture.js (una sola nota en
+// Captura rápida, varias a la vez en Descarga mental) — estas dos funciones
+// puras viven aquí para que ninguna de las dos reimplemente "¿esta
+// sugerencia trae lo mínimo para agregarla directo?" ni "¿qué texto le
+// muestro a la paciente?" por su cuenta.
+
+// Solo se ofrece el botón de "agregar directo" cuando la IA entendió lo
+// mínimo necesario para que el dato sea útil de verdad (ej. una hora de
+// medicamento, o un día de vencimiento de pago) — si faltó algo, la tarjeta
+// solo ofrece guardarlo como nota, nunca intenta adivinar.
+export function canConfirmQuickCaptureSuggestion(suggestion, canAddStep) {
+  if (!suggestion) return false;
+  const f = suggestion.fields || {};
+  if (suggestion.type === "medicamento") {
+    return Boolean(f.name) && /^([01]\d|2[0-3]):([0-5]\d)$/.test(String(f.time || ""));
+  }
+  if (suggestion.type === "pago") {
+    const day = Number(f.dueDay);
+    return (
+      Boolean(f.name) && Number.isInteger(day) && day >= 1 && day <= 31 && (f.frequency === "mensual" || f.frequency === "anual")
+    );
+  }
+  if (suggestion.type === "paso") {
+    return Boolean(f.text) && canAddStep !== false;
+  }
+  return false;
+}
+
+// El texto que se muestra en la tarjeta de confirmación de cada sugerencia
+// — mismas 4 plantillas de traducción (t.quickCapture.suggestX) sin
+// importar si viene de Captura rápida o de una Descarga mental.
+export function describeQuickCaptureSuggestion(suggestion, t) {
+  if (!suggestion) return "";
+  if (suggestion.type === "medicamento") {
+    return t.quickCapture.suggestMedication(
+      suggestion.fields?.name || t.quickCapture.defaultMedicationName,
+      suggestion.fields?.time || ""
+    );
+  }
+  if (suggestion.type === "pago") {
+    return t.quickCapture.suggestPayment(
+      suggestion.fields?.name || "",
+      suggestion.fields?.amount ? `, ${suggestion.fields.amount}` : "",
+      suggestion.fields?.dueDay ? `, ${t.quickCapture.dueDayPart(suggestion.fields.dueDay)}` : ""
+    );
+  }
+  if (suggestion.type === "paso") {
+    return t.quickCapture.suggestStep(
+      suggestion.fields?.text || suggestion.noteText,
+      suggestion.fields?.min ? ` (~${suggestion.fields.min} min)` : ""
+    );
+  }
+  return t.quickCapture.noteLabel(suggestion.noteText);
+}

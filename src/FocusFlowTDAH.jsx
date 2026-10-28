@@ -43,6 +43,7 @@ import {
   Clock,
   Flower2,
   Target,
+  Inbox,
 } from "lucide-react";
 
 import LanguageSwitcher from "./LanguageSwitcher";
@@ -66,6 +67,7 @@ import CompanionPanel from "./CompanionPanel";
 import TodayPanel from "./TodayPanel";
 import MessageTonePanel from "./MessageTonePanel";
 import QuickCapturePanel from "./QuickCapturePanel";
+import BrainDumpPanel from "./BrainDumpPanel";
 import ClinicalReportPanel from "./ClinicalReportPanel";
 import GoodMomentsPanel from "./GoodMomentsPanel";
 import DayTimelinePanel from "./DayTimelinePanel";
@@ -276,6 +278,7 @@ export default function FocusFlowTDAH({
   const cbtSectionRef = useRef(null);
   const habitsSectionRef = useRef(null);
   const quickCaptureSectionRef = useRef(null);
+  const brainDumpSectionRef = useRef(null);
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
     const atajo = params.get("atajo");
@@ -304,6 +307,7 @@ export default function FocusFlowTDAH({
     cbt: cbtSectionRef,
     habits: habitsSectionRef,
     quickCapture: quickCaptureSectionRef,
+    brainDump: brainDumpSectionRef,
   };
   const scrollToCompanionSection = (key) => {
     const ref = companionSectionRefs[key];
@@ -1457,6 +1461,27 @@ export default function FocusFlowTDAH({
             onAddNote={handleAddQuickNote}
             onResolveNote={handleResolveQuickNote}
             onRemoveNote={handleRemoveQuickNote}
+            onConfirmMedication={handleConfirmQuickMedication}
+            onConfirmPayment={handleConfirmQuickPayment}
+            onConfirmStep={handleConfirmQuickStep}
+          />
+        </Panel>
+        </div>
+
+        <div ref={brainDumpSectionRef}>
+        <Panel C={C}
+          accent={C.amber}
+          icon={<Inbox size={22} />}
+          title={t.app.panels.brainDump.title}
+          subtitle={t.app.panels.brainDump.subtitle}
+        >
+          <BrainDumpPanel
+            C={C}
+            t={t}
+            lang={lang}
+            userId={userId}
+            canAddStep={steps.length < 5}
+            onAddNote={handleAddQuickNote}
             onConfirmMedication={handleConfirmQuickMedication}
             onConfirmPayment={handleConfirmQuickPayment}
             onConfirmStep={handleConfirmQuickStep}

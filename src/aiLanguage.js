@@ -67,6 +67,9 @@ const AI_ERROR_MESSAGES = {
     quickCaptureLimit: (limit) => `Llegaste al límite de ${limit} capturas rápidas con IA este mes.`,
     quickCaptureEmpty: "No se entendió ninguna palabra. Intenta de nuevo.",
     quickCaptureFailed: "No se pudo procesar la nota. Intenta de nuevo en un momento.",
+    brainDumpLimit: (limit) => `Llegaste al límite de ${limit} descargas mentales con IA este mes.`,
+    brainDumpEmpty: "No se entendió ninguna palabra. Intenta de nuevo.",
+    brainDumpFailed: "No se pudo separar lo que escribiste. Intenta de nuevo en un momento.",
   },
   en: {
     breakdownLimit: (limit) =>
@@ -79,6 +82,9 @@ const AI_ERROR_MESSAGES = {
     quickCaptureLimit: (limit) => `You've reached the limit of ${limit} AI quick captures this month.`,
     quickCaptureEmpty: "Nothing was understood. Try again.",
     quickCaptureFailed: "Couldn't process the note. Try again in a moment.",
+    brainDumpLimit: (limit) => `You've reached the limit of ${limit} AI brain dumps this month.`,
+    brainDumpEmpty: "Nothing was understood. Try again.",
+    brainDumpFailed: "Couldn't split up what you wrote. Try again in a moment.",
   },
   fr: {
     breakdownLimit: (limit) =>
@@ -91,6 +97,9 @@ const AI_ERROR_MESSAGES = {
     quickCaptureLimit: (limit) => `Tu as atteint la limite de ${limit} captures rapides avec IA ce mois-ci.`,
     quickCaptureEmpty: "Rien n'a été compris. Réessaie.",
     quickCaptureFailed: "Impossible de traiter la note. Réessaie dans un instant.",
+    brainDumpLimit: (limit) => `Tu as atteint la limite de ${limit} décharges mentales avec IA ce mois-ci.`,
+    brainDumpEmpty: "Rien n'a été compris. Réessaie.",
+    brainDumpFailed: "Impossible de séparer ce que tu as écrit. Réessaie dans un instant.",
   },
   pt: {
     breakdownLimit: (limit) =>
@@ -103,6 +112,9 @@ const AI_ERROR_MESSAGES = {
     quickCaptureLimit: (limit) => `Você atingiu o limite de ${limit} capturas rápidas com IA este mês.`,
     quickCaptureEmpty: "Nada foi entendido. Tente de novo.",
     quickCaptureFailed: "Não foi possível processar a nota. Tente de novo em um momento.",
+    brainDumpLimit: (limit) => `Você atingiu o limite de ${limit} descargas mentais com IA este mês.`,
+    brainDumpEmpty: "Nada foi entendido. Tente de novo.",
+    brainDumpFailed: "Não foi possível separar o que você escreveu. Tente de novo em um momento.",
   },
 };
 
