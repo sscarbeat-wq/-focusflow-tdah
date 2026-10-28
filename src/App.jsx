@@ -1,6 +1,7 @@
 import React, { useEffect, useRef, useState } from "react";
 import { supabase } from "./supabaseClient";
 import Auth from "./Auth";
+import ResetPassword from "./ResetPassword";
 import FocusFlowTDAH from "./FocusFlowTDAH";
 import Paywall from "./Paywall";
 import { DARK_THEME, LIGHT_THEME, getStoredTheme, storeTheme, getStoredAccent, storeAccent } from "./theme";
@@ -11,6 +12,14 @@ const ACTIVE_STATUSES = ["active", "trialing"];
 
 export default function App() {
   const [session, setSession] = useState(undefined); // undefined = cargando, null = sin sesión
+  // 28 de octubre de 2026 — "recuperar contraseña": cuando la paciente entra
+  // desde el enlace de recuperación que le llegó por correo, Supabase crea
+  // una sesión válida y avisa con el evento "PASSWORD_RECOVERY" (ver el
+  // listener más abajo). Sin esta bandera, esa sesión válida mandaría a la
+  // paciente derecho a la app con la contraseña VIEJA todavía activa, sin
+  // haber tenido oportunidad de cambiarla — por eso se revisa antes que
+  // cualquier otra cosa en el render de abajo.
+  const [passwordRecovery, setPasswordRecovery] = useState(false);
   const [progress, setProgress] = useState(null);
   const [loadingProgress, setLoadingProgress] = useState(true);
   const [subscription, setSubscription] = useState(undefined); // undefined = cargando
@@ -74,7 +83,8 @@ export default function App() {
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data }) => setSession(data.session));
-    const { data: listener } = supabase.auth.onAuthStateChange((_event, newSession) => {
+    const { data: listener } = supabase.auth.onAuthStateChange((event, newSession) => {
+      if (event === "PASSWORD_RECOVERY") setPasswordRecovery(true);
       setSession(newSession);
     });
     return () => listener.subscription.unsubscribe();
@@ -157,6 +167,25 @@ export default function App() {
   };
 
   if (session === undefined) return null; // cargando sesión inicial
+
+  // Antes que cualquier otra cosa: si venimos del enlace de recuperar
+  // contraseña, Supabase ya dejó una sesión válida activa, pero la
+  // paciente todavía no eligió su contraseña nueva — se queda en esta
+  // pantalla sin importar si "session" ya existe.
+  if (passwordRecovery) {
+    return (
+      <ResetPassword
+        C={C}
+        theme={theme}
+        onToggleTheme={toggleTheme}
+        t={t}
+        lang={lang}
+        onChangeLanguage={changeLanguage}
+        onDone={() => setPasswordRecovery(false)}
+      />
+    );
+  }
+
   if (!session)
     return (
       <Auth C={C} theme={theme} onToggleTheme={toggleTheme} t={t} lang={lang} onChangeLanguage={changeLanguage} />
