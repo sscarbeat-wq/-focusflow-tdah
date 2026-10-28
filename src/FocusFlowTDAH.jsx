@@ -140,29 +140,45 @@ const DEFAULT_PROGRESS = {
 // borde superior — mismo principio de "colores suaves, nunca alarmantes"
 // que ya regía la paleta, solo que ahora cada panel se reconoce por su
 // color de categoría de un vistazo, no solo por el ícono/título.
+// Panel — único punto de control del estilo visual de cada tarjeta de la
+// app (27 de octubre de 2026). Segunda pasada el mismo día, a petición de
+// la doctora: "diseño bonito, que no se vea tan plana". Antes cada panel
+// era un rectángulo de un solo color sólido (C.surface) con una sombra muy
+// discreta — correcto pero sin ninguna personalidad. Ahora:
+//   - El fondo es un degradado muy suave hacia el color de acento de ESE
+//     panel (la categoría ya tenía un color fijo asignado, ver el mapa de
+//     accent={C.xxx} en cada <Panel>) — cada tarjeta se siente como "la
+//     suya", no intercambiable con las demás.
+//   - La sombra pasa de una sola capa a dos (una ambiental, otra más
+//     cerrada) más una línea de brillo arriba (inset) — la misma técnica
+//     que usan apps tipo Tiimo para que las tarjetas se sientan "levantadas"
+//     en vez de pegadas al fondo.
+//   - El ícono pasa de un cuadro de color plano a una placa con degradado y
+//     su propia sombra de color, como si flotara un poco sobre la tarjeta.
 function Panel({ accent, icon, title, subtitle, children, C }) {
   return (
     <div
       style={{
-        background: C.surface,
+        background: `linear-gradient(165deg, ${tint(accent, 0.07)}, ${C.surface} 55%)`,
         borderRadius: "22px",
         padding: "24px 24px 26px",
         marginBottom: "20px",
-        boxShadow: "0 4px 14px rgba(0,0,0,0.08)",
+        boxShadow: `0 1px 2px rgba(0,0,0,0.05), 0 10px 24px rgba(0,0,0,0.10), inset 0 1px 0 rgba(255,255,255,0.05)`,
       }}
     >
       <div style={{ display: "flex", gap: "14px", alignItems: "flex-start", marginBottom: "18px" }}>
         <div
           style={{
-            width: "40px",
-            height: "40px",
-            borderRadius: "13px",
-            background: tint(accent, 0.16),
+            width: "42px",
+            height: "42px",
+            borderRadius: "14px",
+            background: `linear-gradient(135deg, ${tint(accent, 0.3)}, ${tint(accent, 0.12)})`,
             color: accent,
             display: "flex",
             alignItems: "center",
             justifyContent: "center",
             flexShrink: 0,
+            boxShadow: `0 4px 10px ${tint(accent, 0.3)}`,
           }}
         >
           {icon}
@@ -891,6 +907,13 @@ export default function FocusFlowTDAH({
     setBedtimeInput("");
   };
 
+  // 27 de octubre de 2026 — mismo pedido de "que no se vea tan plana":
+  // el campo de texto ahora tiene una sombra interior sutil (se siente
+  // "hundido", como un campo real en vez de un rectángulo pintado) y el
+  // botón primario suma un barniz de brillo arriba (glossy) más una
+  // sombra del mismo color que el botón, para que se sienta con relieve
+  // en vez de un bloque de color plano. btnGhost se queda igual de
+  // discreto a propósito — es el botón "secundario", no debe competir.
   const inputStyle = {
     width: "100%",
     boxSizing: "border-box",
@@ -901,10 +924,11 @@ export default function FocusFlowTDAH({
     color: C.text,
     fontSize: "14px",
     fontFamily: "inherit",
+    boxShadow: "inset 0 1px 3px rgba(0,0,0,0.08)",
   };
 
   const btnPrimary = (bg, textColor) => ({
-    background: bg,
+    background: `linear-gradient(180deg, rgba(255,255,255,0.16), rgba(255,255,255,0) 60%), ${bg}`,
     border: "none",
     borderRadius: "12px",
     padding: "10px 16px",
@@ -912,6 +936,7 @@ export default function FocusFlowTDAH({
     fontWeight: 600,
     cursor: "pointer",
     fontSize: "14px",
+    boxShadow: `0 4px 10px ${tint(bg, 0.35)}`,
   });
 
   const btnGhost = {

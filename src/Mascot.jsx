@@ -29,11 +29,35 @@ import { stageFor, progressFraction, DEFAULT_SPECIES } from "./mascotLogic";
 // Ambas respetan `prefers-reduced-motion: reduce` (se desactivan por
 // completo), igual que la sensibilidad a sobreestimulación que ya se tomó
 // en cuenta para el resto del diseño.
+//
+// Segunda pasada (27 de octubre de 2026, a petición de la doctora: "diseño
+// bonito, que no se vea tan plana, y la mascota más grande, y que [la
+// mascota] salga de un huevo"):
+//   - Mascota más grande: el anillo pasó de 68px a 112px y el emoji de 32px
+//     a 56px — sigue siendo el mismo componente, solo más protagonista.
+//   - "Que no se vea tan plana": la tarjeta ya tenía un degradado sutil;
+//     ahora suma una mancha de luz de color (el acento de racha, difuminada
+//     de fondo), una sombra de dos capas para que se sienta "levantada" en
+//     vez de pegada a la pantalla, y una sombra de "piso" debajo del
+//     círculo para que la mascota se sienta apoyada en algo, no flotando
+//     sobre la nada.
+//   - "Que salga de un huevo": todas las especies que empiezan en huevo
+//     (ave, dragón, pez — el pez es el que termina en 🐋) ya llegaban ahí
+//     por lógica (mascotLogic.js), pero el cambio de huevo a la siguiente
+//     etapa pasaba exactamente igual que cualquier otro festejo de racha,
+//     sin distinguirse. Ahora ese momento específico (huevo → algo vivo)
+//     tiene su propia animación de "eclosión": el huevo tiembla, se
+//     encoge como si se rompiera, y el animal aparece con un rebote y un
+//     par de chispitas — en vez de solo el festejo genérico de subir de
+//     nivel. Las especies que no empiezan en huevo (gato, planta, perro)
+//     conservan el festejo genérico de siempre.
+// Todo lo nuevo respeta `prefers-reduced-motion: reduce` igual que antes.
 
-const RING_SIZE = 68;
-const RING_RADIUS = 28;
-const RING_STROKE = 6;
+const RING_SIZE = 112;
+const RING_RADIUS = 46;
+const RING_STROKE = 8;
 const RING_CIRCUMFERENCE = 2 * Math.PI * RING_RADIUS;
+const EGG_EMOJI = "🥚";
 
 export default function Mascot({ streak, C, t, accent, species }) {
   const current = streak?.current || 0;
@@ -48,15 +72,23 @@ export default function Mascot({ streak, C, t, accent, species }) {
   // Festejo de "subió de nivel" — se dispara solo cuando el emoji de la
   // etapa cambia de un render al siguiente (no en cada render), y nunca en
   // el reset de racha (ahí el emoji también cambia, pero sería raro
-  // festejar justo cuando se perdió la racha).
+  // festejar justo cuando se perdió la racha). Si la etapa anterior era un
+  // huevo, el festejo es la animación de eclosión en vez de la genérica.
   const prevEmojiRef = useRef(stage.emoji);
   const isReset = current === 0 && longest > 0;
   const [celebrate, setCelebrate] = useState(false);
+  const [hatching, setHatching] = useState(false);
 
   useEffect(() => {
     if (prevEmojiRef.current !== stage.emoji) {
+      const wasEgg = prevEmojiRef.current === EGG_EMOJI;
       prevEmojiRef.current = stage.emoji;
       if (!isReset) {
+        if (wasEgg) {
+          setHatching(true);
+          const timeout = setTimeout(() => setHatching(false), 1100);
+          return () => clearTimeout(timeout);
+        }
         setCelebrate(true);
         const timeout = setTimeout(() => setCelebrate(false), 900);
         return () => clearTimeout(timeout);
@@ -67,15 +99,18 @@ export default function Mascot({ streak, C, t, accent, species }) {
   return (
     <div
       style={{
+        position: "relative",
+        overflow: "hidden",
         background: `linear-gradient(135deg, ${C.surface}, ${C.surfaceAlt})`,
         borderRadius: "24px",
-        padding: "18px 20px",
+        padding: "20px 22px",
         marginBottom: "20px",
         display: "flex",
         alignItems: "center",
         flexWrap: "wrap",
-        gap: "16px",
-        boxShadow: "0 6px 18px rgba(0,0,0,0.12)",
+        gap: "18px",
+        boxShadow:
+          "0 2px 4px rgba(0,0,0,0.08), 0 16px 32px rgba(0,0,0,0.16), inset 0 1px 0 rgba(255,255,255,0.06)",
       }}
     >
       <style>{`
@@ -94,30 +129,84 @@ export default function Mascot({ streak, C, t, accent, species }) {
           80% { transform: scale(1.08) rotate(-2deg); }
           100% { transform: scale(1) rotate(0deg); }
         }
+        @keyframes anroMascotHatch {
+          0% { transform: scale(1) rotate(0deg); }
+          14% { transform: scale(0.92) rotate(-10deg); }
+          28% { transform: scale(0.94) rotate(9deg); }
+          42% { transform: scale(0.88) rotate(-7deg); }
+          54% { transform: scale(0.25) rotate(0deg); opacity: 0.35; }
+          70% { transform: scale(1.4) rotate(5deg); opacity: 1; }
+          85% { transform: scale(0.93) rotate(-3deg); }
+          100% { transform: scale(1) rotate(0deg); }
+        }
+        @keyframes anroMascotSparkA {
+          0%, 54% { transform: translate(0, 0) scale(0); opacity: 0; }
+          68% { transform: translate(-24px, -20px) scale(1); opacity: 1; }
+          100% { transform: translate(-38px, -34px) scale(0.3); opacity: 0; }
+        }
+        @keyframes anroMascotSparkB {
+          0%, 54% { transform: translate(0, 0) scale(0); opacity: 0; }
+          68% { transform: translate(26px, -16px) scale(1); opacity: 1; }
+          100% { transform: translate(42px, -30px) scale(0.3); opacity: 0; }
+        }
         .anro-mascot-emoji {
           display: inline-block;
           animation: anroMascotFloat 3.6s ease-in-out infinite;
-          filter: drop-shadow(0 2px 4px rgba(0,0,0,0.18));
+          filter: drop-shadow(0 3px 6px rgba(0,0,0,0.2));
         }
         .anro-mascot-emoji.anro-mascot-celebrate {
           animation: anroMascotLevelUp 0.9s ease-in-out;
         }
+        .anro-mascot-emoji.anro-mascot-hatch {
+          animation: anroMascotHatch 1.1s cubic-bezier(0.36, 0.07, 0.19, 0.97);
+        }
         .anro-mascot-glow {
           animation: anroMascotGlow 2.8s ease-in-out infinite;
+        }
+        .anro-mascot-spark {
+          position: absolute;
+          top: 50%;
+          left: 50%;
+          font-size: 20px;
+          opacity: 0;
+          pointer-events: none;
+        }
+        .anro-mascot-spark-a {
+          animation: anroMascotSparkA 1.1s ease-out;
+        }
+        .anro-mascot-spark-b {
+          animation: anroMascotSparkB 1.1s ease-out;
         }
         @media (prefers-reduced-motion: reduce) {
           .anro-mascot-emoji,
           .anro-mascot-emoji.anro-mascot-celebrate,
-          .anro-mascot-glow {
+          .anro-mascot-emoji.anro-mascot-hatch,
+          .anro-mascot-glow,
+          .anro-mascot-spark-a,
+          .anro-mascot-spark-b {
             animation: none !important;
           }
         }
       `}</style>
       <div
+        aria-hidden="true"
+        style={{
+          position: "absolute",
+          top: "-60px",
+          right: "-60px",
+          width: "220px",
+          height: "220px",
+          borderRadius: "50%",
+          background: `radial-gradient(circle, ${tint(ringColor, 0.22)} 0%, transparent 70%)`,
+          filter: "blur(2px)",
+          pointerEvents: "none",
+        }}
+      />
+      <div
         style={{
           position: "relative",
           width: `${RING_SIZE}px`,
-          height: `${RING_SIZE}px`,
+          height: `${RING_SIZE + 10}px`,
           flexShrink: 0,
         }}
       >
@@ -126,7 +215,10 @@ export default function Mascot({ streak, C, t, accent, species }) {
           aria-hidden="true"
           style={{
             position: "absolute",
-            inset: 0,
+            top: 0,
+            left: 0,
+            width: `${RING_SIZE}px`,
+            height: `${RING_SIZE}px`,
             borderRadius: "50%",
             background: `radial-gradient(circle, ${tint(ringColor, 0.35)} 0%, transparent 70%)`,
           }}
@@ -162,28 +254,60 @@ export default function Mascot({ streak, C, t, accent, species }) {
         <div
           style={{
             position: "absolute",
-            inset: 0,
+            top: 0,
+            left: 0,
+            width: `${RING_SIZE}px`,
+            height: `${RING_SIZE}px`,
             display: "flex",
             alignItems: "center",
             justifyContent: "center",
-            fontSize: "32px",
+            fontSize: "56px",
             lineHeight: 1,
           }}
           aria-hidden="true"
         >
           <span
-            className={`anro-mascot-emoji${celebrate ? " anro-mascot-celebrate" : ""}`}
+            className={`anro-mascot-emoji${celebrate ? " anro-mascot-celebrate" : ""}${
+              hatching ? " anro-mascot-hatch" : ""
+            }`}
           >
             {stage.emoji}
           </span>
+          {hatching && (
+            <>
+              <span className="anro-mascot-spark anro-mascot-spark-a" aria-hidden="true">
+                ✨
+              </span>
+              <span className="anro-mascot-spark anro-mascot-spark-b" aria-hidden="true">
+                ✨
+              </span>
+            </>
+          )}
         </div>
+        {/* Sombra de "piso" — sensación de que la mascota está apoyada en
+            algo, no flotando en el vacío. */}
+        <div
+          aria-hidden="true"
+          style={{
+            position: "absolute",
+            bottom: "0px",
+            left: "50%",
+            transform: "translateX(-50%)",
+            width: "58%",
+            height: "10px",
+            borderRadius: "50%",
+            background: "radial-gradient(ellipse, rgba(0,0,0,0.28), transparent 72%)",
+            filter: "blur(1px)",
+          }}
+        />
       </div>
-      <div style={{ flex: 1, minWidth: 0 }}>
-        <div style={{ fontSize: "14px", fontWeight: 700, color: C.text }}>{label}</div>
-        <div style={{ fontSize: "12px", color: C.textMuted }}>{hint}</div>
+      <div style={{ position: "relative", flex: 1, minWidth: 0 }}>
+        <div style={{ fontSize: "15px", fontWeight: 700, color: C.text }}>{label}</div>
+        <div style={{ fontSize: "13px", color: C.textMuted, marginTop: "2px" }}>{hint}</div>
       </div>
       <div
         style={{
+          position: "relative",
           display: "flex",
           alignItems: "center",
           gap: "6px",
@@ -191,6 +315,7 @@ export default function Mascot({ streak, C, t, accent, species }) {
           borderRadius: "999px",
           padding: "8px 14px",
           flexShrink: 0,
+          boxShadow: `0 3px 8px ${tint(C.amber, 0.25)}`,
         }}
       >
         <Flame size={16} color={C.amber} />
@@ -201,6 +326,7 @@ export default function Mascot({ streak, C, t, accent, species }) {
         <div
           title={t.mascot.bestStreakTitle}
           style={{
+            position: "relative",
             display: "flex",
             alignItems: "center",
             gap: "6px",
@@ -208,6 +334,7 @@ export default function Mascot({ streak, C, t, accent, species }) {
             borderRadius: "999px",
             padding: "8px 14px",
             flexShrink: 0,
+            boxShadow: `0 3px 8px ${tint(ringColor, 0.25)}`,
           }}
         >
           <Trophy size={16} color={ringColor} />
