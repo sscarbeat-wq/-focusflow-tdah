@@ -33,6 +33,20 @@ const pt = {
     signUpButton: "Criar conta",
     toggleToSignUp: "Não tem conta? Crie uma aqui",
     toggleToSignIn: "Já tem conta? Entre aqui",
+    forgotPasswordLink: "Esqueceu sua senha?",
+    resetRequestTitle: "Redefina sua senha",
+    resetRequestHint: "Digite seu e-mail e enviaremos um link para escolher uma nova senha.",
+    resetRequestButton: "Enviar link",
+    resetRequestSent:
+      "Se esse e-mail tiver uma conta, enviamos um link para redefinir sua senha. Verifique sua caixa de entrada (e o spam).",
+    backToSignIn: "Voltar para entrar",
+    newPasswordTitle: "Escolha sua nova senha",
+    newPasswordHint: "Digite uma nova senha para sua conta.",
+    newPasswordPlaceholder: "Nova senha",
+    newPasswordConfirmPlaceholder: "Confirme a nova senha",
+    newPasswordButton: "Salvar senha",
+    newPasswordMismatch: "As senhas não coincidem.",
+    newPasswordSuccess: "Sua senha foi atualizada. Você já pode continuar usando o app.",
   },
 
   paywall: {
