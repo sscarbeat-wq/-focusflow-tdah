@@ -982,30 +982,28 @@ export default function FocusFlowTDAH({
         >
           <div>
             <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
-              {/* 27 de octubre de 2026 — marca pequeña junto al nombre, estilo
-                  "ícono de app" (cuadrado redondeado con degradado), ya que no
-                  hay forma de generar un logo ilustrado en este espacio de
-                  trabajo. Usa el acento personal para que, igual que el resto
-                  de la pantalla, se sienta propia de cada paciente. */}
-              <div
+              {/* 28 de octubre de 2026 — la doctora diseñó un logo propio (el
+                  cerebrito sonriente) y pidió reemplazar la marca genérica de
+                  acá (cuadrado con degradado + ícono de chispa, puesta el 27
+                  de octubre por no haber logo todavía). El archivo vive en
+                  /public (no en /src) porque así lo sirve Vite directo, sin
+                  pasar por el empacador — mismo patrón que icon-192.png,
+                  icon-512.png, etc. (ver vite.config.js). Es PNG con fondo
+                  transparente, así que no necesita ninguna placa de color
+                  detrás como tenía la versión anterior. */}
+              <img
+                src="/logo-mark.png"
+                alt=""
                 aria-hidden="true"
-                style={{
-                  width: "36px",
-                  height: "36px",
-                  borderRadius: "12px",
-                  background: `linear-gradient(135deg, ${personalAccent}, ${tint(personalAccent, 0.55)})`,
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "center",
-                  flexShrink: 0,
-                  boxShadow: "0 3px 8px rgba(0,0,0,0.18)",
-                }}
-              >
-                <Sparkles size={18} color="#FFFFFF" />
-              </div>
+                style={{ width: "40px", height: "40px", flexShrink: 0 }}
+              />
               <h1 style={{ fontSize: "24px", fontWeight: 700, margin: 0 }}>{t.common.appName}</h1>
             </div>
-            <p style={{ fontSize: "13px", color: C.textMuted, margin: "6px 0 0 46px" }}>
+            {/* 50px = 40px del logo + 10px del espacio entre el logo y el
+                título (mismo gap del contenedor de arriba) — para que el
+                subtítulo quede alineado justo debajo del texto del título,
+                no del logo. */}
+            <p style={{ fontSize: "13px", color: C.textMuted, margin: "6px 0 0 50px" }}>
               {userEmail ? t.app.sessionOf(userEmail) : t.app.noEmailSubtitle}
             </p>
           </div>
