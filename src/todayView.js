@@ -17,6 +17,7 @@ import { paymentsDueSoon } from "./paymentsLog";
 import { programStatus } from "./cbtProgram";
 import { pendingHabits } from "./weeklyInsights";
 import { oldForgottenNote } from "./quickCapture";
+import { pendingRoutineTemplates } from "./routines";
 
 // Traducciones por defecto (español) para quien llame a esta función sin
 // pasar `t` — mismo patrón de respaldo que distractionTracker.js, para que
@@ -36,6 +37,7 @@ const DEFAULT_TODAY_T = {
     cbtNewLesson: "Nueva lección del programa de TCC disponible",
     habitsPending: (n) => (n === 1 ? "1 hábito de autocuidado pendiente" : `${n} hábitos de autocuidado pendientes`),
     quickNoteReturned: "Una nota de hace unos días volvió a aparecer",
+    routinesPending: (n) => (n === 1 ? "1 rutina sin completar hoy" : `${n} rutinas sin completar hoy`),
   },
   weeklyInsights: {
     habitLabels: {
@@ -67,6 +69,7 @@ export function buildTodayItems({
   cbtProgram,
   habits,
   quickNotes,
+  routines,
   now = new Date(),
   t = DEFAULT_TODAY_T,
 } = {}) {
@@ -150,6 +153,20 @@ export function buildTodayItems({
       sectionRef: "habits",
       label: t.today.habitsPending(pending.length),
       detail: pending.map((h) => t.weeklyInsights.habitLabels[h.key] || h.label).join(", "),
+    });
+  }
+
+  // Rutinas visuales guiadas (Módulo 5) que la paciente ya armó y todavía
+  // no camina hoy — mismo criterio de "dato real, no inventado" que el
+  // resto de esta función: si no hay plantillas o ya se completaron todas,
+  // no aparece nada aquí.
+  const pendingRoutines = pendingRoutineTemplates(routines, now);
+  if (pendingRoutines.length > 0) {
+    items.push({
+      id: "routines",
+      sectionRef: "routines",
+      label: t.today.routinesPending(pendingRoutines.length),
+      detail: pendingRoutines[0].name,
     });
   }
 

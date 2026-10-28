@@ -178,3 +178,16 @@ export function completedRoutinesToday(state, now = new Date()) {
   const todayStr = now.toDateString();
   return s.completions.filter((c) => new Date(c.completedAt).toDateString() === todayStr).length;
 }
+
+// Rutinas que todavía NO se completaron hoy — para la vista "Hoy" (ver
+// todayView.js, Módulo 1). Una plantilla sin pasos nunca cuenta como
+// pendiente (no hay nada que caminar todavía todavía), mismo criterio
+// defensivo que ya usa startRoutineSession.
+export function pendingRoutineTemplates(state, now = new Date()) {
+  const s = clean(state);
+  const todayStr = now.toDateString();
+  const completedTemplateIdsToday = new Set(
+    s.completions.filter((c) => new Date(c.completedAt).toDateString() === todayStr).map((c) => c.templateId)
+  );
+  return s.templates.filter((r) => r.steps.length > 0 && !completedTemplateIdsToday.has(r.id));
+}
