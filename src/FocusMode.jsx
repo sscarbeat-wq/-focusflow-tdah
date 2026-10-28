@@ -29,7 +29,15 @@ function fmt(sec) {
   return `${String(m).padStart(2, "0")}:${String(s).padStart(2, "0")}`;
 }
 
-export default function FocusMode({ C, t, onSessionComplete, onSessionStart }) {
+// minimal: 8 de noviembre de 2026 — para el nuevo panel "Solo una cosa"
+// (Módulo 4 de ANRO TDAH 2.0), que necesita el mismo temporizador de
+// siempre pero SIN los selectores de duración ni el contador de ciclos a la
+// vista — esa información es justo el tipo de "ruido" extra que ese panel
+// está diseñado para esconder. No es un componente nuevo: es este mismo
+// FocusMode, reutilizado, con esa sola parte oculta — el temporizador,
+// Play/Pausa/Reiniciar y el ruido blanco siguen funcionando exactamente
+// igual que en el panel "Modo Enfoque" normal.
+export default function FocusMode({ C, t, onSessionComplete, onSessionStart, minimal = false }) {
   const [workMin, setWorkMin] = useState(25);
   const [breakMin, setBreakMin] = useState(5);
   const [mode, setMode] = useState("work"); // "work" | "break"
@@ -254,34 +262,36 @@ export default function FocusMode({ C, t, onSessionComplete, onSessionStart }) {
 
   return (
     <div>
-      <div style={{ display: "flex", gap: "10px", marginBottom: "16px", flexWrap: "wrap", alignItems: "center" }}>
-        <label style={{ fontSize: "12px", color: C.textMuted }}>{t.focusMode.workLabel}</label>
-        <select
-          value={workMin}
-          onChange={(e) => changeWork(Number(e.target.value))}
-          disabled={running}
-          style={inputStyle}
-        >
-          {WORK_OPTIONS.map((m) => (
-            <option key={m} value={m}>
-              {m} min
-            </option>
-          ))}
-        </select>
-        <label style={{ fontSize: "12px", color: C.textMuted }}>{t.focusMode.breakLabel}</label>
-        <select
-          value={breakMin}
-          onChange={(e) => changeBreak(Number(e.target.value))}
-          disabled={running}
-          style={inputStyle}
-        >
-          {BREAK_OPTIONS.map((m) => (
-            <option key={m} value={m}>
-              {m} min
-            </option>
-          ))}
-        </select>
-      </div>
+      {!minimal && (
+        <div style={{ display: "flex", gap: "10px", marginBottom: "16px", flexWrap: "wrap", alignItems: "center" }}>
+          <label style={{ fontSize: "12px", color: C.textMuted }}>{t.focusMode.workLabel}</label>
+          <select
+            value={workMin}
+            onChange={(e) => changeWork(Number(e.target.value))}
+            disabled={running}
+            style={inputStyle}
+          >
+            {WORK_OPTIONS.map((m) => (
+              <option key={m} value={m}>
+                {m} min
+              </option>
+            ))}
+          </select>
+          <label style={{ fontSize: "12px", color: C.textMuted }}>{t.focusMode.breakLabel}</label>
+          <select
+            value={breakMin}
+            onChange={(e) => changeBreak(Number(e.target.value))}
+            disabled={running}
+            style={inputStyle}
+          >
+            {BREAK_OPTIONS.map((m) => (
+              <option key={m} value={m}>
+                {m} min
+              </option>
+            ))}
+          </select>
+        </div>
+      )}
 
       <div style={{ display: "flex", alignItems: "center", gap: "18px", marginBottom: "14px" }}>
         <div style={{ position: "relative" }}>
@@ -289,8 +299,13 @@ export default function FocusMode({ C, t, onSessionComplete, onSessionStart }) {
             {fmt(secondsLeft)}
           </div>
           <div style={{ fontSize: "12px", color: C.textMuted, marginTop: "4px" }}>
-            {mode === "work" ? t.focusMode.focusSession : t.focusMode.breakLabel} ·{" "}
-            {t.focusMode.completedToday(cyclesDone)}
+            {mode === "work" ? t.focusMode.focusSession : t.focusMode.breakLabel}
+            {!minimal && (
+              <>
+                {" "}
+                · {t.focusMode.completedToday(cyclesDone)}
+              </>
+            )}
           </div>
           {mode === "work" && formatDistractionSummary(distraction, t.focusMode) && (
             <div style={{ fontSize: "12px", color: C.textMuted, marginTop: "4px" }}>
@@ -342,9 +357,11 @@ export default function FocusMode({ C, t, onSessionComplete, onSessionStart }) {
           </button>
         </div>
       </div>
-      <p style={{ fontSize: "12px", color: C.textMuted, margin: 0 }}>
-        {t.focusMode.footerNote}
-      </p>
+      {!minimal && (
+        <p style={{ fontSize: "12px", color: C.textMuted, margin: 0 }}>
+          {t.focusMode.footerNote}
+        </p>
+      )}
     </div>
   );
 }

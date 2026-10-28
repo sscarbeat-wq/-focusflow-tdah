@@ -665,6 +665,7 @@ const pt = {
       timeline: { title: "Linha do tempo de hoje", subtitle: "A que horas aconteceu cada coisa que você fez no ANRO TDAH hoje — para ver de um olhar como foi o dia." },
       quickCapture: { title: "Captura rápida", subtitle: "Deixe uma ideia por voz ou texto sem decidir antes em qual painel ela vai — o ANRO TDAH tenta enviá-la sozinho ao lugar certo." },
       companion: { title: "Companheiro de apoio", subtitle: "Escolha o que você está sentindo agora — respostas pensadas para TDAH, sem precisar escrever nada." },
+      oneThing: { title: "Só uma coisa", subtitle: "Escolha uma única tarefa e foque somente nela — sem ver o resto da sua lista." },
       dismantler: { title: "O detalhador", subtitle: "Se é difícil começar, geralmente é porque o primeiro passo é muito grande." },
       auditor: { title: "O auditor de tempo", subtitle: "Compare quanto tempo você acha que vai demorar com quanto realmente demora." },
       focusMode: { title: "Modo Foco", subtitle: "Sessões de trabalho com pausas programadas e ruído branco de fundo." },
@@ -806,6 +807,20 @@ const pt = {
       ateWellLabel: "refeição nutritiva",
       hydratedLabel: "hidratação",
       deskClearedLabel: "mesa organizada",
+      oneThingCompleted: (text) => `concluído — ${text}`,
+    },
+
+    oneThing: {
+      intro: "Escolha uma única tarefa para focar agora — o resto da sua lista continua lá, nada se perde.",
+      fromSteps: "Ou escolha um dos seus passos pendentes:",
+      placeholder: "No que você vai focar agora?",
+      start: "Começar",
+      needHelp: "Não sei por onde começar",
+      focusingOn: "Focando em",
+      finish: "Concluí",
+      splitIntoSteps: "Dividir em passos",
+      switchTask: "Trocar de tarefa",
+      exit: "Sair",
     },
   },
 };
