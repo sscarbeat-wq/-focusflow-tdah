@@ -492,6 +492,28 @@ const en = {
     deleteTitle: "Delete",
   },
 
+  brainDump: {
+    intro: "When several things are spinning around in your head at once — say or type them all together, in whatever order, and ANRO TDAH splits them into separate to-dos for you.",
+    placeholder: "Write everything just as it comes to mind, one thing after another...",
+    submitButton: "Split into to-dos",
+    itemsIntro: (n) => (n === 1 ? "I found 1 to-do:" : `I found ${n} to-dos:`),
+    allDone: "You've gone through everything. You can empty your head again whenever you want.",
+    newDumpButton: "New brain dump",
+  },
+
+  oneThing: {
+    intro: "Pick a single task to focus on right now — the rest of your list will still be there, nothing gets lost.",
+    fromSteps: "Or pick one of your pending steps:",
+    placeholder: "What are you going to focus on now?",
+    start: "Start",
+    needHelp: "I don't know where to start",
+    focusingOn: "Focusing on",
+    finish: "Done",
+    splitIntoSteps: "Split into steps",
+    switchTask: "Switch task",
+    exit: "Exit",
+  },
+
   scienceCapsule: {
     title: "ADHD fact of the day",
     sourceLabel: (source) => `Source: ${source}`,
@@ -660,6 +682,7 @@ const en = {
       today: { title: "Today", subtitle: "What's still pending right now, pulled together from what you've already logged in the app." },
       timeline: { title: "Today's timeline", subtitle: "What time each thing you did in ANRO TDAH today happened — to get a quick sense of how the day has gone." },
       quickCapture: { title: "Quick capture", subtitle: "Leave an idea by voice or text without deciding first which panel it belongs in — ANRO TDAH tries to route it to the right place on its own." },
+      brainDump: { title: "AI brain dump", subtitle: "When it's several things at once — say or write them all together and ANRO TDAH splits them for you." },
       companion: { title: "Support companion", subtitle: "Pick what you're feeling right now — responses designed for ADHD, with nothing to type." },
       oneThing: { title: "Just one thing", subtitle: "Pick a single task and focus only on it — without seeing the rest of your list." },
       dismantler: { title: "The breakdown tool", subtitle: "If it's hard to start, it's usually because the first step is too big." },
@@ -804,19 +827,6 @@ const en = {
       hydratedLabel: "hydration",
       deskClearedLabel: "desk tidied",
       oneThingCompleted: (text) => `finished — ${text}`,
-    },
-
-    oneThing: {
-      intro: "Pick a single task to focus on right now — the rest of your list will still be there, nothing gets lost.",
-      fromSteps: "Or pick one of your pending steps:",
-      placeholder: "What are you going to focus on now?",
-      start: "Start",
-      needHelp: "I don't know where to start",
-      focusingOn: "Focusing on",
-      finish: "Done",
-      splitIntoSteps: "Split into steps",
-      switchTask: "Switch task",
-      exit: "Exit",
     },
   },
 };

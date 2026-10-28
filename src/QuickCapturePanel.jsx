@@ -1,6 +1,6 @@
 import React, { useRef, useState } from "react";
 import { Mic, Square, Keyboard, Trash2, CheckCircle2, StickyNote, AlertTriangle } from "lucide-react";
-import { pendingQuickNotes } from "./quickCapture";
+import { pendingQuickNotes, canConfirmQuickCaptureSuggestion, describeQuickCaptureSuggestion } from "./quickCapture";
 
 // "Captura rápida" (inspirado en Eco, de Bitblocks SAS) — un solo botón
 // para dejar una idea suelta por voz o texto sin tener que decidir primero
@@ -159,21 +159,7 @@ export default function QuickCapturePanel({
   // mínimo necesario para que el dato sea útil de verdad (ej. una hora de
   // medicamento, o un día de vencimiento de pago) — si faltó algo, la
   // tarjeta solo ofrece guardarlo como nota, nunca intenta adivinar.
-  const canConfirm = (() => {
-    if (!suggestion) return false;
-    const f = suggestion.fields || {};
-    if (suggestion.type === "medicamento") {
-      return Boolean(f.name) && /^([01]\d|2[0-3]):([0-5]\d)$/.test(String(f.time || ""));
-    }
-    if (suggestion.type === "pago") {
-      const day = Number(f.dueDay);
-      return Boolean(f.name) && Number.isInteger(day) && day >= 1 && day <= 31 && (f.frequency === "mensual" || f.frequency === "anual");
-    }
-    if (suggestion.type === "paso") {
-      return Boolean(f.text) && canAddStep !== false;
-    }
-    return false;
-  })();
+  const canConfirm = canConfirmQuickCaptureSuggestion(suggestion, canAddStep);
 
   const pending = pendingQuickNotes(quickNotes);
 
@@ -303,23 +289,7 @@ export default function QuickCapturePanel({
       {suggestion && (
         <div style={{ background: C.surfaceAlt, borderRadius: "12px", padding: "14px", marginBottom: "16px" }}>
           <p style={{ fontSize: "13px", color: C.text, lineHeight: 1.6, margin: "0 0 10px" }}>
-            {suggestion.type === "medicamento" &&
-              t.quickCapture.suggestMedication(
-                suggestion.fields?.name || t.quickCapture.defaultMedicationName,
-                suggestion.fields?.time || ""
-              )}
-            {suggestion.type === "pago" &&
-              t.quickCapture.suggestPayment(
-                suggestion.fields?.name || "",
-                suggestion.fields?.amount ? `, ${suggestion.fields.amount}` : "",
-                suggestion.fields?.dueDay ? `, ${t.quickCapture.dueDayPart(suggestion.fields.dueDay)}` : ""
-              )}
-            {suggestion.type === "paso" &&
-              t.quickCapture.suggestStep(
-                suggestion.fields?.text || suggestion.noteText,
-                suggestion.fields?.min ? ` (~${suggestion.fields.min} min)` : ""
-              )}
-            {suggestion.type === "nota" && t.quickCapture.noteLabel(suggestion.noteText)}
+            {describeQuickCaptureSuggestion(suggestion, t)}
           </p>
 
           {!canConfirm && suggestion.type !== "nota" && (

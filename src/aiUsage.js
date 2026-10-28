@@ -74,3 +74,19 @@ export const QUICK_CAPTURE_AI_MONTHLY_LIMIT = 40;
 export function nextQuickCaptureAiUsage(prev, now = new Date()) {
   return nextLimitedUsage(prev, QUICK_CAPTURE_AI_MONTHLY_LIMIT, now);
 }
+
+export const DEFAULT_BRAIN_DUMP_AI_USAGE = { month: null, count: 0 };
+
+// Límite mensual de usos de "Descarga mental con IA" (Módulo 3 de ANRO TDAH
+// 2.0, 8 de noviembre de 2026) — la variante de Captura rápida que acepta
+// un texto largo y lo separa en VARIOS pendientes de un solo golpe, en vez
+// de una nota a la vez. Cuenta aparte de quickCaptureAiUsage (mismo
+// principio que el resto de este archivo: cada función con IA lleva su
+// propio contador) porque cada uso aquí hace más trabajo de clasificación
+// que una nota suelta — más bajo que el de Captura rápida por eso mismo,
+// aunque sigue siendo una fracción de centavo por uso con gpt-4o-mini.
+export const BRAIN_DUMP_AI_MONTHLY_LIMIT = 20;
+
+export function nextBrainDumpAiUsage(prev, now = new Date()) {
+  return nextLimitedUsage(prev, BRAIN_DUMP_AI_MONTHLY_LIMIT, now);
+}

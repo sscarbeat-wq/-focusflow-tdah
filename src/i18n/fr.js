@@ -493,6 +493,28 @@ const fr = {
     deleteTitle: "Supprimer",
   },
 
+  brainDump: {
+    intro: "Quand plusieurs choses tournent dans ta tête en même temps — dis-les ou écris-les toutes ensemble, dans n'importe quel ordre, et ANRO TDAH les sépare pour toi en tâches individuelles.",
+    placeholder: "Écris tout tel que ça te vient à l'esprit, une chose après l'autre...",
+    submitButton: "Séparer en tâches",
+    itemsIntro: (n) => (n === 1 ? "J'ai trouvé 1 tâche :" : `J'ai trouvé ${n} tâches :`),
+    allDone: "Tu as tout passé en revue. Tu peux vider ta tête à nouveau quand tu veux.",
+    newDumpButton: "Nouvelle décharge mentale",
+  },
+
+  oneThing: {
+    intro: "Choisis une seule tâche pour te concentrer dès maintenant — le reste de ta liste reste là, rien ne se perd.",
+    fromSteps: "Ou choisis une de tes étapes en attente :",
+    placeholder: "Sur quoi vas-tu te concentrer maintenant ?",
+    start: "Commencer",
+    needHelp: "Je ne sais pas par où commencer",
+    focusingOn: "Concentré·e sur",
+    finish: "Terminé",
+    splitIntoSteps: "Découper en étapes",
+    switchTask: "Changer de tâche",
+    exit: "Quitter",
+  },
+
   scienceCapsule: {
     title: "Info du jour sur le TDAH",
     sourceLabel: (source) => `Source : ${source}`,
@@ -661,6 +683,7 @@ const fr = {
       today: { title: "Aujourd'hui", subtitle: "Ce qui reste en attente en ce moment, réuni à partir de ce que tu as déjà enregistré dans l'app." },
       timeline: { title: "Chronologie du jour", subtitle: "À quelle heure chaque chose que tu as faite dans ANRO TDAH aujourd'hui s'est passée — pour voir d'un coup d'œil comment s'est passée la journée." },
       quickCapture: { title: "Capture rapide", subtitle: "Laisse une idée à la voix ou par écrit sans décider d'abord dans quel panneau elle va — ANRO TDAH essaie de l'envoyer seule au bon endroit." },
+      brainDump: { title: "Décharge mentale avec IA", subtitle: "Quand c'est plusieurs choses à la fois — dis-les ou écris-les toutes ensemble et ANRO TDAH les sépare pour toi." },
       companion: { title: "Compagnon de soutien", subtitle: "Choisis ce que tu ressens en ce moment — des réponses pensées pour le TDAH, sans rien avoir à écrire." },
       oneThing: { title: "Une seule chose", subtitle: "Choisis une seule tâche et concentre-toi uniquement sur elle — sans voir le reste de ta liste." },
       dismantler: { title: "L'outil de découpage", subtitle: "Si c'est dur de commencer, c'est souvent parce que la première étape est trop grande." },
@@ -805,19 +828,6 @@ const fr = {
       hydratedLabel: "hydratation",
       deskClearedLabel: "bureau rangé",
       oneThingCompleted: (text) => `terminé — ${text}`,
-    },
-
-    oneThing: {
-      intro: "Choisis une seule tâche pour te concentrer dès maintenant — le reste de ta liste reste là, rien ne se perd.",
-      fromSteps: "Ou choisis une de tes étapes en attente :",
-      placeholder: "Sur quoi vas-tu te concentrer maintenant ?",
-      start: "Commencer",
-      needHelp: "Je ne sais pas par où commencer",
-      focusingOn: "Concentré·e sur",
-      finish: "Terminé",
-      splitIntoSteps: "Découper en étapes",
-      switchTask: "Changer de tâche",
-      exit: "Quitter",
     },
   },
 };
