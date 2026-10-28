@@ -29,6 +29,20 @@ const en = {
     signUpButton: "Create account",
     toggleToSignUp: "Don't have an account? Create one here",
     toggleToSignIn: "Already have an account? Sign in here",
+    forgotPasswordLink: "Forgot your password?",
+    resetRequestTitle: "Reset your password",
+    resetRequestHint: "Enter your email and we'll send you a link to choose a new password.",
+    resetRequestButton: "Send link",
+    resetRequestSent:
+      "If that email has an account, we sent a link to reset your password. Check your inbox (and spam folder).",
+    backToSignIn: "Back to sign in",
+    newPasswordTitle: "Choose a new password",
+    newPasswordHint: "Enter a new password for your account.",
+    newPasswordPlaceholder: "New password",
+    newPasswordConfirmPlaceholder: "Confirm new password",
+    newPasswordButton: "Save password",
+    newPasswordMismatch: "Passwords don't match.",
+    newPasswordSuccess: "Your password has been updated. You can keep using the app now.",
   },
 
   paywall: {

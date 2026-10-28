@@ -30,6 +30,20 @@ const fr = {
     signUpButton: "Créer un compte",
     toggleToSignUp: "Pas encore de compte ? Crée-le ici",
     toggleToSignIn: "Tu as déjà un compte ? Connecte-toi ici",
+    forgotPasswordLink: "Mot de passe oublié ?",
+    resetRequestTitle: "Réinitialise ton mot de passe",
+    resetRequestHint: "Entre ton e-mail et on t'envoie un lien pour choisir un nouveau mot de passe.",
+    resetRequestButton: "Envoyer le lien",
+    resetRequestSent:
+      "Si cet e-mail a un compte, on a envoyé un lien pour réinitialiser ton mot de passe. Vérifie ta boîte de réception (et les spams).",
+    backToSignIn: "Retour à la connexion",
+    newPasswordTitle: "Choisis ton nouveau mot de passe",
+    newPasswordHint: "Entre un nouveau mot de passe pour ton compte.",
+    newPasswordPlaceholder: "Nouveau mot de passe",
+    newPasswordConfirmPlaceholder: "Confirme le nouveau mot de passe",
+    newPasswordButton: "Enregistrer le mot de passe",
+    newPasswordMismatch: "Les mots de passe ne correspondent pas.",
+    newPasswordSuccess: "Ton mot de passe a été mis à jour. Tu peux continuer à utiliser l'application.",
   },
 
   paywall: {

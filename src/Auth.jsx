@@ -4,8 +4,18 @@ import { supabase } from "./supabaseClient";
 import InstallBanner from "./InstallBanner";
 import LanguageSwitcher from "./LanguageSwitcher";
 
+// 28 de octubre de 2026 — la doctora pidió que la pantalla de ingreso
+// permita recuperar la contraseña ("eso no viene en la pantalla de
+// ingreso"). Se agregó un tercer modo, "reset-request": la paciente escribe
+// su correo y se le manda un enlace de recuperación (Supabase ya tiene esto
+// integrado — supabase.auth.resetPasswordForEmail). El otro lado del flujo
+// (elegir la contraseña nueva cuando la paciente vuelve a entrar desde ese
+// enlace) vive en ResetPassword.jsx, mostrado desde App.jsx cuando Supabase
+// detecta el evento "PASSWORD_RECOVERY" — no aquí, porque en ese momento ya
+// no se está en esta pantalla de login, sino en una sesión temporal de
+// recuperación.
 export default function Auth({ C, theme, onToggleTheme, t, lang, onChangeLanguage }) {
-  const [mode, setMode] = useState("signin"); // signin | signup
+  const [mode, setMode] = useState("signin"); // signin | signup | reset-request
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
@@ -14,6 +24,29 @@ export default function Auth({ C, theme, onToggleTheme, t, lang, onChangeLanguag
   const handleSubmit = async (e) => {
     e.preventDefault();
     setMessage("");
+
+    if (mode === "reset-request") {
+      if (!email.trim()) {
+        setMessage(t.auth.incompleteFields);
+        return;
+      }
+      setLoading(true);
+      try {
+        const redirectTo = typeof window !== "undefined" ? window.location.origin : undefined;
+        const { error } = await supabase.auth.resetPasswordForEmail(email, { redirectTo });
+        if (error) throw error;
+        // Mismo mensaje exista o no la cuenta — no se revela si un correo
+        // está registrado o no (evita que alguien use este formulario para
+        // averiguar qué correos tienen cuenta en la app).
+        setMessage(t.auth.resetRequestSent);
+      } catch (err) {
+        setMessage(err.message || t.common.genericError);
+      } finally {
+        setLoading(false);
+      }
+      return;
+    }
+
     if (!email.trim() || !password.trim()) {
       setMessage(t.auth.incompleteFields);
       return;
@@ -35,6 +68,11 @@ export default function Auth({ C, theme, onToggleTheme, t, lang, onChangeLanguag
     }
   };
 
+  const goToMode = (next) => {
+    setMode(next);
+    setMessage("");
+  };
+
   const inputStyle = {
     width: "100%",
     boxSizing: "border-box",
@@ -46,6 +84,9 @@ export default function Auth({ C, theme, onToggleTheme, t, lang, onChangeLanguag
     fontSize: "15px",
     marginBottom: "14px",
   };
+
+  const title =
+    mode === "reset-request" ? t.auth.resetRequestTitle : mode === "signin" ? t.auth.signInTitle : t.auth.signUpTitle;
 
   return (
     <div
@@ -101,9 +142,13 @@ export default function Auth({ C, theme, onToggleTheme, t, lang, onChangeLanguag
           <InstallBanner C={C} t={t} />
         </div>
         <h1 style={{ fontSize: "22px", fontWeight: 700, margin: "0 0 6px" }}>{t.common.appName}</h1>
-        <p style={{ fontSize: "13px", color: C.textMuted, margin: "0 0 24px" }}>
-          {mode === "signin" ? t.auth.signInTitle : t.auth.signUpTitle}
-        </p>
+        <p style={{ fontSize: "13px", color: C.textMuted, margin: "0 0 24px" }}>{title}</p>
+
+        {mode === "reset-request" && (
+          <p style={{ fontSize: "13px", color: C.textMuted, margin: "-14px 0 16px", lineHeight: 1.5 }}>
+            {t.auth.resetRequestHint}
+          </p>
+        )}
 
         <input
           type="email"
@@ -113,14 +158,38 @@ export default function Auth({ C, theme, onToggleTheme, t, lang, onChangeLanguag
           style={inputStyle}
           autoComplete="email"
         />
-        <input
-          type="password"
-          placeholder={t.auth.passwordPlaceholder}
-          value={password}
-          onChange={(e) => setPassword(e.target.value)}
-          style={inputStyle}
-          autoComplete={mode === "signup" ? "new-password" : "current-password"}
-        />
+
+        {mode !== "reset-request" && (
+          <input
+            type="password"
+            placeholder={t.auth.passwordPlaceholder}
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
+            style={inputStyle}
+            autoComplete={mode === "signup" ? "new-password" : "current-password"}
+          />
+        )}
+
+        {mode === "signin" && (
+          <button
+            type="button"
+            onClick={() => goToMode("reset-request")}
+            style={{
+              display: "block",
+              marginTop: "-6px",
+              marginBottom: "14px",
+              background: "transparent",
+              border: "none",
+              color: C.textMuted,
+              fontSize: "12px",
+              cursor: "pointer",
+              padding: 0,
+              textAlign: "left",
+            }}
+          >
+            {t.auth.forgotPasswordLink}
+          </button>
+        )}
 
         {message && (
           <p style={{ fontSize: "13px", color: C.mint, marginBottom: "14px", lineHeight: 1.5 }}>{message}</p>
@@ -143,26 +212,46 @@ export default function Auth({ C, theme, onToggleTheme, t, lang, onChangeLanguag
             marginBottom: "16px",
           }}
         >
-          {loading ? t.common.loading : mode === "signin" ? t.auth.signInButton : t.auth.signUpButton}
+          {loading
+            ? t.common.loading
+            : mode === "reset-request"
+            ? t.auth.resetRequestButton
+            : mode === "signin"
+            ? t.auth.signInButton
+            : t.auth.signUpButton}
         </button>
 
-        <button
-          type="button"
-          onClick={() => {
-            setMode(mode === "signin" ? "signup" : "signin");
-            setMessage("");
-          }}
-          style={{
-            width: "100%",
-            background: "transparent",
-            border: "none",
-            color: C.textMuted,
-            fontSize: "13px",
-            cursor: "pointer",
-          }}
-        >
-          {mode === "signin" ? t.auth.toggleToSignUp : t.auth.toggleToSignIn}
-        </button>
+        {mode === "reset-request" ? (
+          <button
+            type="button"
+            onClick={() => goToMode("signin")}
+            style={{
+              width: "100%",
+              background: "transparent",
+              border: "none",
+              color: C.textMuted,
+              fontSize: "13px",
+              cursor: "pointer",
+            }}
+          >
+            {t.auth.backToSignIn}
+          </button>
+        ) : (
+          <button
+            type="button"
+            onClick={() => goToMode(mode === "signin" ? "signup" : "signin")}
+            style={{
+              width: "100%",
+              background: "transparent",
+              border: "none",
+              color: C.textMuted,
+              fontSize: "13px",
+              cursor: "pointer",
+            }}
+          >
+            {mode === "signin" ? t.auth.toggleToSignUp : t.auth.toggleToSignIn}
+          </button>
+        )}
       </form>
     </div>
   );

@@ -33,6 +33,21 @@ const es = {
     signUpButton: "Crear cuenta",
     toggleToSignUp: "¿No tienes cuenta? Créala aquí",
     toggleToSignIn: "¿Ya tienes cuenta? Entra aquí",
+    // 28 de octubre de 2026 — recuperar contraseña, pedido de la doctora.
+    forgotPasswordLink: "¿Olvidaste tu contraseña?",
+    resetRequestTitle: "Recupera tu contraseña",
+    resetRequestHint: "Escribe tu correo y te mandamos un enlace para elegir una contraseña nueva.",
+    resetRequestButton: "Enviar enlace",
+    resetRequestSent:
+      "Si ese correo tiene una cuenta, te mandamos un enlace para recuperar tu contraseña. Revisa tu bandeja de entrada (y spam).",
+    backToSignIn: "Volver a iniciar sesión",
+    newPasswordTitle: "Elige tu nueva contraseña",
+    newPasswordHint: "Escribe tu nueva contraseña para tu cuenta.",
+    newPasswordPlaceholder: "Nueva contraseña",
+    newPasswordConfirmPlaceholder: "Confirma tu nueva contraseña",
+    newPasswordButton: "Guardar contraseña",
+    newPasswordMismatch: "Las contraseñas no coinciden.",
+    newPasswordSuccess: "Tu contraseña quedó actualizada. Ya puedes seguir usando la app.",
   },
 
   paywall: {
