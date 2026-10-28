@@ -42,6 +42,7 @@ import {
   Heart,
   Clock,
   Flower2,
+  Target,
 } from "lucide-react";
 
 import LanguageSwitcher from "./LanguageSwitcher";
@@ -51,6 +52,7 @@ import ScienceCapsulePanel from "./ScienceCapsulePanel";
 import MindfulnessPanel from "./MindfulnessPanel";
 import Mascot from "./Mascot";
 import FocusMode from "./FocusMode";
+import OneThingPanel from "./OneThingPanel";
 import MoodLog from "./MoodLog";
 import EnergyLog from "./EnergyLog";
 import MedicationPanel from "./MedicationPanel";
@@ -102,6 +104,7 @@ import {
 import { DEFAULT_SLEEP_LOG, recordBedtime, todayBedtime } from "./sleepLog";
 import { DEFAULT_IMPULSE_BRAKE_LOG, recordImpulseBrakeUse } from "./impulseBrakeLog";
 import { DEFAULT_GOOD_MOMENTS, addGoodMoment, removeGoodMoment } from "./goodMoments";
+import { DEFAULT_ONE_THING, startOneThing, finishOneThing, exitOneThing } from "./oneThing";
 import { tint, ACCENT_OPTIONS } from "./theme";
 import { SPECIES_OPTIONS, matureEmoji, DEFAULT_SPECIES } from "./mascotLogic";
 
@@ -125,6 +128,7 @@ const DEFAULT_PROGRESS = {
   sleepLog: DEFAULT_SLEEP_LOG,
   impulseBrakeLog: DEFAULT_IMPULSE_BRAKE_LOG,
   goodMoments: DEFAULT_GOOD_MOMENTS,
+  oneThing: DEFAULT_ONE_THING,
 };
 
 // Panel y Toggle viven a nivel de módulo (no adentro de FocusFlowTDAH) para
@@ -262,6 +266,7 @@ export default function FocusFlowTDAH({
   const breathingSectionRef = useRef(null);
   const stopThinkSectionRef = useRef(null);
   const desglosadorSectionRef = useRef(null);
+  const oneThingSectionRef = useRef(null);
   const auditorSectionRef = useRef(null);
   const reestructuracionSectionRef = useRef(null);
   const moodSectionRef = useRef(null);
@@ -287,6 +292,7 @@ export default function FocusFlowTDAH({
   // atajos de "?atajo=respirar/freno".
   const companionSectionRefs = {
     desglosador: desglosadorSectionRef,
+    oneThing: oneThingSectionRef,
     burbuja: breathingSectionRef,
     auditor: auditorSectionRef,
     freno: stopThinkSectionRef,
@@ -324,6 +330,7 @@ export default function FocusFlowTDAH({
   const [sleepLog, setSleepLog] = useState(saved.sleepLog);
   const [impulseBrakeLog, setImpulseBrakeLog] = useState(saved.impulseBrakeLog);
   const [goodMoments, setGoodMoments] = useState(saved.goodMoments);
+  const [oneThing, setOneThing] = useState(saved.oneThing);
 
   const firstRender = useRef(true);
   useEffect(() => {
@@ -351,6 +358,7 @@ export default function FocusFlowTDAH({
       sleepLog,
       impulseBrakeLog,
       goodMoments,
+      oneThing,
     });
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [
@@ -373,6 +381,7 @@ export default function FocusFlowTDAH({
     sleepLog,
     impulseBrakeLog,
     goodMoments,
+    oneThing,
   ]);
 
   // ---- XP + jar ----
@@ -642,6 +651,35 @@ export default function FocusFlowTDAH({
       })
     );
   const removeStep = (id) => setSteps((p) => p.filter((s) => s.id !== id));
+
+  // ---- "Solo una cosa" (Módulo 4 de ANRO TDAH 2.0, 8 de noviembre de 2026) ----
+  // Reutiliza los pasos del desglosador de arriba (pendingStepsForOneThing)
+  // y el Modo Enfoque (ver OneThingPanel.jsx) — este bloque solo mueve el
+  // estado puro de oneThing.js hacia la pantalla y decide cómo otorgar XP al
+  // terminar, sin inventar un sistema de recompensas nuevo.
+  const handleOneThingStart = (text, stepId = null) => setOneThing((prev) => startOneThing(prev, text, stepId));
+  const handleOneThingSwitch = () => setOneThing((prev) => exitOneThing(prev));
+  const handleOneThingExit = () => setOneThing((prev) => exitOneThing(prev));
+  const handleOneThingFinish = () => {
+    const activeStepId = oneThing?.current?.stepId;
+    const activeText = oneThing?.current?.text;
+    if (activeStepId) {
+      // Ya es un paso del desglosador: marcarlo como hecho otorga su propio
+      // XP (ver toggleStep) — otorgar XP aquí también lo duplicaría.
+      toggleStep(activeStepId);
+    } else if (activeText) {
+      grantXp(t.app.xpLabels.oneThingCompleted(activeText));
+    }
+    setOneThing((prev) => finishOneThing(prev));
+  };
+  // "Dividir en pasos" / "no sé por dónde empezar" no duplica al desglosador
+  // con IA que ya existe más abajo: solo lleva el texto de la tarea activa
+  // (o lo que ya se había escrito en el buscador de "Solo una cosa") y
+  // desplaza la pantalla hasta esa herramienta.
+  const handleOneThingNeedHelp = (text) => {
+    if (text && text.trim()) setBigTask(text.trim());
+    scrollToCompanionSection("desglosador");
+  };
 
   // Igual que addStep, pero a partir de lo que propuso la IA de "Captura
   // rápida" (ver api/quick-capture.js) — solo se llama cuando la persona ya
@@ -1774,6 +1812,38 @@ export default function FocusFlowTDAH({
                     : t.app.auditor.resultExact(audit.realMin, estimateMin)}
                 </div>
               )}
+            </Panel>
+            </div>
+
+            <div ref={oneThingSectionRef}>
+            <Panel C={C}
+              accent={C.coral}
+              icon={<Target size={22} />}
+              title={t.app.panels.oneThing.title}
+              subtitle={t.app.panels.oneThing.subtitle}
+            >
+              <OneThingPanel
+                C={C}
+                t={t}
+                pendingSteps={steps.filter((s) => !s.done)}
+                current={oneThing.current}
+                onStart={handleOneThingStart}
+                onFinish={handleOneThingFinish}
+                onSwitch={handleOneThingSwitch}
+                onExit={handleOneThingExit}
+                onNeedHelp={handleOneThingNeedHelp}
+                onSessionComplete={() => {
+                  bodyDouble.setStatus("aqui");
+                }}
+                onSessionStart={(min) => {
+                  scheduleStepsOnCalendar(
+                    userId,
+                    [{ text: oneThing?.current?.text || t.app.focusSessionEventTitle, min }],
+                    { kind: "oneThing" }
+                  );
+                  bodyDouble.setStatus("enfocando");
+                }}
+              />
             </Panel>
             </div>
 
