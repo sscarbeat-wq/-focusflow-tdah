@@ -546,6 +546,20 @@ const pt = {
     closeLabel: "Fechar menu de navegação",
   },
 
+  schedule: {
+    timeLabel: "Horário",
+    durationLabel: "Duração",
+    aboutMinutes: (min) => `${min} min`,
+    deleteBlockTitle: "Excluir bloco",
+    closeEditor: "Fechar",
+    iconLabel: "Ícone do bloco",
+    newBlockPlaceholder: "Nome do bloco (ex. Trabalho focado)...",
+    addBlockButton: "Adicionar bloco",
+    dayFullNotice: "Você já tem o número máximo de blocos para hoje — exclua algum antes de adicionar outro.",
+    conflictLabel: "sobrepõe outro bloco",
+    conflictNotice: "Este bloco se sobrepõe a outro no mesmo horário — você decide qual mover, o ANRO TDAH só avisa.",
+  },
+
   scienceCapsule: {
     title: "Fato do dia sobre TDAH",
     sourceLabel: (source) => `Fonte: ${source}`,
@@ -714,6 +728,7 @@ const pt = {
     panels: {
       today: { title: "Hoje", subtitle: "O que ainda está pendente agora, reunindo o que você já registrou no app." },
       timeline: { title: "Linha do tempo de hoje", subtitle: "A que horas aconteceu cada coisa que você fez no ANRO TDAH hoje — para ver de um olhar como foi o dia." },
+      schedule: { title: "Agenda visual", subtitle: "Monte o plano de hoje com blocos de tempo — arraste-os para mudar o horário, ou use o campo de horário do editor." },
       quickCapture: { title: "Captura rápida", subtitle: "Deixe uma ideia por voz ou texto sem decidir antes em qual painel ela vai — o ANRO TDAH tenta enviá-la sozinho ao lugar certo." },
       brainDump: { title: "Descarga mental com IA", subtitle: "Quando são várias coisas de uma vez — diga ou escreva tudo junto e o ANRO TDAH separa para você." },
       companion: { title: "Companheiro de apoio", subtitle: "Escolha o que você está sentindo agora — respostas pensadas para TDAH, sem precisar escrever nada." },

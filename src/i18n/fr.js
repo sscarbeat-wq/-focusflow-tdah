@@ -543,6 +543,20 @@ const fr = {
     closeLabel: "Fermer le menu de navigation",
   },
 
+  schedule: {
+    timeLabel: "Heure",
+    durationLabel: "Durée",
+    aboutMinutes: (min) => `${min} min`,
+    deleteBlockTitle: "Supprimer le bloc",
+    closeEditor: "Fermer",
+    iconLabel: "Icône du bloc",
+    newBlockPlaceholder: "Nom du bloc (ex. Travail concentré)...",
+    addBlockButton: "Ajouter un bloc",
+    dayFullNotice: "Tu as déjà le nombre maximum de blocs pour aujourd'hui — supprime-en un avant d'en ajouter un autre.",
+    conflictLabel: "chevauche un autre bloc",
+    conflictNotice: "Ce bloc chevauche un autre à la même heure — c'est toi qui décides lequel déplacer, ANRO TDAH ne fait que te le signaler.",
+  },
+
   scienceCapsule: {
     title: "Info du jour sur le TDAH",
     sourceLabel: (source) => `Source : ${source}`,
@@ -711,6 +725,7 @@ const fr = {
     panels: {
       today: { title: "Aujourd'hui", subtitle: "Ce qui reste en attente en ce moment, réuni à partir de ce que tu as déjà enregistré dans l'app." },
       timeline: { title: "Chronologie du jour", subtitle: "À quelle heure chaque chose que tu as faite dans ANRO TDAH aujourd'hui s'est passée — pour voir d'un coup d'œil comment s'est passée la journée." },
+      schedule: { title: "Agenda visuel", subtitle: "Construis le plan d'aujourd'hui avec des blocs de temps — glisse-les pour changer l'heure, ou utilise le champ d'heure de l'éditeur." },
       quickCapture: { title: "Capture rapide", subtitle: "Laisse une idée à la voix ou par écrit sans décider d'abord dans quel panneau elle va — ANRO TDAH essaie de l'envoyer seule au bon endroit." },
       brainDump: { title: "Décharge mentale avec IA", subtitle: "Quand c'est plusieurs choses à la fois — dis-les ou écris-les toutes ensemble et ANRO TDAH les sépare pour toi." },
       companion: { title: "Compagnon de soutien", subtitle: "Choisis ce que tu ressens en ce moment — des réponses pensées pour le TDAH, sans rien avoir à écrire." },
