@@ -661,6 +661,7 @@ const en = {
       timeline: { title: "Today's timeline", subtitle: "What time each thing you did in ANRO TDAH today happened — to get a quick sense of how the day has gone." },
       quickCapture: { title: "Quick capture", subtitle: "Leave an idea by voice or text without deciding first which panel it belongs in — ANRO TDAH tries to route it to the right place on its own." },
       companion: { title: "Support companion", subtitle: "Pick what you're feeling right now — responses designed for ADHD, with nothing to type." },
+      oneThing: { title: "Just one thing", subtitle: "Pick a single task and focus only on it — without seeing the rest of your list." },
       dismantler: { title: "The breakdown tool", subtitle: "If it's hard to start, it's usually because the first step is too big." },
       auditor: { title: "The time auditor", subtitle: "Compare how long you think something will take against how long it actually takes." },
       focusMode: { title: "Focus Mode", subtitle: "Work sessions with scheduled breaks and background white noise." },
@@ -802,6 +803,20 @@ const en = {
       ateWellLabel: "nutritious meal",
       hydratedLabel: "hydration",
       deskClearedLabel: "desk tidied",
+      oneThingCompleted: (text) => `finished — ${text}`,
+    },
+
+    oneThing: {
+      intro: "Pick a single task to focus on right now — the rest of your list will still be there, nothing gets lost.",
+      fromSteps: "Or pick one of your pending steps:",
+      placeholder: "What are you going to focus on now?",
+      start: "Start",
+      needHelp: "I don't know where to start",
+      focusingOn: "Focusing on",
+      finish: "Done",
+      splitIntoSteps: "Split into steps",
+      switchTask: "Switch task",
+      exit: "Exit",
     },
   },
 };
