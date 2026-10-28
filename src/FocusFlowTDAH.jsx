@@ -44,6 +44,7 @@ import {
   Flower2,
   Target,
   Inbox,
+  Repeat,
 } from "lucide-react";
 
 import LanguageSwitcher from "./LanguageSwitcher";
@@ -68,6 +69,7 @@ import TodayPanel from "./TodayPanel";
 import MessageTonePanel from "./MessageTonePanel";
 import QuickCapturePanel from "./QuickCapturePanel";
 import BrainDumpPanel from "./BrainDumpPanel";
+import RoutinesPanel from "./RoutinesPanel";
 import ClinicalReportPanel from "./ClinicalReportPanel";
 import GoodMomentsPanel from "./GoodMomentsPanel";
 import DayTimelinePanel from "./DayTimelinePanel";
@@ -107,6 +109,17 @@ import { DEFAULT_SLEEP_LOG, recordBedtime, todayBedtime } from "./sleepLog";
 import { DEFAULT_IMPULSE_BRAKE_LOG, recordImpulseBrakeUse } from "./impulseBrakeLog";
 import { DEFAULT_GOOD_MOMENTS, addGoodMoment, removeGoodMoment } from "./goodMoments";
 import { DEFAULT_ONE_THING, startOneThing, finishOneThing, exitOneThing } from "./oneThing";
+import {
+  DEFAULT_ROUTINES,
+  addRoutineTemplate,
+  removeRoutineTemplate,
+  addRoutineStep,
+  removeRoutineStep,
+  moveRoutineStep,
+  startRoutineSession,
+  advanceRoutineSession,
+  exitRoutineSession,
+} from "./routines";
 import { tint, ACCENT_OPTIONS } from "./theme";
 import { SPECIES_OPTIONS, matureEmoji, DEFAULT_SPECIES } from "./mascotLogic";
 
@@ -131,6 +144,7 @@ const DEFAULT_PROGRESS = {
   impulseBrakeLog: DEFAULT_IMPULSE_BRAKE_LOG,
   goodMoments: DEFAULT_GOOD_MOMENTS,
   oneThing: DEFAULT_ONE_THING,
+  routines: DEFAULT_ROUTINES,
 };
 
 // Panel y Toggle viven a nivel de módulo (no adentro de FocusFlowTDAH) para
@@ -269,6 +283,7 @@ export default function FocusFlowTDAH({
   const stopThinkSectionRef = useRef(null);
   const desglosadorSectionRef = useRef(null);
   const oneThingSectionRef = useRef(null);
+  const routinesSectionRef = useRef(null);
   const auditorSectionRef = useRef(null);
   const reestructuracionSectionRef = useRef(null);
   const moodSectionRef = useRef(null);
@@ -308,6 +323,7 @@ export default function FocusFlowTDAH({
     habits: habitsSectionRef,
     quickCapture: quickCaptureSectionRef,
     brainDump: brainDumpSectionRef,
+    routines: routinesSectionRef,
   };
   const scrollToCompanionSection = (key) => {
     const ref = companionSectionRefs[key];
@@ -335,6 +351,7 @@ export default function FocusFlowTDAH({
   const [impulseBrakeLog, setImpulseBrakeLog] = useState(saved.impulseBrakeLog);
   const [goodMoments, setGoodMoments] = useState(saved.goodMoments);
   const [oneThing, setOneThing] = useState(saved.oneThing);
+  const [routines, setRoutines] = useState(saved.routines);
 
   const firstRender = useRef(true);
   useEffect(() => {
@@ -363,6 +380,7 @@ export default function FocusFlowTDAH({
       impulseBrakeLog,
       goodMoments,
       oneThing,
+      routines,
     });
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [
@@ -386,6 +404,7 @@ export default function FocusFlowTDAH({
     impulseBrakeLog,
     goodMoments,
     oneThing,
+    routines,
   ]);
 
   // ---- XP + jar ----
@@ -683,6 +702,28 @@ export default function FocusFlowTDAH({
   const handleOneThingNeedHelp = (text) => {
     if (text && text.trim()) setBigTask(text.trim());
     scrollToCompanionSection("desglosador");
+  };
+
+  // ---- "Rutinas visuales guiadas" (Módulo 5 de ANRO TDAH 2.0, 8 de
+  // noviembre de 2026) ---- Todo el estado vive en routines.js (lógica
+  // pura); este bloque solo lo conecta con la pantalla y decide CUÁNDO
+  // otorgar XP — solo al completar una rutina ENTERA, nunca al editarla ni
+  // al avanzar un paso suelto, para que el incentivo sea terminar la
+  // secuencia completa.
+  const handleAddRoutineTemplate = (fields) => setRoutines((prev) => addRoutineTemplate(prev, fields));
+  const handleRemoveRoutineTemplate = (templateId) => setRoutines((prev) => removeRoutineTemplate(prev, templateId));
+  const handleAddRoutineStep = (templateId, fields) => setRoutines((prev) => addRoutineStep(prev, templateId, fields));
+  const handleRemoveRoutineStep = (templateId, stepId) =>
+    setRoutines((prev) => removeRoutineStep(prev, templateId, stepId));
+  const handleMoveRoutineStep = (templateId, stepId, direction) =>
+    setRoutines((prev) => moveRoutineStep(prev, templateId, stepId, direction));
+  const handleStartRoutineSession = (templateId) => setRoutines((prev) => startRoutineSession(prev, templateId));
+  const handleExitRoutineSession = () => setRoutines((prev) => exitRoutineSession(prev));
+  const handleAdvanceRoutineSession = () => {
+    const template = routines.templates.find((r) => r.id === routines.session?.templateId);
+    const { state, completed } = advanceRoutineSession(routines);
+    setRoutines(state);
+    if (completed && template) grantXp(t.app.xpLabels.routineCompleted(template.name));
   };
 
   // Igual que addStep, pero a partir de lo que propuso la IA de "Captura
@@ -1485,6 +1526,29 @@ export default function FocusFlowTDAH({
             onConfirmMedication={handleConfirmQuickMedication}
             onConfirmPayment={handleConfirmQuickPayment}
             onConfirmStep={handleConfirmQuickStep}
+          />
+        </Panel>
+        </div>
+
+        <div ref={routinesSectionRef}>
+        <Panel C={C}
+          accent={C.sky}
+          icon={<Repeat size={22} />}
+          title={t.app.panels.routines.title}
+          subtitle={t.app.panels.routines.subtitle}
+        >
+          <RoutinesPanel
+            C={C}
+            t={t}
+            routines={routines}
+            onAddTemplate={handleAddRoutineTemplate}
+            onRemoveTemplate={handleRemoveRoutineTemplate}
+            onAddStep={handleAddRoutineStep}
+            onRemoveStep={handleRemoveRoutineStep}
+            onMoveStep={handleMoveRoutineStep}
+            onStartSession={handleStartRoutineSession}
+            onAdvanceSession={handleAdvanceRoutineSession}
+            onExitSession={handleExitRoutineSession}
           />
         </Panel>
         </div>
