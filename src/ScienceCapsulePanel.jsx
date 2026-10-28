@@ -19,7 +19,7 @@ export default function ScienceCapsulePanel({ C, t }) {
       style={{
         background: C.surface,
         border: `1px solid ${C.border}`,
-        borderRadius: "8px",
+        borderRadius: "12px",
         padding: "14px 16px",
         marginBottom: "20px",
         fontSize: "13px",

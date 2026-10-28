@@ -81,7 +81,7 @@ export default function MessageTonePanel({ C, t, lang, userId }) {
   const modeBtn = (active) => ({
     flex: 1,
     padding: "8px 10px",
-    borderRadius: "6px",
+    borderRadius: "12px",
     border: `1px solid ${active ? C.lavender : C.border}`,
     background: active ? C.lavender : "transparent",
     color: active ? C.lavenderText : C.text,
@@ -92,7 +92,7 @@ export default function MessageTonePanel({ C, t, lang, userId }) {
 
   const toneBtn = (active) => ({
     padding: "6px 10px",
-    borderRadius: "6px",
+    borderRadius: "12px",
     border: `1px solid ${active ? C.lavender : C.border}`,
     background: active ? C.lavender : C.surfaceAlt,
     color: active ? C.lavenderText : C.text,
@@ -105,7 +105,7 @@ export default function MessageTonePanel({ C, t, lang, userId }) {
     boxSizing: "border-box",
     background: C.surface,
     border: `1px solid ${C.border}`,
-    borderRadius: "6px",
+    borderRadius: "12px",
     padding: "10px 12px",
     color: C.text,
     fontSize: "13px",
@@ -120,7 +120,7 @@ export default function MessageTonePanel({ C, t, lang, userId }) {
     gap: "6px",
     background: C.lavender,
     border: "none",
-    borderRadius: "6px",
+    borderRadius: "12px",
     padding: "9px 14px",
     color: C.lavenderText,
     fontSize: "13px",
@@ -136,7 +136,7 @@ export default function MessageTonePanel({ C, t, lang, userId }) {
           style={{
             background: C.surfaceAlt,
             border: `1px solid ${C.rose}`,
-            borderRadius: "6px",
+            borderRadius: "12px",
             padding: "16px",
             marginBottom: "10px",
           }}
@@ -190,14 +190,14 @@ export default function MessageTonePanel({ C, t, lang, userId }) {
       {error && <p style={{ fontSize: "12px", color: C.amber, margin: "10px 0 0" }}>{error}</p>}
 
       {result && (
-        <div style={{ background: C.surfaceAlt, borderRadius: "6px", padding: "14px", marginTop: "14px" }}>
+        <div style={{ background: C.surfaceAlt, borderRadius: "12px", padding: "14px", marginTop: "14px" }}>
           <p style={{ fontSize: "14px", color: C.text, lineHeight: 1.6, margin: "0 0 10px", whiteSpace: "pre-wrap" }}>
             {result}
           </p>
           {mode === MODES.REWRITE && (
             <button
               onClick={handleCopy}
-              style={{ background: "transparent", border: `1px solid ${C.border}`, borderRadius: "6px", padding: "6px 10px", color: C.text, fontSize: "12px", cursor: "pointer" }}
+              style={{ background: "transparent", border: `1px solid ${C.border}`, borderRadius: "12px", padding: "6px 10px", color: C.text, fontSize: "12px", cursor: "pointer" }}
             >
               {copied ? t.messageTone.copied : t.messageTone.copyButton}
             </button>

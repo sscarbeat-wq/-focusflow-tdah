@@ -6,7 +6,7 @@ function btnStyle(bg, color, border) {
   return {
     background: bg,
     border: border ? `1px solid ${border}` : "none",
-    borderRadius: "6px",
+    borderRadius: "12px",
     padding: "12px 18px",
     color,
     fontWeight: 600,
@@ -102,7 +102,7 @@ export default function BodyDoublePanel({
               fontSize: "18px",
               background: C.surfaceAlt,
               border: `1px solid ${C.border}`,
-              borderRadius: "8px",
+              borderRadius: "12px",
               padding: "8px 12px",
               cursor: "pointer",
             }}

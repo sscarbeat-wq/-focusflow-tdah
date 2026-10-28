@@ -40,7 +40,7 @@ export default function Paywall({ userId, userEmail, onSignOut, C, theme, onTogg
       <div
         style={{
           background: C.surface,
-          borderRadius: "8px",
+          borderRadius: "12px",
           padding: "36px 32px",
           width: "100%",
           maxWidth: "380px",
@@ -59,7 +59,7 @@ export default function Paywall({ userId, userEmail, onSignOut, C, theme, onTogg
               style={{
                 background: "transparent",
                 border: `1px solid ${C.border}`,
-                borderRadius: "8px",
+                borderRadius: "12px",
                 width: "34px",
                 height: "34px",
                 display: "flex",
@@ -91,7 +91,7 @@ export default function Paywall({ userId, userEmail, onSignOut, C, theme, onTogg
             width: "100%",
             background: C.mint,
             border: "none",
-            borderRadius: "6px",
+            borderRadius: "12px",
             padding: "14px",
             color: C.mintText,
             fontWeight: 600,
