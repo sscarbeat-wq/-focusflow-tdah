@@ -536,6 +536,12 @@ const en = {
     exitSession: "Exit",
   },
 
+  quickNav: {
+    title: "Go to...",
+    openLabel: "Go to a section",
+    closeLabel: "Close navigation menu",
+  },
+
   scienceCapsule: {
     title: "ADHD fact of the day",
     sourceLabel: (source) => `Source: ${source}`,
@@ -634,6 +640,7 @@ const en = {
     cbtNewLesson: "New CBT program lesson available",
     habitsPending: (n) => (n === 1 ? "1 self-care habit pending" : `${n} self-care habits pending`),
     quickNoteReturned: "A note from a few days ago came back up",
+    routinesPending: (n) => (n === 1 ? "1 routine not finished today" : `${n} routines not finished today`),
   },
 
   weeklyInsights: {
