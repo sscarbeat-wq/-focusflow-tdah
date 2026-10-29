@@ -23,8 +23,23 @@ const pt = {
   },
 
   auth: {
-    // Fase 2G (redesenho da tela de login, 29 de outubro de 2026).
-    tagline: "Seu companheiro diário para organizar o dia e avançar um passo de cada vez.",
+    // Redesenho da tela de login, 29 de outubro de 2026 — segunda etapa,
+    // com o conteúdo e a direção de design exatos da doutora (duas
+    // colunas no desktop: apresentação + 4 benefícios à esquerda,
+    // formulário à direita).
+    heroTitle: "Sua mente tem o próprio ritmo. Seu dia também pode ter.",
+    heroDescription:
+      "Organize suas pendências, comece o que você tem adiado e encontre uma forma mais simples de avançar, um passo de cada vez.",
+    benefits: [
+      { title: "Organize seu dia", description: "Agenda visual e planejamento inteligente." },
+      { title: "Comece sem se sobrecarregar", description: "Divida suas pendências em pequenos passos." },
+      { title: "Liberte sua mente", description: "Transforme suas ideias em ações com IA." },
+      { title: "Cuide do seu bem-estar", description: "Ferramentas de foco e apoio emocional." },
+    ],
+    welcomeTitle: "Bem-vindo ao ANRO.",
+    welcomeSubtitle: "Seu espaço para começar do seu jeito.",
+    installHint: "Você também pode instalar o ANRO no seu celular.",
+    disclaimer: "O ANRO é uma ferramenta de acompanhamento e organização. Não substitui avaliação nem tratamento profissional.",
     showPassword: "Mostrar senha",
     hidePassword: "Ocultar senha",
     incompleteFields: "Preencha seu e-mail e senha.",
@@ -33,9 +48,9 @@ const pt = {
     signUpTitle: "Crie sua conta",
     emailPlaceholder: "Seu e-mail",
     passwordPlaceholder: "Sua senha",
-    signInButton: "Entrar",
+    signInButton: "Entrar no ANRO",
     signUpButton: "Criar conta",
-    toggleToSignUp: "Não tem conta? Crie uma aqui",
+    toggleToSignUp: "Primeira vez aqui? Crie sua conta grátis.",
     toggleToSignIn: "Já tem conta? Entre aqui",
     forgotPasswordLink: "Esqueceu sua senha?",
     resetRequestTitle: "Redefina sua senha",

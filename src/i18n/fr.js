@@ -20,8 +20,23 @@ const fr = {
   },
 
   auth: {
-    // Phase 2G (refonte de l'écran de connexion, 29 octobre 2026).
-    tagline: "Ton compagnon au quotidien pour organiser ta journée et avancer étape par étape.",
+    // Refonte de l'écran de connexion, 29 octobre 2026 — deuxième passe,
+    // avec le contenu et la direction artistique exacts de la doctora
+    // (deux colonnes sur ordinateur : présentation + 4 avantages à
+    // gauche, formulaire à droite).
+    heroTitle: "Ton esprit a son propre rythme. Ta journée aussi peut en avoir un.",
+    heroDescription:
+      "Organise tes tâches, commence ce que tu repousses depuis longtemps, et trouve une façon plus simple d'avancer, étape par étape.",
+    benefits: [
+      { title: "Organise ta journée", description: "Agenda visuel et planification intelligente." },
+      { title: "Commence sans te sentir dépassé", description: "Découpe tes tâches en petites étapes." },
+      { title: "Libère ton esprit", description: "Transforme tes idées en actions avec l'IA." },
+      { title: "Prends soin de toi", description: "Outils de concentration et soutien émotionnel." },
+    ],
+    welcomeTitle: "Bienvenue sur ANRO.",
+    welcomeSubtitle: "Ton espace pour commencer à ta façon.",
+    installHint: "Tu peux aussi installer ANRO sur ton téléphone.",
+    disclaimer: "ANRO est un outil d'accompagnement et d'organisation. Il ne remplace pas une évaluation ou un traitement professionnel.",
     showPassword: "Afficher le mot de passe",
     hidePassword: "Masquer le mot de passe",
     incompleteFields: "Complète ton e-mail et ton mot de passe.",
@@ -30,9 +45,9 @@ const fr = {
     signUpTitle: "Crée ton compte",
     emailPlaceholder: "Ton e-mail",
     passwordPlaceholder: "Ton mot de passe",
-    signInButton: "Se connecter",
+    signInButton: "Se connecter à ANRO",
     signUpButton: "Créer un compte",
-    toggleToSignUp: "Pas encore de compte ? Crée-le ici",
+    toggleToSignUp: "Première fois ici ? Crée ton compte gratuit.",
     toggleToSignIn: "Tu as déjà un compte ? Connecte-toi ici",
     forgotPasswordLink: "Mot de passe oublié ?",
     resetRequestTitle: "Réinitialise ton mot de passe",
