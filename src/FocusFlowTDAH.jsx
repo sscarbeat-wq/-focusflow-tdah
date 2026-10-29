@@ -132,8 +132,6 @@ import {
   removeScheduleBlock,
   updateScheduleBlock,
   moveScheduleBlock,
-  scheduleBlocksForDay,
-  detectConflicts,
 } from "./scheduleBlocks";
 import ScheduleAgendaPanel from "./ScheduleAgendaPanel";
 import { tint, ACCENT_OPTIONS } from "./theme";
@@ -956,8 +954,6 @@ export default function FocusFlowTDAH({
     setScheduleBlocks((prev) => updateScheduleBlock(prev, blockId, fields));
   const handleMoveScheduleBlock = (blockId, newStartMin) =>
     setScheduleBlocks((prev) => moveScheduleBlock(prev, blockId, newStartMin));
-  const todaysScheduleBlocks = scheduleBlocksForDay(scheduleBlocks);
-  const scheduleConflicts = detectConflicts(todaysScheduleBlocks);
 
   // Igual que addStep, pero a partir de lo que propuso la IA de "Captura
   // rápida" (ver api/quick-capture.js) — solo se llama cuando la persona ya
@@ -1778,8 +1774,8 @@ export default function FocusFlowTDAH({
             <ScheduleAgendaPanel
               C={C}
               t={t}
-              blocks={todaysScheduleBlocks}
-              conflicts={scheduleConflicts}
+              lang={lang}
+              scheduleState={scheduleBlocks}
               onAdd={handleAddScheduleBlock}
               onRemove={handleRemoveScheduleBlock}
               onUpdate={handleUpdateScheduleBlock}

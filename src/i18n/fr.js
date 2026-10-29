@@ -567,9 +567,18 @@ const fr = {
     iconLabel: "Icône du bloc",
     newBlockPlaceholder: "Nom du bloc (ex. Travail concentré)...",
     addBlockButton: "Ajouter un bloc",
-    dayFullNotice: "Tu as déjà le nombre maximum de blocs pour aujourd'hui — supprime-en un avant d'en ajouter un autre.",
+    dayFullNotice: "Tu as déjà le nombre maximum de blocs pour ce jour — supprime-en un avant d'en ajouter un autre.",
     conflictLabel: "chevauche un autre bloc",
     conflictNotice: "Ce bloc chevauche un autre à la même heure — c'est toi qui décides lequel déplacer, ANRO TDAH ne fait que te le signaler.",
+    viewGroupLabel: "Choisis la vue de l'agenda",
+    dayViewTab: "Jour",
+    weekViewTab: "Semaine",
+    todayBadge: "Aujourd'hui",
+    backToToday: "Revenir à aujourd'hui",
+    viewFullDay: "Voir la journée complète",
+    weekEmptyDay: "Aucun bloc",
+    prevDay: "Jour précédent",
+    nextDay: "Jour suivant",
   },
 
   scienceCapsule: {
@@ -771,7 +780,7 @@ const fr = {
     panels: {
       today: { title: "Aujourd'hui", subtitle: "Ce qui reste en attente en ce moment, réuni à partir de ce que tu as déjà enregistré dans l'app." },
       timeline: { title: "Chronologie du jour", subtitle: "À quelle heure chaque chose que tu as faite dans ANRO TDAH aujourd'hui s'est passée — pour voir d'un coup d'œil comment s'est passée la journée." },
-      schedule: { title: "Agenda visuel", subtitle: "Construis le plan d'aujourd'hui avec des blocs de temps — glisse-les pour changer l'heure, ou utilise le champ d'heure de l'éditeur." },
+      schedule: { title: "Agenda visuel", subtitle: "Construis ton plan avec des blocs de temps — passe de la vue jour à la vue semaine, et glisse-les pour changer l'heure." },
       quickCapture: { title: "Capture rapide", subtitle: "Laisse une idée à la voix ou par écrit sans décider d'abord dans quel panneau elle va — ANRO TDAH essaie de l'envoyer seule au bon endroit." },
       brainDump: { title: "Décharge mentale avec IA", subtitle: "Quand c'est plusieurs choses à la fois — dis-les ou écris-les toutes ensemble et ANRO TDAH les sépare pour toi." },
       captureHub: { title: "Capture rapide et décharge mentale", subtitle: "Dépose une idée isolée, ou vide ta tête de plusieurs à la fois — tu choisis comment, au même endroit." },

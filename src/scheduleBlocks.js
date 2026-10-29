@@ -70,16 +70,20 @@ function pruneOld(blocks, now) {
   return blocks.filter((b) => b.date >= cutoffKey);
 }
 
-export function addScheduleBlock(state, { text, icon, startMin, durationMin } = {}, now = new Date()) {
+// `dateKey` (Fase 2E, vista semanal, 29 de octubre de 2026) permite agregar
+// el bloque a un día que NO sea necesariamente "hoy" — sin ese parámetro el
+// comportamiento es idéntico al de siempre (el bloque cae en el día de
+// `now`), así que ningún llamador existente necesitó cambiar.
+export function addScheduleBlock(state, { text, icon, startMin, durationMin, dateKey } = {}, now = new Date()) {
   const s = clean(state);
   const cleanText = String(text || "").trim().slice(0, 80);
   if (!cleanText) return s;
-  const dateKey = todayKey(now);
-  const todayCount = s.blocks.filter((b) => b.date === dateKey).length;
+  const targetDateKey = dateKey || todayKey(now);
+  const todayCount = s.blocks.filter((b) => b.date === targetDateKey).length;
   if (todayCount >= MAX_BLOCKS_PER_DAY) return s;
   const block = {
     id: newId(),
-    date: dateKey,
+    date: targetDateKey,
     text: cleanText,
     icon: icon || "🗓️",
     startMin: clampStartMin(startMin ?? 9 * 60),
@@ -123,10 +127,52 @@ export function moveScheduleBlock(state, blockId, newStartMin) {
   };
 }
 
-export function scheduleBlocksForDay(state, now = new Date()) {
+// Bloques de un día cualquiera, dado su "YYYY-MM-DD" directamente — la
+// pieza que faltaba para la vista semanal (Fase 2E), que necesita pedir los
+// bloques de 7 días distintos, no solo los de "ahora mismo".
+export function scheduleBlocksForDate(state, dateKey) {
   const s = clean(state);
-  const dateKey = todayKey(now);
   return s.blocks.filter((b) => b.date === dateKey).sort((a, b) => a.startMin - b.startMin);
+}
+
+export function scheduleBlocksForDay(state, now = new Date()) {
+  return scheduleBlocksForDate(state, todayKey(now));
+}
+
+// Lunes (00:00 local) de la semana que contiene `now` — semana lunes a
+// domingo, igual que el resto de calendarios en español/portugués/francés;
+// en inglés EE.UU. suele empezar en domingo, pero una sola convención fija
+// es más simple de razonar y de probar que una por idioma, y "ver mi semana
+// completa" no depende de en qué día empiece la columna.
+export function startOfWeek(now = new Date()) {
+  const d = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+  const day = d.getDay(); // 0 = domingo ... 6 = sábado
+  const diffToMonday = day === 0 ? -6 : 1 - day;
+  d.setDate(d.getDate() + diffToMonday);
+  return d;
+}
+
+// Los 7 "YYYY-MM-DD" (lunes a domingo) de la semana que contiene `now`.
+export function weekDateKeys(now = new Date()) {
+  const monday = startOfWeek(now);
+  const keys = [];
+  for (let i = 0; i < 7; i++) {
+    const d = new Date(monday.getFullYear(), monday.getMonth(), monday.getDate() + i);
+    keys.push(todayKey(d));
+  }
+  return keys;
+}
+
+// Bloques de los 7 días de la semana de `now`, agrupados por fecha — ya
+// ordenados dentro de cada día, listos para pintar la vista semanal sin que
+// el componente tenga que repetir el filtrado/orden día por día.
+export function scheduleBlocksForWeek(state, now = new Date()) {
+  const keys = weekDateKeys(now);
+  const byDate = {};
+  keys.forEach((k) => {
+    byDate[k] = scheduleBlocksForDate(state, k);
+  });
+  return { keys, byDate };
 }
 
 // Ids de los bloques que chocan con al menos otro, dentro de la misma
