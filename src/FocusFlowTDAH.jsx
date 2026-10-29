@@ -43,7 +43,6 @@ import {
   Clock,
   Flower2,
   Target,
-  Inbox,
   Repeat,
   Compass,
   CalendarClock,
@@ -74,8 +73,7 @@ import CbtProgramPanel from "./CbtProgramPanel";
 import CompanionPanel from "./CompanionPanel";
 import TodayPanel from "./TodayPanel";
 import MessageTonePanel from "./MessageTonePanel";
-import QuickCapturePanel from "./QuickCapturePanel";
-import BrainDumpPanel from "./BrainDumpPanel";
+import CaptureHubPanel from "./CaptureHubPanel";
 import RoutinesPanel from "./RoutinesPanel";
 import ClinicalReportPanel from "./ClinicalReportPanel";
 import GoodMomentsPanel from "./GoodMomentsPanel";
@@ -312,8 +310,10 @@ export default function FocusFlowTDAH({
   const paymentsSectionRef = useRef(null);
   const cbtSectionRef = useRef(null);
   const habitsSectionRef = useRef(null);
-  const quickCaptureSectionRef = useRef(null);
-  const brainDumpSectionRef = useRef(null);
+  // Fase 2D (Captura rápida + Descarga mental fusionadas, 29 de octubre de
+  // 2026): las dos vivían cada una en su propia sección; ahora comparten
+  // una sola (ver CaptureHubPanel.jsx), así que una sola ref alcanza.
+  const captureHubSectionRef = useRef(null);
   // Refs agregadas en el Módulo 1 (navegación) para que el menú flotante
   // "Ir a..." (ver QuickNavMenu.jsx) pueda saltar a CUALQUIER sección de la
   // página, no solo a las que ya enlazaba el Compañero de apoyo/vista Hoy.
@@ -396,8 +396,7 @@ export default function FocusFlowTDAH({
     payments: paymentsSectionRef,
     cbt: cbtSectionRef,
     habits: habitsSectionRef,
-    quickCapture: quickCaptureSectionRef,
-    brainDump: brainDumpSectionRef,
+    quickCapture: captureHubSectionRef,
     routines: routinesSectionRef,
     schedule: scheduleSectionRef,
     today: todaySectionRef,
@@ -420,7 +419,6 @@ export default function FocusFlowTDAH({
     timeline: "agenda",
     schedule: "agenda",
     quickCapture: "herramientas",
-    brainDump: "herramientas",
     routines: "herramientas",
     companion: "herramientas",
     desglosador: "herramientas",
@@ -484,8 +482,7 @@ export default function FocusFlowTDAH({
     { key: "today", icon: <ListChecks size={18} />, label: t.app.panels.today.title },
     { key: "timeline", icon: <Clock size={18} />, label: t.app.panels.timeline.title },
     { key: "schedule", icon: <CalendarClock size={18} />, label: t.app.panels.schedule.title },
-    { key: "quickCapture", icon: <StickyNote size={18} />, label: t.app.panels.quickCapture.title },
-    { key: "brainDump", icon: <Inbox size={18} />, label: t.app.panels.brainDump.title },
+    { key: "quickCapture", icon: <StickyNote size={18} />, label: t.app.panels.captureHub.title },
     { key: "routines", icon: <Repeat size={18} />, label: t.app.panels.routines.title },
     { key: "companion", icon: <HeartHandshake size={18} />, label: t.app.panels.companion.title },
     { key: "desglosador", icon: <ListTree size={18} />, label: t.app.panels.dismantler.title },
@@ -528,8 +525,7 @@ export default function FocusFlowTDAH({
   // segundo texto por herramienta. Las llaves de este mapa son las mismas
   // 20 que tienen SECTION_TABS[key] === "herramientas".
   const TOOL_DESCRIPTIONS = {
-    quickCapture: t.app.panels.quickCapture.subtitle,
-    brainDump: t.app.panels.brainDump.subtitle,
+    quickCapture: t.app.panels.captureHub.subtitle,
     routines: t.app.panels.routines.subtitle,
     companion: t.app.panels.companion.subtitle,
     desglosador: t.app.panels.dismantler.subtitle,
@@ -1826,14 +1822,14 @@ export default function FocusFlowTDAH({
           </div>
         )}
 
-        <div ref={quickCaptureSectionRef} style={toolStyle("quickCapture")}>
+        <div ref={captureHubSectionRef} style={toolStyle("quickCapture")}>
         <Panel C={C}
           accent={C.amber}
           icon={<StickyNote size={22} />}
-          title={t.app.panels.quickCapture.title}
-          subtitle={t.app.panels.quickCapture.subtitle}
+          title={t.app.panels.captureHub.title}
+          subtitle={t.app.panels.captureHub.subtitle}
         >
-          <QuickCapturePanel
+          <CaptureHubPanel
             C={C}
             t={t}
             lang={lang}
@@ -1844,27 +1840,6 @@ export default function FocusFlowTDAH({
             onAddNote={handleAddQuickNote}
             onResolveNote={handleResolveQuickNote}
             onRemoveNote={handleRemoveQuickNote}
-            onConfirmMedication={handleConfirmQuickMedication}
-            onConfirmPayment={handleConfirmQuickPayment}
-            onConfirmStep={handleConfirmQuickStep}
-          />
-        </Panel>
-        </div>
-
-        <div ref={brainDumpSectionRef} style={toolStyle("brainDump")}>
-        <Panel C={C}
-          accent={C.amber}
-          icon={<Inbox size={22} />}
-          title={t.app.panels.brainDump.title}
-          subtitle={t.app.panels.brainDump.subtitle}
-        >
-          <BrainDumpPanel
-            C={C}
-            t={t}
-            lang={lang}
-            userId={userId}
-            canAddStep={steps.length < 5}
-            onAddNote={handleAddQuickNote}
             onConfirmMedication={handleConfirmQuickMedication}
             onConfirmPayment={handleConfirmQuickPayment}
             onConfirmStep={handleConfirmQuickStep}
