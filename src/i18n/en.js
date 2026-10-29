@@ -501,6 +501,12 @@ const en = {
     newDumpButton: "New brain dump",
   },
 
+  captureHub: {
+    modeGroupLabel: "Choose how to capture",
+    quickTab: "One idea",
+    dumpTab: "Brain dump",
+  },
+
   oneThing: {
     intro: "Pick a single task to focus on right now — the rest of your list will still be there, nothing gets lost.",
     fromSteps: "Or pick one of your pending steps:",
@@ -767,6 +773,7 @@ const en = {
       schedule: { title: "Visual schedule", subtitle: "Build today's plan with time blocks — drag them to change the time, or use the editor's time field." },
       quickCapture: { title: "Quick capture", subtitle: "Leave an idea by voice or text without deciding first which panel it belongs in — ANRO TDAH tries to route it to the right place on its own." },
       brainDump: { title: "AI brain dump", subtitle: "When it's several things at once — say or write them all together and ANRO TDAH splits them for you." },
+      captureHub: { title: "Quick capture & brain dump", subtitle: "Drop one loose idea, or empty your head of several at once — you choose how, in the same place." },
       companion: { title: "Support companion", subtitle: "Pick what you're feeling right now — responses designed for ADHD, with nothing to type." },
       oneThing: { title: "Just one thing", subtitle: "Pick a single task and focus only on it — without seeing the rest of your list." },
       routines: { title: "Guided visual routines", subtitle: "Build a short sequence of steps and walk through it one at a time, without seeing the whole list." },

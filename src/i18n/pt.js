@@ -505,6 +505,12 @@ const pt = {
     newDumpButton: "Nova descarga mental",
   },
 
+  captureHub: {
+    modeGroupLabel: "Escolha como capturar",
+    quickTab: "Uma ideia",
+    dumpTab: "Descarga mental",
+  },
+
   oneThing: {
     intro: "Escolha uma única tarefa para focar agora — o resto da sua lista continua lá, nada se perde.",
     fromSteps: "Ou escolha um dos seus passos pendentes:",
@@ -771,6 +777,7 @@ const pt = {
       schedule: { title: "Agenda visual", subtitle: "Monte o plano de hoje com blocos de tempo — arraste-os para mudar o horário, ou use o campo de horário do editor." },
       quickCapture: { title: "Captura rápida", subtitle: "Deixe uma ideia por voz ou texto sem decidir antes em qual painel ela vai — o ANRO TDAH tenta enviá-la sozinho ao lugar certo." },
       brainDump: { title: "Descarga mental com IA", subtitle: "Quando são várias coisas de uma vez — diga ou escreva tudo junto e o ANRO TDAH separa para você." },
+      captureHub: { title: "Captura rápida e descarga mental", subtitle: "Deixe uma ideia solta, ou esvazie a cabeça de várias de uma vez — você escolhe como, no mesmo lugar." },
       companion: { title: "Companheiro de apoio", subtitle: "Escolha o que você está sentindo agora — respostas pensadas para TDAH, sem precisar escrever nada." },
       oneThing: { title: "Só uma coisa", subtitle: "Escolha uma única tarefa e foque somente nela — sem ver o resto da sua lista." },
       routines: { title: "Rotinas visuais guiadas", subtitle: "Monte uma sequência curta de passos e siga um de cada vez, sem ver a lista inteira." },
