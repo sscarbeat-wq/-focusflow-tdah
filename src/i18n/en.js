@@ -542,6 +542,15 @@ const en = {
     closeLabel: "Close navigation menu",
   },
 
+  appTabs: {
+    navLabel: "Main navigation",
+    inicio: "Home",
+    agenda: "Schedule",
+    herramientas: "Tools",
+    progreso: "Progress",
+    perfil: "Profile",
+  },
+
   schedule: {
     timeLabel: "Time",
     durationLabel: "Duration",
@@ -655,6 +664,32 @@ const en = {
     habitsPending: (n) => (n === 1 ? "1 self-care habit pending" : `${n} self-care habits pending`),
     quickNoteReturned: "A note from a few days ago came back up",
     routinesPending: (n) => (n === 1 ? "1 routine not finished today" : `${n} routines not finished today`),
+    mainTaskLabel: "Your next step",
+    nextUpLabel: "After that",
+    showMore: (n) => `Show ${n} more`,
+    showLess: "Show less",
+    quickAccessLabel: "Quick access",
+  },
+
+  onboarding: {
+    steps: [
+      {
+        title: "Welcome to ANRO TDAH!",
+        body: "An app built for ADHD: it helps you start tasks, organize your day, and track how you feel, without overwhelming you.",
+      },
+      {
+        title: "Here's how it's organized",
+        body: "Everything lives in 5 sections: Home (what's next), Schedule (your plan for the day), Tools (task breakdown, routines, breathing and more), Progress (your trends), and Profile.",
+      },
+      {
+        title: "Start with Home",
+        body: "There you'll always see your next step front and center, what's coming after that, and quick shortcuts to the tools you use most in the moment.",
+      },
+    ],
+    back: "Back",
+    next: "Next",
+    start: "Get started",
+    skip: "Skip",
   },
 
   weeklyInsights: {

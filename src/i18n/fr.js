@@ -543,6 +543,15 @@ const fr = {
     closeLabel: "Fermer le menu de navigation",
   },
 
+  appTabs: {
+    navLabel: "Navigation principale",
+    inicio: "Accueil",
+    agenda: "Agenda",
+    herramientas: "Outils",
+    progreso: "Progrès",
+    perfil: "Profil",
+  },
+
   schedule: {
     timeLabel: "Heure",
     durationLabel: "Durée",
@@ -656,6 +665,32 @@ const fr = {
     habitsPending: (n) => (n === 1 ? "1 habitude de soin personnel en attente" : `${n} habitudes de soin personnel en attente`),
     quickNoteReturned: "Une note d'il y a quelques jours est revenue",
     routinesPending: (n) => (n === 1 ? "1 routine pas terminée aujourd'hui" : `${n} routines pas terminées aujourd'hui`),
+    mainTaskLabel: "Ta prochaine étape",
+    nextUpLabel: "Ensuite",
+    showMore: (n) => `Voir ${n} de plus`,
+    showLess: "Voir moins",
+    quickAccessLabel: "Accès rapides",
+  },
+
+  onboarding: {
+    steps: [
+      {
+        title: "Bienvenue sur ANRO TDAH !",
+        body: "Une appli pensée pour le TDAH : elle t'aide à démarrer des tâches, organiser ta journée et suivre comment tu te sens, sans te submerger.",
+      },
+      {
+        title: "Voici comment c'est organisé",
+        body: "Tout vit dans 5 sections : Accueil (ce qui vient ensuite), Agenda (ton plan du jour), Outils (décomposeur de tâches, routines, respiration et plus), Progrès (tes avancées) et Profil.",
+      },
+      {
+        title: "Commence par Accueil",
+        body: "Tu y verras toujours ta prochaine étape mise en avant, ce qui vient après, et des accès directs aux outils les plus utilisés sur le moment.",
+      },
+    ],
+    back: "Retour",
+    next: "Suivant",
+    start: "Commencer",
+    skip: "Passer",
   },
 
   weeklyInsights: {
