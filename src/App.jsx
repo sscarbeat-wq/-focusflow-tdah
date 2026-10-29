@@ -188,7 +188,15 @@ export default function App() {
 
   if (!session)
     return (
-      <Auth C={C} theme={theme} onToggleTheme={toggleTheme} t={t} lang={lang} onChangeLanguage={changeLanguage} />
+      <Auth
+        C={C}
+        theme={theme}
+        onToggleTheme={toggleTheme}
+        t={t}
+        lang={lang}
+        onChangeLanguage={changeLanguage}
+        accentKey={accentKey}
+      />
     );
   if (loadingProgress || subscription === undefined) return null; // cargando datos
 
