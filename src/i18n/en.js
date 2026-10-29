@@ -521,7 +521,41 @@ const en = {
   },
 
   routines: {
-    emptyState: "You don't have any routines yet. Build one below with the steps you always follow, like your morning or bedtime routine.",
+    emptyState: 'You don\'t have any routines yet. These are short sequences of steps you repeat often, in the same order — like getting ready in the morning or winding down for bed. Build yours once, then just tap "Start": ANRO TDAH walks you through one step at a time, instead of showing you the whole list at once.',
+    presetsLabel: "Try an example",
+    useTemplateButton: "Use this routine",
+    orCreateFromScratch: "Or build your own from scratch:",
+    presets: [
+      {
+        name: "Morning routine",
+        icon: "☀️",
+        steps: [
+          { text: "Brush your teeth", icon: "🪥" },
+          { text: "Shower", icon: "🚿" },
+          { text: "Eat breakfast", icon: "🍽️" },
+          { text: "Pack your bag", icon: "🎒" },
+        ],
+      },
+      {
+        name: "Bedtime routine",
+        icon: "🌙",
+        steps: [
+          { text: "Brush your teeth", icon: "🪥" },
+          { text: "Leave your phone outside the room", icon: "📚" },
+          { text: "A few minutes of breathing", icon: "🧘" },
+          { text: "Turn off the light", icon: "🌙" },
+        ],
+      },
+      {
+        name: "Before leaving home",
+        icon: "🎒",
+        steps: [
+          { text: "Check keys, wallet and phone", icon: "🎒" },
+          { text: "Take your medication, if it's time", icon: "💊" },
+          { text: "Check the time and go", icon: "✅" },
+        ],
+      },
+    ],
     stepCount: (n) => (n === 1 ? "1 step" : `${n} steps`),
     startButton: "Start",
     needsStepsNotice: "Add at least one step before starting it.",
@@ -791,7 +825,7 @@ const en = {
       captureHub: { title: "Quick capture & brain dump", subtitle: "Drop one loose idea, or empty your head of several at once — you choose how, in the same place." },
       companion: { title: "Support companion", subtitle: "Pick what you're feeling right now — responses designed for ADHD, with nothing to type." },
       oneThing: { title: "Just one thing", subtitle: "Pick a single task and focus only on it — without seeing the rest of your list." },
-      routines: { title: "Guided visual routines", subtitle: "Build a short sequence of steps and walk through it one at a time, without seeing the whole list." },
+      routines: { title: "Guided visual routines", subtitle: "For things you repeat often in the same order — build the steps once and ANRO TDAH walks you through them one at a time." },
       dismantler: { title: "The breakdown tool", subtitle: "If it's hard to start, it's usually because the first step is too big." },
       auditor: { title: "The time auditor", subtitle: "Compare how long you think something will take against how long it actually takes." },
       focusMode: { title: "Focus Mode", subtitle: "Work sessions with scheduled breaks and background white noise." },
