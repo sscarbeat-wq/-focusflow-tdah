@@ -117,8 +117,8 @@ export default function OnboardingTour({ C, t, accent }) {
             onClick={close}
             aria-label={t.onboarding.skip}
             style={{
-              width: "32px",
-              height: "32px",
+              width: "44px",
+              height: "44px",
               display: "flex",
               alignItems: "center",
               justifyContent: "center",
