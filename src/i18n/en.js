@@ -19,8 +19,22 @@ const en = {
   },
 
   auth: {
-    // Phase 2G (sign-in screen redesign, October 29, 2026).
-    tagline: "Your daily companion to organize your day and move forward one step at a time.",
+    // Sign-in screen redesign, October 29, 2026 — second pass, with exact
+    // content and design direction from the doctor (two columns on
+    // desktop: presentation + 4 benefits on the left, form on the right).
+    heroTitle: "Your mind has its own rhythm. Your day can too.",
+    heroDescription:
+      "Organize your to-dos, start the things you've been putting off, and find a simpler way to move forward, one step at a time.",
+    benefits: [
+      { title: "Organize your day", description: "Visual agenda and smart planning." },
+      { title: "Start without feeling overwhelmed", description: "Break your to-dos into small steps." },
+      { title: "Clear your mind", description: "Turn your ideas into actions with AI." },
+      { title: "Take care of your wellbeing", description: "Focus tools and emotional support." },
+    ],
+    welcomeTitle: "Welcome to ANRO.",
+    welcomeSubtitle: "Your space to start your own way.",
+    installHint: "You can also install ANRO on your phone.",
+    disclaimer: "ANRO is a companionship and organization tool. It does not replace professional evaluation or treatment.",
     showPassword: "Show password",
     hidePassword: "Hide password",
     incompleteFields: "Enter your email and password.",
@@ -29,9 +43,9 @@ const en = {
     signUpTitle: "Create your account",
     emailPlaceholder: "Your email",
     passwordPlaceholder: "Your password",
-    signInButton: "Sign in",
+    signInButton: "Sign in to ANRO",
     signUpButton: "Create account",
-    toggleToSignUp: "Don't have an account? Create one here",
+    toggleToSignUp: "First time here? Create your free account.",
     toggleToSignIn: "Already have an account? Sign in here",
     forgotPasswordLink: "Forgot your password?",
     resetRequestTitle: "Reset your password",

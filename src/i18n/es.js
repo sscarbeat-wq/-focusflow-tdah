@@ -23,8 +23,27 @@ const es = {
   },
 
   auth: {
-    // Fase 2G (rediseño de la pantalla de ingreso, 29 de octubre de 2026).
-    tagline: "Tu acompañante diario para organizar el día y avanzar paso a paso.",
+    // Rediseño de la pantalla de ingreso, 29 de octubre de 2026 — segunda
+    // pasada, con contenido y dirección de diseño exactos de la doctora
+    // (dos columnas en escritorio: presentación + 4 beneficios a la
+    // izquierda, formulario a la derecha).
+    heroTitle: "Tu mente tiene su propio ritmo. Tu día también puede tenerlo.",
+    heroDescription:
+      "Organiza tus pendientes, comienza lo que has estado posponiendo y encuentra una manera más sencilla de avanzar, paso a paso.",
+    benefits: [
+      { title: "Organiza tu día", description: "Agenda visual y planificación inteligente." },
+      { title: "Empieza sin agobiarte", description: "Divide tus pendientes en pequeños pasos." },
+      { title: "Libera tu mente", description: "Transforma tus ideas en acciones con IA." },
+      { title: "Cuida tu bienestar", description: "Herramientas de enfoque y apoyo emocional." },
+    ],
+    welcomeTitle: "Bienvenido a ANRO.",
+    welcomeSubtitle: "Tu espacio para empezar a tu manera.",
+    installHint: "También puedes instalar ANRO en tu celular.",
+    // Texto corto y propio de esta pantalla — distinto del disclaimer más
+    // largo que ya existe dentro de la app con sesión iniciada
+    // (`app.disclaimer`, en Inicio); ese no se tocó.
+    disclaimer:
+      "ANRO es una herramienta de acompañamiento y organización. No sustituye la evaluación ni el tratamiento profesional.",
     showPassword: "Mostrar contraseña",
     hidePassword: "Ocultar contraseña",
     incompleteFields: "Completa tu correo y contraseña.",
@@ -33,9 +52,9 @@ const es = {
     signUpTitle: "Crea tu cuenta",
     emailPlaceholder: "Tu correo",
     passwordPlaceholder: "Tu contraseña",
-    signInButton: "Entrar",
+    signInButton: "Entrar a ANRO",
     signUpButton: "Crear cuenta",
-    toggleToSignUp: "¿No tienes cuenta? Créala aquí",
+    toggleToSignUp: "¿Primera vez aquí? Crea tu cuenta gratis.",
     toggleToSignIn: "¿Ya tienes cuenta? Entra aquí",
     // 28 de octubre de 2026 — recuperar contraseña, pedido de la doctora.
     forgotPasswordLink: "¿Olvidaste tu contraseña?",
