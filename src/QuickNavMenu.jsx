@@ -13,7 +13,7 @@ import { Compass, X } from "lucide-react";
 // página — el componente solo pinta la lista y llama a onNavigate(key); la
 // lógica de scroll (igual que ya usa el Compañero de apoyo) vive en
 // FocusFlowTDAH.jsx, para no duplicar ese mecanismo.
-export default function QuickNavMenu({ C, t, accent, sections, onNavigate }) {
+export default function QuickNavMenu({ C, t, accent, sections, onNavigate, bottomOffset = 0 }) {
   const [open, setOpen] = useState(false);
 
   // Cerrar con Escape — mismo gesto que se espera de cualquier menú
@@ -42,7 +42,7 @@ export default function QuickNavMenu({ C, t, accent, sections, onNavigate }) {
           style={{
             position: "fixed",
             right: "16px",
-            bottom: "84px",
+            bottom: `${84 + bottomOffset}px`,
             width: "min(300px, calc(100vw - 32px))",
             maxHeight: "min(60vh, 520px)",
             overflowY: "auto",
@@ -119,7 +119,7 @@ export default function QuickNavMenu({ C, t, accent, sections, onNavigate }) {
         style={{
           position: "fixed",
           right: "16px",
-          bottom: "20px",
+          bottom: `${20 + bottomOffset}px`,
           width: "52px",
           height: "52px",
           borderRadius: "50%",

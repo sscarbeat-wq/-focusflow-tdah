@@ -50,6 +50,9 @@ import {
 } from "lucide-react";
 
 import LanguageSwitcher from "./LanguageSwitcher";
+import AppTabBar from "./AppTabBar";
+import QuickAccessGrid from "./QuickAccessGrid";
+import OnboardingTour from "./OnboardingTour";
 import InstallBanner from "./InstallBanner";
 import PostDiagnosisCard from "./PostDiagnosisCard";
 import ScienceCapsulePanel from "./ScienceCapsulePanel";
@@ -324,14 +327,40 @@ export default function FocusFlowTDAH({
   const bodyDoubleSectionRef = useRef(null);
   const mindfulnessSectionRef = useRef(null);
   const messageToneSectionRef = useRef(null);
+  // Fase 2 (navegación, 28 de octubre de 2026): la app pasa de una sola
+  // página larga a 5 pestañas (Inicio/Agenda/Herramientas/Progreso/Perfil —
+  // ver AppTabBar.jsx). Es una preferencia de DISPOSITIVO, no de paciente
+  // (igual que el tema claro/oscuro o "senda-celebrate"), así que vive en
+  // localStorage y no en el progreso guardado en Supabase — y así quien
+  // vuelve a abrir la app sigue en la pestaña donde se quedó.
+  const [activeTab, setActiveTab] = useState(() => {
+    try {
+      return window.localStorage.getItem("anro-active-tab") || "inicio";
+    } catch (e) {
+      return "inicio";
+    }
+  });
+  useEffect(() => {
+    try {
+      window.localStorage.setItem("anro-active-tab", activeTab);
+    } catch (e) {
+      /* localStorage no disponible (modo privado, etc.) — seguimos solo con el estado en memoria */
+    }
+  }, [activeTab]);
+
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
     const atajo = params.get("atajo");
     if (!atajo) return;
-    const target = atajo === "respirar" ? breathingSectionRef.current : atajo === "freno" ? stopThinkSectionRef.current : null;
-    if (target) {
-      setTimeout(() => target.scrollIntoView({ behavior: "smooth", block: "center" }), 200);
+    const key = atajo === "respirar" ? "burbuja" : atajo === "freno" ? "freno" : null;
+    if (key) {
+      // setTimeout(…, 0) para dejar que el resto del render inicial termine
+      // antes de forzar el cambio de pestaña — scrollToCompanionSection (ver
+      // abajo) ya se encarga de esperar a que la pestaña de destino esté
+      // visible antes de hacer scroll.
+      setTimeout(() => scrollToCompanionSection(key), 0);
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   // El compañero de apoyo situacional y la vista "Hoy" enlazan a la
@@ -368,10 +397,62 @@ export default function FocusFlowTDAH({
     mindfulness: mindfulnessSectionRef,
     messageTone: messageToneSectionRef,
   };
+  // A qué pestaña (de las 5 de AppTabBar) pertenece cada sección — mismas
+  // llaves que companionSectionRefs arriba. "today" no está porque Inicio
+  // es la pestaña por defecto y no necesita navegarse a sí misma.
+  const SECTION_TABS = {
+    timeline: "agenda",
+    schedule: "agenda",
+    quickCapture: "herramientas",
+    brainDump: "herramientas",
+    routines: "herramientas",
+    companion: "herramientas",
+    desglosador: "herramientas",
+    auditor: "herramientas",
+    oneThing: "herramientas",
+    focusMode: "herramientas",
+    mood: "herramientas",
+    energy: "herramientas",
+    medication: "herramientas",
+    payments: "herramientas",
+    cbt: "herramientas",
+    habits: "herramientas",
+    freno: "herramientas",
+    burbuja: "herramientas",
+    mindfulness: "herramientas",
+    reestructuracion: "herramientas",
+    messageTone: "herramientas",
+    bodyDouble: "herramientas",
+    goodMoments: "progreso",
+    insights: "progreso",
+    report: "progreso",
+    notifications: "perfil",
+    calendar: "perfil",
+  };
+  // Como las 5 pestañas se muestran/ocultan con CSS (display:none), no se
+  // desmontan — así que un scroll a una sección de OTRA pestaña primero
+  // tiene que cambiar de pestaña (lo que la vuelve display:block) y solo
+  // entonces hacer scrollIntoView; si se hiciera en el mismo tick, el
+  // navegador todavía la vería display:none y el scroll no haría nada. El
+  // doble requestAnimationFrame espera a que React aplique el cambio de
+  // estado Y a que el navegador termine el siguiente layout antes de medir
+  // la posición del elemento.
   const scrollToCompanionSection = (key) => {
     const ref = companionSectionRefs[key];
-    if (ref?.current) ref.current.scrollIntoView({ behavior: "smooth", block: "center" });
+    if (!ref) return;
+    const targetTab = SECTION_TABS[key] || "inicio";
+    const doScroll = () => ref.current?.scrollIntoView({ behavior: "smooth", block: "center" });
+    if (targetTab !== activeTab) {
+      setActiveTab(targetTab);
+      requestAnimationFrame(() => requestAnimationFrame(doScroll));
+    } else {
+      doScroll();
+    }
   };
+  // Oculta (sin desmontar) cada sección que no sea de la pestaña activa —
+  // ver la nota de arriba sobre por qué no se desmonta: ningún temporizador
+  // ni estado interno de un panel se pierde al cambiar de pestaña.
+  const tabStyle = (tab) => ({ display: activeTab === tab ? undefined : "none" });
 
   // Lista completa y en orden de las secciones de la página, para el menú
   // flotante "Ir a..." (Módulo 1). Reutiliza los mismos íconos que ya
@@ -408,6 +489,15 @@ export default function FocusFlowTDAH({
     { key: "messageTone", icon: <MessageSquare size={18} />, label: t.app.panels.messageTone.title },
     { key: "habits", icon: <Moon size={18} />, label: t.app.panels.habits.title },
   ];
+
+  // Fase 2 (Inicio simplificado): los 4 accesos rápidos que eligió la
+  // doctora (desglosador, compañero de apoyo, freno de impulsividad,
+  // burbuja de enfoque) — se arman filtrando quickNavSections en vez de
+  // declarar íconos/etiquetas nuevos, para que SIEMPRE coincidan con el
+  // ícono y el título real de cada herramienta (si alguno cambia ahí,
+  // cambia aquí solo).
+  const QUICK_ACCESS_KEYS = ["desglosador", "companion", "freno", "burbuja"];
+  const quickAccessItems = QUICK_ACCESS_KEYS.map((key) => quickNavSections.find((s) => s.key === key)).filter(Boolean);
 
   // ---- Persisted state ----
   const [xp, setXp] = useState(saved.xp);
@@ -1139,9 +1229,19 @@ export default function FocusFlowTDAH({
         color: C.text,
         fontFamily: "-apple-system, BlinkMacSystemFont, 'Inter', 'Segoe UI', sans-serif",
         minHeight: "100vh",
-        padding: "28px 18px 70px",
+        // Fase 2 (navegación): en móvil AppTabBar queda fija abajo (~60px +
+        // el borde de seguridad del notch) y QuickNavMenu se sube encima de
+        // ella (ver bottomOffset más abajo) — el padding inferior crece
+        // para que el último panel de cada pestaña no quede tapado detrás
+        // de ninguna de las dos. En escritorio AppTabBar es una fila normal
+        // (no fija), así que el padding se queda como estaba.
+        padding: isNarrow ? "28px 18px 160px" : "28px 18px 70px",
       }}
     >
+      {/* Bienvenida de 3 pantallas, solo la primera vez — se renderiza
+          siempre (no depende de activeTab), y ella sola decide si se
+          muestra o no según localStorage (ver OnboardingTour.jsx). */}
+      <OnboardingTour C={C} t={t} accent={personalAccent} />
       <div style={{ maxWidth: "1000px", margin: "0 auto" }}>
         <InstallBanner C={C} t={t} />
         <PostDiagnosisCard C={C} t={t} />
@@ -1492,13 +1592,31 @@ export default function FocusFlowTDAH({
 
         <Mascot streak={streak} C={C} t={t} accent={personalAccent} species={species} />
 
+        {/* Fase 2 (navegación, 28 de octubre de 2026): barra de 5 pestañas
+            que reemplaza el scroll largo como forma principal de moverse
+            por la app — fija abajo en móvil, fila arriba en tablet/
+            escritorio (ver AppTabBar.jsx, que decide cuál según isNarrow).
+            Cuando es fija abajo, su posición en el JSX no importa para el
+            layout (position:fixed), pero aquí mismo es donde aparece
+            inline cuando NO es fija — justo debajo de la mascota. */}
+        <AppTabBar C={C} t={t} accent={personalAccent} activeTab={activeTab} onChange={setActiveTab} isNarrow={isNarrow} />
+
+        {/* role="tabpanel" sobre TODA la región de paneles (no solo los de
+            la pestaña activa): como cada sección que no es de la pestaña
+            activa ya tiene display:none (tabStyle, ver arriba) y eso la
+            saca por completo del árbol de accesibilidad, un lector de
+            pantalla que entra a esta región solo encuentra el contenido de
+            la pestaña realmente visible — exactamente el comportamiento
+            correcto de un tabpanel, sin tener que partir este bloque en 5
+            contenedores físicos separados. */}
+        <div role="tabpanel" id={`anro-tabpanel-${activeTab}`} aria-labelledby={`anro-tab-${activeTab}`} tabIndex={-1}>
         {/* Módulo 1 (8 de noviembre de 2026): "Hoy" se mueve a ser el
             PRIMER panel bajo el saludo/mascota — antes quedaba enterrado
             después del frasco de recompensas y el disclaimer, lejos de
             funcionar como una verdadera pantalla de inicio. Ahora es lo
             primero que se ve al abrir la app, y ya conoce las Rutinas
             (Módulo 5) además de todo lo que ya cubría. */}
-        <div ref={todaySectionRef}>
+        <div ref={todaySectionRef} style={tabStyle("inicio")}>
           <Panel C={C}
             accent={personalAccent}
             icon={<ListChecks size={22} />}
@@ -1508,6 +1626,7 @@ export default function FocusFlowTDAH({
             <TodayPanel
               C={C}
               t={t}
+              accent={personalAccent}
               steps={steps}
               moodLog={moodLog}
               energyLog={energyLog}
@@ -1521,9 +1640,19 @@ export default function FocusFlowTDAH({
               routines={routines}
               onNavigate={scrollToCompanionSection}
             />
+            <div style={{ marginTop: "18px" }}>
+              <QuickAccessGrid C={C} t={t} accent={personalAccent} items={quickAccessItems} onSelect={scrollToCompanionSection} />
+            </div>
           </Panel>
         </div>
 
+        {/* Fase 2 (Inicio simplificado): el frasco de recompensas y el
+            disclaimer vivían sueltos, fuera de cualquier pestaña — un
+            descuido de la Fase A (se agregó style={tabStyle(...)} a los 28
+            paneles, pero no a estos dos bloques, que no son <Panel>).
+            Corregido aquí: ambos quedan en Inicio, junto a "Hoy", que es de
+            donde siempre fueron vecinos. */}
+        <div style={tabStyle("inicio")}>
         {/* Dopamine jar */}
         <div
           style={{
@@ -1576,8 +1705,9 @@ export default function FocusFlowTDAH({
         >
           {t.app.disclaimer}
         </div>
+        </div>
 
-        <div ref={timelineSectionRef}>
+        <div ref={timelineSectionRef} style={tabStyle("agenda")}>
           <Panel C={C}
             accent={C.amber}
             icon={<Clock size={22} />}
@@ -1588,7 +1718,7 @@ export default function FocusFlowTDAH({
           </Panel>
         </div>
 
-        <div ref={scheduleSectionRef}>
+        <div ref={scheduleSectionRef} style={tabStyle("agenda")}>
           <Panel C={C}
             accent={C.sky}
             icon={<CalendarClock size={22} />}
@@ -1608,7 +1738,7 @@ export default function FocusFlowTDAH({
           </Panel>
         </div>
 
-        <div ref={quickCaptureSectionRef}>
+        <div ref={quickCaptureSectionRef} style={tabStyle("herramientas")}>
         <Panel C={C}
           accent={C.amber}
           icon={<StickyNote size={22} />}
@@ -1633,7 +1763,7 @@ export default function FocusFlowTDAH({
         </Panel>
         </div>
 
-        <div ref={brainDumpSectionRef}>
+        <div ref={brainDumpSectionRef} style={tabStyle("herramientas")}>
         <Panel C={C}
           accent={C.amber}
           icon={<Inbox size={22} />}
@@ -1654,7 +1784,7 @@ export default function FocusFlowTDAH({
         </Panel>
         </div>
 
-        <div ref={routinesSectionRef}>
+        <div ref={routinesSectionRef} style={tabStyle("herramientas")}>
         <Panel C={C}
           accent={C.sky}
           icon={<Repeat size={22} />}
@@ -1677,7 +1807,7 @@ export default function FocusFlowTDAH({
         </Panel>
         </div>
 
-        <div ref={companionPanelSectionRef}>
+        <div ref={companionPanelSectionRef} style={tabStyle("herramientas")}>
           <Panel C={C}
             accent={C.lavender}
             icon={<HeartHandshake size={22} />}
@@ -1690,7 +1820,7 @@ export default function FocusFlowTDAH({
 
         <div style={{ display: "grid", gridTemplateColumns: isNarrow ? "1fr" : "1fr 1fr", gap: "0 20px" }}>
           <div>
-            <div ref={desglosadorSectionRef}>
+            <div ref={desglosadorSectionRef} style={tabStyle("herramientas")}>
             <Panel C={C}
               accent={C.coral}
               icon={<ListTree size={22} />}
@@ -1941,7 +2071,7 @@ export default function FocusFlowTDAH({
             </Panel>
             </div>
 
-            <div ref={auditorSectionRef}>
+            <div ref={auditorSectionRef} style={tabStyle("herramientas")}>
             <Panel C={C}
               accent={C.coral}
               icon={<Timer size={22} />}
@@ -2030,7 +2160,7 @@ export default function FocusFlowTDAH({
             </Panel>
             </div>
 
-            <div ref={oneThingSectionRef}>
+            <div ref={oneThingSectionRef} style={tabStyle("herramientas")}>
             <Panel C={C}
               accent={C.coral}
               icon={<Target size={22} />}
@@ -2062,7 +2192,7 @@ export default function FocusFlowTDAH({
             </Panel>
             </div>
 
-            <div ref={focusModeSectionRef}>
+            <div ref={focusModeSectionRef} style={tabStyle("herramientas")}>
             <Panel C={C}
               accent={C.coral}
               icon={<Headphones size={22} />}
@@ -2084,7 +2214,7 @@ export default function FocusFlowTDAH({
             </Panel>
             </div>
 
-            <div ref={moodSectionRef}>
+            <div ref={moodSectionRef} style={tabStyle("herramientas")}>
             <Panel C={C}
               accent={C.lavender}
               icon={<Smile size={22} />}
@@ -2095,7 +2225,7 @@ export default function FocusFlowTDAH({
             </Panel>
             </div>
 
-            <div ref={goodMomentsSectionRef}>
+            <div ref={goodMomentsSectionRef} style={tabStyle("progreso")}>
             <Panel C={C}
               accent={C.lavender}
               icon={<Heart size={22} />}
@@ -2113,7 +2243,7 @@ export default function FocusFlowTDAH({
             </Panel>
             </div>
 
-            <div ref={cbtSectionRef}>
+            <div ref={cbtSectionRef} style={tabStyle("herramientas")}>
             <Panel C={C}
               accent={C.lavender}
               icon={<BookOpen size={22} />}
@@ -2126,7 +2256,7 @@ export default function FocusFlowTDAH({
 
             <ScienceCapsulePanel C={C} t={t} />
 
-            <div ref={insightsSectionRef}>
+            <div ref={insightsSectionRef} style={tabStyle("progreso")}>
             <Panel C={C}
               accent={C.amber}
               icon={<TrendingUp size={22} />}
@@ -2145,7 +2275,7 @@ export default function FocusFlowTDAH({
             </Panel>
             </div>
 
-            <div ref={reportSectionRef}>
+            <div ref={reportSectionRef} style={tabStyle("progreso")}>
             <Panel C={C}
               accent={C.amber}
               icon={<FileText size={22} />}
@@ -2168,7 +2298,7 @@ export default function FocusFlowTDAH({
             </Panel>
             </div>
 
-            <div ref={notificationsSectionRef}>
+            <div ref={notificationsSectionRef} style={tabStyle("perfil")}>
             <Panel C={C}
               accent={C.sky}
               icon={<Bell size={22} />}
@@ -2179,7 +2309,7 @@ export default function FocusFlowTDAH({
             </Panel>
             </div>
 
-            <div ref={calendarSectionRef}>
+            <div ref={calendarSectionRef} style={tabStyle("perfil")}>
             <Panel C={C}
               accent={C.sky}
               icon={<CalendarRange size={22} />}
@@ -2190,7 +2320,7 @@ export default function FocusFlowTDAH({
             </Panel>
             </div>
 
-            <div ref={bodyDoubleSectionRef}>
+            <div ref={bodyDoubleSectionRef} style={tabStyle("herramientas")}>
             <Panel C={C}
               accent={C.rose}
               icon={<Users size={22} />}
@@ -2212,7 +2342,7 @@ export default function FocusFlowTDAH({
           </div>
 
           <div>
-            <div ref={energySectionRef}>
+            <div ref={energySectionRef} style={tabStyle("herramientas")}>
             <Panel C={C}
               accent={C.mint}
               icon={<BatteryMedium size={22} />}
@@ -2223,7 +2353,7 @@ export default function FocusFlowTDAH({
             </Panel>
             </div>
 
-            <div ref={medicationSectionRef}>
+            <div ref={medicationSectionRef} style={tabStyle("herramientas")}>
             <Panel C={C}
               accent={C.mint}
               icon={<Pill size={22} />}
@@ -2243,7 +2373,7 @@ export default function FocusFlowTDAH({
             </Panel>
             </div>
 
-            <div ref={paymentsSectionRef}>
+            <div ref={paymentsSectionRef} style={tabStyle("herramientas")}>
             <Panel C={C}
               accent={C.sky}
               icon={<CreditCard size={22} />}
@@ -2263,7 +2393,7 @@ export default function FocusFlowTDAH({
             </Panel>
             </div>
 
-            <div ref={stopThinkSectionRef}>
+            <div ref={stopThinkSectionRef} style={tabStyle("herramientas")}>
             <Panel C={C}
               accent={C.lavender}
               icon={<Hand size={22} />}
@@ -2358,7 +2488,7 @@ export default function FocusFlowTDAH({
             </Panel>
             </div>
 
-            <div ref={breathingSectionRef}>
+            <div ref={breathingSectionRef} style={tabStyle("herramientas")}>
             <Panel C={C}
               accent={C.mint}
               icon={<Wind size={22} />}
@@ -2395,7 +2525,7 @@ export default function FocusFlowTDAH({
             </Panel>
             </div>
 
-            <div ref={mindfulnessSectionRef}>
+            <div ref={mindfulnessSectionRef} style={tabStyle("herramientas")}>
             <Panel C={C}
               accent={C.lavender}
               icon={<Flower2 size={22} />}
@@ -2406,7 +2536,7 @@ export default function FocusFlowTDAH({
             </Panel>
             </div>
 
-            <div ref={reestructuracionSectionRef}>
+            <div ref={reestructuracionSectionRef} style={tabStyle("herramientas")}>
             <Panel C={C}
               accent={C.rose}
               icon={<Brain size={22} />}
@@ -2484,7 +2614,7 @@ export default function FocusFlowTDAH({
             </Panel>
             </div>
 
-            <div ref={messageToneSectionRef}>
+            <div ref={messageToneSectionRef} style={tabStyle("herramientas")}>
             <Panel C={C}
               accent={C.rose}
               icon={<MessageSquare size={22} />}
@@ -2497,7 +2627,7 @@ export default function FocusFlowTDAH({
           </div>
         </div>
 
-        <div ref={habitsSectionRef}>
+        <div ref={habitsSectionRef} style={tabStyle("herramientas")}>
         <Panel C={C}
           accent={C.coral}
           icon={<Moon size={22} />}
@@ -2572,6 +2702,7 @@ export default function FocusFlowTDAH({
           </div>
         </Panel>
         </div>
+        </div>
 
         <p style={{ fontSize: "12px", color: C.textMuted, textAlign: "center", lineHeight: 1.6, marginTop: "8px" }}>
           {t.app.footerNote}
@@ -2579,14 +2710,20 @@ export default function FocusFlowTDAH({
       </div>
 
       {/* Módulo 1 (navegación): botón flotante que deja saltar a cualquiera
-          de los 27 paneles desde cualquier punto del scroll — posición fija,
-          así que no importa en qué parte del árbol de JSX se declare. */}
+          de los 28 paneles desde cualquier punto del scroll — posición fija,
+          así que no importa en qué parte del árbol de JSX se declare.
+          scrollToCompanionSection ya sabe cambiar de pestaña sola si la
+          sección pedida vive en otra (ver más arriba), así que este menú
+          sigue funcionando exactamente igual que antes de la Fase 2, ahora
+          cruzando pestañas cuando hace falta. bottomOffset lo sube por
+          encima de AppTabBar cuando esta queda fija abajo (móvil). */}
       <QuickNavMenu
         C={C}
         t={t}
         accent={personalAccent}
         sections={quickNavSections}
         onNavigate={scrollToCompanionSection}
+        bottomOffset={isNarrow ? 64 : 0}
       />
     </div>
   );
