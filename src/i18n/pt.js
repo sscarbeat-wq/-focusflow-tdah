@@ -570,9 +570,18 @@ const pt = {
     iconLabel: "Ícone do bloco",
     newBlockPlaceholder: "Nome do bloco (ex. Trabalho focado)...",
     addBlockButton: "Adicionar bloco",
-    dayFullNotice: "Você já tem o número máximo de blocos para hoje — exclua algum antes de adicionar outro.",
+    dayFullNotice: "Você já tem o número máximo de blocos para este dia — exclua algum antes de adicionar outro.",
     conflictLabel: "sobrepõe outro bloco",
     conflictNotice: "Este bloco se sobrepõe a outro no mesmo horário — você decide qual mover, o ANRO TDAH só avisa.",
+    viewGroupLabel: "Escolha a visualização da agenda",
+    dayViewTab: "Dia",
+    weekViewTab: "Semana",
+    todayBadge: "Hoje",
+    backToToday: "Voltar para hoje",
+    viewFullDay: "Ver dia completo",
+    weekEmptyDay: "Sem blocos",
+    prevDay: "Dia anterior",
+    nextDay: "Dia seguinte",
   },
 
   scienceCapsule: {
@@ -774,7 +783,7 @@ const pt = {
     panels: {
       today: { title: "Hoje", subtitle: "O que ainda está pendente agora, reunindo o que você já registrou no app." },
       timeline: { title: "Linha do tempo de hoje", subtitle: "A que horas aconteceu cada coisa que você fez no ANRO TDAH hoje — para ver de um olhar como foi o dia." },
-      schedule: { title: "Agenda visual", subtitle: "Monte o plano de hoje com blocos de tempo — arraste-os para mudar o horário, ou use o campo de horário do editor." },
+      schedule: { title: "Agenda visual", subtitle: "Monte seu plano com blocos de tempo — alterne entre visão diária e semanal, e arraste-os para mudar o horário." },
       quickCapture: { title: "Captura rápida", subtitle: "Deixe uma ideia por voz ou texto sem decidir antes em qual painel ela vai — o ANRO TDAH tenta enviá-la sozinho ao lugar certo." },
       brainDump: { title: "Descarga mental com IA", subtitle: "Quando são várias coisas de uma vez — diga ou escreva tudo junto e o ANRO TDAH separa para você." },
       captureHub: { title: "Captura rápida e descarga mental", subtitle: "Deixe uma ideia solta, ou esvazie a cabeça de várias de uma vez — você escolhe como, no mesmo lugar." },

@@ -571,9 +571,18 @@ const es = {
     iconLabel: "Ícono del bloque",
     newBlockPlaceholder: "Nombre del bloque (ej. Trabajo profundo)...",
     addBlockButton: "Agregar bloque",
-    dayFullNotice: "Ya tienes el máximo de bloques para hoy — borra alguno antes de agregar otro.",
+    dayFullNotice: "Ya tienes el máximo de bloques para este día — borra alguno antes de agregar otro.",
     conflictLabel: "se encima con otro bloque",
     conflictNotice: "Este bloque se encima con otro a la misma hora — tú decides cuál mover, ANRO TDAH solo te lo hace notar.",
+    viewGroupLabel: "Elige la vista de la agenda",
+    dayViewTab: "Día",
+    weekViewTab: "Semana",
+    todayBadge: "Hoy",
+    backToToday: "Volver a hoy",
+    viewFullDay: "Ver día completo",
+    weekEmptyDay: "Sin bloques",
+    prevDay: "Día anterior",
+    nextDay: "Día siguiente",
   },
 
   scienceCapsule: {
@@ -775,7 +784,7 @@ const es = {
     panels: {
       today: { title: "Hoy", subtitle: "Lo que sigue pendiente ahora mismo, juntando lo que ya registraste en la app." },
       timeline: { title: "Línea de tiempo de hoy", subtitle: "A qué hora pasó cada cosa que hiciste en ANRO TDAH hoy — para ver de un vistazo cómo se ha ido el día." },
-      schedule: { title: "Agenda visual", subtitle: "Arma el plan de hoy con bloques de tiempo — arrástralos para cambiarles la hora, o usa el campo de hora del editor." },
+      schedule: { title: "Agenda visual", subtitle: "Arma tu plan con bloques de tiempo — cambia entre vista de día y de semana, y arrástralos para cambiarles la hora." },
       quickCapture: { title: "Captura rápida", subtitle: "Deja una idea por voz o texto sin decidir primero en qué panel va — ANRO TDAH intenta mandarla sola al lugar correcto." },
       brainDump: { title: "Descarga mental con IA", subtitle: "Cuando son varias cosas a la vez — dilas o escríbelas todas juntas y ANRO TDAH las separa por ti." },
       captureHub: { title: "Captura rápida y descarga mental", subtitle: "Deja una idea suelta o vacía la cabeza de varias a la vez — tú eliges cómo, en el mismo lugar." },

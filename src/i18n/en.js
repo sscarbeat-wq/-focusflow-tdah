@@ -566,9 +566,18 @@ const en = {
     iconLabel: "Block icon",
     newBlockPlaceholder: "Block name (e.g. Deep work)...",
     addBlockButton: "Add block",
-    dayFullNotice: "You already have the maximum number of blocks for today — delete one before adding another.",
+    dayFullNotice: "You already have the maximum number of blocks for this day — delete one before adding another.",
     conflictLabel: "overlaps with another block",
     conflictNotice: "This block overlaps with another at the same time — you decide which one to move, ANRO TDAH just points it out.",
+    viewGroupLabel: "Choose the schedule view",
+    dayViewTab: "Day",
+    weekViewTab: "Week",
+    todayBadge: "Today",
+    backToToday: "Back to today",
+    viewFullDay: "View full day",
+    weekEmptyDay: "No blocks",
+    prevDay: "Previous day",
+    nextDay: "Next day",
   },
 
   scienceCapsule: {
@@ -770,7 +779,7 @@ const en = {
     panels: {
       today: { title: "Today", subtitle: "What's still pending right now, pulled together from what you've already logged in the app." },
       timeline: { title: "Today's timeline", subtitle: "What time each thing you did in ANRO TDAH today happened — to get a quick sense of how the day has gone." },
-      schedule: { title: "Visual schedule", subtitle: "Build today's plan with time blocks — drag them to change the time, or use the editor's time field." },
+      schedule: { title: "Visual schedule", subtitle: "Build your plan with time blocks — switch between day and week view, and drag them to change the time." },
       quickCapture: { title: "Quick capture", subtitle: "Leave an idea by voice or text without deciding first which panel it belongs in — ANRO TDAH tries to route it to the right place on its own." },
       brainDump: { title: "AI brain dump", subtitle: "When it's several things at once — say or write them all together and ANRO TDAH splits them for you." },
       captureHub: { title: "Quick capture & brain dump", subtitle: "Drop one loose idea, or empty your head of several at once — you choose how, in the same place." },
