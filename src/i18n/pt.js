@@ -525,7 +525,41 @@ const pt = {
   },
 
   routines: {
-    emptyState: "Você ainda não tem nenhuma rotina. Monte uma abaixo com os passos que você sempre segue, como sua rotina da manhã ou de dormir.",
+    emptyState: 'Você ainda não tem nenhuma rotina. São sequências curtas de etapas que você repete com frequência, na mesma ordem — como se arrumar de manhã ou se preparar para dormir. Monte a sua uma vez, e depois é só tocar em "Começar": o ANRO TDAH vai te mostrando uma etapa de cada vez, em vez de mostrar a lista inteira de uma vez.',
+    presetsLabel: "Experimente um exemplo",
+    useTemplateButton: "Usar esta rotina",
+    orCreateFromScratch: "Ou monte a sua do zero:",
+    presets: [
+      {
+        name: "Rotina da manhã",
+        icon: "☀️",
+        steps: [
+          { text: "Escovar os dentes", icon: "🪥" },
+          { text: "Tomar banho", icon: "🚿" },
+          { text: "Tomar café da manhã", icon: "🍽️" },
+          { text: "Arrumar a mochila ou bolsa", icon: "🎒" },
+        ],
+      },
+      {
+        name: "Rotina para dormir",
+        icon: "🌙",
+        steps: [
+          { text: "Escovar os dentes", icon: "🪥" },
+          { text: "Deixar o celular fora do quarto", icon: "📚" },
+          { text: "Alguns minutos de respiração", icon: "🧘" },
+          { text: "Apagar a luz", icon: "🌙" },
+        ],
+      },
+      {
+        name: "Antes de sair de casa",
+        icon: "🎒",
+        steps: [
+          { text: "Conferir chaves, carteira e celular", icon: "🎒" },
+          { text: "Tomar seu remédio, se for a hora", icon: "💊" },
+          { text: "Conferir o horário e sair", icon: "✅" },
+        ],
+      },
+    ],
     stepCount: (n) => (n === 1 ? "1 passo" : `${n} passos`),
     startButton: "Começar",
     needsStepsNotice: "Adicione pelo menos um passo antes de começar.",
@@ -795,7 +829,7 @@ const pt = {
       captureHub: { title: "Captura rápida e descarga mental", subtitle: "Deixe uma ideia solta, ou esvazie a cabeça de várias de uma vez — você escolhe como, no mesmo lugar." },
       companion: { title: "Companheiro de apoio", subtitle: "Escolha o que você está sentindo agora — respostas pensadas para TDAH, sem precisar escrever nada." },
       oneThing: { title: "Só uma coisa", subtitle: "Escolha uma única tarefa e foque somente nela — sem ver o resto da sua lista." },
-      routines: { title: "Rotinas visuais guiadas", subtitle: "Monte uma sequência curta de passos e siga um de cada vez, sem ver a lista inteira." },
+      routines: { title: "Rotinas visuais guiadas", subtitle: "Para coisas que você repete com frequência na mesma ordem — monte as etapas uma vez e o ANRO TDAH mostra uma de cada vez." },
       dismantler: { title: "O detalhador", subtitle: "Se é difícil começar, geralmente é porque o primeiro passo é muito grande." },
       auditor: { title: "O auditor de tempo", subtitle: "Compare quanto tempo você acha que vai demorar com quanto realmente demora." },
       focusMode: { title: "Modo Foco", subtitle: "Sessões de trabalho com pausas programadas e ruído branco de fundo." },
