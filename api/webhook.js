@@ -39,12 +39,18 @@ export default async function handler(req, res) {
     if (event.type === "checkout.session.completed") {
       const session = event.data.object;
       const userId = session.metadata?.supabase_user_id;
+      // Fase 1 de suscripciones (29 de octubre de 2026): "plan" ("monthly"
+      // | "annual") viaja en los metadatos de la sesión desde
+      // api/create-checkout-session.js — se guarda tal cual, sin inventar
+      // ningún valor si por algún motivo no llegara.
+      const plan = session.metadata?.plan || null;
       if (userId) {
         await supabaseAdmin.from("subscriptions").upsert({
           user_id: userId,
           stripe_customer_id: session.customer,
           stripe_subscription_id: session.subscription,
           status: "active",
+          plan,
           updated_at: new Date().toISOString(),
         });
       }
@@ -52,10 +58,26 @@ export default async function handler(req, res) {
 
     if (event.type === "customer.subscription.updated" || event.type === "customer.subscription.deleted") {
       const sub = event.data.object;
-      await supabaseAdmin
-        .from("subscriptions")
-        .update({ status: sub.status, updated_at: new Date().toISOString() })
-        .eq("stripe_subscription_id", sub.id);
+      // Si la paciente cambia de plan (mensual ↔ anual) desde el portal de
+      // Stripe, el ID del precio activo puede cambiar sin pasar de nuevo
+      // por checkout.session.completed — por eso aquí también se
+      // recalcula "plan" a partir del precio real de la suscripción,
+      // comparando contra los dos precios conocidos. Si no coincide con
+      // ninguno (por ejemplo una suscripción vieja con el precio anterior
+      // de $199/mes), "plan" se deja como estaba, para no borrar un dato
+      // que sí se conocía por otro medio.
+      const priceId = sub.items?.data?.[0]?.price?.id;
+      const planByPrice =
+        priceId === process.env.STRIPE_PRICE_ID_MONTHLY
+          ? "monthly"
+          : priceId === process.env.STRIPE_PRICE_ID_ANNUAL
+          ? "annual"
+          : undefined;
+
+      const update = { status: sub.status, updated_at: new Date().toISOString() };
+      if (planByPrice) update.plan = planByPrice;
+
+      await supabaseAdmin.from("subscriptions").update(update).eq("stripe_subscription_id", sub.id);
     }
 
     res.status(200).json({ received: true });
