@@ -502,6 +502,12 @@ const fr = {
     newDumpButton: "Nouvelle décharge mentale",
   },
 
+  captureHub: {
+    modeGroupLabel: "Choisis comment capturer",
+    quickTab: "Une idée",
+    dumpTab: "Décharge mentale",
+  },
+
   oneThing: {
     intro: "Choisis une seule tâche pour te concentrer dès maintenant — le reste de ta liste reste là, rien ne se perd.",
     fromSteps: "Ou choisis une de tes étapes en attente :",
@@ -768,6 +774,7 @@ const fr = {
       schedule: { title: "Agenda visuel", subtitle: "Construis le plan d'aujourd'hui avec des blocs de temps — glisse-les pour changer l'heure, ou utilise le champ d'heure de l'éditeur." },
       quickCapture: { title: "Capture rapide", subtitle: "Laisse une idée à la voix ou par écrit sans décider d'abord dans quel panneau elle va — ANRO TDAH essaie de l'envoyer seule au bon endroit." },
       brainDump: { title: "Décharge mentale avec IA", subtitle: "Quand c'est plusieurs choses à la fois — dis-les ou écris-les toutes ensemble et ANRO TDAH les sépare pour toi." },
+      captureHub: { title: "Capture rapide et décharge mentale", subtitle: "Dépose une idée isolée, ou vide ta tête de plusieurs à la fois — tu choisis comment, au même endroit." },
       companion: { title: "Compagnon de soutien", subtitle: "Choisis ce que tu ressens en ce moment — des réponses pensées pour le TDAH, sans rien avoir à écrire." },
       oneThing: { title: "Une seule chose", subtitle: "Choisis une seule tâche et concentre-toi uniquement sur elle — sans voir le reste de ta liste." },
       routines: { title: "Routines visuelles guidées", subtitle: "Construis une courte séquence d'étapes et parcours-la une à la fois, sans voir la liste complète." },
