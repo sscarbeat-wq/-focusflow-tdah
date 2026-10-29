@@ -693,6 +693,11 @@ const fr = {
     skip: "Passer",
   },
 
+  tools: {
+    gridLabel: "Outils disponibles",
+    backButton: "Retour à Outils",
+  },
+
   weeklyInsights: {
     noMood: "Il n'y a pas encore assez d'entrées d'humeur cette semaine pour voir une tendance — dès que tu enregistres quelques jours, tu verras ici ton meilleur et ton pire moment.",
     moodRegistered: (logged) => `Tu as enregistré ton humeur ${logged} des 7 derniers jours`,

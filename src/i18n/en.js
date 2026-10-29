@@ -692,6 +692,11 @@ const en = {
     skip: "Skip",
   },
 
+  tools: {
+    gridLabel: "Available tools",
+    backButton: "Back to Tools",
+  },
+
   weeklyInsights: {
     noMood: "There aren't enough mood entries yet this week to see a pattern — as soon as you log a couple of days, you'll see your best and worst moments here.",
     moodRegistered: (logged) => `You logged your mood ${logged} of the last 7 days`,
