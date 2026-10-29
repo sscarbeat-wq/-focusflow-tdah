@@ -27,8 +27,18 @@ create table if not exists subscriptions (
   stripe_customer_id text,
   stripe_subscription_id text,
   status text not null default 'inactive',
+  plan text, -- "monthly" | "annual" | null (null = sin dato, ej. suscripciones de antes de este cambio)
   updated_at timestamptz not null default now()
 );
+
+-- 29 de octubre de 2026 — Fase 1 del sistema de planes Gratis/Plus: la
+-- tabla ya existía desde el lanzamiento de Stripe, así que "create table if
+-- not exists" de arriba no le agrega la columna nueva a una base de datos
+-- que ya la tenía creada. Esta línea sí la agrega, sin tocar ninguna fila
+-- existente (las suscripciones de antes de hoy quedan con plan = NULL,
+-- que la app muestra simplemente como "Plan Plus" sin precisar mensual o
+-- anual, hasta que esa suscripción tenga su próximo evento de Stripe).
+alter table subscriptions add column if not exists plan text;
 
 alter table subscriptions enable row level security;
 
