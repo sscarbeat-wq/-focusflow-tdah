@@ -20,6 +20,10 @@ const fr = {
   },
 
   auth: {
+    // Phase 2G (refonte de l'écran de connexion, 29 octobre 2026).
+    tagline: "Ton compagnon au quotidien pour organiser ta journée et avancer étape par étape.",
+    showPassword: "Afficher le mot de passe",
+    hidePassword: "Masquer le mot de passe",
     incompleteFields: "Complète ton e-mail et ton mot de passe.",
     accountCreated: "Compte créé. Vérifie ton e-mail pour confirmer ton compte avant de te connecter.",
     signInTitle: "Connecte-toi à ton compte",

@@ -23,6 +23,10 @@ const pt = {
   },
 
   auth: {
+    // Fase 2G (redesenho da tela de login, 29 de outubro de 2026).
+    tagline: "Seu companheiro diário para organizar o dia e avançar um passo de cada vez.",
+    showPassword: "Mostrar senha",
+    hidePassword: "Ocultar senha",
     incompleteFields: "Preencha seu e-mail e senha.",
     accountCreated: "Conta criada. Verifique seu e-mail para confirmar a conta antes de entrar.",
     signInTitle: "Entre na sua conta",

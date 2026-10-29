@@ -23,6 +23,10 @@ const es = {
   },
 
   auth: {
+    // Fase 2G (rediseño de la pantalla de ingreso, 29 de octubre de 2026).
+    tagline: "Tu acompañante diario para organizar el día y avanzar paso a paso.",
+    showPassword: "Mostrar contraseña",
+    hidePassword: "Ocultar contraseña",
     incompleteFields: "Completa tu correo y contraseña.",
     accountCreated: "Cuenta creada. Revisa tu correo para confirmar tu cuenta antes de entrar.",
     signInTitle: "Entra a tu cuenta",

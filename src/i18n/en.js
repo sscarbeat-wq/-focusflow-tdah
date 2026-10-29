@@ -19,6 +19,10 @@ const en = {
   },
 
   auth: {
+    // Phase 2G (sign-in screen redesign, October 29, 2026).
+    tagline: "Your daily companion to organize your day and move forward one step at a time.",
+    showPassword: "Show password",
+    hidePassword: "Hide password",
     incompleteFields: "Enter your email and password.",
     accountCreated: "Account created. Check your email to confirm your account before signing in.",
     signInTitle: "Sign in to your account",
