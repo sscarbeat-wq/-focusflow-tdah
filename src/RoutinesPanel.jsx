@@ -40,6 +40,7 @@ export default function RoutinesPanel({
   t,
   routines,
   onAddTemplate,
+  onUseTemplate,
   onRemoveTemplate,
   onRenameTemplate,
   onAddStep,
@@ -201,9 +202,50 @@ export default function RoutinesPanel({
   return (
     <div>
       {routines.templates.length === 0 && (
-        <p style={{ fontSize: "13px", color: C.textMuted, margin: "0 0 16px", lineHeight: 1.5 }}>
-          {t.routines.emptyState}
-        </p>
+        <div style={{ marginBottom: "18px" }}>
+          <p style={{ fontSize: "13px", color: C.textMuted, margin: "0 0 16px", lineHeight: 1.5 }}>
+            {t.routines.emptyState}
+          </p>
+
+          <p style={{ fontSize: "12px", color: C.textMuted, margin: "0 0 10px", fontWeight: 600 }}>
+            {t.routines.presetsLabel}
+          </p>
+          <div style={{ display: "flex", flexDirection: "column", gap: "8px", marginBottom: "16px" }}>
+            {t.routines.presets.map((preset) => (
+              <div
+                key={preset.name}
+                style={{
+                  display: "flex",
+                  alignItems: "center",
+                  gap: "10px",
+                  background: C.surfaceAlt,
+                  border: `1px solid ${C.border}`,
+                  borderRadius: "14px",
+                  padding: "10px 12px",
+                }}
+              >
+                <span style={{ fontSize: "22px", flexShrink: 0 }} aria-hidden="true">
+                  {preset.icon}
+                </span>
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <div style={{ fontSize: "13px", fontWeight: 600, color: C.text }}>{preset.name}</div>
+                  <div style={{ fontSize: "11px", color: C.textMuted }}>{t.routines.stepCount(preset.steps.length)}</div>
+                </div>
+                <button
+                  onClick={() => onUseTemplate(preset)}
+                  style={{ ...btnGhost, padding: "9px 14px", minHeight: "40px", flexShrink: 0 }}
+                >
+                  <Plus size={14} />
+                  {t.routines.useTemplateButton}
+                </button>
+              </div>
+            ))}
+          </div>
+
+          <p style={{ fontSize: "12px", color: C.textMuted, margin: "0 0 8px", fontWeight: 600 }}>
+            {t.routines.orCreateFromScratch}
+          </p>
+        </div>
       )}
 
       {routines.templates.map((tpl) => {

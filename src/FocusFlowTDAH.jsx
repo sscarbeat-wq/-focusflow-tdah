@@ -933,6 +933,28 @@ export default function FocusFlowTDAH({
   // al avanzar un paso suelto, para que el incentivo sea terminar la
   // secuencia completa.
   const handleAddRoutineTemplate = (fields) => setRoutines((prev) => addRoutineTemplate(prev, fields));
+  // Rutinas de ejemplo listas para usar (Fase 2F, 29 de octubre de 2026) —
+  // la doctora reportó que, viendo la pantalla vacía, no quedaba claro ni
+  // para qué sirve esto ni cómo se usa. En vez de solo mejorar el texto,
+  // se agregaron 3 rutinas ya armadas (ver t.routines.presets) que se
+  // agregan con un solo toque, para que se entienda viendo un ejemplo real
+  // en vez de imaginándolo. Arma la plantilla y le agrega sus pasos en la
+  // misma actualización de estado; si ya se llegó al tope de rutinas
+  // (MAX_ROUTINE_TEMPLATES), addRoutineTemplate no agrega nada y aquí se
+  // detecta eso (el arreglo de templates no creció) para no terminar
+  // agregando los pasos del ejemplo a una rutina existente por error.
+  const handleUseRoutinePreset = (preset) => {
+    setRoutines((prev) => {
+      const next = addRoutineTemplate(prev, { name: preset.name, icon: preset.icon });
+      if (next.templates.length === prev.templates.length) return next;
+      const newTpl = next.templates[next.templates.length - 1];
+      let withSteps = next;
+      preset.steps.forEach((st) => {
+        withSteps = addRoutineStep(withSteps, newTpl.id, st);
+      });
+      return withSteps;
+    });
+  };
   const handleRemoveRoutineTemplate = (templateId) => setRoutines((prev) => removeRoutineTemplate(prev, templateId));
   const handleRenameRoutineTemplate = (templateId, fields) =>
     setRoutines((prev) => renameRoutineTemplate(prev, templateId, fields));
@@ -1861,6 +1883,7 @@ export default function FocusFlowTDAH({
             t={t}
             routines={routines}
             onAddTemplate={handleAddRoutineTemplate}
+            onUseTemplate={handleUseRoutinePreset}
             onRemoveTemplate={handleRemoveRoutineTemplate}
             onRenameTemplate={handleRenameRoutineTemplate}
             onAddStep={handleAddRoutineStep}
