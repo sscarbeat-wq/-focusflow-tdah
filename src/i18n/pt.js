@@ -696,6 +696,11 @@ const pt = {
     skip: "Pular",
   },
 
+  tools: {
+    gridLabel: "Ferramentas disponíveis",
+    backButton: "Voltar para Ferramentas",
+  },
+
   weeklyInsights: {
     noMood: "Ainda não há registros de humor suficientes esta semana para ver um padrão — assim que você registrar alguns dias, vai ver aqui seu melhor e seu pior momento.",
     moodRegistered: (logged) => `Você registrou seu humor em ${logged} dos últimos 7 dias`,

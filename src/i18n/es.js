@@ -697,6 +697,11 @@ const es = {
     skip: "Saltar",
   },
 
+  tools: {
+    gridLabel: "Herramientas disponibles",
+    backButton: "Volver a Herramientas",
+  },
+
   weeklyInsights: {
     noMood: "Todavía no hay suficientes registros de ánimo esta semana para ver un patrón — en cuanto registres un par de días vas a ver aquí tu mejor y tu peor momento.",
     moodRegistered: (logged) => `Registraste tu ánimo ${logged} de los últimos 7 días`,

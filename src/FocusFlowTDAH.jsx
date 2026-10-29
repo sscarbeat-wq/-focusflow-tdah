@@ -47,11 +47,13 @@ import {
   Repeat,
   Compass,
   CalendarClock,
+  ArrowLeft,
 } from "lucide-react";
 
 import LanguageSwitcher from "./LanguageSwitcher";
 import AppTabBar from "./AppTabBar";
 import QuickAccessGrid from "./QuickAccessGrid";
+import ToolsGrid from "./ToolsGrid";
 import OnboardingTour from "./OnboardingTour";
 import InstallBanner from "./InstallBanner";
 import PostDiagnosisCard from "./PostDiagnosisCard";
@@ -348,6 +350,20 @@ export default function FocusFlowTDAH({
     }
   }, [activeTab]);
 
+  // Fase 2B (Herramientas como cuadrícula, 29 de octubre de 2026): dentro
+  // de la pestaña Herramientas (la que tiene más paneles, 20 de 28) ya no
+  // se ve una lista larga de un tirón — se ve una cuadrícula de tarjetas, y
+  // tocar una abre SOLO esa herramienta (ver ToolsGrid.jsx). activeTool
+  // null = se ve la cuadrícula; activeTool = "clave" = se ve solo ese
+  // panel + un botón "Volver". No es estado persistido (ni en Supabase ni
+  // en localStorage): es de sesión, se reinicia a la cuadrícula cada vez
+  // que se entra de nuevo a Herramientas desde otra pestaña, para no dejar
+  // a la paciente "atorada" dentro de una herramienta vieja sin querer.
+  const [activeTool, setActiveTool] = useState(null);
+  useEffect(() => {
+    if (activeTab !== "herramientas") setActiveTool(null);
+  }, [activeTab]);
+
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
     const atajo = params.get("atajo");
@@ -429,30 +445,35 @@ export default function FocusFlowTDAH({
     notifications: "perfil",
     calendar: "perfil",
   };
-  // Como las 5 pestañas se muestran/ocultan con CSS (display:none), no se
-  // desmontan — así que un scroll a una sección de OTRA pestaña primero
-  // tiene que cambiar de pestaña (lo que la vuelve display:block) y solo
-  // entonces hacer scrollIntoView; si se hiciera en el mismo tick, el
-  // navegador todavía la vería display:none y el scroll no haría nada. El
-  // doble requestAnimationFrame espera a que React aplique el cambio de
-  // estado Y a que el navegador termine el siguiente layout antes de medir
-  // la posición del elemento.
+  // Como las 5 pestañas (y, dentro de Herramientas, cada herramienta) se
+  // muestran/ocultan con CSS (display:none), nada se desmonta — así que
+  // saltar a una sección de otra pestaña (o de otra herramienta dentro de
+  // Herramientas) primero tiene que cambiar ese estado (lo que la vuelve
+  // display:block) y solo entonces hacer scrollIntoView; si se hiciera en
+  // el mismo tick, el navegador todavía la vería display:none y el scroll
+  // no haría nada. Por simplicidad SIEMPRE se espera doble
+  // requestAnimationFrame antes de medir la posición, haya cambiado algo o
+  // no — cuesta como mucho un parpadeo imperceptible, pero evita casos raros
+  // donde activeTool cambió pero activeTab no (así que antes no se
+  // esperaba) y el panel todavía no era visible.
   const scrollToCompanionSection = (key) => {
     const ref = companionSectionRefs[key];
     if (!ref) return;
     const targetTab = SECTION_TABS[key] || "inicio";
-    const doScroll = () => ref.current?.scrollIntoView({ behavior: "smooth", block: "center" });
-    if (targetTab !== activeTab) {
-      setActiveTab(targetTab);
-      requestAnimationFrame(() => requestAnimationFrame(doScroll));
-    } else {
-      doScroll();
-    }
+    if (targetTab === "herramientas") setActiveTool(key);
+    if (targetTab !== activeTab) setActiveTab(targetTab);
+    requestAnimationFrame(() => {
+      requestAnimationFrame(() => ref.current?.scrollIntoView({ behavior: "smooth", block: "center" }));
+    });
   };
   // Oculta (sin desmontar) cada sección que no sea de la pestaña activa —
   // ver la nota de arriba sobre por qué no se desmonta: ningún temporizador
   // ni estado interno de un panel se pierde al cambiar de pestaña.
   const tabStyle = (tab) => ({ display: activeTab === tab ? undefined : "none" });
+  // Igual que tabStyle, pero para las 20 herramientas dentro de la pestaña
+  // Herramientas: solo se ve la que está "abierta" (activeTool === key), y
+  // solo cuando además esa pestaña es la activa.
+  const toolStyle = (key) => ({ display: activeTab === "herramientas" && activeTool === key ? undefined : "none" });
 
   // Lista completa y en orden de las secciones de la página, para el menú
   // flotante "Ir a..." (Módulo 1). Reutiliza los mismos íconos que ya
@@ -498,6 +519,39 @@ export default function FocusFlowTDAH({
   // cambia aquí solo).
   const QUICK_ACCESS_KEYS = ["desglosador", "companion", "freno", "burbuja"];
   const quickAccessItems = QUICK_ACCESS_KEYS.map((key) => quickNavSections.find((s) => s.key === key)).filter(Boolean);
+
+  // Fase 2B (Herramientas como cuadrícula): las 20 tarjetas, en el mismo
+  // orden en que ya aparecían como lista — reutiliza quickNavSections
+  // (ícono + título) filtrando por SECTION_TABS, y le agrega como
+  // descripción el mismo subtítulo que ya tiene cada panel en su propio
+  // encabezado (t.app.panels.X.subtitle), para no escribir ni mantener un
+  // segundo texto por herramienta. Las llaves de este mapa son las mismas
+  // 20 que tienen SECTION_TABS[key] === "herramientas".
+  const TOOL_DESCRIPTIONS = {
+    quickCapture: t.app.panels.quickCapture.subtitle,
+    brainDump: t.app.panels.brainDump.subtitle,
+    routines: t.app.panels.routines.subtitle,
+    companion: t.app.panels.companion.subtitle,
+    desglosador: t.app.panels.dismantler.subtitle,
+    auditor: t.app.panels.auditor.subtitle,
+    oneThing: t.app.panels.oneThing.subtitle,
+    focusMode: t.app.panels.focusMode.subtitle,
+    mood: t.app.panels.mood.subtitle,
+    energy: t.app.panels.energy.subtitle,
+    medication: t.app.panels.medication.subtitle,
+    payments: t.app.panels.payments.subtitle,
+    cbt: t.app.panels.cbt.subtitle,
+    habits: t.app.panels.habits.subtitle,
+    freno: t.app.panels.stopThink.subtitle,
+    burbuja: t.app.panels.breathing.subtitle,
+    mindfulness: t.app.panels.mindfulness.subtitle,
+    reestructuracion: t.app.panels.reframe.subtitle,
+    messageTone: t.app.panels.messageTone.subtitle,
+    bodyDouble: t.app.panels.bodyDouble.subtitle,
+  };
+  const herramientasItems = quickNavSections
+    .filter((s) => SECTION_TABS[s.key] === "herramientas")
+    .map((s) => ({ ...s, description: TOOL_DESCRIPTIONS[s.key] }));
 
   // ---- Persisted state ----
   const [xp, setXp] = useState(saved.xp);
@@ -1738,7 +1792,41 @@ export default function FocusFlowTDAH({
           </Panel>
         </div>
 
-        <div ref={quickCaptureSectionRef} style={tabStyle("herramientas")}>
+        {/* Fase 2B (Herramientas como cuadrícula): se ve SOLO cuando la
+            pestaña activa es Herramientas — en cualquier otra pestaña este
+            bloque entero queda oculto, igual que los paneles. Sin
+            activeTool: cuadrícula de las 20 tarjetas. Con activeTool: un
+            botón para volver a la cuadrícula (la herramienta misma ya se ve
+            más abajo, por su propio toolStyle). */}
+        {activeTab === "herramientas" && (
+          <div style={{ marginBottom: "20px" }}>
+            {activeTool === null ? (
+              <ToolsGrid C={C} t={t} accent={personalAccent} items={herramientasItems} onSelect={setActiveTool} />
+            ) : (
+              <button
+                onClick={() => setActiveTool(null)}
+                style={{
+                  display: "flex",
+                  alignItems: "center",
+                  gap: "8px",
+                  minHeight: "40px",
+                  padding: "8px 14px",
+                  background: "transparent",
+                  border: `1px solid ${C.border}`,
+                  borderRadius: "12px",
+                  color: C.text,
+                  fontSize: "13px",
+                  fontWeight: 600,
+                  cursor: "pointer",
+                }}
+              >
+                <ArrowLeft size={16} /> {t.tools.backButton}
+              </button>
+            )}
+          </div>
+        )}
+
+        <div ref={quickCaptureSectionRef} style={toolStyle("quickCapture")}>
         <Panel C={C}
           accent={C.amber}
           icon={<StickyNote size={22} />}
@@ -1763,7 +1851,7 @@ export default function FocusFlowTDAH({
         </Panel>
         </div>
 
-        <div ref={brainDumpSectionRef} style={tabStyle("herramientas")}>
+        <div ref={brainDumpSectionRef} style={toolStyle("brainDump")}>
         <Panel C={C}
           accent={C.amber}
           icon={<Inbox size={22} />}
@@ -1784,7 +1872,7 @@ export default function FocusFlowTDAH({
         </Panel>
         </div>
 
-        <div ref={routinesSectionRef} style={tabStyle("herramientas")}>
+        <div ref={routinesSectionRef} style={toolStyle("routines")}>
         <Panel C={C}
           accent={C.sky}
           icon={<Repeat size={22} />}
@@ -1807,7 +1895,7 @@ export default function FocusFlowTDAH({
         </Panel>
         </div>
 
-        <div ref={companionPanelSectionRef} style={tabStyle("herramientas")}>
+        <div ref={companionPanelSectionRef} style={toolStyle("companion")}>
           <Panel C={C}
             accent={C.lavender}
             icon={<HeartHandshake size={22} />}
@@ -1820,7 +1908,7 @@ export default function FocusFlowTDAH({
 
         <div style={{ display: "grid", gridTemplateColumns: isNarrow ? "1fr" : "1fr 1fr", gap: "0 20px" }}>
           <div>
-            <div ref={desglosadorSectionRef} style={tabStyle("herramientas")}>
+            <div ref={desglosadorSectionRef} style={toolStyle("desglosador")}>
             <Panel C={C}
               accent={C.coral}
               icon={<ListTree size={22} />}
@@ -2071,7 +2159,7 @@ export default function FocusFlowTDAH({
             </Panel>
             </div>
 
-            <div ref={auditorSectionRef} style={tabStyle("herramientas")}>
+            <div ref={auditorSectionRef} style={toolStyle("auditor")}>
             <Panel C={C}
               accent={C.coral}
               icon={<Timer size={22} />}
@@ -2160,7 +2248,7 @@ export default function FocusFlowTDAH({
             </Panel>
             </div>
 
-            <div ref={oneThingSectionRef} style={tabStyle("herramientas")}>
+            <div ref={oneThingSectionRef} style={toolStyle("oneThing")}>
             <Panel C={C}
               accent={C.coral}
               icon={<Target size={22} />}
@@ -2192,7 +2280,7 @@ export default function FocusFlowTDAH({
             </Panel>
             </div>
 
-            <div ref={focusModeSectionRef} style={tabStyle("herramientas")}>
+            <div ref={focusModeSectionRef} style={toolStyle("focusMode")}>
             <Panel C={C}
               accent={C.coral}
               icon={<Headphones size={22} />}
@@ -2214,7 +2302,7 @@ export default function FocusFlowTDAH({
             </Panel>
             </div>
 
-            <div ref={moodSectionRef} style={tabStyle("herramientas")}>
+            <div ref={moodSectionRef} style={toolStyle("mood")}>
             <Panel C={C}
               accent={C.lavender}
               icon={<Smile size={22} />}
@@ -2243,7 +2331,7 @@ export default function FocusFlowTDAH({
             </Panel>
             </div>
 
-            <div ref={cbtSectionRef} style={tabStyle("herramientas")}>
+            <div ref={cbtSectionRef} style={toolStyle("cbt")}>
             <Panel C={C}
               accent={C.lavender}
               icon={<BookOpen size={22} />}
@@ -2320,7 +2408,7 @@ export default function FocusFlowTDAH({
             </Panel>
             </div>
 
-            <div ref={bodyDoubleSectionRef} style={tabStyle("herramientas")}>
+            <div ref={bodyDoubleSectionRef} style={toolStyle("bodyDouble")}>
             <Panel C={C}
               accent={C.rose}
               icon={<Users size={22} />}
@@ -2342,7 +2430,7 @@ export default function FocusFlowTDAH({
           </div>
 
           <div>
-            <div ref={energySectionRef} style={tabStyle("herramientas")}>
+            <div ref={energySectionRef} style={toolStyle("energy")}>
             <Panel C={C}
               accent={C.mint}
               icon={<BatteryMedium size={22} />}
@@ -2353,7 +2441,7 @@ export default function FocusFlowTDAH({
             </Panel>
             </div>
 
-            <div ref={medicationSectionRef} style={tabStyle("herramientas")}>
+            <div ref={medicationSectionRef} style={toolStyle("medication")}>
             <Panel C={C}
               accent={C.mint}
               icon={<Pill size={22} />}
@@ -2373,7 +2461,7 @@ export default function FocusFlowTDAH({
             </Panel>
             </div>
 
-            <div ref={paymentsSectionRef} style={tabStyle("herramientas")}>
+            <div ref={paymentsSectionRef} style={toolStyle("payments")}>
             <Panel C={C}
               accent={C.sky}
               icon={<CreditCard size={22} />}
@@ -2393,7 +2481,7 @@ export default function FocusFlowTDAH({
             </Panel>
             </div>
 
-            <div ref={stopThinkSectionRef} style={tabStyle("herramientas")}>
+            <div ref={stopThinkSectionRef} style={toolStyle("freno")}>
             <Panel C={C}
               accent={C.lavender}
               icon={<Hand size={22} />}
@@ -2488,7 +2576,7 @@ export default function FocusFlowTDAH({
             </Panel>
             </div>
 
-            <div ref={breathingSectionRef} style={tabStyle("herramientas")}>
+            <div ref={breathingSectionRef} style={toolStyle("burbuja")}>
             <Panel C={C}
               accent={C.mint}
               icon={<Wind size={22} />}
@@ -2525,7 +2613,7 @@ export default function FocusFlowTDAH({
             </Panel>
             </div>
 
-            <div ref={mindfulnessSectionRef} style={tabStyle("herramientas")}>
+            <div ref={mindfulnessSectionRef} style={toolStyle("mindfulness")}>
             <Panel C={C}
               accent={C.lavender}
               icon={<Flower2 size={22} />}
@@ -2536,7 +2624,7 @@ export default function FocusFlowTDAH({
             </Panel>
             </div>
 
-            <div ref={reestructuracionSectionRef} style={tabStyle("herramientas")}>
+            <div ref={reestructuracionSectionRef} style={toolStyle("reestructuracion")}>
             <Panel C={C}
               accent={C.rose}
               icon={<Brain size={22} />}
@@ -2614,7 +2702,7 @@ export default function FocusFlowTDAH({
             </Panel>
             </div>
 
-            <div ref={messageToneSectionRef} style={tabStyle("herramientas")}>
+            <div ref={messageToneSectionRef} style={toolStyle("messageTone")}>
             <Panel C={C}
               accent={C.rose}
               icon={<MessageSquare size={22} />}
@@ -2627,7 +2715,7 @@ export default function FocusFlowTDAH({
           </div>
         </div>
 
-        <div ref={habitsSectionRef} style={tabStyle("herramientas")}>
+        <div ref={habitsSectionRef} style={toolStyle("habits")}>
         <Panel C={C}
           accent={C.coral}
           icon={<Moon size={22} />}
