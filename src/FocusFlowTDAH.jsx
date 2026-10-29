@@ -119,8 +119,10 @@ import {
   DEFAULT_ROUTINES,
   addRoutineTemplate,
   removeRoutineTemplate,
+  renameRoutineTemplate,
   addRoutineStep,
   removeRoutineStep,
+  updateRoutineStep,
   moveRoutineStep,
   startRoutineSession,
   advanceRoutineSession,
@@ -932,9 +934,13 @@ export default function FocusFlowTDAH({
   // secuencia completa.
   const handleAddRoutineTemplate = (fields) => setRoutines((prev) => addRoutineTemplate(prev, fields));
   const handleRemoveRoutineTemplate = (templateId) => setRoutines((prev) => removeRoutineTemplate(prev, templateId));
+  const handleRenameRoutineTemplate = (templateId, fields) =>
+    setRoutines((prev) => renameRoutineTemplate(prev, templateId, fields));
   const handleAddRoutineStep = (templateId, fields) => setRoutines((prev) => addRoutineStep(prev, templateId, fields));
   const handleRemoveRoutineStep = (templateId, stepId) =>
     setRoutines((prev) => removeRoutineStep(prev, templateId, stepId));
+  const handleUpdateRoutineStep = (templateId, stepId, fields) =>
+    setRoutines((prev) => updateRoutineStep(prev, templateId, stepId, fields));
   const handleMoveRoutineStep = (templateId, stepId, direction) =>
     setRoutines((prev) => moveRoutineStep(prev, templateId, stepId, direction));
   const handleStartRoutineSession = (templateId) => setRoutines((prev) => startRoutineSession(prev, templateId));
@@ -1856,8 +1862,10 @@ export default function FocusFlowTDAH({
             routines={routines}
             onAddTemplate={handleAddRoutineTemplate}
             onRemoveTemplate={handleRemoveRoutineTemplate}
+            onRenameTemplate={handleRenameRoutineTemplate}
             onAddStep={handleAddRoutineStep}
             onRemoveStep={handleRemoveRoutineStep}
+            onUpdateStep={handleUpdateRoutineStep}
             onMoveStep={handleMoveRoutineStep}
             onStartSession={handleStartRoutineSession}
             onAdvanceSession={handleAdvanceRoutineSession}

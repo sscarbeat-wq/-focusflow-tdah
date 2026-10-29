@@ -82,6 +82,32 @@ export function addRoutineStep(state, templateId, { text, icon, min } = {}) {
   };
 }
 
+// Edita un paso YA agregado (texto, ícono y/o duración) sin borrarlo y
+// perder su lugar en el orden — Fase 2F (plantillas editables, 29 de
+// octubre de 2026). `min` sigue la misma convención que addRoutineStep: un
+// número positivo lo redondea y lo guarda, cualquier otra cosa (incluido
+// null explícito, para "quitar la duración") lo deja en null; `undefined`
+// (el campo ni se mandó) deja la duración como estaba.
+export function updateRoutineStep(state, templateId, stepId, { text, icon, min } = {}) {
+  const s = clean(state);
+  return {
+    ...s,
+    templates: s.templates.map((r) => {
+      if (r.id !== templateId) return r;
+      return {
+        ...r,
+        steps: r.steps.map((st) => {
+          if (st.id !== stepId) return st;
+          const cleanText = text !== undefined ? String(text || "").trim().slice(0, 120) : st.text;
+          const cleanMin =
+            min === undefined ? st.min : Number.isFinite(Number(min)) && Number(min) > 0 ? Math.round(Number(min)) : null;
+          return { ...st, text: cleanText || st.text, icon: icon || st.icon, min: cleanMin };
+        }),
+      };
+    }),
+  };
+}
+
 export function removeRoutineStep(state, templateId, stepId) {
   const s = clean(state);
   return {
