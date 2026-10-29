@@ -27,52 +27,61 @@ export default function ToolsGrid({ C, t, accent, items, onSelect }) {
       }}
     >
       {items.map((item) => (
-        <button
-          key={item.key}
-          role="listitem"
-          onClick={() => onSelect(item.key)}
-          style={{
-            display: "flex",
-            flexDirection: "column",
-            alignItems: "flex-start",
-            gap: "10px",
-            minHeight: "110px",
-            padding: "14px",
-            background: C.surfaceAlt,
-            border: `1px solid ${C.border}`,
-            borderRadius: "16px",
-            color: C.text,
-            cursor: "pointer",
-            textAlign: "left",
-          }}
-        >
-          <span
-            aria-hidden="true"
+        // Fase 2G (pulido de accesibilidad, 29 de octubre de 2026): antes
+        // role="listitem" vivía directo en el <button>, lo cual pisaba su
+        // rol nativo de "button" — un lector de pantalla lo habría anunciado
+        // como elemento de lista, no como algo que se puede activar. Ahora
+        // "listitem" va en un contenedor aparte y el botón conserva su rol
+        // real, sin cambiar nada del look (mismo <button> con los mismos
+        // estilos de antes, solo que ahora es hijo de ese contenedor).
+        <div key={item.key} role="listitem">
+          <button
+            onClick={() => onSelect(item.key)}
             style={{
-              width: "36px",
-              height: "36px",
-              borderRadius: "11px",
               display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-              background: tint(accent, 0.2),
-              color: accent,
-              flexShrink: 0,
+              flexDirection: "column",
+              alignItems: "flex-start",
+              gap: "10px",
+              width: "100%",
+              minHeight: "110px",
+              padding: "14px",
+              background: C.surfaceAlt,
+              border: `1px solid ${C.border}`,
+              borderRadius: "16px",
+              color: C.text,
+              cursor: "pointer",
+              textAlign: "left",
+              boxSizing: "border-box",
             }}
           >
-            {item.icon}
-          </span>
-          <span>
-            <span style={{ display: "block", fontSize: "13px", fontWeight: 700, marginBottom: "3px" }}>
-              {item.label}
+            <span
+              aria-hidden="true"
+              style={{
+                width: "36px",
+                height: "36px",
+                borderRadius: "11px",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                background: tint(accent, 0.2),
+                color: accent,
+                flexShrink: 0,
+              }}
+            >
+              {item.icon}
             </span>
-            {item.description && (
-              <span style={{ display: "block", fontSize: "11.5px", color: C.textMuted, lineHeight: 1.4 }}>
-                {item.description}
+            <span>
+              <span style={{ display: "block", fontSize: "13px", fontWeight: 700, marginBottom: "3px" }}>
+                {item.label}
               </span>
-            )}
-          </span>
-        </button>
+              {item.description && (
+                <span style={{ display: "block", fontSize: "11.5px", color: C.textMuted, lineHeight: 1.4 }}>
+                  {item.description}
+                </span>
+              )}
+            </span>
+          </button>
+        </div>
       ))}
     </div>
   );
