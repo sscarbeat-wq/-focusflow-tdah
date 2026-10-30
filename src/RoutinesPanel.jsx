@@ -2,6 +2,7 @@ import React, { useState } from "react";
 import { Play, Plus, Trash2, ChevronUp, ChevronDown, Pencil, CheckCircle2, LogOut, X } from "lucide-react";
 import { currentRoutineStep, MAX_ROUTINE_TEMPLATES, MAX_STEPS_PER_ROUTINE } from "./routines";
 import { tint } from "./theme";
+import { PlusUpsellInline } from "./PlusUpsellCard";
 
 // "Rutinas visuales guiadas" — Módulo 5 de ANRO TDAH 2.0 (8 de noviembre de
 // 2026), inspirado en las rutinas de Tiimo. Dos vistas completamente
@@ -35,6 +36,12 @@ import { tint } from "./theme";
 const ROUTINE_ICONS = ["☀️", "🌙", "🧘", "🏃", "🍽️", "🧹", "📚", "🚿", "🪥", "💊", "🎒", "✅"];
 const STEP_DURATION_OPTIONS = [5, 10, 15, 20, 30, 45, 60];
 
+// Fase 3 del sistema de planes (30 de octubre de 2026) — "customRoutines"
+// es Plus: usar las 3 rutinas preestablecidas (arriba, cuando la lista está
+// vacía) y editar las rutinas que ya existen se queda gratis siempre; solo
+// "Crear nueva rutina" desde cero (el bloque de más abajo) pide Plus.
+// isPlus=true por default para no afectar a quien use este componente sin
+// pasar la prop todavía.
 export default function RoutinesPanel({
   C,
   t,
@@ -50,6 +57,8 @@ export default function RoutinesPanel({
   onStartSession,
   onAdvanceSession,
   onExitSession,
+  isPlus = true,
+  onRequestUpgrade,
 }) {
   const [newName, setNewName] = useState("");
   const [newIcon, setNewIcon] = useState(ROUTINE_ICONS[0]);
@@ -421,34 +430,38 @@ export default function RoutinesPanel({
       })}
 
       {routines.templates.length < MAX_ROUTINE_TEMPLATES && (
-        <div style={{ background: C.surfaceAlt, borderRadius: "14px", padding: "14px" }}>
-          <p style={{ fontSize: "12px", color: C.textMuted, margin: "0 0 8px", fontWeight: 600 }}>
-            {t.routines.newRoutineLabel}
-          </p>
-          <div style={{ marginBottom: "10px" }}>{iconPicker(newIcon, setNewIcon)}</div>
-          <div style={{ display: "flex", gap: "8px", flexWrap: "wrap" }}>
-            <input
-              type="text"
-              value={newName}
-              onChange={(e) => setNewName(e.target.value)}
-              placeholder={t.routines.newRoutinePlaceholder}
-              style={{ ...inputStyle, flex: "1 1 180px" }}
-              maxLength={60}
-            />
-            <button
-              onClick={() => {
-                if (!newName.trim()) return;
-                onAddTemplate({ name: newName, icon: newIcon });
-                setNewName("");
-              }}
-              disabled={!newName.trim()}
-              style={{ ...btnPrimary, padding: "9px 14px", minHeight: "40px" }}
-            >
-              <Plus size={14} />
-              {t.routines.createButton}
-            </button>
+        isPlus ? (
+          <div style={{ background: C.surfaceAlt, borderRadius: "14px", padding: "14px" }}>
+            <p style={{ fontSize: "12px", color: C.textMuted, margin: "0 0 8px", fontWeight: 600 }}>
+              {t.routines.newRoutineLabel}
+            </p>
+            <div style={{ marginBottom: "10px" }}>{iconPicker(newIcon, setNewIcon)}</div>
+            <div style={{ display: "flex", gap: "8px", flexWrap: "wrap" }}>
+              <input
+                type="text"
+                value={newName}
+                onChange={(e) => setNewName(e.target.value)}
+                placeholder={t.routines.newRoutinePlaceholder}
+                style={{ ...inputStyle, flex: "1 1 180px" }}
+                maxLength={60}
+              />
+              <button
+                onClick={() => {
+                  if (!newName.trim()) return;
+                  onAddTemplate({ name: newName, icon: newIcon });
+                  setNewName("");
+                }}
+                disabled={!newName.trim()}
+                style={{ ...btnPrimary, padding: "9px 14px", minHeight: "40px" }}
+              >
+                <Plus size={14} />
+                {t.routines.createButton}
+              </button>
+            </div>
           </div>
-        </div>
+        ) : (
+          <PlusUpsellInline C={C} t={t} label={t.upsell.routinesCustom} onRequestUpgrade={onRequestUpgrade} />
+        )
       )}
     </div>
   );

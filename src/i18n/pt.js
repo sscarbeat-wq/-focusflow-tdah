@@ -73,6 +73,25 @@ const pt = {
     pitch: "Acesso completo ao detalhador de tarefas, auditor de tempo, freio de impulsividade, respiração guiada, reestruturação de pensamentos e rastreador de hábitos.",
     checkoutError: "Não foi possível iniciar o pagamento",
     subscribeButton: "Assinar",
+    planPickerLabel: "Escolha seu plano",
+    monthlyPlanLabel: "Mensal",
+    annualPlanLabel: "Anual",
+    monthlyPriceLabel: "MXN 199 por mês",
+    annualPriceLabel: "MXN 999 por ano",
+    annualSavingsLabel: "Economize 58%",
+    closeLabel: "Fechar",
+  },
+
+  upsell: {
+    badge: "Plus",
+    overlayTitle: "Função Plus",
+    overlayBody: "Esta ferramenta faz parte do ANRO TDAH Plus. Assine para desbloqueá-la junto com as demais ferramentas premium.",
+    overlayButton: "Ver planos",
+    inlineButton: "Desbloquear",
+    focusDistractionBlocker: "O rastreador de distrações é uma função Plus.",
+    companionAiReply: "As respostas personalizadas são uma função Plus.",
+    routinesCustom: "Criar rotinas personalizadas é uma função Plus.",
+    aiBreakdown: "O detalhamento com IA é uma função Plus.",
   },
 
   bodyDouble: {

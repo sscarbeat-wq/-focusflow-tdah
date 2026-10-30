@@ -78,6 +78,33 @@ const es = {
     pitch: "Acceso completo al desglosador de tareas, auditor de tiempo, freno de impulsividad, respiración guiada, reestructuración de pensamientos y rastreador de hábitos.",
     checkoutError: "No se pudo iniciar el pago",
     subscribeButton: "Suscribirme",
+    planPickerLabel: "Elige tu plan",
+    monthlyPlanLabel: "Mensual",
+    annualPlanLabel: "Anual",
+    monthlyPriceLabel: "$199 MXN al mes",
+    annualPriceLabel: "$999 MXN al año",
+    annualSavingsLabel: "Ahorra 58%",
+    closeLabel: "Cerrar",
+  },
+
+  // Fase 3 del sistema de planes (30 de octubre de 2026) — antes, cualquier
+  // cuenta sin suscripción activa caía al Paywall de pantalla completa y
+  // nunca veía el resto de la app. Ahora el plan Gratis entra de verdad: las
+  // herramientas que no son Plus funcionan normal, y las que sí lo son
+  // muestran este aviso en su lugar (o encima, atenuadas) en vez de un
+  // candado mudo. Textos genéricos a propósito — no mencionan la
+  // herramienta por nombre para no tener que armar frases distintas por
+  // idioma.
+  upsell: {
+    badge: "Plus",
+    overlayTitle: "Función Plus",
+    overlayBody: "Esta herramienta es parte de ANRO TDAH Plus. Suscríbete para desbloquearla junto con el resto de las herramientas premium.",
+    overlayButton: "Ver planes",
+    inlineButton: "Desbloquear",
+    focusDistractionBlocker: "El rastreador de distracciones es una función Plus.",
+    companionAiReply: "Las respuestas personalizadas son una función Plus.",
+    routinesCustom: "Crear rutinas personalizadas es una función Plus.",
+    aiBreakdown: "El desglosador con IA es una función Plus.",
   },
 
   bodyDouble: {

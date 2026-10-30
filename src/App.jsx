@@ -165,6 +165,25 @@ export default function App() {
   // quede sin saber si su clic sirvió de algo.
   const [manageSubscriptionError, setManageSubscriptionError] = useState("");
 
+  // Fase 3 del sistema de planes (30 de octubre de 2026) — antes, Paywall
+  // era la única pantalla posible para una cuenta sin Plus (ver el "return"
+  // de más abajo que ya no existe). Ahora el plan Gratis entra de verdad a
+  // FocusFlowTDAH, y Paywall solo aparece cuando la paciente lo pide desde
+  // dentro de una herramienta Plus (onRequestUpgrade, pasado a
+  // FocusFlowTDAH) o se cierra solo en cuanto detecta que ya tiene acceso
+  // Plus — por ejemplo al volver de un checkout exitoso, sin que la
+  // paciente tenga que cerrarlo ella misma.
+  const [showPaywall, setShowPaywall] = useState(false);
+  useEffect(() => {
+    if (!session || subscription === undefined) return;
+    const currentPlanState = getPlanState({
+      accountCreatedAt: session.user.created_at,
+      subscriptionStatus: subscription?.status,
+      subscriptionPlan: subscription?.plan,
+    });
+    if (hasPlusAccess(currentPlanState)) setShowPaywall(false);
+  }, [session, subscription]);
+
   const handleManageSubscription = async () => {
     if (!subscription?.stripe_customer_id) return;
     setManageSubscriptionError("");
@@ -231,48 +250,55 @@ export default function App() {
     subscriptionPlan: subscription?.plan,
   });
 
-  if (!hasPlusAccess(planState)) {
-    return (
-      <Paywall
-        userId={session.user.id}
+  // Fase 3 (30 de octubre de 2026): ya no hay un "return" aparte que
+  // bloquee la pantalla completa para el plan Gratis — toda cuenta entra a
+  // FocusFlowTDAH, que decide internamente, herramienta por herramienta,
+  // cuáles mostrar normal (Gratis) y cuáles mostrar con el aviso de Plus
+  // (ver PLUS_FEATURE_KEYS en plans.js y PlusUpsellCard.jsx). Paywall se
+  // monta aparte, por encima, solo cuando showPaywall es true.
+  return (
+    <>
+      <FocusFlowTDAH
+        initialProgress={progress}
+        onProgressChange={handleProgressChange}
         userEmail={session.user.email}
+        userId={session.user.id}
         onSignOut={() => supabase.auth.signOut()}
+        // Fase 2: durante el trial (o el plan Gratis) no existe ninguna
+        // suscripción real en Stripe todavía, así que no hay nada que
+        // "administrar" — sin este chequeo, el botón "Mi suscripción" se
+        // habría seguido mostrando durante el trial sin hacer nada al
+        // presionarlo (handleManageSubscription ya se detenía en silencio
+        // por dentro, pero es mejor no mostrar un botón muerto).
+        onManageSubscription={subscription?.stripe_customer_id ? handleManageSubscription : undefined}
+        manageSubscriptionError={manageSubscriptionError}
+        planState={planState}
+        onRequestUpgrade={() => setShowPaywall(true)}
         C={C}
         theme={theme}
         onToggleTheme={toggleTheme}
+        accentKey={accentKey}
+        onChangeAccent={changeAccent}
+        species={species}
+        onChangeSpecies={changeSpecies}
         t={t}
         lang={lang}
         onChangeLanguage={changeLanguage}
       />
-    );
-  }
-
-  return (
-    <FocusFlowTDAH
-      initialProgress={progress}
-      onProgressChange={handleProgressChange}
-      userEmail={session.user.email}
-      userId={session.user.id}
-      onSignOut={() => supabase.auth.signOut()}
-      // Fase 2: durante el trial (o el plan Gratis) no existe ninguna
-      // suscripción real en Stripe todavía, así que no hay nada que
-      // "administrar" — sin este chequeo, el botón "Mi suscripción" se
-      // habría seguido mostrando durante el trial sin hacer nada al
-      // presionarlo (handleManageSubscription ya se detenía en silencio
-      // por dentro, pero es mejor no mostrar un botón muerto).
-      onManageSubscription={subscription?.stripe_customer_id ? handleManageSubscription : undefined}
-      manageSubscriptionError={manageSubscriptionError}
-      planState={planState}
-      C={C}
-      theme={theme}
-      onToggleTheme={toggleTheme}
-      accentKey={accentKey}
-      onChangeAccent={changeAccent}
-      species={species}
-      onChangeSpecies={changeSpecies}
-      t={t}
-      lang={lang}
-      onChangeLanguage={changeLanguage}
-    />
+      {showPaywall && (
+        <Paywall
+          userId={session.user.id}
+          userEmail={session.user.email}
+          onSignOut={() => supabase.auth.signOut()}
+          C={C}
+          theme={theme}
+          onToggleTheme={toggleTheme}
+          t={t}
+          lang={lang}
+          onChangeLanguage={changeLanguage}
+          onClose={() => setShowPaywall(false)}
+        />
+      )}
+    </>
   );
 }

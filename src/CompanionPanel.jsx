@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { ArrowRight, AlertTriangle, RotateCcw } from "lucide-react";
+import { ArrowRight, AlertTriangle, RotateCcw, Lock } from "lucide-react";
 import { SITUATIONS, getSituation, nextResponseIndex } from "./companionSituations";
 
 // Compañero de apoyo situacional — SOLO botones de entrada rápida, nunca
@@ -15,7 +15,12 @@ import { SITUATIONS, getSituation, nextResponseIndex } from "./companionSituatio
 // responde (límite mensual, red, error del servidor) se usa en su lugar uno
 // de los textos fijos de respaldo (fallbackResponses), rotando sin repetir —
 // la paciente nunca se queda sin un mensaje de apoyo.
-export default function CompanionPanel({ C, t, lang, userId, onNavigate }) {
+// Fase 3 del sistema de planes (30 de octubre de 2026) — "companionAiReplies"
+// es Plus; el botón de crisis y el menú de las 5 situaciones NUNCA se
+// restringen, en ningún plan (ver el comentario de PLUS_FEATURE_KEYS en
+// plans.js). isPlus=true por default para no afectar a quien use este
+// componente sin pasar la prop todavía.
+export default function CompanionPanel({ C, t, lang, userId, onNavigate, isPlus = true, onRequestUpgrade }) {
   const [activeId, setActiveId] = useState(null); // id de SITUATIONS, "crisis", o null
   const [textBySituation, setTextBySituation] = useState({});
   const [loadingId, setLoadingId] = useState(null);
@@ -59,14 +64,22 @@ export default function CompanionPanel({ C, t, lang, userId, onNavigate }) {
 
   const openSituation = (situationId) => {
     setActiveId(situationId);
+    // Fase 3: plan Gratis nunca llama a la IA aquí — usa directo uno de los
+    // textos de respaldo fijos, los mismos que ya existían como red de
+    // seguridad para cuando la IA falla. La paciente ve un mensaje de apoyo
+    // real de inmediato, nunca una pantalla vacía ni un bloqueo.
+    if (!isPlus) {
+      showFallback(situationId);
+      return;
+    }
     requestAiResponse(situationId, null);
   };
 
   const otraIdea = (situationId) => {
-    if (usingFallback[situationId]) {
-      // Ya estamos en modo respaldo para esta situación (la IA falló antes)
-      // — seguimos rotando el texto fijo en vez de reintentar la red otra
-      // vez de inmediato.
+    if (!isPlus || usingFallback[situationId]) {
+      // Ya estamos en modo respaldo para esta situación (la IA falló antes,
+      // o el plan Gratis nunca la llama) — seguimos rotando el texto fijo
+      // en vez de pedirle algo a la IA.
       showFallback(situationId);
       return;
     }
@@ -179,6 +192,29 @@ export default function CompanionPanel({ C, t, lang, userId, onNavigate }) {
             {t.companion.anotherIdea}
           </button>
         </div>
+        {/* Fase 3: aviso breve de que la respuesta de arriba es un texto fijo
+            de respaldo, no personalizado por IA (eso es Plus) — nunca en la
+            vista de crisis ni en el menú, solo aquí. */}
+        {!isPlus && (
+          <button
+            type="button"
+            onClick={onRequestUpgrade}
+            style={{
+              display: "flex",
+              alignItems: "center",
+              gap: "4px",
+              marginTop: "10px",
+              background: "transparent",
+              border: "none",
+              color: C.amberText || C.amber,
+              fontSize: "12px",
+              cursor: onRequestUpgrade ? "pointer" : "default",
+              padding: 0,
+            }}
+          >
+            <Lock size={12} /> {t.upsell.companionAiReply}
+          </button>
+        )}
         <button onClick={goBack} style={btnBack}>
           {t.companion.chooseOther}
         </button>

@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect, useCallback } from "react";
-import { Play, Pause, RotateCcw, Volume2, VolumeX, EyeOff } from "lucide-react";
+import { Play, Pause, RotateCcw, Volume2, VolumeX, EyeOff, Lock } from "lucide-react";
 import {
   resetTracker,
   recordLeave,
@@ -37,7 +37,14 @@ function fmt(sec) {
 // FocusMode, reutilizado, con esa sola parte oculta — el temporizador,
 // Play/Pausa/Reiniciar y el ruido blanco siguen funcionando exactamente
 // igual que en el panel "Modo Enfoque" normal.
-export default function FocusMode({ C, t, onSessionComplete, onSessionStart, minimal = false }) {
+// Fase 3 del sistema de planes (30 de octubre de 2026) — "distractionBlocker"
+// (el aviso de apps distractoras dentro de Modo Enfoque) es la única parte
+// de este panel que es Plus; el Pomodoro, el ruido blanco y la campana
+// siguen funcionando igual sin importar el plan. isPlus=true por default:
+// OneThingPanel.jsx usa este mismo componente (variante minimal) y no pasa
+// esta prop todavía — así se queda exactamente como estaba antes de este
+// cambio, sin bloquear nada ahí.
+export default function FocusMode({ C, t, onSessionComplete, onSessionStart, minimal = false, isPlus = true, onRequestUpgrade }) {
   const [workMin, setWorkMin] = useState(25);
   const [breakMin, setBreakMin] = useState(5);
   const [mode, setMode] = useState("work"); // "work" | "break"
@@ -81,7 +88,7 @@ export default function FocusMode({ C, t, onSessionComplete, onSessionStart, min
   // a la pestaña, solo mientras una sesión de enfoque está realmente
   // corriendo (no durante el descanso ni con el temporizador pausado) ---
   useEffect(() => {
-    if (!running || mode !== "work") return;
+    if (!isPlus || !running || mode !== "work") return;
     const onVisibilityChange = () => {
       if (document.hidden) {
         setDistraction((s) => recordLeave(s, Date.now()));
@@ -100,7 +107,7 @@ export default function FocusMode({ C, t, onSessionComplete, onSessionStart, min
     };
     document.addEventListener("visibilitychange", onVisibilityChange);
     return () => document.removeEventListener("visibilitychange", onVisibilityChange);
-  }, [running, mode]);
+  }, [isPlus, running, mode]);
 
   useEffect(() => {
     return () => {
@@ -307,10 +314,35 @@ export default function FocusMode({ C, t, onSessionComplete, onSessionStart, min
               </>
             )}
           </div>
-          {mode === "work" && formatDistractionSummary(distraction, t.focusMode) && (
+          {isPlus && mode === "work" && formatDistractionSummary(distraction, t.focusMode) && (
             <div style={{ fontSize: "12px", color: C.textMuted, marginTop: "4px" }}>
               {formatDistractionSummary(distraction, t.focusMode)}
             </div>
+          )}
+          {/* Fase 3: aviso breve en vez del rastreador real — no se oculta
+              nada más del Modo Enfoque (Pomodoro/ruido siguen funcionando),
+              solo esta función específica. onRequestUpgrade puede faltar
+              (p. ej. OneThingPanel no la pasa) — en ese caso el botón no
+              hace nada en vez de romper. */}
+          {!isPlus && !minimal && mode === "work" && (
+            <button
+              type="button"
+              onClick={onRequestUpgrade}
+              style={{
+                display: "flex",
+                alignItems: "center",
+                gap: "4px",
+                marginTop: "4px",
+                background: "transparent",
+                border: "none",
+                color: C.amberText || C.amber,
+                fontSize: "12px",
+                cursor: onRequestUpgrade ? "pointer" : "default",
+                padding: 0,
+              }}
+            >
+              <Lock size={12} /> {t.upsell.focusDistractionBlocker}
+            </button>
           )}
           {distractionToast && (
             <div

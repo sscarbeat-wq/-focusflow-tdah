@@ -68,6 +68,25 @@ const en = {
     pitch: "Full access to the task breakdown tool, time auditor, impulse brake, guided breathing, thought reframing, and habit tracker.",
     checkoutError: "Couldn't start checkout",
     subscribeButton: "Subscribe",
+    planPickerLabel: "Choose your plan",
+    monthlyPlanLabel: "Monthly",
+    annualPlanLabel: "Annual",
+    monthlyPriceLabel: "$199 MXN per month",
+    annualPriceLabel: "$999 MXN per year",
+    annualSavingsLabel: "Save 58%",
+    closeLabel: "Close",
+  },
+
+  upsell: {
+    badge: "Plus",
+    overlayTitle: "Plus feature",
+    overlayBody: "This tool is part of ANRO TDAH Plus. Subscribe to unlock it along with the rest of the premium tools.",
+    overlayButton: "See plans",
+    inlineButton: "Unlock",
+    focusDistractionBlocker: "The distraction tracker is a Plus feature.",
+    companionAiReply: "Personalized replies are a Plus feature.",
+    routinesCustom: "Creating custom routines is a Plus feature.",
+    aiBreakdown: "AI-powered breakdown is a Plus feature.",
   },
 
   bodyDouble: {
