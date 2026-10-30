@@ -266,6 +266,7 @@ export default function FocusFlowTDAH({
   userId,
   onSignOut,
   onManageSubscription,
+  manageSubscriptionError,
   C,
   theme,
   onToggleTheme,
@@ -1663,6 +1664,21 @@ export default function FocusFlowTDAH({
             )}
           </div>
         </header>
+
+        {manageSubscriptionError && (
+          <p
+            role="alert"
+            style={{
+              fontSize: "13px",
+              color: C.amber,
+              textAlign: "center",
+              margin: "0 0 12px",
+              lineHeight: 1.5,
+            }}
+          >
+            {manageSubscriptionError}
+          </p>
+        )}
 
         <Mascot streak={streak} C={C} t={t} accent={personalAccent} species={species} />
 

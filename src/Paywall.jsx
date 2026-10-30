@@ -6,14 +6,30 @@ export default function Paywall({ userId, userEmail, onSignOut, C, theme, onTogg
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
 
+  // Fase 2 de suscripciones (30 de octubre de 2026) — desde que
+  // api/create-checkout-session.js pasó a aceptar 2 precios (mensual y
+  // anual) en vez de uno solo, ya exige que el navegador le diga cuál
+  // quiere (ver el comentario de ese archivo). Por ahora el Paywall solo
+  // ofrece mensual (no hay precio anual decidido todavía), así que manda
+  // siempre ese priceId — cuando exista el plan anual, aquí se agrega el
+  // selector y el segundo priceId.
+  const MONTHLY_PRICE_ID = import.meta.env.VITE_STRIPE_PRICE_ID_MONTHLY;
+
   const handleSubscribe = async () => {
     setError("");
+    if (!MONTHLY_PRICE_ID) {
+      // Defensivo: si falta configurar la variable de entorno en Vercel,
+      // mejor un mensaje claro aquí que un "priceId no reconocido" confuso
+      // viniendo del servidor.
+      setError(t.paywall.checkoutError);
+      return;
+    }
     setLoading(true);
     try {
       const res = await fetch("/api/create-checkout-session", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ userId, email: userEmail }),
+        body: JSON.stringify({ userId, email: userEmail, priceId: MONTHLY_PRICE_ID }),
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || t.paywall.checkoutError);
