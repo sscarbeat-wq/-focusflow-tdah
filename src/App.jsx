@@ -154,15 +154,32 @@ export default function App() {
     }, 800);
   };
 
+  // 30 de octubre de 2026 — antes, si /api/create-portal-session fallaba
+  // (ej. el stripe_customer_id guardado no existe en el modo/cuenta de
+  // Stripe que esté usando esa variable de entorno — visto en Preview, con
+  // llaves de prueba, contra un customer real de modo live), el botón "Mi
+  // suscripción" no hacía absolutamente nada visible: ni mensaje, ni
+  // redirección, solo silencio. Ahora cualquier falla (de red, o un error
+  // que regrese la API) se guarda en manageSubscriptionError para que
+  // FocusFlowTDAH la muestre junto al botón, en vez de que la paciente se
+  // quede sin saber si su clic sirvió de algo.
+  const [manageSubscriptionError, setManageSubscriptionError] = useState("");
+
   const handleManageSubscription = async () => {
     if (!subscription?.stripe_customer_id) return;
-    const res = await fetch("/api/create-portal-session", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ customerId: subscription.stripe_customer_id }),
-    });
-    const data = await res.json();
-    if (data.url) window.location.href = data.url;
+    setManageSubscriptionError("");
+    try {
+      const res = await fetch("/api/create-portal-session", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ customerId: subscription.stripe_customer_id }),
+      });
+      const data = await res.json();
+      if (!res.ok || !data.url) throw new Error(data.error || t.common.genericError);
+      window.location.href = data.url;
+    } catch (err) {
+      setManageSubscriptionError(err.message || t.common.genericError);
+    }
   };
 
   if (session === undefined) return null; // cargando sesión inicial
@@ -244,6 +261,7 @@ export default function App() {
       // presionarlo (handleManageSubscription ya se detenía en silencio
       // por dentro, pero es mejor no mostrar un botón muerto).
       onManageSubscription={subscription?.stripe_customer_id ? handleManageSubscription : undefined}
+      manageSubscriptionError={manageSubscriptionError}
       planState={planState}
       C={C}
       theme={theme}
