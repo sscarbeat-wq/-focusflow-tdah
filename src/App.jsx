@@ -7,8 +7,7 @@ import Paywall from "./Paywall";
 import { DARK_THEME, LIGHT_THEME, getStoredTheme, storeTheme, getStoredAccent, storeAccent } from "./theme";
 import { getStoredLanguage, storeLanguage, getTranslations } from "./i18n";
 import { getStoredSpecies, storeSpecies } from "./mascotLogic";
-
-const ACTIVE_STATUSES = ["active", "trialing"];
+import { getPlanState, hasPlusAccess } from "./plans";
 
 export default function App() {
   const [session, setSession] = useState(undefined); // undefined = cargando, null = sin sesión
@@ -114,7 +113,7 @@ export default function App() {
     if (!session) return;
     supabase
       .from("subscriptions")
-      .select("status, stripe_customer_id")
+      .select("status, stripe_customer_id, plan")
       .eq("user_id", session.user.id)
       .maybeSingle()
       .then(({ data, error }) => {
@@ -200,9 +199,22 @@ export default function App() {
     );
   if (loadingProgress || subscription === undefined) return null; // cargando datos
 
-  const isActive = subscription && ACTIVE_STATUSES.includes(subscription.status);
+  // Fase 2 del sistema de planes (30 de octubre de 2026) — antes de esto,
+  // cualquier cuenta sin suscripción activa en Stripe caía derecho al
+  // Paywall sin importar qué tan nueva fuera, así que el trial de 14 días
+  // sin tarjeta que ya describe src/plans.js nunca se aplicaba de verdad.
+  // Ahora se usa esa misma regla de negocio ya aprobada: el trial se
+  // calcula solo con auth.users.created_at (Supabase ya lo guarda, no hace
+  // falta ninguna columna nueva) y da acceso completo a Plus mientras dura;
+  // al terminar, si no hay una suscripción real y activa en Stripe, la
+  // cuenta cae a Gratis (Paywall) — nunca a un estado distinto o bloqueado.
+  const planState = getPlanState({
+    accountCreatedAt: session.user.created_at,
+    subscriptionStatus: subscription?.status,
+    subscriptionPlan: subscription?.plan,
+  });
 
-  if (!isActive) {
+  if (!hasPlusAccess(planState)) {
     return (
       <Paywall
         userId={session.user.id}
@@ -225,7 +237,14 @@ export default function App() {
       userEmail={session.user.email}
       userId={session.user.id}
       onSignOut={() => supabase.auth.signOut()}
-      onManageSubscription={handleManageSubscription}
+      // Fase 2: durante el trial (o el plan Gratis) no existe ninguna
+      // suscripción real en Stripe todavía, así que no hay nada que
+      // "administrar" — sin este chequeo, el botón "Mi suscripción" se
+      // habría seguido mostrando durante el trial sin hacer nada al
+      // presionarlo (handleManageSubscription ya se detenía en silencio
+      // por dentro, pero es mejor no mostrar un botón muerto).
+      onManageSubscription={subscription?.stripe_customer_id ? handleManageSubscription : undefined}
+      planState={planState}
       C={C}
       theme={theme}
       onToggleTheme={toggleTheme}
