@@ -70,6 +70,25 @@ const fr = {
     pitch: "Accès complet à l'outil de découpage des tâches, à l'auditeur de temps, au frein à l'impulsivité, à la respiration guidée, à la restructuration des pensées et au suivi des habitudes.",
     checkoutError: "Impossible de lancer le paiement",
     subscribeButton: "M'abonner",
+    planPickerLabel: "Choisis ton forfait",
+    monthlyPlanLabel: "Mensuel",
+    annualPlanLabel: "Annuel",
+    monthlyPriceLabel: "199 MXN par mois",
+    annualPriceLabel: "999 MXN par an",
+    annualSavingsLabel: "Économise 58 %",
+    closeLabel: "Fermer",
+  },
+
+  upsell: {
+    badge: "Plus",
+    overlayTitle: "Fonction Plus",
+    overlayBody: "Cet outil fait partie d'ANRO TDAH Plus. Abonne-toi pour le débloquer avec le reste des outils premium.",
+    overlayButton: "Voir les forfaits",
+    inlineButton: "Débloquer",
+    focusDistractionBlocker: "Le suivi des distractions est une fonction Plus.",
+    companionAiReply: "Les réponses personnalisées sont une fonction Plus.",
+    routinesCustom: "Créer des routines personnalisées est une fonction Plus.",
+    aiBreakdown: "Le découpage assisté par IA est une fonction Plus.",
   },
 
   bodyDouble: {
