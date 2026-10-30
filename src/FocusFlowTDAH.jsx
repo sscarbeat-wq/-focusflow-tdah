@@ -47,6 +47,7 @@ import {
   Compass,
   CalendarClock,
   ArrowLeft,
+  Lock,
 } from "lucide-react";
 
 import LanguageSwitcher from "./LanguageSwitcher";
@@ -79,6 +80,8 @@ import ClinicalReportPanel from "./ClinicalReportPanel";
 import GoodMomentsPanel from "./GoodMomentsPanel";
 import DayTimelinePanel from "./DayTimelinePanel";
 import QuickNavMenu from "./QuickNavMenu";
+import { hasPlusAccess } from "./plans";
+import { PlusLockedPanel, PlusUpsellBadge, PlusUpsellInline } from "./PlusUpsellCard";
 import { scheduleStepsOnCalendar } from "./calendarSync";
 import { useBodyDouble } from "./bodyDouble";
 import { celebrate } from "./celebrate";
@@ -267,6 +270,8 @@ export default function FocusFlowTDAH({
   onSignOut,
   onManageSubscription,
   manageSubscriptionError,
+  planState,
+  onRequestUpgrade,
   C,
   theme,
   onToggleTheme,
@@ -279,6 +284,12 @@ export default function FocusFlowTDAH({
   onChangeLanguage,
 }) {
   const saved = { ...DEFAULT_PROGRESS, ...(initialProgress || {}) };
+  // Fase 3 del sistema de planes (30 de octubre de 2026) — isPlus decide,
+  // herramienta por herramienta, si se muestra el contenido real o el aviso
+  // de PlusUpsellCard.jsx. planState puede no venir (otra pantalla que no
+  // pase por App.jsx) — en ese caso se trata como Gratis, nunca como Plus,
+  // para no abrir de más por accidente.
+  const isPlus = hasPlusAccess(planState);
   // Acento personal — 26 de octubre de 2026. `accentKey` puede no venir
   // todavía (pantallas que no pasan por App.jsx, o una prop opcional no
   // enviada) — C.lavender como respaldo es el mismo color que ya se usaba
@@ -546,9 +557,20 @@ export default function FocusFlowTDAH({
     messageTone: t.app.panels.messageTone.subtitle,
     bodyDouble: t.app.panels.bodyDouble.subtitle,
   };
+  // Fase 3 del sistema de planes (30 de octubre de 2026) — las 6
+  // herramientas que son Plus completo (ver PlusLockedPanel más abajo en
+  // este mismo archivo) muestran el badge "Plus" aquí en la cuadrícula,
+  // antes de que la paciente las abra; las que solo tienen UNA función
+  // interna bloqueada (desglosador, rutinas, compañero, modo enfoque) se
+  // quedan sin badge porque la herramienta en sí sigue siendo gratis.
+  const LOCKED_TOOL_KEYS = ["quickCapture", "messageTone", "calendar", "insights", "report", "payments"];
   const herramientasItems = quickNavSections
     .filter((s) => SECTION_TABS[s.key] === "herramientas")
-    .map((s) => ({ ...s, description: TOOL_DESCRIPTIONS[s.key] }));
+    .map((s) => ({
+      ...s,
+      description: TOOL_DESCRIPTIONS[s.key],
+      badge: !isPlus && LOCKED_TOOL_KEYS.includes(s.key) ? <PlusUpsellBadge C={C} t={t} /> : null,
+    }));
 
   // ---- Persisted state ----
   const [xp, setXp] = useState(saved.xp);
@@ -1869,6 +1891,7 @@ export default function FocusFlowTDAH({
           title={t.app.panels.captureHub.title}
           subtitle={t.app.panels.captureHub.subtitle}
         >
+          <PlusLockedPanel C={C} t={t} locked={!isPlus} onRequestUpgrade={onRequestUpgrade}>
           <CaptureHubPanel
             C={C}
             t={t}
@@ -1884,6 +1907,7 @@ export default function FocusFlowTDAH({
             onConfirmPayment={handleConfirmQuickPayment}
             onConfirmStep={handleConfirmQuickStep}
           />
+          </PlusLockedPanel>
         </Panel>
         </div>
 
@@ -1898,6 +1922,8 @@ export default function FocusFlowTDAH({
             C={C}
             t={t}
             routines={routines}
+            isPlus={isPlus}
+            onRequestUpgrade={onRequestUpgrade}
             onAddTemplate={handleAddRoutineTemplate}
             onUseTemplate={handleUseRoutinePreset}
             onRemoveTemplate={handleRemoveRoutineTemplate}
@@ -1920,7 +1946,15 @@ export default function FocusFlowTDAH({
             title={t.app.panels.companion.title}
             subtitle={t.app.panels.companion.subtitle}
           >
-            <CompanionPanel C={C} t={t} lang={lang} userId={userId} onNavigate={scrollToCompanionSection} />
+            <CompanionPanel
+              C={C}
+              t={t}
+              lang={lang}
+              userId={userId}
+              onNavigate={scrollToCompanionSection}
+              isPlus={isPlus}
+              onRequestUpgrade={onRequestUpgrade}
+            />
           </Panel>
         </div>
 
@@ -1942,49 +1976,63 @@ export default function FocusFlowTDAH({
               />
               {bigTask.trim() && (
                 <>
-                  <p style={{ fontSize: "11px", color: C.textMuted, margin: "0 0 6px" }}>
-                    {t.app.dismantler.granularityLabel}
-                  </p>
-                  <div style={{ display: "flex", gap: "6px", flexWrap: "wrap", marginBottom: "10px" }}>
-                    {AI_GRANULARITY_OPTIONS.map((g) => (
+                  {/* Fase 3 (30 de octubre de 2026) — el desglosador manual (lo
+                      de abajo: agregar pasos a mano, lista, temporizador) sigue
+                      siendo gratis para toda cuenta; solo la asistencia con IA
+                      (granularidad + botón de IA) es Plus. Se gatea aquí en vez
+                      de envolver el panel completo para no quitarle a nadie la
+                      herramienta base. */}
+                  {isPlus ? (
+                    <>
+                      <p style={{ fontSize: "11px", color: C.textMuted, margin: "0 0 6px" }}>
+                        {t.app.dismantler.granularityLabel}
+                      </p>
+                      <div style={{ display: "flex", gap: "6px", flexWrap: "wrap", marginBottom: "10px" }}>
+                        {AI_GRANULARITY_OPTIONS.map((g) => (
+                          <button
+                            key={g.id}
+                            onClick={() => setAiGranularity(g.id)}
+                            style={{
+                              padding: "6px 10px",
+                              borderRadius: "12px",
+                              border: `1px solid ${aiGranularity === g.id ? C.lavender : C.border}`,
+                              background: aiGranularity === g.id ? C.lavender : "transparent",
+                              color: aiGranularity === g.id ? C.lavenderText : C.textMuted,
+                              fontSize: "12px",
+                              cursor: "pointer",
+                            }}
+                          >
+                            {granularityLabel(g.id)}
+                          </button>
+                        ))}
+                      </div>
                       <button
-                        key={g.id}
-                        onClick={() => setAiGranularity(g.id)}
+                        onClick={handleAiBreakdown}
+                        disabled={aiLoading}
                         style={{
-                          padding: "6px 10px",
-                          borderRadius: "12px",
-                          border: `1px solid ${aiGranularity === g.id ? C.lavender : C.border}`,
-                          background: aiGranularity === g.id ? C.lavender : "transparent",
-                          color: aiGranularity === g.id ? C.lavenderText : C.textMuted,
-                          fontSize: "12px",
-                          cursor: "pointer",
+                          ...btnPrimary(C.lavender, C.lavenderText),
+                          display: "flex",
+                          alignItems: "center",
+                          gap: "6px",
+                          marginBottom: "10px",
+                          opacity: aiLoading ? 0.7 : 1,
+                          cursor: aiLoading ? "default" : "pointer",
                         }}
                       >
-                        {granularityLabel(g.id)}
+                        <Sparkles size={14} /> {aiLoading ? t.app.dismantler.aiLoading : t.app.dismantler.aiButton}
                       </button>
-                    ))}
-                  </div>
-                  <button
-                    onClick={handleAiBreakdown}
-                    disabled={aiLoading}
-                    style={{
-                      ...btnPrimary(C.lavender, C.lavenderText),
-                      display: "flex",
-                      alignItems: "center",
-                      gap: "6px",
-                      marginBottom: "10px",
-                      opacity: aiLoading ? 0.7 : 1,
-                      cursor: aiLoading ? "default" : "pointer",
-                    }}
-                  >
-                    <Sparkles size={14} /> {aiLoading ? t.app.dismantler.aiLoading : t.app.dismantler.aiButton}
-                  </button>
-                  {aiError && (
-                    <p style={{ fontSize: "12px", color: C.amber, margin: "0 0 12px", lineHeight: 1.5 }}>{aiError}</p>
+                      {aiError && (
+                        <p style={{ fontSize: "12px", color: C.amber, margin: "0 0 12px", lineHeight: 1.5 }}>{aiError}</p>
+                      )}
+                      <p style={{ fontSize: "11px", color: C.textMuted, margin: "0 0 14px" }}>
+                        {t.app.dismantler.aiReplacesNote}
+                      </p>
+                    </>
+                  ) : (
+                    <div style={{ marginBottom: "14px" }}>
+                      <PlusUpsellInline C={C} t={t} label={t.upsell.aiBreakdown} onRequestUpgrade={onRequestUpgrade} />
+                    </div>
                   )}
-                  <p style={{ fontSize: "11px", color: C.textMuted, margin: "0 0 14px" }}>
-                    {t.app.dismantler.aiReplacesNote}
-                  </p>
                   <div style={{ display: "flex", gap: "8px", marginBottom: "14px", flexWrap: "wrap" }}>
                     <input
                       type="text"
@@ -2054,27 +2102,51 @@ export default function FocusFlowTDAH({
                         <ListChecks size={12} />
                         {oneStepMode ? t.app.dismantler.viewAllSteps : t.app.dismantler.viewOneStep}
                       </button>
-                      <button
-                        onClick={handleChoosePick}
-                        title={t.app.dismantler.pickForMeTitle}
-                        style={{
-                          background: "transparent",
-                          border: "none",
-                          color: C.textMuted,
-                          fontSize: "11px",
-                          cursor: "pointer",
-                          padding: 0,
-                          display: "flex",
-                          alignItems: "center",
-                          gap: "4px",
-                        }}
-                      >
-                        <Shuffle size={12} />
-                        {t.app.dismantler.pickForMe}
-                      </button>
+                      {isPlus ? (
+                        <button
+                          onClick={handleChoosePick}
+                          title={t.app.dismantler.pickForMeTitle}
+                          style={{
+                            background: "transparent",
+                            border: "none",
+                            color: C.textMuted,
+                            fontSize: "11px",
+                            cursor: "pointer",
+                            padding: 0,
+                            display: "flex",
+                            alignItems: "center",
+                            gap: "4px",
+                          }}
+                        >
+                          <Shuffle size={12} />
+                          {t.app.dismantler.pickForMe}
+                        </button>
+                      ) : (
+                        // "Elige por mí" (pickForMe) es Plus — botón con
+                        // candado en vez del Shuffle normal, mismo texto para
+                        // que no haya que armar una frase nueva por idioma.
+                        <button
+                          onClick={onRequestUpgrade}
+                          title={t.app.dismantler.pickForMeTitle}
+                          style={{
+                            background: "transparent",
+                            border: "none",
+                            color: C.textMuted,
+                            fontSize: "11px",
+                            cursor: "pointer",
+                            padding: 0,
+                            display: "flex",
+                            alignItems: "center",
+                            gap: "4px",
+                          }}
+                        >
+                          <Lock size={12} />
+                          {t.app.dismantler.pickForMe}
+                        </button>
+                      )}
                     </div>
                   )}
-                  {chosenStep && (
+                  {chosenStep && isPlus && (
                     <p style={{ fontSize: "12px", color: C.lavenderText, margin: "0 0 8px", fontWeight: 600 }}>
                       {t.app.dismantler.startWith(chosenStep.text)}
                     </p>
@@ -2308,6 +2380,8 @@ export default function FocusFlowTDAH({
               <FocusMode
                 C={C}
                 t={t}
+                isPlus={isPlus}
+                onRequestUpgrade={onRequestUpgrade}
                 onSessionComplete={() => {
                   grantXp(t.app.xpLabels.focusSessionCompleted);
                   bodyDouble.setStatus("aqui");
@@ -2369,6 +2443,7 @@ export default function FocusFlowTDAH({
               title={t.app.panels.insights.title}
               subtitle={t.app.panels.insights.subtitle}
             >
+              <PlusLockedPanel C={C} t={t} locked={!isPlus} onRequestUpgrade={onRequestUpgrade}>
               <WeeklyInsights
                 C={C}
                 t={t}
@@ -2378,6 +2453,7 @@ export default function FocusFlowTDAH({
                 habits={{ screensOff, sleepEnv, ateWell, hydrated, deskCleared }}
                 sleepLog={sleepLog}
               />
+              </PlusLockedPanel>
             </Panel>
             </div>
 
@@ -2388,6 +2464,7 @@ export default function FocusFlowTDAH({
               title={t.app.panels.report.title}
               subtitle={t.app.panels.report.subtitle}
             >
+              <PlusLockedPanel C={C} t={t} locked={!isPlus} onRequestUpgrade={onRequestUpgrade}>
               <ClinicalReportPanel
                 C={C}
                 t={t}
@@ -2401,6 +2478,7 @@ export default function FocusFlowTDAH({
                 sleepLog={sleepLog}
                 impulseBrakeLog={impulseBrakeLog}
               />
+              </PlusLockedPanel>
             </Panel>
             </div>
 
@@ -2422,7 +2500,9 @@ export default function FocusFlowTDAH({
               title={t.app.panels.calendar.title}
               subtitle={t.app.panels.calendar.subtitle}
             >
+              <PlusLockedPanel C={C} t={t} locked={!isPlus} onRequestUpgrade={onRequestUpgrade}>
               <CalendarPanel C={C} t={t} userId={userId} />
+              </PlusLockedPanel>
             </Panel>
             </div>
 
@@ -2486,6 +2566,7 @@ export default function FocusFlowTDAH({
               title={t.app.panels.payments.title}
               subtitle={t.app.panels.payments.subtitle}
             >
+              <PlusLockedPanel C={C} t={t} locked={!isPlus} onRequestUpgrade={onRequestUpgrade}>
               <PaymentsPanel
                 C={C}
                 t={t}
@@ -2496,6 +2577,7 @@ export default function FocusFlowTDAH({
                 onMarkPaid={handleMarkPaymentPaid}
                 onUnmarkPaid={handleUnmarkPaymentPaid}
               />
+              </PlusLockedPanel>
             </Panel>
             </div>
 
@@ -2727,7 +2809,9 @@ export default function FocusFlowTDAH({
               title={t.app.panels.messageTone.title}
               subtitle={t.app.panels.messageTone.subtitle}
             >
+              <PlusLockedPanel C={C} t={t} locked={!isPlus} onRequestUpgrade={onRequestUpgrade}>
               <MessageTonePanel C={C} t={t} lang={lang} userId={userId} />
+              </PlusLockedPanel>
             </Panel>
             </div>
           </div>

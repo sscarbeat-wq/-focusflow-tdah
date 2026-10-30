@@ -71,8 +71,15 @@ export default function ToolsGrid({ C, t, accent, items, onSelect }) {
               {item.icon}
             </span>
             <span>
-              <span style={{ display: "block", fontSize: "13px", fontWeight: 700, marginBottom: "3px" }}>
-                {item.label}
+              <span style={{ display: "flex", alignItems: "center", gap: "6px", marginBottom: "3px" }}>
+                <span style={{ fontSize: "13px", fontWeight: 700 }}>{item.label}</span>
+                {/* Fase 3 del sistema de planes (30 de octubre de 2026) —
+                    badge opcional para que la paciente sepa, antes de abrir
+                    la herramienta, que es parte de Plus (ver
+                    LOCKED_TOOL_KEYS en FocusFlowTDAH.jsx). Las herramientas
+                    gratis o con solo una función interna bloqueada no
+                    traen badge. */}
+                {item.badge}
               </span>
               {item.description && (
                 <span style={{ display: "block", fontSize: "11.5px", color: C.textMuted, lineHeight: 1.4 }}>
