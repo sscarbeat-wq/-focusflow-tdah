@@ -929,6 +929,20 @@ const pt = {
       morePendingSteps: (n) => `+${n} etapa${n === 1 ? "" : "s"} mais esperando — vão aparecer uma por vez.`,
       energyTagTitle: (energy) => `Pensado para energia ${energy}`,
       stepEnergyTooltip: "Energia que esta etapa exige (opcional) — usado para sugeri-la em 'Hoje' de acordo com seu check-in de energia",
+      kanban: {
+        viewListLabel: "Lista",
+        viewBoardLabel: "Quadro",
+        todoColumn: "A fazer",
+        doingColumn: "Fazendo",
+        doneColumn: "Feito",
+        emptyTodo: "Nada pendente — adicione um passo acima.",
+        emptyDoing: "Escolha um passo em \"A fazer\" para começá-lo.",
+        emptyDone: "Ainda nada marcado como feito.",
+        startButton: "Começar",
+        backButton: "Voltar",
+        doneButton: "Feito",
+        undoButton: "Desfazer",
+      },
     },
 
     auditor: {

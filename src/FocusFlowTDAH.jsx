@@ -62,6 +62,7 @@ import MindfulnessPanel from "./MindfulnessPanel";
 import Mascot from "./Mascot";
 import FocusMode from "./FocusMode";
 import OneThingPanel from "./OneThingPanel";
+import KanbanBoard from "./KanbanBoard";
 import MoodLog from "./MoodLog";
 import EnergyLog from "./EnergyLog";
 import MedicationPanel from "./MedicationPanel";
@@ -297,6 +298,14 @@ export default function FocusFlowTDAH({
   const personalAccent = (accentKey && C[accentKey]) || C.lavender;
 
   const bodyDouble = useBodyDouble(userId);
+
+  // Fase 4, función #2 (31 de octubre de 2026 — "la mascota reacciona en
+  // vivo durante el enfoque"): "idle" | "focusing" | "distracted", viene de
+  // FocusMode.jsx (directo o a través de OneThingPanel) exactamente igual
+  // que bodyDouble.setStatus("enfocando"/"aqui") ya lo hacía para la sala de
+  // cuerpo-doble — un solo estado compartido porque solo una de las dos
+  // sesiones de Modo Enfoque puede estar corriendo a la vez en la práctica.
+  const [focusStatus, setFocusStatus] = useState("idle");
 
   const [accentPickerOpen, setAccentPickerOpen] = useState(false);
   const [speciesPickerOpen, setSpeciesPickerOpen] = useState(false);
@@ -919,6 +928,13 @@ export default function FocusFlowTDAH({
       })
     );
   const removeStep = (id) => setSteps((p) => p.filter((s) => s.id !== id));
+
+  // Fase 4, función #3 (31 de octubre de 2026 — tablero tipo Kanban,
+  // gratis, decisión confirmada con la doctora: "AH GRATIS"): "list" |
+  // "board", solo decide cuál vista se dibuja debajo — ambas leen/escriben
+  // el mismo arreglo `steps` de arriba, así que no hace falta persistirlo
+  // (los pasos del desglosador tampoco persisten entre sesiones).
+  const [desglosadorView, setDesglosadorView] = useState("list");
 
   // ---- "Solo una cosa" (Módulo 4 de ANRO TDAH 2.0, 8 de noviembre de 2026) ----
   // Reutiliza los pasos del desglosador de arriba (pendingStepsForOneThing)
@@ -1702,7 +1718,7 @@ export default function FocusFlowTDAH({
           </p>
         )}
 
-        <Mascot streak={streak} C={C} t={t} accent={personalAccent} species={species} />
+        <Mascot streak={streak} C={C} t={t} accent={personalAccent} species={species} focusStatus={focusStatus} />
 
         {/* Fase 2 (navegación, 28 de octubre de 2026): barra de 5 pestañas
             que reemplaza el scroll largo como forma principal de moverse
@@ -2084,6 +2100,42 @@ export default function FocusFlowTDAH({
                     </p>
                   )}
                   {steps.length > 0 && (
+                    <div style={{ display: "flex", alignItems: "center", gap: "6px", marginBottom: "10px" }}>
+                      <button
+                        onClick={() => setDesglosadorView("list")}
+                        aria-pressed={desglosadorView === "list"}
+                        style={{
+                          padding: "5px 12px",
+                          borderRadius: "999px",
+                          border: `1px solid ${desglosadorView === "list" ? C.coral : C.border}`,
+                          background: desglosadorView === "list" ? C.coral : "transparent",
+                          color: desglosadorView === "list" ? C.coralText : C.textMuted,
+                          fontSize: "11px",
+                          fontWeight: 700,
+                          cursor: "pointer",
+                        }}
+                      >
+                        {t.app.dismantler.kanban.viewListLabel}
+                      </button>
+                      <button
+                        onClick={() => setDesglosadorView("board")}
+                        aria-pressed={desglosadorView === "board"}
+                        style={{
+                          padding: "5px 12px",
+                          borderRadius: "999px",
+                          border: `1px solid ${desglosadorView === "board" ? C.coral : C.border}`,
+                          background: desglosadorView === "board" ? C.coral : "transparent",
+                          color: desglosadorView === "board" ? C.coralText : C.textMuted,
+                          fontSize: "11px",
+                          fontWeight: 700,
+                          cursor: "pointer",
+                        }}
+                      >
+                        {t.app.dismantler.kanban.viewBoardLabel}
+                      </button>
+                    </div>
+                  )}
+                  {steps.length > 0 && desglosadorView === "list" && (
                     <div style={{ display: "flex", alignItems: "center", gap: "14px", flexWrap: "wrap", marginBottom: "8px" }}>
                       <button
                         onClick={toggleOneStepMode}
@@ -2154,7 +2206,7 @@ export default function FocusFlowTDAH({
                   {chooseMsg && (
                     <p style={{ fontSize: "12px", color: C.textMuted, margin: "0 0 8px" }}>{chooseMsg}</p>
                   )}
-                  {(() => {
+                  {desglosadorView === "list" && (() => {
                     const pending = steps.filter((s) => !s.done);
                     const visibleSteps = oneStepMode
                       ? steps.filter((s) => s.done || s.id === pending[0]?.id)
@@ -2244,6 +2296,18 @@ export default function FocusFlowTDAH({
                       </>
                     );
                   })()}
+                  {desglosadorView === "board" && steps.length > 0 && (
+                    <KanbanBoard
+                      C={C}
+                      t={t}
+                      steps={steps}
+                      activeStepId={oneThing?.current?.stepId ?? null}
+                      onStart={(s) => handleOneThingStart(s.text, s.id)}
+                      onStopActive={handleOneThingSwitch}
+                      onToggleStep={toggleStep}
+                      onRemoveStep={removeStep}
+                    />
+                  )}
                 </>
               )}
             </Panel>
@@ -2366,6 +2430,7 @@ export default function FocusFlowTDAH({
                   );
                   bodyDouble.setStatus("enfocando");
                 }}
+                onFocusStatusChange={setFocusStatus}
               />
             </Panel>
             </div>
@@ -2390,6 +2455,7 @@ export default function FocusFlowTDAH({
                   scheduleStepsOnCalendar(userId, [{ text: t.app.focusSessionEventTitle, min }], { kind: "focus" });
                   bodyDouble.setStatus("enfocando");
                 }}
+                onFocusStatusChange={setFocusStatus}
               />
             </Panel>
             </div>

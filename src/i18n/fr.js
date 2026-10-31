@@ -926,6 +926,20 @@ const fr = {
       morePendingSteps: (n) => `+${n} étape${n === 1 ? "" : "s"} en attente — elles s'afficheront une par une.`,
       energyTagTitle: (energy) => `Pensé pour une énergie ${energy}`,
       stepEnergyTooltip: "Énergie que cette étape demande (facultatif) — utilisé pour la suggérer dans « Aujourd'hui » selon ton bilan d'énergie",
+      kanban: {
+        viewListLabel: "Liste",
+        viewBoardLabel: "Tableau",
+        todoColumn: "À faire",
+        doingColumn: "En cours",
+        doneColumn: "Fait",
+        emptyTodo: "Rien en attente — ajoute une étape ci-dessus.",
+        emptyDoing: "Choisis une étape dans « À faire » pour la commencer.",
+        emptyDone: "Rien de marqué comme fait pour l'instant.",
+        startButton: "Commencer",
+        backButton: "Retour",
+        doneButton: "Fait",
+        undoButton: "Annuler",
+      },
     },
 
     auditor: {

@@ -52,7 +52,27 @@ function fmt(sec) {
 // componente (variante minimal, sin selector de sonido) y no pasa esta prop
 // todavía — así se queda exactamente como estaba antes de este cambio, sin
 // bloquear nada ahí.
-export default function FocusMode({ C, t, onSessionComplete, onSessionStart, minimal = false, isPlus = true, onRequestUpgrade }) {
+// Fase 4, función #2 (31 de octubre de 2026 — "la mascota reacciona en vivo
+// durante el enfoque"): `onFocusStatusChange` es un callback OPCIONAL y
+// GRATIS (no forma parte del sistema de planes, a diferencia de
+// "distractionBlocker" arriba) que avisa al padre "focusing" mientras una
+// sesión de trabajo está corriendo, "idle" cuando no, y "distracted" un
+// instante cada vez que el paciente deja esta pestaña y vuelve — reutiliza
+// el mismo evento de Page Visibility que ya usa el bloqueador de apps
+// distractoras, pero en un efecto aparte que NO depende de `isPlus`, para
+// que la mascota reaccione igual sin importar el plan. Nadie llama este
+// componente con este prop todavía fuera de FocusFlowTDAH.jsx, así que por
+// default (undefined) no cambia nada para quien no lo use.
+export default function FocusMode({
+  C,
+  t,
+  onSessionComplete,
+  onSessionStart,
+  minimal = false,
+  isPlus = true,
+  onRequestUpgrade,
+  onFocusStatusChange,
+}) {
   const [workMin, setWorkMin] = useState(25);
   const [breakMin, setBreakMin] = useState(5);
   const [mode, setMode] = useState("work"); // "work" | "break"
@@ -66,6 +86,7 @@ export default function FocusMode({ C, t, onSessionComplete, onSessionStart, min
 
   const tickRef = useRef(null);
   const distractionToastTimeout = useRef(null);
+  const mascotAwaySinceRef = useRef(null);
 
   // --- Temporizador ---
   useEffect(() => {
@@ -123,6 +144,38 @@ export default function FocusMode({ C, t, onSessionComplete, onSessionStart, min
       if (distractionToastTimeout.current) clearTimeout(distractionToastTimeout.current);
     };
   }, []);
+
+  // --- Mascota en vivo (gratis, sin relación con el plan): avisa al padre
+  // si está "focusing" o "idle" según el temporizador, y manda "distracted"
+  // un instante cada vez que el paciente vuelve de haber dejado la pestaña
+  // (mismo umbral de 2s que ya usa formatReturnToast, para no reaccionar a
+  // un parpadeo accidental de la ventana) ---
+  useEffect(() => {
+    if (!onFocusStatusChange) return;
+    if (!running || mode !== "work") {
+      onFocusStatusChange("idle");
+      return;
+    }
+    onFocusStatusChange("focusing");
+    let backTimeout = null;
+    const onVisibilityChange = () => {
+      if (document.hidden) {
+        mascotAwaySinceRef.current = Date.now();
+      } else if (mascotAwaySinceRef.current != null) {
+        const awayMs = Date.now() - mascotAwaySinceRef.current;
+        mascotAwaySinceRef.current = null;
+        if (awayMs >= 2000) {
+          onFocusStatusChange("distracted");
+          backTimeout = setTimeout(() => onFocusStatusChange("focusing"), 1600);
+        }
+      }
+    };
+    document.addEventListener("visibilitychange", onVisibilityChange);
+    return () => {
+      document.removeEventListener("visibilitychange", onVisibilityChange);
+      if (backTimeout) clearTimeout(backTimeout);
+    };
+  }, [running, mode, onFocusStatusChange]);
 
   // Solo avisamos al padre cuando arranca una sesión NUEVA (secondsLeft
   // todavía en el total completo), no al reanudar después de una pausa —
