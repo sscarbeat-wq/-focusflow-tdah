@@ -924,6 +924,20 @@ const en = {
       morePendingSteps: (n) => `+${n} more step${n === 1 ? "" : "s"} waiting — they'll show up one at a time.`,
       energyTagTitle: (energy) => `Designed for ${energy} energy`,
       stepEnergyTooltip: "Energy this step requires (optional) — used to suggest it in 'Today' based on your energy check-in",
+      kanban: {
+        viewListLabel: "List",
+        viewBoardLabel: "Board",
+        todoColumn: "To do",
+        doingColumn: "Doing",
+        doneColumn: "Done",
+        emptyTodo: "Nothing pending — add a step above.",
+        emptyDoing: "Pick a step from \"To do\" to start it.",
+        emptyDone: "Nothing marked done yet.",
+        startButton: "Start",
+        backButton: "Back",
+        doneButton: "Done",
+        undoButton: "Undo",
+      },
     },
 
     auditor: {

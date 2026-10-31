@@ -942,6 +942,20 @@ const es = {
       morePendingSteps: (n) => `+${n} paso${n === 1 ? "" : "s"} más esperando — se irán mostrando uno a la vez.`,
       energyTagTitle: (energy) => `Pensado para energía ${energy}`,
       stepEnergyTooltip: "Energía que requiere este paso (opcional) — se usa para sugerirlo en 'Hoy' según tu check-in de energía",
+      kanban: {
+        viewListLabel: "Lista",
+        viewBoardLabel: "Tablero",
+        todoColumn: "Por hacer",
+        doingColumn: "Haciendo",
+        doneColumn: "Hecho",
+        emptyTodo: "Nada pendiente — agrega un paso arriba.",
+        emptyDoing: "Elige un paso de \"Por hacer\" para empezarlo.",
+        emptyDone: "Todavía nada marcado como hecho.",
+        startButton: "Empezar",
+        backButton: "Regresar",
+        doneButton: "Listo",
+        undoButton: "Deshacer",
+      },
     },
 
     auditor: {
