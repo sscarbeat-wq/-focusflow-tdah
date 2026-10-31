@@ -28,6 +28,9 @@ import { tint } from "./theme";
 //   onSessionStart, onSessionComplete — mismos callbacks que ya usa el
 //     panel "Modo Enfoque" (agendar en calendario, otorgar XP del
 //     temporizador en sí, avisar al compañero de cuerpo-presente).
+//   onFocusStatusChange — igual que en FocusMode.jsx (31 de octubre de
+//     2026, mascota en vivo): se pasa tal cual al FocusMode interno, nada
+//     nuevo que construir aquí.
 export default function OneThingPanel({
   C,
   t,
@@ -40,6 +43,7 @@ export default function OneThingPanel({
   onNeedHelp,
   onSessionStart,
   onSessionComplete,
+  onFocusStatusChange,
 }) {
   const [draft, setDraft] = useState("");
 
@@ -102,7 +106,14 @@ export default function OneThingPanel({
           {current.text}
         </h3>
 
-        <FocusMode C={C} t={t} minimal onSessionComplete={onSessionComplete} onSessionStart={onSessionStart} />
+        <FocusMode
+          C={C}
+          t={t}
+          minimal
+          onSessionComplete={onSessionComplete}
+          onSessionStart={onSessionStart}
+          onFocusStatusChange={onFocusStatusChange}
+        />
 
         <div style={{ display: "flex", gap: "10px", flexWrap: "wrap", marginTop: "18px" }}>
           <button onClick={onFinish} style={pillBtn(C.mint, C.mintText)}>
