@@ -944,6 +944,7 @@ const fr = {
     },
 
     mindMap: {
+      bigTaskLabel: "De quelle tâche s'agit-il ? (même champ que l'outil de découpage)",
       ideaPlaceholder: "Une idée en vrac...",
       addIdeaButton: "Ajouter",
       emptyHint: "Dépose ici ce qui te passe par la tête — sans ordre ni engagement.",

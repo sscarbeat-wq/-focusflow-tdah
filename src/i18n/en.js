@@ -942,6 +942,7 @@ const en = {
     },
 
     mindMap: {
+      bigTaskLabel: "What task is this about? (same field as the breakdown tool)",
       ideaPlaceholder: "A loose idea...",
       addIdeaButton: "Add",
       emptyHint: "Drop whatever comes to mind here — no order, no commitment.",

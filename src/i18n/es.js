@@ -960,6 +960,7 @@ const es = {
     },
 
     mindMap: {
+      bigTaskLabel: "¿De qué tarea estamos hablando? (es el mismo campo del desglosador)",
       ideaPlaceholder: "Una idea suelta...",
       addIdeaButton: "Agregar",
       emptyHint: "Suelta aquí lo primero que se te ocurra, sin orden ni compromiso.",

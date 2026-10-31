@@ -947,6 +947,7 @@ const pt = {
     },
 
     mindMap: {
+      bigTaskLabel: "De qual tarefa estamos falando? (é o mesmo campo do detalhador)",
       ideaPlaceholder: "Uma ideia solta...",
       addIdeaButton: "Adicionar",
       emptyHint: "Solte aqui o que vier à cabeça — sem ordem nem compromisso.",
