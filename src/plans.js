@@ -37,6 +37,7 @@ export const PLUS_FEATURE_KEYS = [
   "clinicalReport", // Reporte para tu consulta
   "paymentsReminder", // Recordatorio de pagos/suscripciones
   "distractionBlocker", // Aviso de apps distractoras dentro de Modo Enfoque
+  "focusAudioTracks", // Sonidos de enfoque adicionales (rosa, marrón, tono binaural) en Modo Enfoque — el ruido blanco original se queda gratis
 ];
 
 const ACTIVE_STRIPE_STATUSES = ["active", "trialing"];

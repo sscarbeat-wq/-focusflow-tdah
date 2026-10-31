@@ -7,11 +7,12 @@ import {
   formatDistractionSummary,
   formatReturnToast,
 } from "./distractionTracker";
+import { PlusUpsellBadge } from "./PlusUpsellCard";
 
-// Modo Enfoque: Pomodoro + ruido blanco generado con Web Audio API.
-// No usa archivos de audio externos ni dependencias nuevas — el ruido blanco
-// se genera en tiempo real con un buffer de muestras aleatorias, así que no
-// hay nada que descargar ni licenciar.
+// Modo Enfoque: Pomodoro + sonidos de fondo generados con Web Audio API.
+// No usa archivos de audio externos ni dependencias nuevas — los 4 sonidos
+// (ruido blanco, ruido rosa, ruido marrón y un tono de enfoque binaural) se
+// generan en tiempo real, así que no hay nada que descargar ni licenciar.
 //
 // También incluye el "bloqueador de apps distractoras" (versión web): Senda
 // no puede bloquear de verdad otras apps del celular/computadora desde el
@@ -22,6 +23,12 @@ import {
 
 const WORK_OPTIONS = [15, 20, 25, 30, 45];
 const BREAK_OPTIONS = [3, 5, 10, 15];
+
+// Fase 4 (sonidos de enfoque, 30 de octubre de 2026) — el ruido blanco
+// original se queda gratis (es lo que ya tenía la app); los otros 3 son la
+// función Plus nueva "focusAudioTracks" (ver PLUS_FEATURE_KEYS en plans.js).
+const NOISE_TRACKS = ["white", "pink", "brown", "binaural"];
+const PLUS_NOISE_TRACKS = ["pink", "brown", "binaural"];
 
 function fmt(sec) {
   const m = Math.floor(sec / 60);
@@ -37,13 +44,14 @@ function fmt(sec) {
 // FocusMode, reutilizado, con esa sola parte oculta — el temporizador,
 // Play/Pausa/Reiniciar y el ruido blanco siguen funcionando exactamente
 // igual que en el panel "Modo Enfoque" normal.
-// Fase 3 del sistema de planes (30 de octubre de 2026) — "distractionBlocker"
-// (el aviso de apps distractoras dentro de Modo Enfoque) es la única parte
-// de este panel que es Plus; el Pomodoro, el ruido blanco y la campana
-// siguen funcionando igual sin importar el plan. isPlus=true por default:
-// OneThingPanel.jsx usa este mismo componente (variante minimal) y no pasa
-// esta prop todavía — así se queda exactamente como estaba antes de este
-// cambio, sin bloquear nada ahí.
+// Fase 3+4 del sistema de planes (30 de octubre de 2026) — "distractionBlocker"
+// (el aviso de apps distractoras) y "focusAudioTracks" (los 3 sonidos
+// nuevos) son las únicas partes de este panel que son Plus; el Pomodoro, el
+// ruido blanco original y la campana siguen funcionando igual sin importar
+// el plan. isPlus=true por default: OneThingPanel.jsx usa este mismo
+// componente (variante minimal, sin selector de sonido) y no pasa esta prop
+// todavía — así se queda exactamente como estaba antes de este cambio, sin
+// bloquear nada ahí.
 export default function FocusMode({ C, t, onSessionComplete, onSessionStart, minimal = false, isPlus = true, onRequestUpgrade }) {
   const [workMin, setWorkMin] = useState(25);
   const [breakMin, setBreakMin] = useState(5);
@@ -52,6 +60,7 @@ export default function FocusMode({ C, t, onSessionComplete, onSessionStart, min
   const [running, setRunning] = useState(false);
   const [cyclesDone, setCyclesDone] = useState(0);
   const [noiseOn, setNoiseOn] = useState(false);
+  const [noiseType, setNoiseType] = useState("white");
   const [distraction, setDistraction] = useState(resetTracker());
   const [distractionToast, setDistractionToast] = useState(null);
 
@@ -147,9 +156,9 @@ export default function FocusMode({ C, t, onSessionComplete, onSessionStart, min
     if (!running && mode === "break") setSecondsLeft(min * 60);
   };
 
-  // --- Audio: ruido blanco + campana de fin de sesión (Web Audio API, sin archivos) ---
+  // --- Audio: sonidos de fondo + campana de fin de sesión (Web Audio API, sin archivos) ---
   const audioCtxRef = useRef(null);
-  const noiseNodesRef = useRef(null);
+  const noiseNodesRef = useRef(null); // array de nodos activos (buffer+gain, u osciladores+paneo+gain para el binaural)
 
   const getCtx = useCallback(() => {
     if (!audioCtxRef.current) {
@@ -162,27 +171,59 @@ export default function FocusMode({ C, t, onSessionComplete, onSessionStart, min
 
   const stopNoise = useCallback(() => {
     if (noiseNodesRef.current) {
-      try {
-        noiseNodesRef.current.source.stop();
-      } catch (e) {
-        /* ya estaba detenido */
-      }
-      noiseNodesRef.current.source.disconnect();
-      noiseNodesRef.current.gain.disconnect();
+      noiseNodesRef.current.forEach((node) => {
+        try {
+          node.stop?.();
+        } catch (e) {
+          /* ya estaba detenido */
+        }
+        node.disconnect?.();
+      });
       noiseNodesRef.current = null;
     }
   }, []);
 
-  const startNoise = useCallback(() => {
-    const ctx = getCtx();
-    if (!ctx) return;
+  // Ruido blanco (gratis, ya existía), rosa y marrón (Plus): los tres se
+  // precalculan en un buffer de 2s que se repite en loop — mismo patrón que
+  // ya usaba el ruido blanco, nada nuevo que aprender. El rosa usa el filtro
+  // de Paul Kellett (aproximación estándar a partir de ruido blanco); el
+  // marrón es un paseo aleatorio (integración de ruido blanco) con fuga para
+  // que no se vaya a los extremos.
+  const makeNoiseBuffer = (ctx, kind) => {
     const bufferSize = 2 * ctx.sampleRate;
     const buffer = ctx.createBuffer(1, bufferSize, ctx.sampleRate);
     const data = buffer.getChannelData(0);
-    for (let i = 0; i < bufferSize; i++) data[i] = Math.random() * 2 - 1;
+    if (kind === "pink") {
+      let b0 = 0, b1 = 0, b2 = 0, b3 = 0, b4 = 0, b5 = 0, b6 = 0;
+      for (let i = 0; i < bufferSize; i++) {
+        const white = Math.random() * 2 - 1;
+        b0 = 0.99886 * b0 + white * 0.0555179;
+        b1 = 0.99332 * b1 + white * 0.0750759;
+        b2 = 0.969 * b2 + white * 0.153852;
+        b3 = 0.8665 * b3 + white * 0.3104856;
+        b4 = 0.55 * b4 + white * 0.5329522;
+        b5 = -0.7616 * b5 - white * 0.016898;
+        data[i] = (b0 + b1 + b2 + b3 + b4 + b5 + b6 + white * 0.5362) * 0.11;
+        b6 = white * 0.115926;
+      }
+    } else if (kind === "brown") {
+      let last = 0;
+      for (let i = 0; i < bufferSize; i++) {
+        const white = Math.random() * 2 - 1;
+        last = (last + 0.02 * white) / 1.02;
+        data[i] = last * 3.5; // compensa el volumen que se pierde al integrar
+      }
+    } else {
+      for (let i = 0; i < bufferSize; i++) data[i] = Math.random() * 2 - 1; // "white"
+    }
+    return buffer;
+  };
 
+  const startBufferTrack = useCallback((kind) => {
+    const ctx = getCtx();
+    if (!ctx) return;
     const source = ctx.createBufferSource();
-    source.buffer = buffer;
+    source.buffer = makeNoiseBuffer(ctx, kind);
     source.loop = true;
 
     const gain = ctx.createGain();
@@ -190,8 +231,66 @@ export default function FocusMode({ C, t, onSessionComplete, onSessionStart, min
 
     source.connect(gain).connect(ctx.destination);
     source.start();
-    noiseNodesRef.current = { source, gain };
+    noiseNodesRef.current = [source, gain];
   }, [getCtx]);
+
+  // Tono de enfoque binaural (Plus): dos tonos puros, uno por oído, con una
+  // diferencia de 6Hz entre ambos (banda alfa, asociada con un estado
+  // relajado pero despierto) — el cerebro percibe esa diferencia como un
+  // "latido" solo si se escucha con audífonos, así que el aviso en pantalla
+  // lo menciona. Nada nuevo: dos osciladores + paneo estéreo, parte estándar
+  // de Web Audio API.
+  const startBinauralTrack = useCallback(() => {
+    const ctx = getCtx();
+    if (!ctx) return;
+    const baseFreq = 200;
+    const beatFreq = 6;
+
+    const gain = ctx.createGain();
+    gain.gain.value = 0.06;
+    gain.connect(ctx.destination);
+
+    const canPan = typeof ctx.createStereoPanner === "function";
+    const nodes = [gain];
+
+    const oscLeft = ctx.createOscillator();
+    oscLeft.type = "sine";
+    oscLeft.frequency.value = baseFreq;
+    if (canPan) {
+      const panLeft = ctx.createStereoPanner();
+      panLeft.pan.value = -1;
+      oscLeft.connect(panLeft).connect(gain);
+      nodes.push(panLeft);
+    } else {
+      oscLeft.connect(gain);
+    }
+    oscLeft.start();
+    nodes.push(oscLeft);
+
+    const oscRight = ctx.createOscillator();
+    oscRight.type = "sine";
+    oscRight.frequency.value = baseFreq + beatFreq;
+    if (canPan) {
+      const panRight = ctx.createStereoPanner();
+      panRight.pan.value = 1;
+      oscRight.connect(panRight).connect(gain);
+      nodes.push(panRight);
+    } else {
+      oscRight.connect(gain);
+    }
+    oscRight.start();
+    nodes.push(oscRight);
+
+    noiseNodesRef.current = nodes;
+  }, [getCtx]);
+
+  const startTrack = useCallback(
+    (kind) => {
+      if (kind === "binaural") startBinauralTrack();
+      else startBufferTrack(kind);
+    },
+    [startBinauralTrack, startBufferTrack]
+  );
 
   const toggleNoise = () => {
     const ctx = getCtx();
@@ -201,8 +300,23 @@ export default function FocusMode({ C, t, onSessionComplete, onSessionStart, min
       stopNoise();
       setNoiseOn(false);
     } else {
-      startNoise();
+      startTrack(noiseType);
       setNoiseOn(true);
+    }
+  };
+
+  // Fase 4: elegir un sonido Plus sin ser Plus abre el Paywall en vez de
+  // cambiar el sonido — el ruido blanco (gratis) siempre se puede elegir.
+  const selectNoiseTrack = (kind) => {
+    if (PLUS_NOISE_TRACKS.includes(kind) && !isPlus) {
+      onRequestUpgrade?.();
+      return;
+    }
+    if (kind === noiseType) return;
+    setNoiseType(kind);
+    if (noiseOn) {
+      stopNoise();
+      startTrack(kind);
     }
   };
 
@@ -389,6 +503,51 @@ export default function FocusMode({ C, t, onSessionComplete, onSessionStart, min
           </button>
         </div>
       </div>
+      {/* Fase 4 (sonidos de enfoque, 30 de octubre de 2026) — selector de
+          sonido; oculto en la variante minimal (OneThingPanel) para no
+          sumarle ruido visual a ese panel, igual que los selectores de
+          duración de arriba. El ruido blanco siempre está disponible; los
+          otros 3 muestran el candado si la cuenta no es Plus. */}
+      {!minimal && (
+        <div style={{ marginBottom: "14px" }}>
+          <p style={{ fontSize: "11px", color: C.textMuted, margin: "0 0 6px" }}>{t.focusMode.noiseTitle}</p>
+          <div style={{ display: "flex", gap: "6px", flexWrap: "wrap" }}>
+            {NOISE_TRACKS.map((kind) => {
+              const active = noiseType === kind;
+              const locked = PLUS_NOISE_TRACKS.includes(kind) && !isPlus;
+              return (
+                <button
+                  key={kind}
+                  type="button"
+                  onClick={() => selectNoiseTrack(kind)}
+                  title={locked ? t.upsell.focusAudioTracks : undefined}
+                  style={{
+                    display: "flex",
+                    alignItems: "center",
+                    gap: "5px",
+                    padding: "6px 10px",
+                    borderRadius: "12px",
+                    border: `1px solid ${active ? C.lavender : C.border}`,
+                    background: active ? C.lavender : "transparent",
+                    color: active ? C.lavenderText : C.textMuted,
+                    fontSize: "12px",
+                    cursor: "pointer",
+                  }}
+                >
+                  {locked && <Lock size={11} />}
+                  {t.focusMode.noiseTracks[kind]}
+                  {locked && <PlusUpsellBadge C={C} t={t} />}
+                </button>
+              );
+            })}
+          </div>
+          {noiseType === "binaural" && (
+            <p style={{ fontSize: "11px", color: C.textMuted, margin: "6px 0 0" }}>
+              {t.focusMode.binauralHeadphonesNote}
+            </p>
+          )}
+        </div>
+      )}
       {!minimal && (
         <p style={{ fontSize: "12px", color: C.textMuted, margin: 0 }}>
           {t.focusMode.footerNote}
