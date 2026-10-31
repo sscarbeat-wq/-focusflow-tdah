@@ -48,6 +48,7 @@ import {
   CalendarClock,
   ArrowLeft,
   Lock,
+  Network,
 } from "lucide-react";
 
 import LanguageSwitcher from "./LanguageSwitcher";
@@ -63,6 +64,7 @@ import Mascot from "./Mascot";
 import FocusMode from "./FocusMode";
 import OneThingPanel from "./OneThingPanel";
 import KanbanBoard from "./KanbanBoard";
+import MindMap from "./MindMap";
 import MoodLog from "./MoodLog";
 import EnergyLog from "./EnergyLog";
 import MedicationPanel from "./MedicationPanel";
@@ -320,6 +322,7 @@ export default function FocusFlowTDAH({
   const breathingSectionRef = useRef(null);
   const stopThinkSectionRef = useRef(null);
   const desglosadorSectionRef = useRef(null);
+  const mindMapSectionRef = useRef(null);
   const oneThingSectionRef = useRef(null);
   const routinesSectionRef = useRef(null);
   const scheduleSectionRef = useRef(null);
@@ -406,6 +409,7 @@ export default function FocusFlowTDAH({
   // atajos de "?atajo=respirar/freno".
   const companionSectionRefs = {
     desglosador: desglosadorSectionRef,
+    mindMap: mindMapSectionRef,
     oneThing: oneThingSectionRef,
     burbuja: breathingSectionRef,
     auditor: auditorSectionRef,
@@ -442,6 +446,7 @@ export default function FocusFlowTDAH({
     quickCapture: "herramientas",
     routines: "herramientas",
     companion: "herramientas",
+    mindMap: "herramientas",
     desglosador: "herramientas",
     auditor: "herramientas",
     oneThing: "herramientas",
@@ -506,6 +511,7 @@ export default function FocusFlowTDAH({
     { key: "quickCapture", icon: <StickyNote size={18} />, label: t.app.panels.captureHub.title },
     { key: "routines", icon: <Repeat size={18} />, label: t.app.panels.routines.title },
     { key: "companion", icon: <HeartHandshake size={18} />, label: t.app.panels.companion.title },
+    { key: "mindMap", icon: <Network size={18} />, label: t.app.panels.mindMap.title },
     { key: "desglosador", icon: <ListTree size={18} />, label: t.app.panels.dismantler.title },
     { key: "auditor", icon: <Timer size={18} />, label: t.app.panels.auditor.title },
     { key: "oneThing", icon: <Target size={18} />, label: t.app.panels.oneThing.title },
@@ -549,6 +555,7 @@ export default function FocusFlowTDAH({
     quickCapture: t.app.panels.captureHub.subtitle,
     routines: t.app.panels.routines.subtitle,
     companion: t.app.panels.companion.subtitle,
+    mindMap: t.app.panels.mindMap.subtitle,
     desglosador: t.app.panels.dismantler.subtitle,
     auditor: t.app.panels.auditor.subtitle,
     oneThing: t.app.panels.oneThing.subtitle,
@@ -903,20 +910,28 @@ export default function FocusFlowTDAH({
     });
   };
 
-  const addStep = () => {
-    if (!stepDraft.trim() || steps.length >= 5) return;
-    const newStep = { id: Date.now(), text: stepDraft.trim(), min: stepMin, done: false, energy: stepEnergy || null };
-    // El bloque de calendario de este paso empieza después de los minutos
-    // de los pasos que ya estaban en la lista, para que vayan quedando uno
-    // detrás del otro en vez de encimados. Si el calendario no está
-    // conectado o esta sincronización está apagada, esta llamada no hace
-    // nada (ver api/calendar/create-event.js) — nunca bloquea agregar el paso.
+  // Extraído de addStep (31 de octubre de 2026, función #4 — mapa mental)
+  // para que "Convertir en paso" del mapa mental use exactamente la misma
+  // lógica que ya tenía el botón "Añadir" de abajo (mismo tope de 5 pasos,
+  // misma forma del objeto, mismo agendado en calendario) en vez de
+  // duplicarla. Devuelve true si el paso se agregó, false si no (lista ya
+  // llena o texto vacío) — para que quien llame pueda decidir qué hacer
+  // (ej. mostrar un aviso) sin tener que repetir la validación.
+  const addStepFromText = (text, min = 5, energy = null) => {
+    const trimmed = (text || "").trim();
+    if (!trimmed || steps.length >= 5) return false;
+    const newStep = { id: Date.now(), text: trimmed, min, done: false, energy: energy || null };
     const offsetMin = steps.reduce((sum, s) => sum + (s.min || 0), 0);
     scheduleStepsOnCalendar(userId, [newStep], { startOffsetMinutes: offsetMin, kind: "step" });
     setSteps((p) => [...p, newStep]);
-    setStepDraft("");
-    setStepMin(5);
-    setStepEnergy("");
+    return true;
+  };
+  const addStep = () => {
+    if (addStepFromText(stepDraft, stepMin, stepEnergy || null)) {
+      setStepDraft("");
+      setStepMin(5);
+      setStepEnergy("");
+    }
   };
   const toggleStep = (id) =>
     setSteps((p) =>
@@ -935,6 +950,39 @@ export default function FocusFlowTDAH({
   // el mismo arreglo `steps` de arriba, así que no hace falta persistirlo
   // (los pasos del desglosador tampoco persisten entre sesiones).
   const [desglosadorView, setDesglosadorView] = useState("list");
+
+  // ---- Mapa mental (Fase 4, función #4 — 31 de octubre de 2026, inspirada
+  // en MindNode, gratis según lo confirmado con la doctora) ----
+  // Pensado como el paso ANTERIOR al desglosador: soltar ideas sueltas sin
+  // compromiso de orden, y solo cuando una ya convence, mandarla al
+  // desglosador con addStepFromText (arriba) — mismo tope de 5 pasos,
+  // mismo dato, nada nuevo que sincronizar. Comparte `bigTask`/`setBigTask`
+  // con el desglosador a propósito: es el mismo "de qué tarea estamos
+  // hablando" en las dos herramientas. Igual que `steps`, no persiste entre
+  // sesiones (es una libreta de ideas de un solo uso, no un historial).
+  const [mindMapIdeas, setMindMapIdeas] = useState([]);
+  const [ideaDraft, setIdeaDraft] = useState("");
+  const addIdea = () => {
+    const trimmed = ideaDraft.trim();
+    if (!trimmed || mindMapIdeas.length >= 12) return;
+    setMindMapIdeas((p) => [...p, { id: Date.now(), text: trimmed }]);
+    setIdeaDraft("");
+  };
+  const removeIdea = (id) => setMindMapIdeas((p) => p.filter((i) => i.id !== id));
+  const [ideaToStepMsg, setIdeaToStepMsg] = useState("");
+  const ideaToStepMsgTimeout = useRef(null);
+  const convertIdeaToStep = (idea) => {
+    const added = addStepFromText(idea.text, 5, null);
+    if (added) {
+      removeIdea(idea.id);
+      setIdeaToStepMsg(t.app.mindMap.convertedNotice(idea.text));
+    } else {
+      setIdeaToStepMsg(t.app.dismantler.maxStepsNotice);
+    }
+    if (ideaToStepMsgTimeout.current) clearTimeout(ideaToStepMsgTimeout.current);
+    ideaToStepMsgTimeout.current = setTimeout(() => setIdeaToStepMsg(""), 3500);
+  };
+  useEffect(() => () => ideaToStepMsgTimeout.current && clearTimeout(ideaToStepMsgTimeout.current), []);
 
   // ---- "Solo una cosa" (Módulo 4 de ANRO TDAH 2.0, 8 de noviembre de 2026) ----
   // Reutiliza los pasos del desglosador de arriba (pendingStepsForOneThing)
@@ -1976,6 +2024,30 @@ export default function FocusFlowTDAH({
 
         <div style={{ display: "grid", gridTemplateColumns: isNarrow ? "1fr" : "1fr 1fr", gap: "0 20px" }}>
           <div>
+            <div ref={mindMapSectionRef} style={toolStyle("mindMap")}>
+            <Panel C={C}
+              accent={C.lavender}
+              icon={<Network size={22} />}
+              title={t.app.panels.mindMap.title}
+              subtitle={t.app.panels.mindMap.subtitle}
+            >
+              <MindMap
+                C={C}
+                t={t}
+                bigTask={bigTask}
+                onBigTaskChange={setBigTask}
+                ideas={mindMapIdeas}
+                ideaDraft={ideaDraft}
+                onIdeaDraftChange={setIdeaDraft}
+                onAddIdea={addIdea}
+                onRemoveIdea={removeIdea}
+                onConvertIdea={convertIdeaToStep}
+                convertedMsg={ideaToStepMsg}
+                onGoToDismantler={() => scrollToCompanionSection("desglosador")}
+              />
+            </Panel>
+            </div>
+
             <div ref={desglosadorSectionRef} style={toolStyle("desglosador")}>
             <Panel C={C}
               accent={C.coral}
