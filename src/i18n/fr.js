@@ -877,6 +877,7 @@ const fr = {
       companion: { title: "Compagnon de soutien", subtitle: "Choisis ce que tu ressens en ce moment — des réponses pensées pour le TDAH, sans rien avoir à écrire." },
       oneThing: { title: "Une seule chose", subtitle: "Choisis une seule tâche et concentre-toi uniquement sur elle — sans voir le reste de ta liste." },
       routines: { title: "Routines visuelles guidées", subtitle: "Pour les choses que tu répètes souvent dans le même ordre — construis les étapes une fois et ANRO TDAH te les montre une à la fois." },
+      mindMap: { title: "Carte mentale", subtitle: "Dépose des idées en vrac avant de les ranger dans l'outil de découpage." },
       dismantler: { title: "L'outil de découpage", subtitle: "Si c'est dur de commencer, c'est souvent parce que la première étape est trop grande." },
       auditor: { title: "L'auditeur de temps", subtitle: "Compare combien de temps tu penses que ça va prendre à combien de temps ça prend réellement." },
       focusMode: { title: "Mode Concentration", subtitle: "Des sessions de travail avec pauses programmées et bruit blanc de fond." },
@@ -940,6 +941,17 @@ const fr = {
         doneButton: "Fait",
         undoButton: "Annuler",
       },
+    },
+
+    mindMap: {
+      ideaPlaceholder: "Une idée en vrac...",
+      addIdeaButton: "Ajouter",
+      emptyHint: "Dépose ici ce qui te passe par la tête — sans ordre ni engagement.",
+      convertButtonTitle: "Transformer en étape de l'outil de découpage",
+      removeIdeaAria: "Retirer cette idée",
+      maxIdeasNotice: "Tu as déjà 12 idées — c'est le maximum à la fois. Transformes-en une ou retire-en une pour en déposer une autre.",
+      hint: "Quand une idée te convainc, appuie sur le ✓ pour l'envoyer directement dans l'outil de découpage comme une vraie étape.",
+      convertedNotice: (text) => `« ${text} » est maintenant dans ton outil de découpage.`,
     },
 
     auditor: {

@@ -875,6 +875,7 @@ const en = {
       companion: { title: "Support companion", subtitle: "Pick what you're feeling right now — responses designed for ADHD, with nothing to type." },
       oneThing: { title: "Just one thing", subtitle: "Pick a single task and focus only on it — without seeing the rest of your list." },
       routines: { title: "Guided visual routines", subtitle: "For things you repeat often in the same order — build the steps once and ANRO TDAH walks you through them one at a time." },
+      mindMap: { title: "Mind map", subtitle: "Drop loose ideas before sorting them into the breakdown tool." },
       dismantler: { title: "The breakdown tool", subtitle: "If it's hard to start, it's usually because the first step is too big." },
       auditor: { title: "The time auditor", subtitle: "Compare how long you think something will take against how long it actually takes." },
       focusMode: { title: "Focus Mode", subtitle: "Work sessions with scheduled breaks and background white noise." },
@@ -938,6 +939,17 @@ const en = {
         doneButton: "Done",
         undoButton: "Undo",
       },
+    },
+
+    mindMap: {
+      ideaPlaceholder: "A loose idea...",
+      addIdeaButton: "Add",
+      emptyHint: "Drop whatever comes to mind here — no order, no commitment.",
+      convertButtonTitle: "Turn into a breakdown-tool step",
+      removeIdeaAria: "Remove this idea",
+      maxIdeasNotice: "You already have 12 ideas — that's the max at a time. Convert or remove one to drop another.",
+      hint: "Once an idea convinces you, tap the ✓ to send it straight to the breakdown tool as a real step.",
+      convertedNotice: (text) => `"${text}" is now in your breakdown tool.`,
     },
 
     auditor: {

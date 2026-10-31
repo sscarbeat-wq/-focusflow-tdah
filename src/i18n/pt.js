@@ -880,6 +880,7 @@ const pt = {
       companion: { title: "Companheiro de apoio", subtitle: "Escolha o que você está sentindo agora — respostas pensadas para TDAH, sem precisar escrever nada." },
       oneThing: { title: "Só uma coisa", subtitle: "Escolha uma única tarefa e foque somente nela — sem ver o resto da sua lista." },
       routines: { title: "Rotinas visuais guiadas", subtitle: "Para coisas que você repete com frequência na mesma ordem — monte as etapas uma vez e o ANRO TDAH mostra uma de cada vez." },
+      mindMap: { title: "Mapa mental", subtitle: "Solte ideias soltas antes de organizá-las no detalhador." },
       dismantler: { title: "O detalhador", subtitle: "Se é difícil começar, geralmente é porque o primeiro passo é muito grande." },
       auditor: { title: "O auditor de tempo", subtitle: "Compare quanto tempo você acha que vai demorar com quanto realmente demora." },
       focusMode: { title: "Modo Foco", subtitle: "Sessões de trabalho com pausas programadas e ruído branco de fundo." },
@@ -943,6 +944,17 @@ const pt = {
         doneButton: "Feito",
         undoButton: "Desfazer",
       },
+    },
+
+    mindMap: {
+      ideaPlaceholder: "Uma ideia solta...",
+      addIdeaButton: "Adicionar",
+      emptyHint: "Solte aqui o que vier à cabeça — sem ordem nem compromisso.",
+      convertButtonTitle: "Transformar em passo do detalhador",
+      removeIdeaAria: "Remover esta ideia",
+      maxIdeasNotice: "Você já tem 12 ideias — esse é o máximo de cada vez. Transforme ou remova alguma para soltar outra.",
+      hint: "Quando uma ideia já te convencer, toque no ✓ para mandá-la direto para o detalhador como um passo de verdade.",
+      convertedNotice: (text) => `"${text}" já está no seu detalhador.`,
     },
 
     auditor: {

@@ -893,6 +893,7 @@ const es = {
       companion: { title: "Compañero de apoyo", subtitle: "Elige lo que estás sintiendo ahora mismo — respuestas pensadas para TDAH, sin que tengas que escribir nada." },
       oneThing: { title: "Solo una cosa", subtitle: "Elige una sola tarea y enfócate solo en ella — sin ver el resto de tu lista." },
       routines: { title: "Rutinas visuales guiadas", subtitle: "Para cosas que repites seguido y en el mismo orden — arma los pasos una vez y ANRO TDAH te los va mostrando de uno en uno." },
+      mindMap: { title: "Mapa mental", subtitle: "Suelta ideas sueltas antes de ordenarlas en el desglosador." },
       dismantler: { title: "El desglosador", subtitle: "Si te cuesta empezar, suele ser porque el primer paso es demasiado grande." },
       auditor: { title: "El auditor de tiempo", subtitle: "Compara cuánto piensas que va a tardar contra lo que realmente tarda." },
       focusMode: { title: "Modo enfoque", subtitle: "Sesiones de trabajo con descansos programados y ruido blanco de fondo." },
@@ -956,6 +957,17 @@ const es = {
         doneButton: "Listo",
         undoButton: "Deshacer",
       },
+    },
+
+    mindMap: {
+      ideaPlaceholder: "Una idea suelta...",
+      addIdeaButton: "Agregar",
+      emptyHint: "Suelta aquí lo primero que se te ocurra, sin orden ni compromiso.",
+      convertButtonTitle: "Convertir en paso del desglosador",
+      removeIdeaAria: "Quitar esta idea",
+      maxIdeasNotice: "Ya tienes 12 ideas — es el máximo a la vez. Convierte o quita alguna para soltar otra.",
+      hint: "Cuando una idea ya te convence, dale al ✓ para mandarla directo al desglosador como un paso real.",
+      convertedNotice: (text) => `"${text}" ya está en tu desglosador.`,
     },
 
     auditor: {
