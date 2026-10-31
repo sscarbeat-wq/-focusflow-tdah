@@ -968,6 +968,7 @@ const es = {
       maxIdeasNotice: "Ya tienes 12 ideas — es el máximo a la vez. Convierte o quita alguna para soltar otra.",
       hint: "Cuando una idea ya te convence, dale al ✓ para mandarla directo al desglosador como un paso real.",
       convertedNotice: (text) => `"${text}" ya está en tu desglosador.`,
+      goToDismantlerButton: "Ver el desglosador",
     },
 
     auditor: {

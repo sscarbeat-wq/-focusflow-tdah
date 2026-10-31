@@ -950,6 +950,7 @@ const en = {
       maxIdeasNotice: "You already have 12 ideas — that's the max at a time. Convert or remove one to drop another.",
       hint: "Once an idea convinces you, tap the ✓ to send it straight to the breakdown tool as a real step.",
       convertedNotice: (text) => `"${text}" is now in your breakdown tool.`,
+      goToDismantlerButton: "View breakdown tool",
     },
 
     auditor: {

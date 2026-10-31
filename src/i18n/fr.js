@@ -952,6 +952,7 @@ const fr = {
       maxIdeasNotice: "Tu as déjà 12 idées — c'est le maximum à la fois. Transformes-en une ou retire-en une pour en déposer une autre.",
       hint: "Quand une idée te convainc, appuie sur le ✓ pour l'envoyer directement dans l'outil de découpage comme une vraie étape.",
       convertedNotice: (text) => `« ${text} » est maintenant dans ton outil de découpage.`,
+      goToDismantlerButton: "Voir l'outil de découpage",
     },
 
     auditor: {

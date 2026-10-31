@@ -955,6 +955,7 @@ const pt = {
       maxIdeasNotice: "Você já tem 12 ideias — esse é o máximo de cada vez. Transforme ou remova alguma para soltar outra.",
       hint: "Quando uma ideia já te convencer, toque no ✓ para mandá-la direto para o detalhador como um passo de verdade.",
       convertedNotice: (text) => `"${text}" já está no seu detalhador.`,
+      goToDismantlerButton: "Ver o detalhador",
     },
 
     auditor: {
