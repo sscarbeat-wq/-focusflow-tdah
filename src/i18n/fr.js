@@ -381,6 +381,10 @@ const fr = {
     dayWord: (n) => (n === 1 ? "jour" : "jours"),
     bestStreakTitle: "Ta meilleure série — reste enregistrée même si la série actuelle redémarre",
     bestStreakLabel: "meilleure série",
+    focusingLabel: "Concentration",
+    focusDistractedLabel: "Tu es de retour !",
+    muteSoundLabel: "Couper le son de la mascotte",
+    unmuteSoundLabel: "Activer le son de la mascotte",
   },
 
   medication: {

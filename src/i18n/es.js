@@ -397,6 +397,10 @@ const es = {
     dayWord: (n) => (n === 1 ? "día" : "días"),
     bestStreakTitle: "Tu mejor racha — queda guardada aunque la racha actual se reinicie",
     bestStreakLabel: "mejor racha",
+    focusingLabel: "Enfocando",
+    focusDistractedLabel: "¡Volviste!",
+    muteSoundLabel: "Silenciar sonidos de la mascota",
+    unmuteSoundLabel: "Activar sonidos de la mascota",
   },
 
   medication: {
