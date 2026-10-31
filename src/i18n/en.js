@@ -379,6 +379,10 @@ const en = {
     dayWord: (n) => (n === 1 ? "day" : "days"),
     bestStreakTitle: "Your best streak — stays saved even if your current streak resets",
     bestStreakLabel: "best streak",
+    focusingLabel: "Focusing",
+    focusDistractedLabel: "You're back!",
+    muteSoundLabel: "Mute pet sounds",
+    unmuteSoundLabel: "Unmute pet sounds",
   },
 
   medication: {

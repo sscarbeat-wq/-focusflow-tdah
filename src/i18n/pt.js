@@ -384,6 +384,10 @@ const pt = {
     dayWord: (n) => (n === 1 ? "dia" : "dias"),
     bestStreakTitle: "Sua melhor sequência — fica guardada mesmo que a sequência atual reinicie",
     bestStreakLabel: "melhor sequência",
+    focusDistractedLabel: "Você voltou!",
+    focusingLabel: "Focando",
+    muteSoundLabel: "Silenciar sons do mascote",
+    unmuteSoundLabel: "Ativar sons do mascote",
   },
 
   medication: {
