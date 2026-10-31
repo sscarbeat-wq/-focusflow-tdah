@@ -1,5 +1,5 @@
 import React from "react";
-import { Plus, X, CheckCircle2 } from "lucide-react";
+import { Plus, X, CheckCircle2, ArrowRight } from "lucide-react";
 
 // Mapa mental — función #4 de Fase 4 (inspirada en MindNode, de la lista
 // "10 aplicaciones para el TDAH"). GRATIS para todas las cuentas, decisión
@@ -20,6 +20,17 @@ import { Plus, X, CheckCircle2 } from "lucide-react";
 // proyecto) — se acomodan solas en una nube con un empaque simple
 // (flex-wrap) y una leve rotación alternada para que se sientan orgánicas,
 // no una lista disfrazada.
+//
+// Segunda pasada (31 de octubre de 2026, a petición de la doctora: "ya
+// puse mis ideas, pero las manda al desglosador, sería bueno un botón para
+// redirigir"): el mapa mental y el desglosador son dos herramientas
+// distintas en la cuadrícula, así que convertir una idea no se sentía
+// conectado — la paciente tenía que salir y buscar el desglosador ella
+// misma. Se agregó `onGoToDismantler` (reutiliza scrollToCompanionSection,
+// la misma navegación que ya usan "Hoy" y el Compañero de apoyo para
+// saltar a una herramienta — nada nuevo que construir) en dos lugares: un
+// botón fijo arriba para ir cuando quieras, y otro junto al aviso de "ya
+// se convirtió" para ir justo en el momento en que más tiene sentido.
 const ROTATIONS = [-2, 1.5, -1, 2, -1.5, 1, -2.5, 0.8];
 const ACCENT_KEYS = ["coral", "mint", "amber", "lavender"];
 
@@ -35,9 +46,23 @@ export default function MindMap({
   onRemoveIdea,
   onConvertIdea,
   convertedMsg,
+  onGoToDismantler,
 }) {
   const m = t.app.mindMap;
   const atMax = ideas.length >= 12;
+
+  const goToLinkStyle = {
+    background: "transparent",
+    border: "none",
+    cursor: "pointer",
+    color: C.lavenderText,
+    fontSize: "12px",
+    fontWeight: 700,
+    display: "flex",
+    alignItems: "center",
+    gap: "4px",
+    padding: 0,
+  };
 
   return (
     <div>
@@ -57,9 +82,17 @@ export default function MindMap({
           fontSize: "14px",
           fontWeight: 700,
           textAlign: "center",
-          marginBottom: "18px",
+          marginBottom: "10px",
         }}
       />
+
+      {onGoToDismantler && (
+        <div style={{ display: "flex", justifyContent: "flex-end", marginBottom: "10px" }}>
+          <button type="button" onClick={onGoToDismantler} style={goToLinkStyle}>
+            {m.goToDismantlerButton} <ArrowRight size={13} />
+          </button>
+        </div>
+      )}
 
       <div
         style={{
@@ -137,7 +170,25 @@ export default function MindMap({
       </div>
 
       {convertedMsg && (
-        <p style={{ fontSize: "12px", color: C.lavenderText, fontWeight: 600, margin: "0 0 10px" }}>{convertedMsg}</p>
+        <div
+          style={{
+            display: "flex",
+            alignItems: "center",
+            flexWrap: "wrap",
+            gap: "10px",
+            background: C.surfaceAlt,
+            borderRadius: "10px",
+            padding: "8px 12px",
+            margin: "0 0 10px",
+          }}
+        >
+          <p style={{ fontSize: "12px", color: C.lavenderText, fontWeight: 600, margin: 0, flex: 1 }}>{convertedMsg}</p>
+          {onGoToDismantler && (
+            <button type="button" onClick={onGoToDismantler} style={goToLinkStyle}>
+              {m.goToDismantlerButton} <ArrowRight size={13} />
+            </button>
+          )}
+        </div>
       )}
 
       <div style={{ display: "flex", gap: "8px", flexWrap: "wrap" }}>

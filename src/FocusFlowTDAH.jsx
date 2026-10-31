@@ -2043,6 +2043,7 @@ export default function FocusFlowTDAH({
                 onRemoveIdea={removeIdea}
                 onConvertIdea={convertIdeaToStep}
                 convertedMsg={ideaToStepMsg}
+                onGoToDismantler={() => scrollToCompanionSection("desglosador")}
               />
             </Panel>
             </div>
