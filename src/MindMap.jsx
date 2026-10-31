@@ -55,7 +55,7 @@ export default function MindMap({
     background: "transparent",
     border: "none",
     cursor: "pointer",
-    color: C.lavenderText,
+    color: C.lavender,
     fontSize: "12px",
     fontWeight: 700,
     display: "flex",
@@ -66,6 +66,7 @@ export default function MindMap({
 
   return (
     <div>
+      <p style={{ fontSize: "11px", color: C.textMuted, margin: "0 0 6px", textAlign: "center" }}>{m.bigTaskLabel}</p>
       <input
         type="text"
         value={bigTask}
@@ -182,7 +183,7 @@ export default function MindMap({
             margin: "0 0 10px",
           }}
         >
-          <p style={{ fontSize: "12px", color: C.lavenderText, fontWeight: 600, margin: 0, flex: 1 }}>{convertedMsg}</p>
+          <p style={{ fontSize: "12px", color: C.lavender, fontWeight: 600, margin: 0, flex: 1 }}>{convertedMsg}</p>
           {onGoToDismantler && (
             <button type="button" onClick={onGoToDismantler} style={goToLinkStyle}>
               {m.goToDismantlerButton} <ArrowRight size={13} />
