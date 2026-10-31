@@ -1,7 +1,16 @@
 import React, { useEffect, useRef, useState } from "react";
-import { Flame, Trophy } from "lucide-react";
+import { Flame, Trophy, Volume2, VolumeX } from "lucide-react";
 import { tint } from "./theme";
 import { stageFor, progressFraction, DEFAULT_SPECIES } from "./mascotLogic";
+import {
+  playLevelUpSound,
+  playHatchSound,
+  playFocusStartSound,
+  playDistractionReturnSound,
+  unlockMascotAudio,
+  getStoredMascotSoundPref,
+  storeMascotSoundPref,
+} from "./mascotSounds";
 
 // Mascota simple basada en emoji + CSS — sin dependencias nuevas ni assets
 // externos. Evoluciona según la racha actual. Pensada para poder cambiarse
@@ -52,6 +61,38 @@ import { stageFor, progressFraction, DEFAULT_SPECIES } from "./mascotLogic";
 //     nivel. Las especies que no empiezan en huevo (gato, planta, perro)
 //     conservan el festejo genérico de siempre.
 // Todo lo nuevo respeta `prefers-reduced-motion: reduce` igual que antes.
+//
+// Tercera pasada (31 de octubre de 2026 — Fase 4, función #2: "la mascota
+// reacciona en vivo durante el enfoque"): nuevo prop opcional `focusStatus`
+// ("idle" | "focusing" | "distracted"), que FocusFlowTDAH.jsx alimenta en
+// vivo desde los mismos callbacks `onSessionStart`/`onSessionComplete` que
+// ya existían (ver bodyDouble.setStatus) y desde el tracker de distracción
+// que YA existía en FocusMode.jsx (distractionTracker.js) — esta función es
+// gratis para todo el mundo, no es parte del sistema de planes: solo
+// conecta dos piezas que ya estaban construidas, no agrega infraestructura
+// nueva. Por default "idle" (nadie manda este prop todavía desde otros
+// lugares que usen <Mascot>, así que se ven exactamente igual que antes).
+// Mientras hay una sesión de Modo Enfoque corriendo aparece una píldora
+// "🎯 Enfocando" junto a las de racha; si el paciente deja la pestaña y
+// vuelve, la mascota hace un gesto breve (un "parpadeo" lateral, nunca un
+// regaño — mismo principio de evitar lenguaje de "perdiste" que ya se usa
+// en el reinicio de racha) y la píldora cambia un instante a "👀 ¡Volviste!"
+// antes de volver a "Enfocando". Todo respeta `prefers-reduced-motion`.
+//
+// Cuarta pasada (31 de octubre de 2026, a petición de la doctora: "más
+// bonitas, que tengan movimiento y sonidos"):
+//   - Movimiento: la flotación de siempre ahora incluye un leve balanceo
+//     (rotación de ±2°) en vez de solo subir/bajar — se siente más viva sin
+//     ser más intensa. El pez (única especie "acuática") tiene su propia
+//     variante que se balancea de lado a lado en vez de rotar, como si
+//     nadara.
+//   - Sonidos: efectos cortos generados con Web Audio API (mascotSounds.js,
+//     mismo principio sin archivos externos que ya usa FocusMode.jsx) para
+//     subir de etapa, salir del huevo, empezar/retomar el enfoque y volver
+//     de una distracción — nunca un loop de fondo. Activados por default,
+//     con un botón de silenciar (esquina superior derecha de la tarjeta)
+//     por si a alguien le resulta de más; la preferencia se guarda en el
+//     dispositivo, igual que la especie elegida.
 
 const RING_SIZE = 112;
 const RING_RADIUS = 46;
@@ -59,15 +100,43 @@ const RING_STROKE = 8;
 const RING_CIRCUMFERENCE = 2 * Math.PI * RING_RADIUS;
 const EGG_EMOJI = "🥚";
 
-export default function Mascot({ streak, C, t, accent, species }) {
+export default function Mascot({ streak, C, t, accent, species, focusStatus = "idle" }) {
   const current = streak?.current || 0;
   const longest = streak?.longest || 0;
-  const stage = stageFor(current, longest, species || DEFAULT_SPECIES);
+  const resolvedSpecies = species || DEFAULT_SPECIES;
+  const stage = stageFor(current, longest, resolvedSpecies);
   const label = t.mascot[stage.labelKey];
   const hint = t.mascot[stage.hintKey];
   const ringColor = accent || C.lavender;
   const fraction = progressFraction(current, longest);
   const dashOffset = RING_CIRCUMFERENCE * (1 - fraction);
+  const isAquatic = resolvedSpecies === "pez";
+
+  // Sonidos (gratis, preferencia de dispositivo) — ver mascotSounds.js.
+  const [soundOn, setSoundOn] = useState(() => getStoredMascotSoundPref());
+
+  // Los navegadores no deja sonar nada hasta una interacción real de la
+  // persona; este listener "destraba" el audio en cuanto toque/haga click/
+  // presione una tecla en cualquier parte de la app, sin que tenga que ser
+  // justo el botón de sonido de la mascota.
+  useEffect(() => {
+    const unlock = () => unlockMascotAudio();
+    document.addEventListener("pointerdown", unlock, { once: true });
+    document.addEventListener("keydown", unlock, { once: true });
+    return () => {
+      document.removeEventListener("pointerdown", unlock);
+      document.removeEventListener("keydown", unlock);
+    };
+  }, []);
+
+  const toggleSound = () => {
+    unlockMascotAudio();
+    setSoundOn((prev) => {
+      const next = !prev;
+      storeMascotSoundPref(next);
+      return next;
+    });
+  };
 
   // Festejo de "subió de nivel" — se dispara solo cuando el emoji de la
   // etapa cambia de un render al siguiente (no en cada render), y nunca en
@@ -86,15 +155,46 @@ export default function Mascot({ streak, C, t, accent, species }) {
       if (!isReset) {
         if (wasEgg) {
           setHatching(true);
+          if (soundOn) playHatchSound();
           const timeout = setTimeout(() => setHatching(false), 1100);
           return () => clearTimeout(timeout);
         }
         setCelebrate(true);
+        if (soundOn) playLevelUpSound();
         const timeout = setTimeout(() => setCelebrate(false), 900);
         return () => clearTimeout(timeout);
       }
     }
-  }, [stage.emoji, isReset]);
+  }, [stage.emoji, isReset, soundOn]);
+
+  // Gesto breve al volver de una distracción — mismo patrón que celebrate/
+  // hatching arriba (se dispara solo en la transición, no en cada render),
+  // pero sobre `focusStatus` en vez de `stage.emoji`. "distracted" es un
+  // valor transitorio que el padre manda un instante y luego regresa a
+  // "focusing" por su cuenta (ver FocusMode.jsx); por eso basta con
+  // reaccionar a la transición hacia "distracted", no a cuánto dura.
+  const prevFocusStatusRef = useRef(focusStatus);
+  const [distracted, setDistracted] = useState(false);
+
+  useEffect(() => {
+    const prevStatus = prevFocusStatusRef.current;
+    if (focusStatus === "distracted" && prevStatus !== "distracted") {
+      setDistracted(true);
+      if (soundOn) playDistractionReturnSound();
+      const timeout = setTimeout(() => setDistracted(false), 1300);
+      prevFocusStatusRef.current = focusStatus;
+      return () => clearTimeout(timeout);
+    }
+    // Sonido de "empezar/retomar" solo al entrar a "focusing" viniendo de
+    // verdad de estar quieto ("idle") — no al volver ahí después del gesto
+    // de distracción, que ya tuvo su propio sonido arriba.
+    if (focusStatus === "focusing" && prevStatus !== "focusing" && prevStatus !== "distracted") {
+      if (soundOn) playFocusStartSound();
+    }
+    prevFocusStatusRef.current = focusStatus;
+  }, [focusStatus, soundOn]);
+
+  const showFocusPill = focusStatus === "focusing" || focusStatus === "distracted";
 
   return (
     <div
@@ -115,8 +215,16 @@ export default function Mascot({ streak, C, t, accent, species }) {
     >
       <style>{`
         @keyframes anroMascotFloat {
-          0%, 100% { transform: translateY(0); }
-          50% { transform: translateY(-3px); }
+          0%, 100% { transform: translateY(0) rotate(0deg); }
+          25% { transform: translateY(-3px) rotate(2deg); }
+          50% { transform: translateY(-4px) rotate(0deg); }
+          75% { transform: translateY(-3px) rotate(-2deg); }
+        }
+        @keyframes anroMascotFloatAquatic {
+          0%, 100% { transform: translateY(0) translateX(0) rotate(0deg); }
+          25% { transform: translateY(-2px) translateX(3px) rotate(-4deg); }
+          50% { transform: translateY(-4px) translateX(0) rotate(0deg); }
+          75% { transform: translateY(-2px) translateX(-3px) rotate(4deg); }
         }
         @keyframes anroMascotGlow {
           0%, 100% { opacity: 0.32; transform: scale(1); }
@@ -149,16 +257,29 @@ export default function Mascot({ streak, C, t, accent, species }) {
           68% { transform: translate(26px, -16px) scale(1); opacity: 1; }
           100% { transform: translate(42px, -30px) scale(0.3); opacity: 0; }
         }
+        @keyframes anroMascotDistracted {
+          0%, 100% { transform: translateX(0) rotate(0deg); }
+          20% { transform: translateX(-4px) rotate(-6deg); }
+          40% { transform: translateX(4px) rotate(6deg); }
+          60% { transform: translateX(-3px) rotate(-4deg); }
+          80% { transform: translateX(3px) rotate(3deg); }
+        }
         .anro-mascot-emoji {
           display: inline-block;
           animation: anroMascotFloat 3.6s ease-in-out infinite;
           filter: drop-shadow(0 3px 6px rgba(0,0,0,0.2));
+        }
+        .anro-mascot-emoji.anro-mascot-emoji-aquatic {
+          animation: anroMascotFloatAquatic 4.2s ease-in-out infinite;
         }
         .anro-mascot-emoji.anro-mascot-celebrate {
           animation: anroMascotLevelUp 0.9s ease-in-out;
         }
         .anro-mascot-emoji.anro-mascot-hatch {
           animation: anroMascotHatch 1.1s cubic-bezier(0.36, 0.07, 0.19, 0.97);
+        }
+        .anro-mascot-emoji.anro-mascot-distracted-anim {
+          animation: anroMascotDistracted 0.6s ease-in-out;
         }
         .anro-mascot-glow {
           animation: anroMascotGlow 2.8s ease-in-out infinite;
@@ -179,8 +300,10 @@ export default function Mascot({ streak, C, t, accent, species }) {
         }
         @media (prefers-reduced-motion: reduce) {
           .anro-mascot-emoji,
+          .anro-mascot-emoji.anro-mascot-emoji-aquatic,
           .anro-mascot-emoji.anro-mascot-celebrate,
           .anro-mascot-emoji.anro-mascot-hatch,
+          .anro-mascot-emoji.anro-mascot-distracted-anim,
           .anro-mascot-glow,
           .anro-mascot-spark-a,
           .anro-mascot-spark-b {
@@ -188,6 +311,29 @@ export default function Mascot({ streak, C, t, accent, species }) {
           }
         }
       `}</style>
+      <button
+        type="button"
+        onClick={toggleSound}
+        aria-label={soundOn ? t.mascot.muteSoundLabel : t.mascot.unmuteSoundLabel}
+        title={soundOn ? t.mascot.muteSoundLabel : t.mascot.unmuteSoundLabel}
+        style={{
+          position: "absolute",
+          top: "12px",
+          right: "12px",
+          zIndex: 1,
+          background: "transparent",
+          border: "none",
+          color: C.textMuted,
+          cursor: "pointer",
+          padding: "6px",
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+          opacity: 0.55,
+        }}
+      >
+        {soundOn ? <Volume2 size={16} /> : <VolumeX size={16} />}
+      </button>
       <div
         aria-hidden="true"
         style={{
@@ -267,9 +413,9 @@ export default function Mascot({ streak, C, t, accent, species }) {
           aria-hidden="true"
         >
           <span
-            className={`anro-mascot-emoji${celebrate ? " anro-mascot-celebrate" : ""}${
-              hatching ? " anro-mascot-hatch" : ""
-            }`}
+            className={`anro-mascot-emoji${isAquatic ? " anro-mascot-emoji-aquatic" : ""}${
+              celebrate ? " anro-mascot-celebrate" : ""
+            }${hatching ? " anro-mascot-hatch" : ""}${distracted ? " anro-mascot-distracted-anim" : ""}`}
           >
             {stage.emoji}
           </span>
@@ -340,6 +486,29 @@ export default function Mascot({ streak, C, t, accent, species }) {
           <Trophy size={16} color={ringColor} />
           <span style={{ fontSize: "15px", fontWeight: 700, color: C.text }}>{longest}</span>
           <span style={{ fontSize: "11px", color: C.textMuted }}>{t.mascot.bestStreakLabel}</span>
+        </div>
+      )}
+      {showFocusPill && (
+        <div
+          style={{
+            position: "relative",
+            display: "flex",
+            alignItems: "center",
+            gap: "6px",
+            background: tint(ringColor, 0.16),
+            borderRadius: "999px",
+            padding: "8px 14px",
+            flexShrink: 0,
+            boxShadow: `0 3px 8px ${tint(ringColor, 0.25)}`,
+            transition: "background 0.3s ease",
+          }}
+        >
+          <span aria-hidden="true" style={{ fontSize: "15px", lineHeight: 1 }}>
+            {distracted ? "👀" : "🎯"}
+          </span>
+          <span style={{ fontSize: "12px", fontWeight: 700, color: C.text }}>
+            {distracted ? t.mascot.focusDistractedLabel : t.mascot.focusingLabel}
+          </span>
         </div>
       )}
     </div>
