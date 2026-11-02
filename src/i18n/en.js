@@ -400,6 +400,15 @@ const en = {
     notesPlaceholder: "Notes (optional) — e.g. what it's for, your doctor's instructions",
     addButton: "Add",
     historyCaption: "Doses taken / expected — last 7 days",
+    alarm: {
+      ariaLabel: "Active medication alarm",
+      headline: "Time for your medication",
+      doseAt: (time) => `${time} dose`,
+      takenButton: "✓ I took it",
+      snoozeButton: "⏰ Snooze 5 min",
+      footnote:
+        "This can't be closed by tapping outside or with Escape — you need to choose one of the two options. This only works while this tab is open; if the app is closed, the regular push reminder still arrives.",
+    },
   },
 
   messageTone: {

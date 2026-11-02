@@ -402,6 +402,15 @@ const fr = {
     notesPlaceholder: "Notes (facultatif) — ex. à quoi ça sert, indications du médecin",
     addButton: "Ajouter",
     historyCaption: "Doses prises / attendues — 7 derniers jours",
+    alarm: {
+      ariaLabel: "Alarme de médicament active",
+      headline: "C'est l'heure de ton médicament",
+      doseAt: (time) => `Dose de ${time}`,
+      takenButton: "✓ Je l'ai pris",
+      snoozeButton: "⏰ Reporter 5 min",
+      footnote:
+        "Impossible de fermer en touchant à l'extérieur ou avec Échap — il faut choisir une des deux options. Ça ne fonctionne que si cet onglet est ouvert ; si l'appli est fermée, le rappel push habituel arrive toujours.",
+    },
   },
 
   messageTone: {

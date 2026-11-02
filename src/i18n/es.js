@@ -418,6 +418,15 @@ const es = {
     notesPlaceholder: "Notas (opcional) — ej. para qué es, indicaciones del médico o médica",
     addButton: "Agregar",
     historyCaption: "Dosis tomadas / esperadas — últimos 7 días",
+    alarm: {
+      ariaLabel: "Alarma de medicamento activa",
+      headline: "Hora de tu medicamento",
+      doseAt: (time) => `Dosis de las ${time}`,
+      takenButton: "✓ Ya la tomé",
+      snoozeButton: "⏰ Posponer 5 min",
+      footnote:
+        "No se puede cerrar tocando afuera ni con Escape — hay que elegir una de las dos opciones. Esto solo funciona mientras esta pestaña está abierta; si la app está cerrada, sigue llegando el aviso push normal.",
+    },
   },
 
   messageTone: {
