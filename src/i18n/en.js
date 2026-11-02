@@ -184,10 +184,66 @@ const en = {
       ],
       exercise: 'Open your Weekly Insights and read them the way you\'d describe the weather, not like a report card. Pick ONE thing you noticed, without the word "should" in the sentence.',
     },
+    "perfeccionismo-paralisis": {
+      title: 'When "doing it right" turns into not doing it',
+      body: [
+        'Perfectionism in ADHD usually isn\'t about having higher standards — it\'s that any chance of something going wrong gets avoided completely, and it\'s easier not to start than to risk it going "wrong." It isn\'t indecision: it\'s protecting yourself from a feeling that\'s hard to tolerate.',
+        'That\'s why deliberately letting yourself make an imperfect version can help more than "getting more organized" — the real obstacle isn\'t planning, it\'s the fear of that feeling.',
+      ],
+      exercise: 'Pick something you\'ve been putting off because you want to do it well. Do it deliberately halfway for 5 minutes (an ugly draft, an unpolished message) — letting yourself have "the bad version" breaks the paralysis.',
+    },
+    hiperfoco: {
+      title: "Hyperfocus isn't just a problem",
+      body: [
+        "The more ADHD symptoms someone has, the more often hyperfocus shows up across any activity — that's what a recent study found using a validated questionnaire with hundreds of adults. But the researchers themselves are honest that it's still not clear when hyperfocus helps and when it gets in the way.",
+        "It can be a real strength — deep work, sustained creativity — or a problem, when it makes you lose track of eating, moving, or the rest of your day. The goal isn't to get rid of it, it's to set a boundary around it ahead of time.",
+      ],
+      exercise: 'Before an activity where you know you\'ll hyperfocus, set an alarm with one question: "did I eat? did I move?"',
+    },
+    "transiciones-tareas": {
+      title: "Why switching tasks is so hard",
+      body: [
+        "Switching tasks isn't just \"getting distracted\" — your brain needs to unload the context of what you were doing and load the new one, and that working memory has less margin in ADHD. A meta-analysis of 38 studies found moderate deficits that persist into adulthood.",
+        "That's why a transition that's automatic for someone else can feel like real effort for you — it's not laziness or a lack of interest in the new task.",
+      ],
+      exercise: "Before switching tasks, write down one line about where you left off — that way coming back doesn't mean rebuilding everything from scratch.",
+    },
+    "sobreestimulacion-sensorial": {
+      title: "When the environment wears you out too",
+      body: [
+        "Some people with ADHD tolerate less sensory input — noise, light, textures — than others; a small study found greater touch sensitivity linked to inattention levels (small sample, preliminary finding, but consistent with what many patients describe).",
+        'That sensory tiredness isn\'t "complaining over nothing" — it takes a real toll on attention, same as information overload does.',
+      ],
+      exercise: "Pick one sensory adjustment for today (noise-canceling headphones, dimmer light, closing extra tabs) and notice if it's easier to focus.",
+    },
+    "miedo-al-fracaso": {
+      title: "Putting things off to avoid failing",
+      body: [
+        'Sometimes putting something off isn\'t about boredom (we covered that in "Why starting is so hard") — it\'s that failing at something that really matters to you feels unbearable, and it\'s easier not to try than to risk confirming it.',
+        "This is more of a clinical observation than a finding isolated in ADHD research, but it's worth telling apart from boredom — the fix isn't the same.",
+      ],
+      exercise: 'Before starting something that really matters to you, say the fear out loud ("I\'m afraid it won\'t turn out well") — naming it takes away some of its grip.',
+    },
+    "recuperar-el-hilo": {
+      title: "Picking up the thread after an interruption",
+      body: [
+        'Every interruption has a "restart" cost — picking back up isn\'t instant, even for brains without ADHD. With less margin in working memory, that cost can feel higher.',
+        'It\'s not that you "forgot" out of carelessness — rebuilding the full context of where you were takes real effort every time.',
+      ],
+      exercise: "Before answering an interruption, leave a visible note about what you were doing — one word is enough.",
+    },
+    autocompasion: {
+      title: "Self-compassion isn't letting yourself off the hook, it's holding yourself up",
+      body: [
+        'More ADHD symptoms tend to come with less self-compassion — a survey of more than 800 adults found this — and less self-compassion is linked to more anxiety and depression. Treating yourself with the same harshness you think you "should" perform with doesn\'t help you perform better; if anything, it seems to work against it.',
+        'This isn\'t self-compassion as "not expecting anything of myself" — it\'s holding yourself up while you keep trying, instead of adding judgment on top of something that\'s already hard.',
+      ],
+      exercise: "Write down what you'd say to a friend in your same situation, and read it out loud to yourself.",
+    },
   },
 
   cbtProgram: {
-    finishedMessage: (total) => `You completed all ${total} Week 1 lessons 🎉 Feel free to review them anytime.`,
+    finishedMessage: (total) => `You completed all ${total} program lessons 🎉 Feel free to review them anytime.`,
     lessonOfTotalToday: (completed, total) => `Lesson ${completed} of ${total} completed today.`,
     comeBackTomorrow: (title) => `Come back tomorrow for "${title}" — one lesson a day, so it really sinks in.`,
     dayOfTotal: (day, total, minutes) => `Day ${day} of ${total} · ${minutes} min read`,

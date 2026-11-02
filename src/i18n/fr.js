@@ -186,10 +186,66 @@ const fr = {
       ],
       exercise: "Ouvre tes Aperçus hebdomadaires et lis-les comme si tu décrivais le temps qu'il fait, pas comme un bulletin de notes. Choisis UNE chose que tu as remarquée, sans le mot « devrais » dans la phrase.",
     },
+    "perfeccionismo-paralisis": {
+      title: "Quand « bien faire » devient ne rien faire",
+      body: [
+        "Le perfectionnisme dans le TDAH n'est généralement pas une question de standards plus élevés — c'est que toute possibilité que quelque chose se passe mal est évitée complètement, et il est plus facile de ne pas commencer que de risquer que ça se passe « mal ». Ce n'est pas de l'indécision : c'est te protéger d'une sensation difficile à tolérer.",
+        "C'est pourquoi te laisser faire une version imparfaite exprès peut aider plus que « mieux s'organiser » — l'obstacle réel n'est pas la planification, c'est la peur de cette sensation.",
+      ],
+      exercise: "Choisis quelque chose que tu repousses parce que tu veux bien le faire. Fais-le délibérément à moitié pendant 5 minutes (un brouillon moche, un message pas peaufiné) — te permettre « la mauvaise version » casse la paralysie.",
+    },
+    hiperfoco: {
+      title: "L'hyperfocus n'est pas seulement un problème",
+      body: [
+        "Plus il y a de symptômes de TDAH, plus l'hyperfocus apparaît souvent dans n'importe quelle activité — c'est ce qu'a trouvé une étude récente avec un questionnaire validé auprès de centaines d'adultes. Mais les chercheurs eux-mêmes sont honnêtes : on ne sait pas encore bien quand l'hyperfocus aide et quand il gêne.",
+        "Il peut être une vraie force — travail profond, créativité soutenue — ou un problème, quand il te fait perdre de vue manger, bouger ou le reste de ta journée. Il ne s'agit pas de l'éliminer, mais de lui poser une limite à l'avance.",
+      ],
+      exercise: "Avant une activité où tu sais que tu vas hyperfocaliser, mets une alarme avec une seule question : « est-ce que j'ai mangé ? est-ce que j'ai bougé ? »",
+    },
+    "transiciones-tareas": {
+      title: "Pourquoi changer de tâche coûte tant",
+      body: [
+        "Changer de tâche n'est pas juste « se distraire » — ton cerveau doit décharger le contexte de ce que tu faisais et charger le nouveau, et cette mémoire de travail a moins de marge dans le TDAH. Une méta-analyse de 38 études a trouvé des déficits modérés qui persistent à l'âge adulte.",
+        "C'est pourquoi une transition automatique pour quelqu'un d'autre peut te sembler un effort réel — ce n'est pas de la paresse ni un manque d'intérêt pour la nouvelle tâche.",
+      ],
+      exercise: "Avant de changer de tâche, écris une seule ligne sur où tu en étais — ainsi, revenir n'exige pas de tout reconstruire depuis le début.",
+    },
+    "sobreestimulacion-sensorial": {
+      title: "Quand l'environnement aussi fatigue",
+      body: [
+        "Certaines personnes avec un TDAH tolèrent moins l'excès de stimulation sensorielle — bruit, lumière, textures — que d'autres ; une petite étude a trouvé une plus grande sensibilité au toucher liée au niveau d'inattention (échantillon réduit, résultat préliminaire, mais cohérent avec ce que décrivent beaucoup de patientes).",
+        "Cette fatigue sensorielle n'est pas « se plaindre pour rien » — elle enlève une vraie marge à l'attention, tout comme la surcharge d'information.",
+      ],
+      exercise: "Choisis un ajustement sensoriel pour aujourd'hui (casque à réduction de bruit, baisser la lumière, fermer des onglets en trop) et observe si ça t'aide à te concentrer.",
+    },
+    "miedo-al-fracaso": {
+      title: "Reporter pour ne pas échouer",
+      body: [
+        "Parfois, reporter quelque chose n'est pas une question d'ennui (on l'a vu dans « Pourquoi c'est si difficile de commencer ») — c'est qu'échouer à quelque chose qui compte vraiment pour toi semble insupportable, et il est plus facile de ne pas essayer que de risquer de le confirmer.",
+        "C'est plus une observation clinique qu'un résultat isolé dans les études sur le TDAH, mais ça vaut la peine de le distinguer de l'ennui — la solution n'est pas la même.",
+      ],
+      exercise: "Avant de commencer quelque chose qui compte vraiment pour toi, nomme la peur à voix haute (« j'ai peur que ce ne soit pas bien ») — la nommer lui enlève un peu de force.",
+    },
+    "recuperar-el-hilo": {
+      title: "Retrouver le fil après une interruption",
+      body: [
+        "Chaque interruption a un coût de « redémarrage » — reprendre ce que tu faisais n'est pas instantané, même pour un cerveau sans TDAH. Avec moins de marge dans la mémoire de travail, ce coût peut sembler plus élevé.",
+        "Ce n'est pas que tu as « oublié » par négligence — reconstruire tout le contexte d'où tu en étais demande un effort réel chaque fois.",
+      ],
+      exercise: "Avant de répondre à une interruption, laisse une note visible de ce que tu faisais — un mot suffit.",
+    },
+    autocompasion: {
+      title: "L'autocompassion, ce n'est pas se laisser aller, c'est te tenir debout",
+      body: [
+        "Plus il y a de symptômes de TDAH, moins il y a généralement d'autocompassion — c'est ce qu'a trouvé une enquête auprès de plus de 800 adultes — et moins d'autocompassion est lié à plus d'anxiété et de dépression. Te traiter avec la même dureté que tu penses « devoir » avoir pour bien performer ne t'aide pas à mieux performer ; au contraire, ça semble jouer contre toi.",
+        "Ce n'est pas de l'autocompassion comme « je ne m'exige rien » — c'est te tenir debout pendant que tu continues d'essayer, au lieu d'ajouter du jugement à quelque chose qui est déjà difficile.",
+      ],
+      exercise: "Écris ce que tu dirais à un ami dans ta même situation, et lis-le à voix haute pour toi-même.",
+    },
   },
 
   cbtProgram: {
-    finishedMessage: (total) => `Tu as terminé les ${total} leçons de la Semaine 1 🎉 Tu peux les revoir quand tu veux.`,
+    finishedMessage: (total) => `Tu as terminé les ${total} leçons du programme 🎉 Tu peux les revoir quand tu veux.`,
     lessonOfTotalToday: (completed, total) => `Leçon ${completed} sur ${total} terminée aujourd'hui.`,
     comeBackTomorrow: (title) => `Reviens demain pour « ${title} » — une leçon par jour, pour que ça s'installe vraiment.`,
     dayOfTotal: (day, total, minutes) => `Jour ${day} sur ${total} · ${minutes} min de lecture`,

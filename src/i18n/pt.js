@@ -189,10 +189,66 @@ const pt = {
       ],
       exercise: 'Abra seus Insights semanais e leia-os como se estivesse descrevendo o clima, não como um boletim escolar. Escolha UMA coisa que notou, sem a palavra "deveria" na frase.',
     },
+    "perfeccionismo-paralisis": {
+      title: 'Quando "fazer bem" se torna não fazer',
+      body: [
+        'O perfeccionismo no TDAH geralmente não é sobre ter padrões mais altos — é que qualquer possibilidade de algo dar errado é evitada por completo, e é mais fácil não começar do que arriscar que dê "errado". Não é indecisão: é se proteger de uma sensação difícil de tolerar.',
+        'Por isso, se permitir fazer uma versão imperfeita de propósito pode ajudar mais do que "se organizar melhor" — o obstáculo real não é o planejamento, é o medo dessa sensação.',
+      ],
+      exercise: 'Escolha algo que você está adiando por querer fazer bem. Faça deliberadamente pela metade por 5 minutos (um rascunho feio, uma mensagem sem polir) — se permitir "a versão ruim" quebra a paralisia.',
+    },
+    hiperfoco: {
+      title: "O hiperfoco não é só um problema",
+      body: [
+        'Quanto mais sintomas de TDAH, mais frequente o hiperfoco em qualquer atividade — foi o que encontrou um estudo recente com um questionário validado em centenas de adultos. Mas os próprios pesquisadores são honestos: ainda não se sabe bem quando o hiperfoco ajuda e quando prejudica.',
+        "Pode ser uma força real — trabalho profundo, criatividade sustentada — ou um problema, quando faz você perder de vista comer, se mover ou o resto do dia. Não se trata de eliminá-lo, mas de colocar um limite antes.",
+      ],
+      exercise: 'Antes de uma atividade em que você sabe que vai hiperfocar, coloque um alarme com uma única pergunta: "já comi? já me movi?"',
+    },
+    "transiciones-tareas": {
+      title: "Por que trocar de tarefa custa tanto",
+      body: [
+        'Trocar de tarefa não é só "se distrair" — o cérebro precisa descarregar o contexto do que você estava fazendo e carregar o novo, e essa memória de trabalho tem menos margem no TDAH. Uma metanálise de 38 estudos encontrou déficits moderados que persistem na vida adulta.',
+        "Por isso uma transição que para outra pessoa é automática, para você pode parecer um esforço real — não é preguiça nem falta de interesse na nova tarefa.",
+      ],
+      exercise: "Antes de trocar de tarefa, escreva uma única linha sobre onde você parou — assim, voltar não exige reconstruir tudo do zero.",
+    },
+    "sobreestimulacion-sensorial": {
+      title: "Quando o ambiente também cansa",
+      body: [
+        "Algumas pessoas com TDAH toleram menos o excesso de estímulo sensorial — ruído, luz, texturas — do que outras; um estudo pequeno encontrou maior sensibilidade ao toque relacionada ao nível de desatenção (amostra pequena, resultado preliminar, mas consistente com o que muitas pacientes descrevem).",
+        'Esse cansaço sensorial não é "reclamar de nada" — ele tira uma margem real da atenção, assim como a sobrecarga de informação.',
+      ],
+      exercise: "Identifique um ajuste sensorial para hoje (fone com cancelamento de ruído, diminuir a luz, fechar abas extras) e note se fica mais fácil se concentrar.",
+    },
+    "miedo-al-fracaso": {
+      title: "Adiar para não falhar",
+      body: [
+        'Às vezes adiar algo não é por tédio (já vimos isso em "Por que começar custa tanto") — é que falhar em algo que realmente importa para você parece insuportável, e é mais fácil não tentar do que arriscar confirmar isso.',
+        "Isso é mais observação clínica do que um achado isolado em estudos sobre TDAH, mas vale a pena diferenciar do tédio — a solução não é a mesma.",
+      ],
+      exercise: 'Antes de começar algo que realmente importa para você, diga o medo em voz alta ("tenho medo que não fique bom") — nomeá-lo tira um pouco da força dele.',
+    },
+    "recuperar-el-hilo": {
+      title: "Recuperar o fio depois de uma interrupção",
+      body: [
+        'Toda interrupção tem um custo de "reinício" — retomar o que você estava fazendo não é instantâneo, mesmo em cérebros sem TDAH. Com menos margem na memória de trabalho, esse custo pode parecer mais alto.',
+        'Não é que você "esqueceu" por descuido — reconstruir todo o contexto de onde você estava exige um esforço real cada vez.',
+      ],
+      exercise: "Antes de responder a uma interrupção, deixe uma nota visível do que você estava fazendo — uma palavra basta.",
+    },
+    autocompasion: {
+      title: "Autocompaixão não é se permitir tudo, é se sustentar",
+      body: [
+        'Mais sintomas de TDAH costumam vir com menos autocompaixão — foi o que encontrou uma pesquisa com mais de 800 adultos — e menos autocompaixão está associada a mais ansiedade e depressão. Se tratar com a mesma dureza com que você acha que "deveria" render não ajuda a render melhor; pelo contrário, parece ir no sentido oposto.',
+        'Isso não é autocompaixão como "não exijo nada de mim" — é se sustentar enquanto você continua tentando, em vez de somar julgamento a algo que já é difícil.',
+      ],
+      exercise: "Escreva o que você diria a um amigo na sua mesma situação, e leia isso em voz alta para você mesmo.",
+    },
   },
 
   cbtProgram: {
-    finishedMessage: (total) => `Você completou as ${total} lições da Semana 1 🎉 Pode revisá-las quando quiser.`,
+    finishedMessage: (total) => `Você completou as ${total} lições do programa 🎉 Pode revisá-las quando quiser.`,
     lessonOfTotalToday: (completed, total) => `Lição ${completed} de ${total} concluída hoje.`,
     comeBackTomorrow: (title) => `Volte amanhã para "${title}" — uma lição por dia, para que realmente se fixe.`,
     dayOfTotal: (day, total, minutes) => `Dia ${day} de ${total} · ${minutes} min de leitura`,
