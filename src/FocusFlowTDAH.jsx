@@ -65,6 +65,7 @@ import FocusMode from "./FocusMode";
 import OneThingPanel from "./OneThingPanel";
 import KanbanBoard from "./KanbanBoard";
 import MindMap from "./MindMap";
+import MedicationAlarm from "./MedicationAlarm";
 import MoodLog from "./MoodLog";
 import EnergyLog from "./EnergyLog";
 import MedicationPanel from "./MedicationPanel";
@@ -99,6 +100,8 @@ import {
   logDose,
   undoDose,
   isValidDoseTime,
+  todayDoses,
+  doseTaken,
 } from "./medicationLog";
 import {
   DEFAULT_PAYMENTS,
@@ -778,6 +781,59 @@ export default function FocusFlowTDAH({
   const handleUndoDose = useCallback((medicationId, time) => {
     setMedicationDoseLog((prev) => undoDose(prev, medicationId, time));
   }, []);
+
+  // ---- Alarma activa de medicamentos (Fase 4, función #5 — 31 de octubre
+  // de 2026, inspirada en Alarmy, gratis: "ok está bien" confirmó la
+  // doctora, con la propuesta de que fuera gratis por ser seguridad
+  // clínica y no un extra de conveniencia) ----
+  //
+  // Honestidad igual que el bloqueador de distracciones de Modo Enfoque:
+  // esto SOLO funciona mientras la pestaña de la app está abierta — reusa
+  // el push normal (api/send-reminders.js) como respaldo pasivo para
+  // cuando la app está cerrada, no lo reemplaza ni finge hacer lo que no
+  // puede. Mientras la pestaña está abierta, revisa cada 20s si alguna
+  // dosis de hoy ya se cumplió y no se ha marcado como tomada — si pasaron
+  // entre 0 y 240 minutos desde su horario, dispara la alarma de pantalla
+  // completa (MedicationAlarm.jsx). Posponer solo espera 5 minutos y vuelve
+  // a sonar — a propósito no hay botón de "ignorar para siempre": eso es
+  // justo lo que la vuelve "activa" y no un aviso pasivo más.
+  const [activeMedicationAlarm, setActiveMedicationAlarm] = useState(null); // {medicationId, medicationName, time} | null
+  const medicationSnoozeRef = useRef({}); // { "medId-time": timestampMs hasta cuándo callar }
+
+  useEffect(() => {
+    const checkMedicationAlarms = () => {
+      if (activeMedicationAlarm) return; // una a la vez
+      const now = new Date();
+      const nowMinutes = now.getHours() * 60 + now.getMinutes();
+      for (const d of todayDoses(medications)) {
+        if (doseTaken(medicationDoseLog, d.medicationId, d.time, now)) continue;
+        const [dh, dm] = d.time.split(":").map(Number);
+        const doseMinutes = dh * 60 + dm;
+        const minutesSince = nowMinutes - doseMinutes;
+        if (minutesSince < 0 || minutesSince > 240) continue; // todavía no toca, o ya pasó demasiado tiempo (más de 4h) — seguir insistiendo a esas alturas ya no ayuda
+        const key = `${d.medicationId}-${d.time}`;
+        const snoozeUntil = medicationSnoozeRef.current[key];
+        if (snoozeUntil && Date.now() < snoozeUntil) continue;
+        setActiveMedicationAlarm({ medicationId: d.medicationId, medicationName: d.medicationName, time: d.time });
+        break;
+      }
+    };
+    checkMedicationAlarms();
+    const interval = setInterval(checkMedicationAlarms, 20000);
+    return () => clearInterval(interval);
+  }, [medications, medicationDoseLog, activeMedicationAlarm]);
+
+  const handleMedicationAlarmTaken = () => {
+    if (!activeMedicationAlarm) return;
+    handleLogDose(activeMedicationAlarm.medicationId, activeMedicationAlarm.time, "");
+    setActiveMedicationAlarm(null);
+  };
+  const handleMedicationAlarmSnooze = () => {
+    if (!activeMedicationAlarm) return;
+    const key = `${activeMedicationAlarm.medicationId}-${activeMedicationAlarm.time}`;
+    medicationSnoozeRef.current[key] = Date.now() + 5 * 60 * 1000;
+    setActiveMedicationAlarm(null);
+  };
 
   const handleAddPayment = useCallback((payment) => {
     setPayments((prev) => addPayment(prev, payment));
@@ -1767,6 +1823,17 @@ export default function FocusFlowTDAH({
         )}
 
         <Mascot streak={streak} C={C} t={t} accent={personalAccent} species={species} focusStatus={focusStatus} />
+
+        {activeMedicationAlarm && (
+          <MedicationAlarm
+            C={C}
+            t={t}
+            medicationName={activeMedicationAlarm.medicationName}
+            time={activeMedicationAlarm.time}
+            onTaken={handleMedicationAlarmTaken}
+            onSnooze={handleMedicationAlarmSnooze}
+          />
+        )}
 
         {/* Fase 2 (navegación, 28 de octubre de 2026): barra de 5 pestañas
             que reemplaza el scroll largo como forma principal de moverse
