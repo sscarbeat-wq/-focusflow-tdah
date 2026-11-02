@@ -414,7 +414,13 @@ export default function FocusMode({
     source.loop = true;
 
     const gain = ctx.createGain();
-    gain.gain.value = 0.05; // volumen bajo, pensado como fondo suave
+    // Entrada suave (rampa de 0 al volumen final en 120ms) en vez de un
+    // salto directo: evita el "click"/corte audible que se oía justo al
+    // reanudar el sonido después de volver a la pestaña (2 de noviembre
+    // de 2026, pulido de la reanudación de audio).
+    const target = 0.05; // volumen bajo, pensado como fondo suave
+    gain.gain.setValueAtTime(0, ctx.currentTime);
+    gain.gain.linearRampToValueAtTime(target, ctx.currentTime + 0.12);
 
     source.connect(gain).connect(ctx.destination);
     source.start();
@@ -434,7 +440,11 @@ export default function FocusMode({
     const beatFreq = 6;
 
     const gain = ctx.createGain();
-    gain.gain.value = 0.06;
+    // Misma entrada suave que startBufferTrack, por la misma razón: sin
+    // esto el tono binaural también "chasqueaba" al reanudar.
+    const target = 0.06;
+    gain.gain.setValueAtTime(0, ctx.currentTime);
+    gain.gain.linearRampToValueAtTime(target, ctx.currentTime + 0.12);
     gain.connect(ctx.destination);
 
     const canPan = typeof ctx.createStereoPanner === "function";
