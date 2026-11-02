@@ -6,10 +6,22 @@ export default defineConfig({
   plugins: [
     react(),
     VitePWA({
-      registerType: "autoUpdate",
+      // Cambiado de "autoUpdate" a "prompt" el 2 de noviembre de 2026 —
+      // bug real encontrado probando la función #6 de Fase 4: con
+      // "autoUpdate" + skipWaiting/clientsClaim en true (como estaba antes),
+      // cada vez que se publicaba una versión nueva el service worker se
+      // actualizaba solo y RECARGABA LA PÁGINA SIN AVISAR en cuanto el
+      // navegador volvía a revisar la pestaña (típicamente al volver de
+      // otra pestaña) — eso borraba lo que no estuviera guardado todavía,
+      // como una sesión de Modo Enfoque corriendo (ver UpdatePrompt.jsx,
+      // que ahora avisa y deja que la persona decida cuándo actualizar).
+      registerType: "prompt",
       workbox: {
-        skipWaiting: true,
-        clientsClaim: true,
+        // En false a propósito (antes true): así el service worker nuevo
+        // se queda "esperando" hasta que UpdatePrompt.jsx mande la señal de
+        // aplicar la actualización, en vez de tomar control solo.
+        skipWaiting: false,
+        clientsClaim: false,
         // Agrega los listeners de push/notificationclick al service worker
         // que genera el plugin, sin tocar su manejo de caché/precarga (eso
         // es lo que causaba que la app se congelara — ver notas en el PR).

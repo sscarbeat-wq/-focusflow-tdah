@@ -3,6 +3,7 @@
 // de logros, racha): no agregan ningún costo ni dependencia nueva.
 import { recentEntries } from "./moodLog";
 import { recentBedtimes, isLateBedtime } from "./sleepLog";
+import { recentFocusSessions } from "./focusSessionLog";
 
 // Resumen del ánimo de los últimos `days` días (por defecto 7), apoyado en
 // recentEntries() de moodLog.js — esa función ya rellena los días sin
@@ -70,5 +71,47 @@ export function weekSleepPattern(sleepLog, days = 7, now = new Date()) {
     loggedNights: logged.length,
     lateNights,
     isPattern: lateNights >= SLEEP_PATTERN_MIN_LATE_NIGHTS,
+  };
+}
+
+// Resumen de sesiones de Modo Enfoque de los últimos `days` días (función
+// #6 de Fase 4, inspirada en Pomodone) — apoyado en
+// recentFocusSessions() de focusSessionLog.js, que ya rellena los días sin
+// ninguna sesión con entries:[], así que aquí tampoco se inventa nada:
+// solo se suma y se promedia lo que de verdad se completó.
+//
+// `totalDistractions` solo suma las sesiones con distractionTracked:true
+// (ver el comentario en focusSessionLog.js) — una sesión completada sin el
+// bloqueador de distracciones activo no cuenta como "cero distracciones",
+// simplemente no entra a la suma.
+export function weekFocusSummary(focusSessionLog, days = 7, now = new Date()) {
+  const recent = recentFocusSessions(focusSessionLog, days, now);
+  let sessionsCount = 0;
+  let totalMinutes = 0;
+  let totalDistractions = 0;
+  let bestDay = null;
+
+  const dailyBreakdown = recent.map(({ date, entries }) => {
+    const minutes = entries.reduce((sum, e) => sum + (e.durationMin || 0), 0);
+    const distractions = entries.reduce(
+      (sum, e) => sum + (e.distractionTracked ? e.distractionCount || 0 : 0),
+      0
+    );
+    sessionsCount += entries.length;
+    totalMinutes += minutes;
+    totalDistractions += distractions;
+    if (entries.length > 0 && (bestDay === null || minutes > bestDay.minutes)) {
+      bestDay = { date, minutes, sessions: entries.length };
+    }
+    return { date, sessions: entries.length, minutes };
+  });
+
+  return {
+    dailyBreakdown,
+    sessionsCount,
+    totalMinutes,
+    averageMinutes: sessionsCount > 0 ? Math.round(totalMinutes / sessionsCount) : null,
+    bestDay,
+    totalDistractions,
   };
 }

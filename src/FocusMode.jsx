@@ -36,6 +36,54 @@ function fmt(sec) {
   return `${String(m).padStart(2, "0")}:${String(s).padStart(2, "0")}`;
 }
 
+// Arreglo de robustez del 2 de noviembre de 2026 — NO es una de las 6
+// funciones de Fase 4, es un bug real encontrado probando la #6: una sesión
+// de trabajo corriendo vivía solo en la memoria de React, así que CUALQUIER
+// recarga real de la pestaña (el service worker actualizándose, Chrome
+// descargando la pestaña por memoria al estar mucho rato en segundo plano,
+// un F5 sin querer) la borraba por completo — el reloj, el sonido, todo.
+// Arreglar el auto-update silencioso del service worker (ver
+// UpdatePrompt.jsx) quita UNA causa, pero no todas: nada que corra en un
+// sitio web puede evitar que el navegador decida recargar una pestaña.
+//
+// Por eso, además, el inicio real de la sesión (hora + duración) se guarda
+// en localStorage — a diferencia del estado de React, sobrevive una
+// recarga real — y al volver a montar este componente, si encuentra una
+// sesión sin terminar reciente, reanuda el reloj desde el tiempo que de
+// verdad transcurrió en vez de reiniciar como si nada hubiera corrido. Si
+// el tiempo de trabajo ya se habría completado mientras no estábamos, la
+// sesión se registra igual (honesto: si pasaron los 25 minutos, pasaron),
+// aunque sin el conteo de distracciones de antes de la recarga — eso sí se
+// pierde, porque solo vivía en memoria; es una limitación que queda, pero
+// ya no se pierde la sesión completa. Solo se activa si el panel que usa
+// este componente pasa un `storageKey` (ver FocusFlowTDAH.jsx) — sin eso,
+// se comporta exactamente igual que antes.
+function readPersistedSession(storageKey) {
+  if (!storageKey || typeof window === "undefined") return null;
+  try {
+    const raw = window.localStorage.getItem(storageKey);
+    if (!raw) return null;
+    const parsed = JSON.parse(raw);
+    if (!parsed || typeof parsed.startedAt !== "number" || typeof parsed.workMin !== "number") return null;
+    return parsed;
+  } catch (e) {
+    return null;
+  }
+}
+
+function writePersistedSession(storageKey, session) {
+  if (!storageKey || typeof window === "undefined") return;
+  try {
+    if (session) window.localStorage.setItem(storageKey, JSON.stringify(session));
+    else window.localStorage.removeItem(storageKey);
+  } catch (e) {
+    // localStorage puede no estar disponible (modo incógnito estricto,
+    // almacenamiento lleno, etc.) — no es razón para romper el
+    // temporizador, solo no se va a poder reanudar si la pestaña se
+    // recarga.
+  }
+}
+
 // minimal: 8 de noviembre de 2026 — para el nuevo panel "Solo una cosa"
 // (Módulo 4 de ANRO TDAH 2.0), que necesita el mismo temporizador de
 // siempre pero SIN los selectores de duración ni el contador de ciclos a la
@@ -72,21 +120,95 @@ export default function FocusMode({
   isPlus = true,
   onRequestUpgrade,
   onFocusStatusChange,
+  storageKey,
 }) {
-  const [workMin, setWorkMin] = useState(25);
-  const [breakMin, setBreakMin] = useState(5);
+  // Se lee UNA sola vez al montar (useState perezoso) — ver el comentario
+  // grande arriba de readPersistedSession() para el porqué de todo esto.
+  const [persisted] = useState(() => readPersistedSession(storageKey));
+  const resumedElapsedSec = persisted ? Math.max(0, Math.floor((Date.now() - persisted.startedAt) / 1000)) : 0;
+  const resumedCompleted = !!persisted && resumedElapsedSec >= persisted.workMin * 60;
+  const resumedInProgress = !!persisted && !resumedCompleted;
+
+  const [workMin, setWorkMin] = useState(persisted ? persisted.workMin : 25);
+  const [breakMin, setBreakMin] = useState(persisted ? persisted.breakMin : 5);
   const [mode, setMode] = useState("work"); // "work" | "break"
-  const [secondsLeft, setSecondsLeft] = useState(workMin * 60);
-  const [running, setRunning] = useState(false);
+  const [secondsLeft, setSecondsLeft] = useState(() =>
+    resumedInProgress ? Math.max(1, persisted.workMin * 60 - resumedElapsedSec) : (persisted ? persisted.workMin : 25) * 60
+  );
+  const [running, setRunning] = useState(resumedInProgress);
   const [cyclesDone, setCyclesDone] = useState(0);
+  // noiseOn arranca siempre en false, incluso al reanudar una sesión con
+  // ruido de fondo guardado (persisted.noiseOn) — el navegador no deja
+  // arrancar audio automáticamente sin que la persona haya interactuado
+  // primero en ESTA carga de página, así que decirlo en true de entrada
+  // mentiría si el intento automático de más abajo no lo logra. Ese efecto
+  // lo pone en true SOLO si de verdad logra que empiece a sonar.
   const [noiseOn, setNoiseOn] = useState(false);
-  const [noiseType, setNoiseType] = useState("white");
+  const [noiseType, setNoiseType] = useState(persisted && persisted.noiseType ? persisted.noiseType : "white");
   const [distraction, setDistraction] = useState(resetTracker());
   const [distractionToast, setDistractionToast] = useState(null);
 
   const tickRef = useRef(null);
   const distractionToastTimeout = useRef(null);
   const mascotAwaySinceRef = useRef(null);
+  // Fase 4, función #6 (2 de noviembre de 2026 — "reportes de enfoque más
+  // profundos en Insights Semanales"): el efecto del temporizador de abajo
+  // no depende de `distraction` (solo de running/mode/breakMin/workMin, ver
+  // el arreglo de dependencias), así que su cierre tendría un valor
+  // desactualizado de `distraction` si lo leyera directo. Este ref se
+  // mantiene al día en cada cambio, para que el aviso de "sesión completa"
+  // siempre reporte el conteo real de distracciones de ESTA sesión.
+  const distractionRef = useRef(distraction);
+  useEffect(() => {
+    distractionRef.current = distraction;
+  }, [distraction]);
+
+  // Si al montar encontramos una sesión guardada cuyo tiempo de trabajo ya
+  // se habría completado mientras la pestaña estuvo recargándose, la
+  // registramos de inmediato — una sola vez — igual que si el temporizador
+  // hubiera llegado a 0 normalmente, pero sin conteo de distracciones (se
+  // perdió con la recarga) ni campana (no hay nadie frente a la pantalla
+  // en este instante exacto).
+  const completedOnMountRef = useRef(false);
+  useEffect(() => {
+    if (resumedCompleted && persisted && !completedOnMountRef.current) {
+      completedOnMountRef.current = true;
+      writePersistedSession(storageKey, null);
+      onSessionComplete?.({
+        durationMin: persisted.workMin,
+        distractionCount: 0,
+        distractionAwayMs: 0,
+        distractionTracked: false,
+      });
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  // Guarda (o borra) el "inicio real" de la sesión en localStorage cada vez
+  // que arranca o se detiene el reloj de trabajo — tanto un inicio nuevo
+  // como reanudar después de pausar recalculan `startedAt` hacia atrás a
+  // partir de `secondsLeft` actual, así que siempre queda consistente con
+  // lo que de verdad falta por correr.
+  useEffect(() => {
+    if (!storageKey) return;
+    if (running && mode === "work") {
+      const elapsedSoFarMs = Math.max(0, workMin * 60 - secondsLeft) * 1000;
+      writePersistedSession(storageKey, {
+        startedAt: Date.now() - elapsedSoFarMs,
+        workMin,
+        breakMin,
+        noiseOn,
+        noiseType,
+      });
+    } else {
+      writePersistedSession(storageKey, null);
+    }
+    // noiseOn/noiseType se agregan a las dependencias a propósito — si la
+    // persona prende o cambia el sonido de fondo a medio camino, queremos
+    // que la próxima recarga intente reanudar CON ese sonido, no con el que
+    // estaba sonando cuando arrancó el reloj.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [running, mode, noiseOn, noiseType]);
 
   // --- Temporizador ---
   useEffect(() => {
@@ -98,7 +220,19 @@ export default function FocusMode({
         clearInterval(tickRef.current);
         if (mode === "work") {
           setCyclesDone((c) => c + 1);
-          onSessionComplete?.();
+          // Fase 4, función #6: se manda el detalle de la sesión que recién
+          // terminó (duración real en minutos, no solo "completó algo") para
+          // que FocusFlowTDAH.jsx pueda registrarla en focusSessionLog.js.
+          // distractionTracked = isPlus porque el bloqueador de
+          // distracciones (recordLeave/recordReturn más arriba) solo corre
+          // mientras isPlus es verdadero — ver el comentario de
+          // distractionTracked en focusSessionLog.js.
+          onSessionComplete?.({
+            durationMin: workMin,
+            distractionCount: distractionRef.current.count,
+            distractionAwayMs: distractionRef.current.totalAwayMs,
+            distractionTracked: isPlus,
+          });
           playChime();
           setMode("break");
           return breakMin * 60;
@@ -280,7 +414,13 @@ export default function FocusMode({
     source.loop = true;
 
     const gain = ctx.createGain();
-    gain.gain.value = 0.05; // volumen bajo, pensado como fondo suave
+    // Entrada suave (rampa de 0 al volumen final en 120ms) en vez de un
+    // salto directo: evita el "click"/corte audible que se oía justo al
+    // reanudar el sonido después de volver a la pestaña (2 de noviembre
+    // de 2026, pulido de la reanudación de audio).
+    const target = 0.05; // volumen bajo, pensado como fondo suave
+    gain.gain.setValueAtTime(0, ctx.currentTime);
+    gain.gain.linearRampToValueAtTime(target, ctx.currentTime + 0.12);
 
     source.connect(gain).connect(ctx.destination);
     source.start();
@@ -300,7 +440,11 @@ export default function FocusMode({
     const beatFreq = 6;
 
     const gain = ctx.createGain();
-    gain.gain.value = 0.06;
+    // Misma entrada suave que startBufferTrack, por la misma razón: sin
+    // esto el tono binaural también "chasqueaba" al reanudar.
+    const target = 0.06;
+    gain.gain.setValueAtTime(0, ctx.currentTime);
+    gain.gain.linearRampToValueAtTime(target, ctx.currentTime + 0.12);
     gain.connect(ctx.destination);
 
     const canPan = typeof ctx.createStereoPanner === "function";
@@ -344,6 +488,35 @@ export default function FocusMode({
     },
     [startBinauralTrack, startBufferTrack]
   );
+
+  // Intento automático (best effort) de volver a prender el sonido de
+  // fondo al reanudar una sesión con ruido guardado — solo se marca
+  // noiseOn en true si el navegador de verdad lo deja correr. Muchos
+  // navegadores bloquean que un sonido arranque solo sin que la persona
+  // haya hecho clic en algo primero en ESTA carga de página (política de
+  // autoplay) — si eso pasa aquí, el intento falla en silencio y el botón
+  // de "Ruido blanco" se queda apagado (honesto con lo que de verdad está
+  // sonando); un clic normal en ese botón sí lo prende, porque ESE clic sí
+  // cuenta como la interacción que el navegador pedía.
+  useEffect(() => {
+    if (!resumedInProgress || !persisted || !persisted.noiseOn) return;
+    const kind = PLUS_NOISE_TRACKS.includes(persisted.noiseType) && !isPlus ? "white" : persisted.noiseType || "white";
+    const ctx = getCtx();
+    if (!ctx) return;
+    startTrack(kind);
+    const ready = ctx.state === "suspended" ? ctx.resume() : Promise.resolve();
+    ready
+      .then(() => {
+        if (ctx.state === "running") {
+          setNoiseType(kind);
+          setNoiseOn(true);
+        } else {
+          stopNoise();
+        }
+      })
+      .catch(() => stopNoise());
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const toggleNoise = () => {
     const ctx = getCtx();

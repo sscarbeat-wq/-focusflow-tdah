@@ -18,6 +18,11 @@ const en = {
     chooseLanguage: "Choose language",
   },
 
+  updatePrompt: {
+    message: "A new version of ANRO TDAH is available.",
+    button: "Update",
+  },
+
   auth: {
     // Sign-in screen redesign, October 29, 2026 — second pass, with exact
     // content and design direction from the doctor (two columns on
@@ -827,6 +832,18 @@ const en = {
       ateWell: "Eat something nutritious",
       hydrated: "Stay hydrated during the day",
       deskCleared: "Tidy up your desk",
+    },
+    focus: {
+      title: "Focus this week",
+      noSessions:
+        "You haven't completed any Focus Mode sessions yet this week — once you finish one, you'll see your total time here.",
+      formatMinutes: (min) => (min >= 60 ? `${Math.floor(min / 60)}h ${min % 60}min` : `${min} min`),
+      summary: (sessions, minutesLabel) =>
+        `You completed ${sessions} focus session${sessions === 1 ? "" : "s"} — ${minutesLabel} total this week`,
+      average: (avg) => ` (average ${avg} min per session)`,
+      bestDay: (day, minutesLabel) => `Your most focused day was ${day}, with ${minutesLabel}.`,
+      distractions: (count) => `You left the tab ${count} time${count === 1 ? "" : "s"} during your focus sessions.`,
+      distractionsNote: "Only counts sessions where the distraction blocker (Plus) was active.",
     },
   },
 

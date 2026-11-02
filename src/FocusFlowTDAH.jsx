@@ -91,6 +91,7 @@ import { useBodyDouble } from "./bodyDouble";
 import { celebrate } from "./celebrate";
 import { DEFAULT_STREAK, nextStreak, effectiveStreak } from "./streak";
 import { DEFAULT_MOOD_LOG, recordMood } from "./moodLog";
+import { DEFAULT_FOCUS_SESSION_LOG, logFocusSession } from "./focusSessionLog";
 import { DEFAULT_ENERGY_LOG, recordEnergy } from "./energyLog";
 import {
   DEFAULT_MEDICATIONS,
@@ -159,6 +160,7 @@ const DEFAULT_PROGRESS = {
   streak: DEFAULT_STREAK,
   moodLog: DEFAULT_MOOD_LOG,
   energyLog: DEFAULT_ENERGY_LOG,
+  focusSessionLog: DEFAULT_FOCUS_SESSION_LOG,
   medications: DEFAULT_MEDICATIONS,
   medicationDoseLog: DEFAULT_MEDICATION_DOSE_LOG,
   payments: DEFAULT_PAYMENTS,
@@ -602,6 +604,7 @@ export default function FocusFlowTDAH({
   const [streak, setStreak] = useState(() => effectiveStreak(saved.streak));
   const [moodLog, setMoodLog] = useState(saved.moodLog);
   const [energyLog, setEnergyLog] = useState(saved.energyLog);
+  const [focusSessionLog, setFocusSessionLog] = useState(saved.focusSessionLog);
   const [medications, setMedications] = useState(saved.medications);
   const [medicationDoseLog, setMedicationDoseLog] = useState(saved.medicationDoseLog);
   const [payments, setPayments] = useState(saved.payments);
@@ -632,6 +635,7 @@ export default function FocusFlowTDAH({
       streak,
       moodLog,
       energyLog,
+      focusSessionLog,
       medications,
       medicationDoseLog,
       payments,
@@ -657,6 +661,7 @@ export default function FocusFlowTDAH({
     streak,
     moodLog,
     energyLog,
+    focusSessionLog,
     medications,
     medicationDoseLog,
     payments,
@@ -2558,7 +2563,8 @@ export default function FocusFlowTDAH({
                 onSwitch={handleOneThingSwitch}
                 onExit={handleOneThingExit}
                 onNeedHelp={handleOneThingNeedHelp}
-                onSessionComplete={() => {
+                onSessionComplete={(session) => {
+                  setFocusSessionLog((prev) => logFocusSession(prev, session));
                   bodyDouble.setStatus("aqui");
                 }}
                 onSessionStart={(min) => {
@@ -2570,6 +2576,7 @@ export default function FocusFlowTDAH({
                   bodyDouble.setStatus("enfocando");
                 }}
                 onFocusStatusChange={setFocusStatus}
+                storageKey={`anro-focus-session-onething-${userId}`}
               />
             </Panel>
             </div>
@@ -2586,7 +2593,8 @@ export default function FocusFlowTDAH({
                 t={t}
                 isPlus={isPlus}
                 onRequestUpgrade={onRequestUpgrade}
-                onSessionComplete={() => {
+                onSessionComplete={(session) => {
+                  setFocusSessionLog((prev) => logFocusSession(prev, session));
                   grantXp(t.app.xpLabels.focusSessionCompleted);
                   bodyDouble.setStatus("aqui");
                 }}
@@ -2595,6 +2603,7 @@ export default function FocusFlowTDAH({
                   bodyDouble.setStatus("enfocando");
                 }}
                 onFocusStatusChange={setFocusStatus}
+                storageKey={`anro-focus-session-main-${userId}`}
               />
             </Panel>
             </div>
@@ -2657,6 +2666,7 @@ export default function FocusFlowTDAH({
                 streak={streak}
                 habits={{ screensOff, sleepEnv, ateWell, hydrated, deskCleared }}
                 sleepLog={sleepLog}
+                focusSessionLog={focusSessionLog}
               />
               </PlusLockedPanel>
             </Panel>
