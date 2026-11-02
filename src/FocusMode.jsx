@@ -36,6 +36,54 @@ function fmt(sec) {
   return `${String(m).padStart(2, "0")}:${String(s).padStart(2, "0")}`;
 }
 
+// Arreglo de robustez del 2 de noviembre de 2026 — NO es una de las 6
+// funciones de Fase 4, es un bug real encontrado probando la #6: una sesión
+// de trabajo corriendo vivía solo en la memoria de React, así que CUALQUIER
+// recarga real de la pestaña (el service worker actualizándose, Chrome
+// descargando la pestaña por memoria al estar mucho rato en segundo plano,
+// un F5 sin querer) la borraba por completo — el reloj, el sonido, todo.
+// Arreglar el auto-update silencioso del service worker (ver
+// UpdatePrompt.jsx) quita UNA causa, pero no todas: nada que corra en un
+// sitio web puede evitar que el navegador decida recargar una pestaña.
+//
+// Por eso, además, el inicio real de la sesión (hora + duración) se guarda
+// en localStorage — a diferencia del estado de React, sobrevive una
+// recarga real — y al volver a montar este componente, si encuentra una
+// sesión sin terminar reciente, reanuda el reloj desde el tiempo que de
+// verdad transcurrió en vez de reiniciar como si nada hubiera corrido. Si
+// el tiempo de trabajo ya se habría completado mientras no estábamos, la
+// sesión se registra igual (honesto: si pasaron los 25 minutos, pasaron),
+// aunque sin el conteo de distracciones de antes de la recarga — eso sí se
+// pierde, porque solo vivía en memoria; es una limitación que queda, pero
+// ya no se pierde la sesión completa. Solo se activa si el panel que usa
+// este componente pasa un `storageKey` (ver FocusFlowTDAH.jsx) — sin eso,
+// se comporta exactamente igual que antes.
+function readPersistedSession(storageKey) {
+  if (!storageKey || typeof window === "undefined") return null;
+  try {
+    const raw = window.localStorage.getItem(storageKey);
+    if (!raw) return null;
+    const parsed = JSON.parse(raw);
+    if (!parsed || typeof parsed.startedAt !== "number" || typeof parsed.workMin !== "number") return null;
+    return parsed;
+  } catch (e) {
+    return null;
+  }
+}
+
+function writePersistedSession(storageKey, session) {
+  if (!storageKey || typeof window === "undefined") return;
+  try {
+    if (session) window.localStorage.setItem(storageKey, JSON.stringify(session));
+    else window.localStorage.removeItem(storageKey);
+  } catch (e) {
+    // localStorage puede no estar disponible (modo incógnito estricto,
+    // almacenamiento lleno, etc.) — no es razón para romper el
+    // temporizador, solo no se va a poder reanudar si la pestaña se
+    // recarga.
+  }
+}
+
 // minimal: 8 de noviembre de 2026 — para el nuevo panel "Solo una cosa"
 // (Módulo 4 de ANRO TDAH 2.0), que necesita el mismo temporizador de
 // siempre pero SIN los selectores de duración ni el contador de ciclos a la
@@ -72,12 +120,22 @@ export default function FocusMode({
   isPlus = true,
   onRequestUpgrade,
   onFocusStatusChange,
+  storageKey,
 }) {
-  const [workMin, setWorkMin] = useState(25);
-  const [breakMin, setBreakMin] = useState(5);
+  // Se lee UNA sola vez al montar (useState perezoso) — ver el comentario
+  // grande arriba de readPersistedSession() para el porqué de todo esto.
+  const [persisted] = useState(() => readPersistedSession(storageKey));
+  const resumedElapsedSec = persisted ? Math.max(0, Math.floor((Date.now() - persisted.startedAt) / 1000)) : 0;
+  const resumedCompleted = !!persisted && resumedElapsedSec >= persisted.workMin * 60;
+  const resumedInProgress = !!persisted && !resumedCompleted;
+
+  const [workMin, setWorkMin] = useState(persisted ? persisted.workMin : 25);
+  const [breakMin, setBreakMin] = useState(persisted ? persisted.breakMin : 5);
   const [mode, setMode] = useState("work"); // "work" | "break"
-  const [secondsLeft, setSecondsLeft] = useState(workMin * 60);
-  const [running, setRunning] = useState(false);
+  const [secondsLeft, setSecondsLeft] = useState(() =>
+    resumedInProgress ? Math.max(1, persisted.workMin * 60 - resumedElapsedSec) : (persisted ? persisted.workMin : 25) * 60
+  );
+  const [running, setRunning] = useState(resumedInProgress);
   const [cyclesDone, setCyclesDone] = useState(0);
   const [noiseOn, setNoiseOn] = useState(false);
   const [noiseType, setNoiseType] = useState("white");
@@ -98,6 +156,43 @@ export default function FocusMode({
   useEffect(() => {
     distractionRef.current = distraction;
   }, [distraction]);
+
+  // Si al montar encontramos una sesión guardada cuyo tiempo de trabajo ya
+  // se habría completado mientras la pestaña estuvo recargándose, la
+  // registramos de inmediato — una sola vez — igual que si el temporizador
+  // hubiera llegado a 0 normalmente, pero sin conteo de distracciones (se
+  // perdió con la recarga) ni campana (no hay nadie frente a la pantalla
+  // en este instante exacto).
+  const completedOnMountRef = useRef(false);
+  useEffect(() => {
+    if (resumedCompleted && persisted && !completedOnMountRef.current) {
+      completedOnMountRef.current = true;
+      writePersistedSession(storageKey, null);
+      onSessionComplete?.({
+        durationMin: persisted.workMin,
+        distractionCount: 0,
+        distractionAwayMs: 0,
+        distractionTracked: false,
+      });
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  // Guarda (o borra) el "inicio real" de la sesión en localStorage cada vez
+  // que arranca o se detiene el reloj de trabajo — tanto un inicio nuevo
+  // como reanudar después de pausar recalculan `startedAt` hacia atrás a
+  // partir de `secondsLeft` actual, así que siempre queda consistente con
+  // lo que de verdad falta por correr.
+  useEffect(() => {
+    if (!storageKey) return;
+    if (running && mode === "work") {
+      const elapsedSoFarMs = Math.max(0, workMin * 60 - secondsLeft) * 1000;
+      writePersistedSession(storageKey, { startedAt: Date.now() - elapsedSoFarMs, workMin, breakMin });
+    } else {
+      writePersistedSession(storageKey, null);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [running, mode]);
 
   // --- Temporizador ---
   useEffect(() => {

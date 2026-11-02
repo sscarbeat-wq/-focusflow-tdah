@@ -2576,6 +2576,7 @@ export default function FocusFlowTDAH({
                   bodyDouble.setStatus("enfocando");
                 }}
                 onFocusStatusChange={setFocusStatus}
+                storageKey={`anro-focus-session-onething-${userId}`}
               />
             </Panel>
             </div>
@@ -2602,6 +2603,7 @@ export default function FocusFlowTDAH({
                   bodyDouble.setStatus("enfocando");
                 }}
                 onFocusStatusChange={setFocusStatus}
+                storageKey={`anro-focus-session-main-${userId}`}
               />
             </Panel>
             </div>

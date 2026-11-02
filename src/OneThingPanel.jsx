@@ -31,6 +31,10 @@ import { tint } from "./theme";
 //   onFocusStatusChange — igual que en FocusMode.jsx (31 de octubre de
 //     2026, mascota en vivo): se pasa tal cual al FocusMode interno, nada
 //     nuevo que construir aquí.
+//   storageKey — igual que en FocusMode.jsx (2 de noviembre de 2026,
+//     arreglo de robustez): se pasa tal cual, para que una sesión de "Solo
+//     una cosa" también pueda reanudarse si la pestaña se recarga de
+//     verdad a medio camino.
 export default function OneThingPanel({
   C,
   t,
@@ -44,6 +48,7 @@ export default function OneThingPanel({
   onSessionStart,
   onSessionComplete,
   onFocusStatusChange,
+  storageKey,
 }) {
   const [draft, setDraft] = useState("");
 
@@ -113,6 +118,7 @@ export default function OneThingPanel({
           onSessionComplete={onSessionComplete}
           onSessionStart={onSessionStart}
           onFocusStatusChange={onFocusStatusChange}
+          storageKey={storageKey}
         />
 
         <div style={{ display: "flex", gap: "10px", flexWrap: "wrap", marginTop: "18px" }}>
