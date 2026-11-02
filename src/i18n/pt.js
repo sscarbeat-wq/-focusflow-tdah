@@ -405,6 +405,15 @@ const pt = {
     notesPlaceholder: "Notas (opcional) — ex. para que é, indicações do médico",
     addButton: "Adicionar",
     historyCaption: "Doses tomadas / esperadas — últimos 7 dias",
+    alarm: {
+      ariaLabel: "Alarme de medicamento ativo",
+      headline: "Hora do seu medicamento",
+      doseAt: (time) => `Dose das ${time}`,
+      takenButton: "✓ Já tomei",
+      snoozeButton: "⏰ Adiar 5 min",
+      footnote:
+        "Não é possível fechar tocando fora ou com Esc — é preciso escolher uma das duas opções. Isso só funciona enquanto esta aba está aberta; se o app estiver fechado, o aviso push normal continua chegando.",
+    },
   },
 
   messageTone: {
