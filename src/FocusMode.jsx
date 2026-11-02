@@ -87,6 +87,17 @@ export default function FocusMode({
   const tickRef = useRef(null);
   const distractionToastTimeout = useRef(null);
   const mascotAwaySinceRef = useRef(null);
+  // Fase 4, función #6 (2 de noviembre de 2026 — "reportes de enfoque más
+  // profundos en Insights Semanales"): el efecto del temporizador de abajo
+  // no depende de `distraction` (solo de running/mode/breakMin/workMin, ver
+  // el arreglo de dependencias), así que su cierre tendría un valor
+  // desactualizado de `distraction` si lo leyera directo. Este ref se
+  // mantiene al día en cada cambio, para que el aviso de "sesión completa"
+  // siempre reporte el conteo real de distracciones de ESTA sesión.
+  const distractionRef = useRef(distraction);
+  useEffect(() => {
+    distractionRef.current = distraction;
+  }, [distraction]);
 
   // --- Temporizador ---
   useEffect(() => {
@@ -98,7 +109,19 @@ export default function FocusMode({
         clearInterval(tickRef.current);
         if (mode === "work") {
           setCyclesDone((c) => c + 1);
-          onSessionComplete?.();
+          // Fase 4, función #6: se manda el detalle de la sesión que recién
+          // terminó (duración real en minutos, no solo "completó algo") para
+          // que FocusFlowTDAH.jsx pueda registrarla en focusSessionLog.js.
+          // distractionTracked = isPlus porque el bloqueador de
+          // distracciones (recordLeave/recordReturn más arriba) solo corre
+          // mientras isPlus es verdadero — ver el comentario de
+          // distractionTracked en focusSessionLog.js.
+          onSessionComplete?.({
+            durationMin: workMin,
+            distractionCount: distractionRef.current.count,
+            distractionAwayMs: distractionRef.current.totalAwayMs,
+            distractionTracked: isPlus,
+          });
           playChime();
           setMode("break");
           return breakMin * 60;

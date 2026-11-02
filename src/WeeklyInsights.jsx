@@ -1,5 +1,5 @@
 import React from "react";
-import { weekMoodSummary, weekAchievements, pendingHabits, weekSleepPattern } from "./weeklyInsights";
+import { weekMoodSummary, weekAchievements, pendingHabits, weekSleepPattern, weekFocusSummary } from "./weeklyInsights";
 
 // `dateKey` viene en formato YYYY-MM-DD en hora local — se construye con
 // T00:00:00 para que no se interprete como UTC y "cambie de día". Los
@@ -14,13 +14,16 @@ function dayLabel(dateKey, dayNames) {
 // racha y tarro de logros. Nada de esto fabrica datos que el paciente no
 // registró; cuando no hay suficiente historial, lo decimos en vez de
 // inventar un patrón.
-export default function WeeklyInsights({ C, t, moodLog, jar, streak, habits, sleepLog }) {
+export default function WeeklyInsights({ C, t, moodLog, jar, streak, habits, sleepLog, focusSessionLog }) {
   const mood = weekMoodSummary(moodLog, 7);
   const achievements = weekAchievements(jar, 7);
   const pending = pendingHabits(habits);
   const sleep = weekSleepPattern(sleepLog, 7);
+  const focus = weekFocusSummary(focusSessionLog, 7);
   const showBestWorst = mood.bestDay && mood.worstDay && mood.bestDay.date !== mood.worstDay.date;
   const wi = t.weeklyInsights;
+  const wf = wi.focus;
+  const maxFocusMinutes = Math.max(1, ...focus.dailyBreakdown.map((d) => d.minutes));
 
   return (
     <div>
@@ -60,6 +63,62 @@ export default function WeeklyInsights({ C, t, moodLog, jar, streak, habits, sle
             {wi.achievementsThisWeek(achievements.count)}
           </p>
         </div>
+      </div>
+
+      <div
+        style={{
+          marginBottom: "16px",
+          borderTop: `1px solid ${C.border}`,
+          paddingTop: "14px",
+        }}
+      >
+        <p style={{ fontSize: "12px", color: C.textMuted, margin: "0 0 8px", fontWeight: 600 }}>{wf.title}</p>
+        {focus.sessionsCount === 0 ? (
+          <p style={{ fontSize: "13px", color: C.textMuted, margin: 0, lineHeight: 1.5 }}>{wf.noSessions}</p>
+        ) : (
+          <>
+            <p style={{ fontSize: "13px", color: C.text, margin: "0 0 4px", lineHeight: 1.5 }}>
+              {wf.summary(focus.sessionsCount, wf.formatMinutes(focus.totalMinutes))}
+              {focus.averageMinutes != null ? wf.average(focus.averageMinutes) : null}
+            </p>
+            {focus.bestDay && (
+              <p style={{ fontSize: "13px", color: C.textMuted, margin: "0 0 12px", lineHeight: 1.5 }}>
+                {wf.bestDay(dayLabel(focus.bestDay.date, wi.dayNames), wf.formatMinutes(focus.bestDay.minutes))}
+              </p>
+            )}
+            <div style={{ display: "flex", gap: "6px", marginBottom: focus.totalDistractions > 0 ? "8px" : 0 }}>
+              {focus.dailyBreakdown.map(({ date, minutes }) => (
+                <div key={date} title={date} style={{ flex: 1, textAlign: "center" }}>
+                  <div
+                    style={{
+                      height: "40px",
+                      display: "flex",
+                      alignItems: "flex-end",
+                      justifyContent: "center",
+                      marginBottom: "4px",
+                    }}
+                  >
+                    <div
+                      style={{
+                        width: "70%",
+                        height: minutes > 0 ? `${Math.max(6, (minutes / maxFocusMinutes) * 40)}px` : "2px",
+                        borderRadius: "4px",
+                        background: minutes > 0 ? C.coral : C.border,
+                        opacity: minutes > 0 ? 1 : 0.4,
+                      }}
+                    />
+                  </div>
+                  <span style={{ fontSize: "10px", color: C.textMuted }}>{minutes > 0 ? minutes : "·"}</span>
+                </div>
+              ))}
+            </div>
+            {focus.totalDistractions > 0 && (
+              <p style={{ fontSize: "11px", color: C.textMuted, margin: 0, lineHeight: 1.4 }}>
+                {wf.distractions(focus.totalDistractions)} {wf.distractionsNote}
+              </p>
+            )}
+          </>
+        )}
       </div>
 
       {pending.length > 0 && (
