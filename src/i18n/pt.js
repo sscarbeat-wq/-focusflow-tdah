@@ -22,6 +22,11 @@ const pt = {
     chooseLanguage: "Escolher idioma",
   },
 
+  updatePrompt: {
+    message: "Há uma nova versão do ANRO TDAH disponível.",
+    button: "Atualizar",
+  },
+
   auth: {
     // Redesenho da tela de login, 29 de outubro de 2026 — segunda etapa,
     // com o conteúdo e a direção de design exatos da doutora (duas

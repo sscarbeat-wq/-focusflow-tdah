@@ -18,6 +18,11 @@ const en = {
     chooseLanguage: "Choose language",
   },
 
+  updatePrompt: {
+    message: "A new version of ANRO TDAH is available.",
+    button: "Update",
+  },
+
   auth: {
     // Sign-in screen redesign, October 29, 2026 — second pass, with exact
     // content and design direction from the doctor (two columns on

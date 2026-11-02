@@ -19,6 +19,11 @@ const fr = {
     chooseLanguage: "Choisir la langue",
   },
 
+  updatePrompt: {
+    message: "Une nouvelle version d'ANRO TDAH est disponible.",
+    button: "Mettre à jour",
+  },
+
   auth: {
     // Refonte de l'écran de connexion, 29 octobre 2026 — deuxième passe,
     // avec le contenu et la direction artistique exacts de la doctora
