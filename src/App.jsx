@@ -4,6 +4,7 @@ import Auth from "./Auth";
 import ResetPassword from "./ResetPassword";
 import FocusFlowTDAH from "./FocusFlowTDAH";
 import Paywall from "./Paywall";
+import UpdatePrompt from "./UpdatePrompt";
 import { DARK_THEME, LIGHT_THEME, getStoredTheme, storeTheme, getStoredAccent, storeAccent } from "./theme";
 import { getStoredLanguage, storeLanguage, getTranslations } from "./i18n";
 import { getStoredSpecies, storeSpecies } from "./mascotLogic";
@@ -258,6 +259,7 @@ export default function App() {
   // monta aparte, por encima, solo cuando showPaywall es true.
   return (
     <>
+      <UpdatePrompt C={C} t={t} />
       <FocusFlowTDAH
         initialProgress={progress}
         onProgressChange={handleProgressChange}
