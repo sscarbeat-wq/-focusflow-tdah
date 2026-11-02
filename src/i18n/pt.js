@@ -833,6 +833,18 @@ const pt = {
       hydrated: "Se hidratar durante o dia",
       deskCleared: "Organizar a mesa",
     },
+    focus: {
+      title: "Foco nesta semana",
+      noSessions:
+        "Você ainda não completou nenhuma sessão de Modo Foco esta semana — assim que terminar uma, vai ver aqui o seu tempo total.",
+      formatMinutes: (min) => (min >= 60 ? `${Math.floor(min / 60)}h ${min % 60}min` : `${min} min`),
+      summary: (sessions, minutesLabel) =>
+        `Você completou ${sessions} ${sessions === 1 ? "sessão" : "sessões"} de foco — ${minutesLabel} no total esta semana`,
+      average: (avg) => ` (média ${avg} min por sessão)`,
+      bestDay: (day, minutesLabel) => `Seu dia mais focado foi ${day}, com ${minutesLabel}.`,
+      distractions: (count) => `Você saiu da aba ${count} ${count === 1 ? "vez" : "vezes"} durante suas sessões de foco.`,
+      distractionsNote: "Conta apenas as sessões em que o bloqueador de distrações (Plus) estava ativo.",
+    },
   },
 
   app: {
