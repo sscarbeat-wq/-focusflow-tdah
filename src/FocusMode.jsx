@@ -137,8 +137,14 @@ export default function FocusMode({
   );
   const [running, setRunning] = useState(resumedInProgress);
   const [cyclesDone, setCyclesDone] = useState(0);
+  // noiseOn arranca siempre en false, incluso al reanudar una sesión con
+  // ruido de fondo guardado (persisted.noiseOn) — el navegador no deja
+  // arrancar audio automáticamente sin que la persona haya interactuado
+  // primero en ESTA carga de página, así que decirlo en true de entrada
+  // mentiría si el intento automático de más abajo no lo logra. Ese efecto
+  // lo pone en true SOLO si de verdad logra que empiece a sonar.
   const [noiseOn, setNoiseOn] = useState(false);
-  const [noiseType, setNoiseType] = useState("white");
+  const [noiseType, setNoiseType] = useState(persisted && persisted.noiseType ? persisted.noiseType : "white");
   const [distraction, setDistraction] = useState(resetTracker());
   const [distractionToast, setDistractionToast] = useState(null);
 
@@ -187,12 +193,22 @@ export default function FocusMode({
     if (!storageKey) return;
     if (running && mode === "work") {
       const elapsedSoFarMs = Math.max(0, workMin * 60 - secondsLeft) * 1000;
-      writePersistedSession(storageKey, { startedAt: Date.now() - elapsedSoFarMs, workMin, breakMin });
+      writePersistedSession(storageKey, {
+        startedAt: Date.now() - elapsedSoFarMs,
+        workMin,
+        breakMin,
+        noiseOn,
+        noiseType,
+      });
     } else {
       writePersistedSession(storageKey, null);
     }
+    // noiseOn/noiseType se agregan a las dependencias a propósito — si la
+    // persona prende o cambia el sonido de fondo a medio camino, queremos
+    // que la próxima recarga intente reanudar CON ese sonido, no con el que
+    // estaba sonando cuando arrancó el reloj.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [running, mode]);
+  }, [running, mode, noiseOn, noiseType]);
 
   // --- Temporizador ---
   useEffect(() => {
@@ -462,6 +478,35 @@ export default function FocusMode({
     },
     [startBinauralTrack, startBufferTrack]
   );
+
+  // Intento automático (best effort) de volver a prender el sonido de
+  // fondo al reanudar una sesión con ruido guardado — solo se marca
+  // noiseOn en true si el navegador de verdad lo deja correr. Muchos
+  // navegadores bloquean que un sonido arranque solo sin que la persona
+  // haya hecho clic en algo primero en ESTA carga de página (política de
+  // autoplay) — si eso pasa aquí, el intento falla en silencio y el botón
+  // de "Ruido blanco" se queda apagado (honesto con lo que de verdad está
+  // sonando); un clic normal en ese botón sí lo prende, porque ESE clic sí
+  // cuenta como la interacción que el navegador pedía.
+  useEffect(() => {
+    if (!resumedInProgress || !persisted || !persisted.noiseOn) return;
+    const kind = PLUS_NOISE_TRACKS.includes(persisted.noiseType) && !isPlus ? "white" : persisted.noiseType || "white";
+    const ctx = getCtx();
+    if (!ctx) return;
+    startTrack(kind);
+    const ready = ctx.state === "suspended" ? ctx.resume() : Promise.resolve();
+    ready
+      .then(() => {
+        if (ctx.state === "running") {
+          setNoiseType(kind);
+          setNoiseOn(true);
+        } else {
+          stopNoise();
+        }
+      })
+      .catch(() => stopNoise());
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const toggleNoise = () => {
     const ctx = getCtx();
