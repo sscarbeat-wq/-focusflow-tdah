@@ -45,11 +45,29 @@ export default async function handler(req, res) {
       // ningún valor si por algún motivo no llegara.
       const plan = session.metadata?.plan || null;
       if (userId) {
+        // Corrección (3 de noviembre de 2026): antes se guardaba
+        // status: "active" fijo aquí, sin importar si la suscripción
+        // seguía en periodo de prueba de Stripe (trial) — así que el
+        // registro en Supabase decía "active" mientras la paciente
+        // seguía en trial. Se consulta el estado real de la suscripción
+        // recién creada ("trialing" o "active") en vez de asumirlo, y si
+        // por cualquier motivo la consulta fallara, se cae de vuelta a
+        // "active" (mismo comportamiento de antes) sin tumbar el webhook.
+        let status = "active";
+        if (session.subscription) {
+          try {
+            const subscription = await stripe.subscriptions.retrieve(session.subscription);
+            status = subscription.status;
+          } catch (err) {
+            console.error("No se pudo consultar el estado real de la suscripción, usando 'active':", err.message);
+          }
+        }
+
         await supabaseAdmin.from("subscriptions").upsert({
           user_id: userId,
           stripe_customer_id: session.customer,
           stripe_subscription_id: session.subscription,
-          status: "active",
+          status,
           plan,
           updated_at: new Date().toISOString(),
         });
