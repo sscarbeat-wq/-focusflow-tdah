@@ -820,6 +820,41 @@ const en = {
       text: 'Not everything about ADHD is difficulty paying attention — many people describe episodes of hyperfocus, where concentration on something truly engaging becomes intense and sustained, sometimes for hours. Research is still working out a precise definition of this phenomenon, but recognizing it as a real part of how your attention works (not just as a "deficit") helps you design your day around your own patterns, instead of against them.',
       source: "A phenomenon increasingly described in the adult ADHD literature; still without a single agreed-upon operational definition.",
     },
+    "cafeina-no-tratamiento": {
+      title: "Caffeine isn't a substitute for treatment",
+      text: "It's tempting to think a cup of coffee could work like ADHD medication, but a meta-analysis of 4 controlled trials in children with ADHD found no significant benefit of caffeine over placebo. The sample is small and only in children, so it's not a definitive answer — but for now there's no evidence that caffeine replaces an already-established treatment.",
+      source: "Perrotte et al., Brain Sciences (2023) — meta-analysis of 4 controlled trials, 152 children with ADHD.",
+    },
+    "accidentes-transito": {
+      title: "Untreated ADHD and driving",
+      text: "A meta-analysis of more than 2.75 million people found that adults aged 18-65 with untreated ADHD have a 93% higher risk of a car crash than people without ADHD. It's only 4 combined studies, but the total sample size is huge. If you drive often and suspect your attention behind the wheel isn't your strongest point, it's worth bringing up with your doctor — not to generate guilt, but as useful information for deciding on treatment.",
+      source: "Childress, Malik & Potenziano, Advances in Therapy (2026) — meta-analysis of 4 studies, more than 2.75 million people.",
+    },
+    "estimulantes-riesgo-cardiovascular": {
+      title: "Long-term stimulants: what the evidence says about the heart",
+      text: "A Swedish study of more than 278,000 people with ADHD found that each additional year on stimulant medication was associated with a 4% higher risk of cardiovascular disease, rising to 23% with more than 5 years of use — mostly driven by hypertension. It's a large, well-designed observational study, not 100% proof of cause and effect, and the authors themselves ask that it be weighed against the real benefit of treatment. This isn't a reason to stop medication on your own — it's information worth discussing with your doctor about follow-up (like checking blood pressure periodically).",
+      source: "Zhang et al., JAMA Psychiatry (2024) — 278,027 people with ADHD, nested case-control design.",
+    },
+    "neurofeedback-evidencia": {
+      title: "Neurofeedback: an honest look",
+      text: "A large, well-designed meta-analysis (38 clinical trials, close to 2,500 participants, with raters who didn't know who received the real treatment) found no significant improvement in core ADHD symptoms, attention, inhibition, or working memory from neurofeedback — only a slight improvement in processing speed. The researchers themselves conclude this doesn't support neurofeedback as a standalone treatment. It's one of the most solid reviews on the topic, and its conclusion is clear.",
+      source: "Westwood et al., JAMA Psychiatry (2025) — meta-analysis of 38 randomized clinical trials, 2,472 participants.",
+    },
+    "tdah-brecha-economica": {
+      title: "The lifetime cost of untreated ADHD",
+      text: "A study that followed 364 people with childhood-diagnosed ADHD for years (compared with 240 people without ADHD) projected around $1.25 million less lifetime income. It's a single study, in a specific U.S. population, and can't be generalized without more replication — but it points to something real: untreated ADHD isn't just a daily annoyance, it has consequences that add up. It's not about lack of effort — it's one more reason to take treatment seriously.",
+      source: "Pelham et al., Journal of Consulting and Clinical Psychology (2019) — longitudinal study, Pittsburgh ADHD Longitudinal Study, 364 vs. 240 people.",
+    },
+    "tdah-adicciones": {
+      title: "ADHD and substance use: a strong connection, but not destiny",
+      text: "A meta-analysis of 84 studies with more than 34,000 adults in substance use treatment found that 22% had clinically diagnosed ADHD — up to 8 times the rate in the general population (alcohol 24%, opioids 22%, cocaine 18%). This measures how common ADHD is among people who already have an addiction, not that ADHD directly 'causes' addiction — the direction of causation isn't established. If this resonates with you, it's not a sentence: it's one more reason for ADHD treatment to be part of any recovery plan.",
+      source: "Comiskey et al., Journal of Dual Diagnosis (2026) — meta-analysis of 84 studies, more than 34,000 adults.",
+    },
+    "coaching-tdah-evidencia": {
+      title: "ADHD coaching: real help, but still thin evidence",
+      text: "Many people with ADHD report that coaching helps them, and it's reasonable that it would — but literature reviews (including one from CHADD, the leading ADHD organization) find that most studies have 10 people or fewer and no control group. That doesn't mean it doesn't work, just that there still aren't large, well-designed trials proving it carries the same weight as other treatments on this list.",
+      source: "Literature reviews on ADHD coaching for adults (including CHADD) — small studies, no control groups; no robust meta-analysis so far.",
+    },
   },
 
   today: {

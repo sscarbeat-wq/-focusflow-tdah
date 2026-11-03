@@ -825,6 +825,41 @@ const pt = {
       text: 'Nem tudo no TDAH é dificuldade de prestar atenção — muitas pessoas descrevem episódios de hiperfoco, em que a concentração em algo que realmente engaja se torna intensa e sustentada, às vezes por horas. A pesquisa ainda está definindo bem esse fenômeno, mas reconhecê-lo como parte real de como sua atenção funciona (não apenas como um "déficit") ajuda a organizar seu dia em torno dos seus próprios padrões, em vez de contra eles.',
       source: "Fenômeno cada vez mais descrito na literatura sobre TDAH adulto; ainda sem uma definição operacional única consensual.",
     },
+    "cafeina-no-tratamiento": {
+      title: "A cafeína não substitui o tratamento",
+      text: "É tentador pensar que uma xícara de café poderia funcionar como a medicação para o TDAH, mas uma metanálise de 4 ensaios controlados em crianças com TDAH não encontrou benefício significativo da cafeína em relação ao placebo. A amostra é pequena e só com crianças, então não é uma resposta definitiva — mas por enquanto não há evidência de que a cafeína substitua um tratamento já estabelecido.",
+      source: "Perrotte et al., Brain Sciences (2023) — metanálise de 4 ensaios controlados, 152 crianças com TDAH.",
+    },
+    "accidentes-transito": {
+      title: "TDAH não tratado e direção",
+      text: "Uma metanálise com mais de 2,75 milhões de pessoas encontrou que adultos de 18 a 65 anos com TDAH não tratado têm 93% mais risco de acidente de carro do que quem não tem TDAH. São só 4 estudos combinados, mas o tamanho total da amostra é enorme. Se você dirige com frequência e suspeita que sua atenção ao volante não é das melhores, vale a pena comentar na consulta — não para gerar culpa, mas como informação útil para decidir sobre o tratamento.",
+      source: "Childress, Malik & Potenziano, Advances in Therapy (2026) — metanálise de 4 estudos, mais de 2,75 milhões de pessoas.",
+    },
+    "estimulantes-riesgo-cardiovascular": {
+      title: "Estimulantes a longo prazo: o que a evidência diz sobre o coração",
+      text: "Um estudo sueco com mais de 278 mil pessoas com TDAH encontrou que cada ano adicional usando medicação estimulante foi associado a 4% mais risco de doença cardiovascular, subindo para 23% com mais de 5 anos de uso — principalmente por hipertensão. É um estudo observacional grande e bem desenhado, não uma prova de causa e efeito a 100%, e os próprios autores pedem que seja ponderado contra o benefício real do tratamento. Isso não é motivo para suspender a medicação por conta própria — é informação para comentar com seu médico sobre acompanhamento (como medir a pressão periodicamente).",
+      source: "Zhang et al., JAMA Psychiatry (2024) — 278.027 pessoas com TDAH, desenho de caso-controle aninhado.",
+    },
+    "neurofeedback-evidencia": {
+      title: "Neurofeedback: uma revisão honesta",
+      text: "Uma metanálise grande e bem desenhada (38 ensaios clínicos, perto de 2.500 participantes, com avaliadores que não sabiam quem recebeu o tratamento real) não encontrou melhora significativa nos sintomas centrais do TDAH nem em atenção, inibição ou memória de trabalho com o neurofeedback — só uma melhora leve na velocidade de processamento. Os próprios pesquisadores concluem que isso não sustenta o neurofeedback como tratamento único. É uma das revisões mais sólidas que existem sobre o tema, e sua conclusão é clara.",
+      source: "Westwood et al., JAMA Psychiatry (2025) — metanálise de 38 ensaios clínicos randomizados, 2.472 participantes.",
+    },
+    "tdah-brecha-economica": {
+      title: "O custo de um TDAH não tratado ao longo da vida",
+      text: "Um estudo que acompanhou por anos 364 pessoas com TDAH diagnosticado na infância (comparadas com 240 pessoas sem TDAH) projetou cerca de 1,25 milhão de dólares menos de renda ao longo da vida. É um único estudo, numa população específica dos EUA, e não pode ser generalizado sem mais réplicas — mas aponta para algo real: o TDAH não tratado não é só um incômodo do dia a dia, tem consequências que se acumulam. Não é por falta de esforço — é mais uma razão para levar o tratamento a sério.",
+      source: "Pelham et al., Journal of Consulting and Clinical Psychology (2019) — estudo longitudinal, Pittsburgh ADHD Longitudinal Study, 364 vs. 240 pessoas.",
+    },
+    "tdah-adicciones": {
+      title: "TDAH e uso de substâncias: uma conexão forte, mas não é destino",
+      text: 'Uma metanálise de 84 estudos com mais de 34 mil adultos em tratamento por uso de substâncias encontrou que 22% tinham TDAH diagnosticado clinicamente — até 8 vezes mais do que na população geral (álcool 24%, opioides 22%, cocaína 18%). Isso mede o quão comum é o TDAH entre quem já tem uma adicção, não que o TDAH "cause" a adicção diretamente — a direção da causa não está estabelecida. Se você se identifica com isso, não é uma sentença: é mais uma razão para que o tratamento do TDAH seja parte de qualquer plano de recuperação.',
+      source: "Comiskey et al., Journal of Dual Diagnosis (2026) — metanálise de 84 estudos, mais de 34 mil adultos.",
+    },
+    "coaching-tdah-evidencia": {
+      title: "Coaching de TDAH: ajuda real, mas evidência ainda fraca",
+      text: "Muitas pessoas com TDAH relatam que o coaching ajuda, e é razoável que seja assim — mas revisões da literatura (incluindo uma da CHADD, a organização de referência em TDAH) encontram que a maioria dos estudos tem 10 pessoas ou menos e não tem grupo controle. Isso não significa que não funcione, só que ainda não há ensaios grandes e bem desenhados que comprovem isso com o mesmo peso de outros tratamentos desta lista.",
+      source: "Revisões da literatura sobre coaching de TDAH em adultos (incluindo CHADD) — estudos pequenos, sem grupo controle; sem metanálise robusta até agora.",
+    },
   },
 
   today: {

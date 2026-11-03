@@ -19,6 +19,29 @@
 // diccionarios de i18n, bajo scienceCapsuleContent[id] — así los 4 idiomas
 // están en un solo lugar por idioma. Este archivo solo guarda el orden/id
 // para la rotación determinista por fecha.
+//
+// 3 de noviembre de 2026 — a petición explícita de la doctora ("quiero que
+// cuando se acaben se muestren nuevas cápsulas"), esta lista queda abierta a
+// crecer con el tiempo, igual que ya se hizo con el programa de TCC
+// (cbtProgram.js): como capsuleIndexForKey() ya calcula el índice con
+// `SCIENCE_CAPSULES.length`, simplemente agregar más entradas aquí (con su
+// contenido correspondiente en scienceCapsuleContent[id] en los 4 i18n) hace
+// que el ciclo de rotación sea más largo antes de repetirse — quien ya vio
+// las primeras 15 empieza a ver cápsulas nuevas en los días siguientes, en
+// vez de repetir desde el día 1. Primera tanda (15 cápsulas originales):
+// genética → ejercicio → medicación y mortalidad → sueño → mindfulness →
+// perimenopausia → redes sociales → cuerpo doble → comorbilidad con
+// ansiedad/depresión → disforia de sensibilidad al rechazo → omega-3 →
+// mujeres y diagnóstico tardío → "no es falta de voluntad" → prevalencia en
+// adultos → hiperfoco. Segunda tanda (7 cápsulas nuevas, revisadas y
+// aprobadas por la doctora el 3 de noviembre de 2026): cafeína (no es
+// tratamiento) → accidentes de tránsito → riesgo cardiovascular de
+// estimulantes a largo plazo → neurofeedback (evidencia floja) → brecha
+// económica de un TDAH no tratado → TDAH y adicciones → coaching de TDAH
+// (evidencia floja). La cápsula de riesgo cardiovascular es contenido
+// clínicamente sensible (podría preocupar a alguien o hacer que suspenda su
+// medicación sin consultar) — fue marcada aparte para revisión y aprobada
+// con ese encuadre explícito.
 export const SCIENCE_CAPSULES = [
   { id: "herencia-genetica" },
   { id: "ejercicio-control-inhibitorio" },
@@ -35,6 +58,13 @@ export const SCIENCE_CAPSULES = [
   { id: "tdah-no-es-falta-de-voluntad" },
   { id: "tdah-adultos-prevalencia" },
   { id: "hiperfoco-fortaleza" },
+  { id: "cafeina-no-tratamiento" },
+  { id: "accidentes-transito" },
+  { id: "estimulantes-riesgo-cardiovascular" },
+  { id: "neurofeedback-evidencia" },
+  { id: "tdah-brecha-economica" },
+  { id: "tdah-adicciones" },
+  { id: "coaching-tdah-evidencia" },
 ];
 
 // Índice de "día" determinista a partir de una fecha YYYY-MM-DD local
