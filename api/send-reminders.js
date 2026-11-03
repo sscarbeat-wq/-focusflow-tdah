@@ -36,6 +36,10 @@ import webpush from "web-push";
 import { paymentsDueSoon } from "../src/paymentsLog.js";
 import { scheduleBlocksForDay } from "../src/scheduleBlocks.js";
 import { pendingRoutineTemplates } from "../src/routines.js";
+import { daysBetween } from "../src/streak.js";
+import { programStatus } from "../src/cbtProgram.js";
+import { capsuleForKey } from "../src/scienceCapsules.js";
+import { oldForgottenNote } from "../src/quickCapture.js";
 
 const supabaseAdmin = createClient(process.env.VITE_SUPABASE_URL, process.env.SUPABASE_SERVICE_ROLE_KEY);
 
@@ -101,6 +105,12 @@ async function handleDailyCheck(req, res) {
 
     let sent = 0;
     const toRemove = [];
+    // "Memoria ANRO" — un usuario con varios dispositivos tiene varias
+    // filas en `subs`, pero el aviso de reenganche solo debe actualizar
+    // progress UNA vez por persona (no una vez por dispositivo) — este Set
+    // evita encolar el mismo upsert varias veces en el mismo recorrido.
+    const nudgedUserIds = new Set();
+    const progressUpdates = [];
 
     for (const sub of subs) {
       const progress = progressByUser[sub.user_id] || {};
@@ -162,10 +172,64 @@ async function handleDailyCheck(req, res) {
           }
         }
       }
+
+      // "Memoria ANRO" — reenganche suave, independiente de todo lo de
+      // arriba (puede mandarse el mismo día que el aviso de racha/ánimo o
+      // de pagos, son avisos distintos de verdad). A propósito NUNCA
+      // menciona cuántos días lleva sin entrar ni usa un tono de
+      // culpa/urgencia — solo una invitación cálida, mismo principio "sin
+      // culpa" del resto de ANRO TDAH.
+      const gapDays = streak.lastDate ? daysBetween(streak.lastDate, today) : null;
+      const lastNudgeDate = progress.reengagementNudge?.lastSentDate || null;
+      const canNudge =
+        gapDays !== null &&
+        gapDays >= REENGAGEMENT_MIN_DAYS &&
+        (!lastNudgeDate || daysBetween(lastNudgeDate, today) >= REENGAGEMENT_COOLDOWN_DAYS);
+
+      if (canNudge) {
+        try {
+          await webpush.sendNotification(
+            sub.subscription,
+            JSON.stringify({
+              title: "Aquí seguimos, sin prisa 🌿",
+              body: "Cuando quieras volver a ANRO TDAH, todo va a seguir tal como lo dejaste.",
+              url: "/",
+            })
+          );
+          sent += 1;
+        } catch (err) {
+          if (err.statusCode === 404 || err.statusCode === 410) {
+            toRemove.push(sub.endpoint);
+          } else {
+            console.error("Error enviando push de reenganche a", sub.endpoint, err.message);
+          }
+        }
+
+        // Se guarda la fecha de este aviso para que el cooldown de arriba
+        // funcione mañana y los próximos días — mismo patrón de "leer todo
+        // al inicio, escribir todo junto al final" que ya usa el resto de
+        // esta app (nunca hay control de versión optimista en la columna
+        // `data`, en ningún lugar de ANRO TDAH); el riesgo de pisar un
+        // cambio que la paciente esté guardando en ese mismo instante ya
+        // existe hoy en cualquier autoguardado con varias pestañas/
+        // dispositivos abiertos a la vez, y aquí es aún más improbable
+        // porque este cron corre una sola vez al día.
+        if (!nudgedUserIds.has(sub.user_id)) {
+          nudgedUserIds.add(sub.user_id);
+          progressUpdates.push({
+            user_id: sub.user_id,
+            data: { ...progress, reengagementNudge: { lastSentDate: today } },
+            updated_at: new Date().toISOString(),
+          });
+        }
+      }
     }
 
     if (toRemove.length) {
       await supabaseAdmin.from("push_subscriptions").delete().in("endpoint", toRemove);
+    }
+    if (progressUpdates.length) {
+      await supabaseAdmin.from("progress").upsert(progressUpdates);
     }
 
     res.status(200).json({ sent, total: subs.length });
@@ -181,6 +245,16 @@ async function handleDailyCheck(req, res) {
 // un día) esto también cubre el caso de una dosis cerca de la medianoche
 // (ej. 23:50), que de otro modo el siguiente "tick" (00:00, ya del día
 // siguiente) nunca alcanzaría a detectar.
+// "Memoria ANRO" (3 de noviembre de 2026) — reenganche suave tras varios
+// días sin actividad. MIN_DAYS: a partir de cuántos días sin ningún check-in
+// trackeable (streak.lastDate, ver streak.js) se considera que vale la pena
+// invitarla a volver. COOLDOWN_DAYS: como máximo un aviso de este tipo cada
+// tantos días por persona, aunque siga sin volver — para que sea UNA
+// invitación ocasional, nunca un recordatorio diario que se sienta como
+// presión.
+const REENGAGEMENT_MIN_DAYS = 4;
+const REENGAGEMENT_COOLDOWN_DAYS = 7;
+
 const MEDICATION_WINDOW_MIN = 16;
 
 async function handleMedicationCheck(req, res) {
@@ -366,6 +440,42 @@ async function handleDigestCheck(req, res) {
           todaysBlocks.length === 1 ? "1 bloque en tu agenda" : `${todaysBlocks.length} bloques en tu agenda`
         );
       }
+
+      // "Memoria ANRO" (3 de noviembre de 2026) — dos avisos más al mismo
+      // resumen matutino, en vez de mandar pushes aparte, para no sumar
+      // más interrupciones de las que ya manda este cron: 1) la cápsula de
+      // ciencia de HOY (scienceCapsules.js rota una distinta cada día de
+      // forma determinista, así que siempre hay una "nueva" que avisar) y
+      // la siguiente lección de TCC si ya le toca (programStatus, misma
+      // función pura que ya usa el cliente en todayView.js); 2) "El
+      // Regreso": una nota de Captura rápida que lleva FORGOTTEN_NOTE_MIN_DAYS
+      // días o más sin resolverse — hasta ahora solo resurgía dentro de la
+      // vista "Hoy" (ver quickCapture.js/todayView.js), nunca como push.
+      const cbt = programStatus(progress.cbtProgram, now);
+      const hasNewCbtLesson = !cbt.finished && cbt.availableNow && Boolean(cbt.nextLesson);
+      if (hasNewCbtLesson) {
+        parts.push("una lección nueva de tu programa de TCC");
+      } else {
+        // Solo se menciona la cápsula de ciencia cuando NO hay lección de
+        // TCC nueva en el mismo resumen, para no alargar el mensaje con
+        // dos "contenido nuevo" distintos el mismo día — la cápsula de
+        // hoy siempre existe (rota sola), así que de todas formas vuelve
+        // a aparecer mañana si hoy no le tocó mencionarla.
+        // OJO: todayKeyMX() se llama SIN argumento a propósito — ya hace su
+        // propio ajuste de -6h internamente (ver su definición arriba), así
+        // que pasarle el `now` de esta función (que YA viene ajustado, para
+        // los getters locales que usan scheduleBlocksForDay/programStatus/
+        // oldForgottenNote más arriba) lo ajustaría dos veces y correría el
+        // riesgo de calcular el día equivocado cerca de la medianoche.
+        const capsule = capsuleForKey(todayKeyMX(), daysBetween);
+        if (capsule) parts.push("una cápsula de ciencia nueva sobre TDAH");
+      }
+
+      const forgotten = oldForgottenNote(progress.quickNotes, now);
+      if (forgotten) {
+        parts.push("una nota antigua que volvió a aparecer en Memoria ANRO (El Regreso)");
+      }
+
       if (parts.length === 0) continue; // nada real que avisar hoy
 
       try {
