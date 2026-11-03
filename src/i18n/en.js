@@ -40,6 +40,7 @@ const en = {
     welcomeSubtitle: "Your space to start your own way.",
     installHint: "You can also install ANRO on your phone.",
     disclaimer: "ANRO is a companionship and organization tool. It does not replace professional evaluation or treatment.",
+    privacyPolicyLink: "Privacy policy",
     showPassword: "Show password",
     hidePassword: "Hide password",
     incompleteFields: "Enter your email and password.",

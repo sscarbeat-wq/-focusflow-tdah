@@ -49,6 +49,12 @@ const es = {
     // (`app.disclaimer`, en Inicio); ese no se tocó.
     disclaimer:
       "ANRO es una herramienta de acompañamiento y organización. No sustituye la evaluación ni el tratamiento profesional.",
+    // 3 de noviembre de 2026 — enlace visible a la política de privacidad
+    // (public/privacidad.html), requisito de Google para verificar la
+    // integración con Calendar: debe verse desde la pantalla pública
+    // (esta) y coincidir con el enlace que se registre en la pantalla de
+    // consentimiento de OAuth en Google Cloud Console.
+    privacyPolicyLink: "Política de privacidad",
     showPassword: "Mostrar contraseña",
     hidePassword: "Ocultar contraseña",
     incompleteFields: "Completa tu correo y contraseña.",

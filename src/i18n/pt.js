@@ -45,6 +45,7 @@ const pt = {
     welcomeSubtitle: "Seu espaço para começar do seu jeito.",
     installHint: "Você também pode instalar o ANRO no seu celular.",
     disclaimer: "O ANRO é uma ferramenta de acompanhamento e organização. Não substitui avaliação nem tratamento profissional.",
+    privacyPolicyLink: "Política de privacidade",
     showPassword: "Mostrar senha",
     hidePassword: "Ocultar senha",
     incompleteFields: "Preencha seu e-mail e senha.",

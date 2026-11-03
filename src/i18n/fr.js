@@ -42,6 +42,7 @@ const fr = {
     welcomeSubtitle: "Ton espace pour commencer à ta façon.",
     installHint: "Tu peux aussi installer ANRO sur ton téléphone.",
     disclaimer: "ANRO est un outil d'accompagnement et d'organisation. Il ne remplace pas une évaluation ou un traitement professionnel.",
+    privacyPolicyLink: "Politique de confidentialité",
     showPassword: "Afficher le mot de passe",
     hidePassword: "Masquer le mot de passe",
     incompleteFields: "Complète ton e-mail et ton mot de passe.",
