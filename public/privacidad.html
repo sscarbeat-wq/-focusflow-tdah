@@ -1,0 +1,141 @@
+<!doctype html>
+<html lang="es">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Política de privacidad — ANRO TDAH</title>
+    <style>
+      :root { color-scheme: light dark; }
+      body {
+        margin: 0;
+        font-family: -apple-system, BlinkMacSystemFont, 'Inter', 'Segoe UI', sans-serif;
+        background: #faf8ff;
+        color: #1c1b29;
+        line-height: 1.6;
+      }
+      .wrap {
+        max-width: 720px;
+        margin: 0 auto;
+        padding: 40px 20px 80px;
+      }
+      h1 { font-size: 26px; margin: 0 0 4px; }
+      h2 { font-size: 18px; margin: 32px 0 10px; color: #6b4ee0; }
+      p, li { font-size: 15px; }
+      .updated { color: #6b6578; font-size: 13px; margin: 0 0 28px; }
+      .note {
+        background: #f1ecff;
+        border: 1px solid #d9ccff;
+        border-radius: 12px;
+        padding: 14px 16px;
+        font-size: 13.5px;
+        color: #433b63;
+        margin: 24px 0;
+      }
+      a { color: #6b4ee0; }
+      footer { margin-top: 48px; font-size: 12.5px; color: #8a8599; }
+      @media (prefers-color-scheme: dark) {
+        body { background: #15131f; color: #eceaf6; }
+        h2 { color: #b9a4ff; }
+        .updated, footer { color: #9e98b5; }
+        .note { background: #241f38; border-color: #3a3157; color: #d8d2f0; }
+        a { color: #b9a4ff; }
+      }
+    </style>
+  </head>
+  <body>
+    <div class="wrap">
+      <h1>Política de privacidad de ANRO TDAH</h1>
+      <p class="updated">Última actualización: 3 de noviembre de 2026</p>
+
+      <p>
+        ANRO TDAH ("la app", "nosotros") es una aplicación web pensada para acompañar a
+        personas adultas con TDAH en su día a día: organización de tareas, seguimiento
+        de hábitos, medicación, ánimo y energía, y herramientas de apoyo psicoeducativo.
+        Esta política explica qué información recopilamos, para qué la usamos, con quién
+        la compartimos y qué derechos tienes sobre ella.
+      </p>
+
+      <h2>Quién es responsable de tus datos</h2>
+      <p>
+        ANRO TDAH es operada de forma independiente. Para cualquier pregunta sobre esta
+        política o tus datos, puedes escribir a
+        <a href="mailto:sscarbeat@gmail.com">sscarbeat@gmail.com</a>.
+      </p>
+
+      <h2>Qué información recopilamos</h2>
+      <ul>
+        <li><strong>Datos de cuenta:</strong> tu correo electrónico y una contraseña (almacenada de forma cifrada por nuestro proveedor de autenticación, nunca en texto plano).</li>
+        <li><strong>Datos de uso y progreso:</strong> lo que registras dentro de la app para que funcione — registros de ánimo y energía, pasos de tareas, horarios y dosis de medicamentos (incluyendo notas de efectos secundarios si las escribes), hábitos de sueño y estilo de vida, notas sueltas, sesiones de enfoque, pagos/suscripciones que tú mismo anotas como referencia, y tu progreso en el programa de TCC. Todo esto se guarda asociado únicamente a tu cuenta.</li>
+        <li><strong>Datos de pago:</strong> si te suscribes, el procesamiento del pago lo hace Stripe directamente — nosotros nunca vemos ni guardamos el número completo de tu tarjeta.</li>
+        <li><strong>Google Calendar (opcional):</strong> si conectas tu cuenta de Google, guardamos de forma segura el permiso necesario para crear eventos en tu calendario cuando tú lo activas (para bloquear tiempo de tus pasos o sesiones de enfoque). Ese permiso vive solo en nuestro servidor, nunca es visible ni accesible desde tu navegador, y puedes desconectarlo en cualquier momento desde la app.</li>
+        <li><strong>Funciones con inteligencia artificial:</strong> algunas herramientas (el desglosador de tareas, el Compañero de apoyo, "Ayuda con mensajes" y "Captura rápida") envían el texto que escribes o dices a un proveedor externo (OpenAI) para generar una respuesta. Antes de generarla y antes de mostrártela, ese texto pasa por un filtro propio que detecta lenguaje de riesgo; si lo detecta, se muestra siempre un mensaje fijo con recursos de ayuda en vez de cualquier respuesta generada.</li>
+        <li><strong>Notificaciones push:</strong> si las activas, guardamos el identificador técnico de tu navegador/dispositivo necesario para poder enviarte el aviso — nunca tu ubicación ni ningún otro dato del dispositivo.</li>
+        <li><strong>Cuerpo doble virtual:</strong> mientras estás en la sala, se transmite un emoji anónimo (que no se puede revertir a tu identidad) y un estado de "aquí"/"enfocando". Esto nunca se guarda en ninguna base de datos — desaparece en cuanto sales de la sala o cierras la app.</li>
+        <li><strong>Idioma y preferencias de dispositivo:</strong> tu idioma elegido, tema claro/oscuro, color de acento y mascota se guardan localmente en tu propio dispositivo (no en nuestros servidores).</li>
+      </ul>
+      <p>No usamos ninguna herramienta de analítica, rastreo publicitario ni cookies de terceros con fines de publicidad.</p>
+
+      <h2>Con quién compartimos tu información</h2>
+      <p>No vendemos tu información a nadie. La compartimos únicamente con los proveedores que hacen posible el servicio, cada uno solo con lo que necesita para su función:</p>
+      <ul>
+        <li><strong>Supabase</strong> — aloja la base de datos donde vive tu cuenta y tu progreso, con seguridad a nivel de fila (cada persona solo puede leer su propia información, nunca la de otra).</li>
+        <li><strong>OpenAI</strong> — procesa el texto de las funciones de IA mencionadas arriba, solo cuando las usas. Conforme a la política de datos de la API de OpenAI vigente a la fecha de este documento, ese texto no se utiliza para entrenar sus modelos.</li>
+        <li><strong>Stripe</strong> — procesa los pagos de suscripción.</li>
+        <li><strong>Google</strong> — solo si decides conectar tu Google Calendar, y solo para crear los eventos que tú autorizas.</li>
+        <li><strong>Vercel</strong> — aloja el código y la infraestructura técnica de la app.</li>
+      </ul>
+      <p>Nunca compartimos tu información con fines de publicidad ni la transferimos a ningún tercero fuera de esta lista.</p>
+
+      <h2>Seguridad</h2>
+      <p>
+        Toda la comunicación con la app viaja cifrada (HTTPS). Tu progreso está protegido con
+        seguridad a nivel de fila en la base de datos, de forma que solo tu propia cuenta puede
+        leerlo o modificarlo. Las llaves/tokens sensibles (como el de tu Google Calendar) viven
+        únicamente en el servidor y nunca se exponen al navegador.
+      </p>
+
+      <h2>Cuánto tiempo guardamos tu información y cómo eliminarla</h2>
+      <p>
+        Guardamos tu información mientras tu cuenta esté activa. Puedes solicitar la eliminación
+        completa de tu cuenta y de todos los datos asociados en cualquier momento escribiendo a
+        <a href="mailto:sscarbeat@gmail.com">sscarbeat@gmail.com</a>; la eliminaremos en un plazo
+        razonable y te confirmaremos cuando se haya completado.
+      </p>
+
+      <h2>Tus derechos</h2>
+      <p>
+        Puedes solicitarnos en cualquier momento: acceder a tus datos, corregirlos si están
+        incompletos o equivocados, o cancelarlos/eliminarlos por completo. Para ejercer cualquiera
+        de estos derechos, escribe a
+        <a href="mailto:sscarbeat@gmail.com">sscarbeat@gmail.com</a>.
+      </p>
+
+      <h2>Sobre el contenido de salud</h2>
+      <p>
+        ANRO TDAH es una herramienta de apoyo y psicoeducación, no un servicio de diagnóstico ni
+        de tratamiento médico, y no sustituye la evaluación de un profesional de la salud. La
+        información que registras (ánimo, energía, medicamentos, etc.) es para tu propio
+        seguimiento y, si tú decides compartirla, para apoyar tus consultas médicas — nunca se usa
+        para ningún otro fin.
+      </p>
+
+      <h2>Menores de edad</h2>
+      <p>ANRO TDAH está dirigida a personas adultas y no está pensada para ser usada por menores de edad.</p>
+
+      <h2>Cambios a esta política</h2>
+      <p>
+        Si hacemos cambios importantes a esta política, actualizaremos la fecha al inicio de esta
+        página. Te recomendamos revisarla de vez en cuando.
+      </p>
+
+      <div class="note">
+        Este documento es un primer borrador redactado por Claude a partir de cómo funciona la
+        app hoy. No sustituye asesoría legal: antes de usarlo con pacientes reales conviene que un
+        abogado lo revise, especialmente en lo referente a protección de datos de salud en México
+        (LFPDPPP) y, si llegas a tener pacientes en otros países, a sus propias leyes de privacidad.
+      </div>
+
+      <footer>ANRO TDAH — Política de privacidad</footer>
+    </div>
+  </body>
+</html>
