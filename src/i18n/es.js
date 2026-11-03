@@ -648,6 +648,23 @@ const es = {
     modeGroupLabel: "Elige cómo capturar",
     quickTab: "Una idea",
     dumpTab: "Vaciar la cabeza",
+    // "Memoria ANRO" (3 de noviembre de 2026) — versión chica, ver
+    // MemoriaAnroLauncher.jsx y CaptureHubPanel.jsx.
+    fabLabel: "Memoria ANRO",
+    modalTitle: "Memoria ANRO",
+    attachPhotoButton: "Agregar foto",
+    photoUploading: "Subiendo foto...",
+    photoTypeError: "Ese archivo no es una foto. Intenta con una imagen.",
+    photoTooBigError: "Esa foto es muy pesada. Intenta con otra o toma una nueva.",
+    photoUploadError: "No se pudo guardar la foto. Intenta de nuevo.",
+    photoDefaultCaption: "Foto",
+    viewPhotoButton: "Ver foto",
+    photoViewError: "No se pudo abrir la foto. Intenta de nuevo.",
+    searchPlaceholder: "Buscar en tus notas...",
+    searchClearButton: "Borrar búsqueda",
+    searchNoResults: "No encontré ninguna nota con ese texto.",
+    searchResultsLabel: (n) => (n === 1 ? "1 nota encontrada" : `${n} notas encontradas`),
+    resolvedTag: "Ya resuelta",
   },
 
   oneThing: {
@@ -1013,7 +1030,7 @@ const es = {
       schedule: { title: "Agenda visual", subtitle: "Arma tu plan con bloques de tiempo — cambia entre vista de día y de semana, y arrástralos para cambiarles la hora." },
       quickCapture: { title: "Captura rápida", subtitle: "Deja una idea por voz o texto sin decidir primero en qué panel va — ANRO TDAH intenta mandarla sola al lugar correcto." },
       brainDump: { title: "Descarga mental con IA", subtitle: "Cuando son varias cosas a la vez — dilas o escríbelas todas juntas y ANRO TDAH las separa por ti." },
-      captureHub: { title: "Captura rápida y descarga mental", subtitle: "Deja una idea suelta o vacía la cabeza de varias a la vez — tú eliges cómo, en el mismo lugar." },
+      captureHub: { title: "Memoria ANRO", subtitle: "Deja una idea suelta, vacía la cabeza de varias a la vez, adjunta una foto o busca algo que ya guardaste — tú eliges cómo, en el mismo lugar." },
       companion: { title: "Compañero de apoyo", subtitle: "Elige lo que estás sintiendo ahora mismo — respuestas pensadas para TDAH, sin que tengas que escribir nada." },
       oneThing: { title: "Solo una cosa", subtitle: "Elige una sola tarea y enfócate solo en ella — sin ver el resto de tu lista." },
       routines: { title: "Rutinas visuales guiadas", subtitle: "Para cosas que repites seguido y en el mismo orden — arma los pasos una vez y ANRO TDAH te los va mostrando de uno en uno." },

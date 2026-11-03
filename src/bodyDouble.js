@@ -85,6 +85,19 @@ export function useBodyDouble(userId) {
         if (status === "SUBSCRIBED") {
           await channel.track({ userId, avatar: avatarFor(userId), status: "aqui" });
           setJoined(true);
+          // "Memoria ANRO" (3 de noviembre de 2026): avisa por push a las
+          // demás personas (nunca a esta) de que hay actividad en la sala
+          // AHORA — ver api/body-double-ping.js para el porqué de este
+          // diseño (la sala sigue siendo 100% efímera, sin servidor
+          // escuchando el canal). "Fire and forget": si falla (sin
+          // internet un instante, por ejemplo), no afecta en nada la
+          // experiencia de unirse a la sala, así que el error solo se
+          // registra en consola, nunca se le muestra a la paciente.
+          fetch("/api/body-double-ping", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ userId }),
+          }).catch((err) => console.error("No se pudo avisar de la actividad en el cuerpo doble:", err.message));
         }
       });
     channelRef.current = channel;
