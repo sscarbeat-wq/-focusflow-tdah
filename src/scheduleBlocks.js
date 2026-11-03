@@ -22,7 +22,7 @@
 // state: { blocks: [{ id, date /* "YYYY-MM-DD", mismo formato que
 // todayKey() */, text, icon, startMin /* minutos desde medianoche,
 // 0-1439 */, durationMin }] }
-import { todayKey } from "./streak";
+import { todayKey } from "./streak.js";
 
 export const DEFAULT_SCHEDULE_BLOCKS = { blocks: [] };
 
