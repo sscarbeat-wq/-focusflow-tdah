@@ -314,7 +314,15 @@ export default function Auth({ C, theme, onToggleTheme, t, lang, onChangeLanguag
         <Download size={14} style={{ flexShrink: 0 }} aria-hidden="true" />
         {t.auth.installHint}
       </p>
-      <p style={{ fontSize: "11.5px", color: C.textMuted, lineHeight: 1.5, margin: 0 }}>{t.auth.disclaimer}</p>
+      <p style={{ fontSize: "11.5px", color: C.textMuted, lineHeight: 1.5, margin: "0 0 6px" }}>{t.auth.disclaimer}</p>
+      <a
+        href="/privacidad.html"
+        target="_blank"
+        rel="noopener noreferrer"
+        style={{ fontSize: "11.5px", color: accent, textDecoration: "underline" }}
+      >
+        {t.auth.privacyPolicyLink}
+      </a>
     </div>
   );
 
