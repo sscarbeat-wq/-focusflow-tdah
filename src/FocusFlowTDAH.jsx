@@ -84,6 +84,7 @@ import ClinicalReportPanel from "./ClinicalReportPanel";
 import GoodMomentsPanel from "./GoodMomentsPanel";
 import DayTimelinePanel from "./DayTimelinePanel";
 import QuickNavMenu from "./QuickNavMenu";
+import MemoriaAnroLauncher from "./MemoriaAnroLauncher";
 import { hasPlusAccess } from "./plans";
 import { PlusLockedPanel, PlusUpsellBadge, PlusUpsellInline } from "./PlusUpsellCard";
 import { scheduleStepsOnCalendar } from "./calendarSync";
@@ -867,8 +868,8 @@ export default function FocusFlowTDAH({
   // SÍ llaman a las funciones que ya existían para agregar cada cosa, y
   // solo se usan cuando la persona tocó "Sí, agrégalo" en la tarjeta de
   // confirmación — la IA de api/quick-capture.js nunca escribe esto sola.
-  const handleAddQuickNote = useCallback((text) => {
-    setQuickNotes((prev) => addQuickNote(prev, text));
+  const handleAddQuickNote = useCallback((text, photoPath = null) => {
+    setQuickNotes((prev) => addQuickNote(prev, text, new Date(), photoPath));
   }, []);
 
   const handleResolveQuickNote = useCallback((id) => {
@@ -3128,6 +3129,32 @@ export default function FocusFlowTDAH({
         accent={personalAccent}
         sections={quickNavSections}
         onNavigate={scrollToCompanionSection}
+        bottomOffset={isNarrow ? 64 : 0}
+      />
+
+      {/* "Memoria ANRO" (3 de noviembre de 2026): acceso flotante adicional
+          a Captura rápida/Descarga mental desde cualquier pantalla, sin
+          navegar primero a "Herramientas" — ver MemoriaAnroLauncher.jsx
+          para la decisión completa. Mismas props que ya recibe
+          CaptureHubPanel más abajo en la pestaña "Herramientas"; los dos
+          leen y escriben el mismo estado (quickNotes), así que una nota
+          agregada desde el botón flotante aparece también en el panel de
+          la pestaña, y viceversa. */}
+      <MemoriaAnroLauncher
+        C={C}
+        t={t}
+        lang={lang}
+        userId={userId}
+        accent={personalAccent}
+        quickNotes={quickNotes}
+        oldForgottenNoteId={forgottenNoteId}
+        canAddStep={steps.length < 5}
+        onAddNote={handleAddQuickNote}
+        onResolveNote={handleResolveQuickNote}
+        onRemoveNote={handleRemoveQuickNote}
+        onConfirmMedication={handleConfirmQuickMedication}
+        onConfirmPayment={handleConfirmQuickPayment}
+        onConfirmStep={handleConfirmQuickStep}
         bottomOffset={isNarrow ? 64 : 0}
       />
     </div>

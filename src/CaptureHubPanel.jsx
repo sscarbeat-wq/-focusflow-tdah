@@ -1,6 +1,22 @@
 import React, { useRef, useState } from "react";
-import { Mic, Square, Keyboard, Trash2, CheckCircle2, StickyNote, AlertTriangle, Sparkles, Inbox } from "lucide-react";
-import { pendingQuickNotes, canConfirmQuickCaptureSuggestion, describeQuickCaptureSuggestion } from "./quickCapture";
+import { Mic, Square, Keyboard, Trash2, CheckCircle2, StickyNote, AlertTriangle, Sparkles, Inbox, ImagePlus, Search, X, Image as ImageIcon } from "lucide-react";
+import {
+  pendingQuickNotes,
+  searchQuickNotes,
+  canConfirmQuickCaptureSuggestion,
+  describeQuickCaptureSuggestion,
+  QUICK_NOTE_PHOTOS_BUCKET,
+} from "./quickCapture";
+import { supabase } from "./supabaseClient";
+
+// Tamaño máximo de foto que se acepta para adjuntar a una nota — generoso
+// para una foto de celular normal, pero suficiente para no dejar que una
+// foto sin comprimir (algunos celulares toman fotos de 10-20 MB) tarde
+// muchísimo en subir con una conexión mala, que es justo cuando más
+// frustrante sería. Nunca se comprime ni se procesa la imagen (ver la nota
+// de QUICK_NOTE_PHOTOS_BUCKET en quickCapture.js) — si no cabe, se le pide
+// a la persona que intente con otra foto en vez de intentar arreglarla.
+const MAX_PHOTO_BYTES = 8 * 1024 * 1024;
 
 // "Captura rápida" + "Descarga mental con IA" fusionadas en una sola
 // interfaz (Fase 2D de navegación, 29 de octubre de 2026) — la doctora
@@ -41,10 +57,19 @@ export default function CaptureHubPanel({
   const [textMode, setTextMode] = useState(false);
   const [draft, setDraft] = useState("");
   const [savedMsg, setSavedMsg] = useState("");
+  // "Memoria ANRO" (3 de noviembre de 2026): adjuntar una foto a una nota
+  // (solo almacenamiento, ver QUICK_NOTE_PHOTOS_BUCKET) y buscar texto
+  // simple sobre TODAS las notas guardadas — ninguno de los dos pasa por
+  // api/quick-capture.js ni por ninguna IA.
+  const [photoBusy, setPhotoBusy] = useState(false);
+  const [photoError, setPhotoError] = useState("");
+  const [searchQuery, setSearchQuery] = useState("");
+  const [viewingPhotoError, setViewingPhotoError] = useState("");
 
   const mediaRecorderRef = useRef(null);
   const chunksRef = useRef([]);
   const savedMsgTimeout = useRef(null);
+  const photoInputRef = useRef(null);
 
   const resetResults = () => {
     setSuggestion(null);
@@ -167,6 +192,63 @@ export default function CaptureHubPanel({
     setDraft("");
   };
 
+  // "Memoria ANRO" — adjuntar una foto crea la nota DIRECTO, sin pasar por
+  // la clasificación de IA (a propósito: la decisión de alcance fue "solo
+  // almacenamiento, sin OCR"), igual de espíritu que el Banco de momentos
+  // buenos (goodMoments.js), que tampoco usa IA. El texto que la persona
+  // haya escrito en el borrador se usa como descripción/caption de la
+  // foto; si no escribió nada, se guarda igual con un texto por defecto,
+  // porque una nota sin ningún texto sería invisible en la lista (que
+  // siempre pinta `n.text`).
+  const handlePhotoSelected = async (e) => {
+    const file = e.target.files && e.target.files[0];
+    e.target.value = ""; // permite elegir la misma foto otra vez si hace falta
+    if (!file) return;
+    setPhotoError("");
+    if (!file.type || !file.type.startsWith("image/")) {
+      setPhotoError(t.captureHub.photoTypeError);
+      return;
+    }
+    if (file.size > MAX_PHOTO_BYTES) {
+      setPhotoError(t.captureHub.photoTooBigError);
+      return;
+    }
+    setPhotoBusy(true);
+    try {
+      const ext = (file.name && file.name.includes(".") ? file.name.split(".").pop() : "jpg").slice(0, 10);
+      const path = `${userId}/${Date.now()}-${Math.random().toString(36).slice(2, 8)}.${ext}`;
+      const { error: uploadErr } = await supabase.storage.from(QUICK_NOTE_PHOTOS_BUCKET).upload(path, file, {
+        contentType: file.type,
+      });
+      if (uploadErr) throw uploadErr;
+      const caption = draft.trim() || t.captureHub.photoDefaultCaption;
+      onAddNote(caption, path);
+      setDraft("");
+      flashSaved(t.quickCapture.savedAsNote);
+    } catch (err) {
+      setPhotoError(t.captureHub.photoUploadError);
+    } finally {
+      setPhotoBusy(false);
+    }
+  };
+
+  // Las fotos viven en un bucket PRIVADO (ver supabase/schema.sql) — nunca
+  // se guarda ni se calcula una URL pública, así que para verla se pide una
+  // URL firmada al momento, válida solo un rato (1 hora), y se abre en una
+  // pestaña nueva. Si la política RLS no deja verla (ej. se pide la foto de
+  // otra cuenta, lo que no debería pasar nunca desde esta UI) o la red
+  // falla, se avisa en vez de fallar en silencio.
+  const handleViewPhoto = async (photoPath) => {
+    setViewingPhotoError("");
+    try {
+      const { data, error } = await supabase.storage.from(QUICK_NOTE_PHOTOS_BUCKET).createSignedUrl(photoPath, 3600);
+      if (error || !data?.signedUrl) throw error || new Error("no signed url");
+      window.open(data.signedUrl, "_blank", "noopener,noreferrer");
+    } catch (err) {
+      setViewingPhotoError(t.captureHub.photoViewError);
+    }
+  };
+
   // ---- modo "quick": una sola sugerencia a la vez ----
   const handleSaveAsNote = () => {
     if (!suggestion) return;
@@ -210,6 +292,7 @@ export default function CaptureHubPanel({
   // la tarjeta solo ofrece guardarlo como nota, nunca intenta adivinar.
   const canConfirm = canConfirmQuickCaptureSuggestion(suggestion, canAddStep);
   const pending = pendingQuickNotes(quickNotes);
+  const searchResults = searchQuickNotes(quickNotes, searchQuery);
 
   const btnPrimary = {
     display: "inline-flex",
@@ -444,6 +527,18 @@ export default function CaptureHubPanel({
                 <Keyboard size={13} style={{ verticalAlign: "-2px", marginRight: "5px" }} />
                 {t.quickCapture.typeInstead}
               </button>
+              <button onClick={() => photoInputRef.current?.click()} disabled={busy || photoBusy} style={btnGhost}>
+                <ImagePlus size={13} style={{ verticalAlign: "-2px", marginRight: "5px" }} />
+                {photoBusy ? t.captureHub.photoUploading : t.captureHub.attachPhotoButton}
+              </button>
+              <input
+                ref={photoInputRef}
+                type="file"
+                accept="image/*"
+                capture="environment"
+                onChange={handlePhotoSelected}
+                style={{ display: "none" }}
+              />
             </div>
           )}
 
@@ -464,6 +559,10 @@ export default function CaptureHubPanel({
                   <Mic size={13} style={{ verticalAlign: "-2px", marginRight: "5px" }} />
                   {t.quickCapture.recordInstead}
                 </button>
+                <button onClick={() => photoInputRef.current?.click()} disabled={busy || photoBusy} style={btnGhost}>
+                  <ImagePlus size={13} style={{ verticalAlign: "-2px", marginRight: "5px" }} />
+                  {photoBusy ? t.captureHub.photoUploading : t.captureHub.attachPhotoButton}
+                </button>
               </div>
             </div>
           )}
@@ -472,59 +571,174 @@ export default function CaptureHubPanel({
             <p style={{ fontSize: "12px", color: C.textMuted, margin: "8px 0 0" }}>{t.quickCapture.transcribing}</p>
           )}
           {error && <p style={{ fontSize: "12px", color: C.amber, margin: "8px 0 0" }}>{error}</p>}
+          {photoError && <p style={{ fontSize: "12px", color: C.amber, margin: "8px 0 0" }}>{photoError}</p>}
           {mode === "quick" && savedMsg && <p style={{ fontSize: "12px", color: C.mint, margin: "8px 0 0" }}>{savedMsg}</p>}
         </div>
       )}
 
-      {pending.length > 0 && (
-        <div>
-          <p style={{ fontSize: "12px", color: C.textMuted, margin: "0 0 8px", fontWeight: 600 }}>{t.quickCapture.looseNotesLabel}</p>
-          {pending.map((n) => {
-            const isForgotten = n.id === oldForgottenNoteId;
-            return (
-              <div
-                key={n.id}
+      {/* "Memoria ANRO" — búsqueda de texto simple sobre TODAS las notas
+          guardadas (pendientes y resueltas), no solo las pendientes. A
+          propósito solo aparece cuando ya hay al menos una nota guardada —
+          una caja de búsqueda vacía antes de guardar la primera nota no
+          ayudaría a nadie. */}
+      {(quickNotes || []).length > 0 && (
+        <div style={{ marginBottom: "12px" }}>
+          <div style={{ position: "relative" }}>
+            <Search
+              size={14}
+              style={{ position: "absolute", left: "10px", top: "50%", transform: "translateY(-50%)", color: C.textMuted }}
+            />
+            <input
+              type="text"
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              placeholder={t.captureHub.searchPlaceholder}
+              aria-label={t.captureHub.searchPlaceholder}
+              style={{ ...inputStyle, paddingLeft: "32px", paddingRight: searchQuery ? "32px" : "12px" }}
+            />
+            {searchQuery && (
+              <button
+                onClick={() => setSearchQuery("")}
+                title={t.captureHub.searchClearButton}
                 style={{
+                  position: "absolute",
+                  right: "6px",
+                  top: "50%",
+                  transform: "translateY(-50%)",
+                  background: "transparent",
+                  border: "none",
+                  color: C.textMuted,
+                  cursor: "pointer",
                   display: "flex",
-                  alignItems: "flex-start",
-                  justifyContent: "space-between",
-                  gap: "10px",
-                  background: isForgotten ? C.surfaceAlt : "transparent",
-                  border: `1px solid ${isForgotten ? C.amber : C.border}`,
-                  borderRadius: "12px",
-                  padding: "10px 12px",
-                  marginBottom: "8px",
                 }}
               >
-                <div>
-                  {isForgotten && (
-                    <span style={{ display: "block", fontSize: "11px", color: C.amber, marginBottom: "3px", fontWeight: 600 }}>
-                      {t.quickCapture.oldPending}
-                    </span>
-                  )}
-                  <span style={{ fontSize: "13px", color: C.text }}>{n.text}</span>
-                </div>
-                <div style={{ display: "flex", alignItems: "center", gap: "6px", flexShrink: 0 }}>
-                  <button
-                    onClick={() => onResolveNote(n.id)}
-                    title={t.quickCapture.resolveTitle}
-                    style={{ background: "transparent", border: "none", color: C.mint, cursor: "pointer" }}
-                  >
-                    <CheckCircle2 size={15} />
-                  </button>
-                  <button
-                    onClick={() => onRemoveNote(n.id)}
-                    title={t.quickCapture.deleteTitle}
-                    style={{ background: "transparent", border: "none", color: C.textMuted, cursor: "pointer" }}
-                  >
-                    <Trash2 size={15} />
-                  </button>
-                </div>
-              </div>
-            );
-          })}
+                <X size={16} />
+              </button>
+            )}
+          </div>
         </div>
       )}
+      {viewingPhotoError && <p style={{ fontSize: "12px", color: C.amber, margin: "0 0 12px" }}>{viewingPhotoError}</p>}
+
+      {searchQuery.trim() ? (
+        <div>
+          {searchResults.length === 0 ? (
+            <p style={{ fontSize: "12px", color: C.textMuted, margin: "0 0 8px" }}>{t.captureHub.searchNoResults}</p>
+          ) : (
+            <>
+              <p style={{ fontSize: "12px", color: C.textMuted, margin: "0 0 8px", fontWeight: 600 }}>
+                {t.captureHub.searchResultsLabel(searchResults.length)}
+              </p>
+              {searchResults.map((n) => (
+                <NoteRow
+                  key={n.id}
+                  note={n}
+                  C={C}
+                  t={t}
+                  isForgotten={false}
+                  showResolved
+                  onResolveNote={onResolveNote}
+                  onRemoveNote={onRemoveNote}
+                  onViewPhoto={handleViewPhoto}
+                />
+              ))}
+            </>
+          )}
+        </div>
+      ) : (
+        pending.length > 0 && (
+          <div>
+            <p style={{ fontSize: "12px", color: C.textMuted, margin: "0 0 8px", fontWeight: 600 }}>{t.quickCapture.looseNotesLabel}</p>
+            {pending.map((n) => (
+              <NoteRow
+                key={n.id}
+                note={n}
+                C={C}
+                t={t}
+                isForgotten={n.id === oldForgottenNoteId}
+                showResolved={false}
+                onResolveNote={onResolveNote}
+                onRemoveNote={onRemoveNote}
+                onViewPhoto={handleViewPhoto}
+              />
+            ))}
+          </div>
+        )
+      )}
+    </div>
+  );
+}
+
+// Una sola fila de nota, compartida entre la lista de "Notas sueltas"
+// (solo pendientes) y los resultados de búsqueda (pendientes Y resueltas) —
+// para que agregar el botón de "Ver foto" o cambiar el estilo de una fila
+// no se tenga que hacer en dos lugares a la vez y se desincronicen.
+function NoteRow({ note, C, t, isForgotten, showResolved, onResolveNote, onRemoveNote, onViewPhoto }) {
+  const resolved = note.status === "resolved";
+  return (
+    <div
+      style={{
+        display: "flex",
+        alignItems: "flex-start",
+        justifyContent: "space-between",
+        gap: "10px",
+        background: isForgotten ? C.surfaceAlt : "transparent",
+        border: `1px solid ${isForgotten ? C.amber : C.border}`,
+        borderRadius: "12px",
+        padding: "10px 12px",
+        marginBottom: "8px",
+      }}
+    >
+      <div>
+        {isForgotten && (
+          <span style={{ display: "block", fontSize: "11px", color: C.amber, marginBottom: "3px", fontWeight: 600 }}>
+            {t.quickCapture.oldPending}
+          </span>
+        )}
+        {showResolved && resolved && (
+          <span style={{ display: "block", fontSize: "11px", color: C.mint, marginBottom: "3px", fontWeight: 600 }}>
+            {t.captureHub.resolvedTag}
+          </span>
+        )}
+        <span style={{ fontSize: "13px", color: C.text }}>{note.text}</span>
+        {note.photoPath && (
+          <button
+            onClick={() => onViewPhoto(note.photoPath)}
+            style={{
+              display: "flex",
+              alignItems: "center",
+              gap: "4px",
+              background: "transparent",
+              border: "none",
+              color: C.lavenderText,
+              fontSize: "11px",
+              fontWeight: 600,
+              cursor: "pointer",
+              padding: "4px 0 0",
+            }}
+          >
+            <ImageIcon size={12} /> {t.captureHub.viewPhotoButton}
+          </button>
+        )}
+      </div>
+      <div style={{ display: "flex", alignItems: "center", gap: "6px", flexShrink: 0 }}>
+        {!resolved && (
+          <button
+            onClick={() => onResolveNote(note.id)}
+            title={t.quickCapture.resolveTitle}
+            style={{ background: "transparent", border: "none", color: C.mint, cursor: "pointer" }}
+          >
+            <CheckCircle2 size={15} />
+          </button>
+        )}
+        <button
+          onClick={() => onRemoveNote(note.id)}
+          title={t.quickCapture.deleteTitle}
+          style={{ background: "transparent", border: "none", color: C.textMuted, cursor: "pointer" }}
+        >
+          <Trash2 size={15} />
+        </button>
+      </div>
     </div>
   );
 }

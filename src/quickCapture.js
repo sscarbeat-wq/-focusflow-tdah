@@ -20,16 +20,51 @@ export const DEFAULT_QUICK_NOTES = [];
 // largo que la persona sienta que Senda "guardó en secreto" algo por semanas.
 export const FORGOTTEN_NOTE_MIN_DAYS = 3;
 
-export function addQuickNote(list, text, now = new Date()) {
+// "Memoria ANRO" (3 de noviembre de 2026) — bucket de Supabase Storage para
+// las fotos que se adjuntan a una nota de Captura rápida. A propósito solo
+// almacenamiento: nunca se procesa la imagen (sin OCR, sin IA de visión),
+// nunca se guardan los bytes dentro de esta misma fila de `progress` (ese
+// JSON se reenvía completo en cada autoguardado, así que meter ahí una foto
+// en base64 lo haría cada vez más pesado) — cada nota solo guarda la RUTA
+// dentro del bucket (`photoPath`), nunca la URL pública, porque el bucket es
+// privado y cada URL para mostrarla se pide al momento (ver supabase/
+// schema.sql para las políticas RLS: cada paciente solo puede subir/ver/
+// borrar dentro de su propia carpeta `${userId}/...`).
+export const QUICK_NOTE_PHOTOS_BUCKET = "quick-note-photos";
+
+// `photoPath` (string o null) — la ruta dentro de QUICK_NOTE_PHOTOS_BUCKET
+// si la nota lleva una foto adjunta, o null si es solo texto/voz. Nunca se
+// valida el formato aquí (eso ya lo hizo quien subió el archivo a Storage
+// antes de llamar a esta función) — mismo principio del resto de este
+// archivo: la lista de notas no sabe nada de cómo se originó cada una.
+export function addQuickNote(list, text, now = new Date(), photoPath = null) {
   const cleanText = String(text || "").trim().slice(0, 300);
-  if (!cleanText) return list || [];
+  if (!cleanText && !photoPath) return list || [];
   const note = {
     id: Date.now() + Math.random().toString(36).slice(2, 7),
     text: cleanText,
     createdAt: now.toISOString(),
     status: "pending",
+    photoPath: photoPath || null,
   };
   return [...(list || []), note];
+}
+
+// Búsqueda de texto simple (Fase "Memoria ANRO", 3 de noviembre de 2026) —
+// a propósito NO es semántica ni usa IA: solo coincidencia de subcadena,
+// sin distinguir mayúsculas/minúsculas, sobre TODAS las notas (pendientes Y
+// resueltas, al revés de pendingQuickNotes, que solo muestra las
+// pendientes) — la idea es poder encontrar algo que ya se guardó hace
+// tiempo, sin importar si ya se marcó como resuelto. Más recientes primero,
+// igual que pendingQuickNotes. Un query vacío o solo espacios regresa lista
+// vacía en vez de "todas las notas", para que el panel sepa distinguir
+// "todavía no buscaste nada" de "buscaste y no hay resultado".
+export function searchQuickNotes(list, query) {
+  const cleanQuery = String(query || "").trim().toLowerCase();
+  if (!cleanQuery) return [];
+  return (list || [])
+    .filter((n) => n.text.toLowerCase().includes(cleanQuery))
+    .sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
 }
 
 export function resolveQuickNote(list, id) {
