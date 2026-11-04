@@ -141,6 +141,9 @@ export default function MemoriaAnroLauncher({
       )}
 
       <button
+        // id usado por el recorrido de bienvenida (OnboardingTour.jsx, 8 de
+        // noviembre de 2026) para señalar este botón con un spotlight.
+        id="anro-tour-memoria-anro"
         onClick={() => setOpen((v) => !v)}
         aria-label={open ? t.common.close : t.captureHub.fabLabel}
         aria-haspopup="dialog"

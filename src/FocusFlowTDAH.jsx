@@ -488,14 +488,22 @@ export default function FocusFlowTDAH({
   // no — cuesta como mucho un parpadeo imperceptible, pero evita casos raros
   // donde activeTool cambió pero activeTab no (así que antes no se
   // esperaba) y el panel todavía no era visible.
-  const scrollToCompanionSection = (key) => {
+  // `opts.instant` (8 de noviembre de 2026, recorrido de bienvenida
+  // interactivo): el recorrido necesita medir dónde quedó el elemento
+  // justo después de navegar, para dibujar el "agujero" de spotlight
+  // encima — con scroll "smooth" el elemento seguiría moviéndose cuando
+  // se mide, y el spotlight quedaría mal calculado. El resto de llamadas
+  // (menú "Ir a...", atajos, etc.) no pasa `opts` y sigue con scroll
+  // animado como siempre.
+  const scrollToCompanionSection = (key, opts = {}) => {
     const ref = companionSectionRefs[key];
     if (!ref) return;
     const targetTab = SECTION_TABS[key] || "inicio";
     if (targetTab === "herramientas") setActiveTool(key);
     if (targetTab !== activeTab) setActiveTab(targetTab);
+    const behavior = opts.instant ? "auto" : "smooth";
     requestAnimationFrame(() => {
-      requestAnimationFrame(() => ref.current?.scrollIntoView({ behavior: "smooth", block: "center" }));
+      requestAnimationFrame(() => ref.current?.scrollIntoView({ behavior, block: "center" }));
     });
   };
   // Oculta (sin desmontar) cada sección que no sea de la pestaña activa —
@@ -1476,10 +1484,14 @@ export default function FocusFlowTDAH({
         padding: isNarrow ? "28px 18px 160px" : "28px 18px 70px",
       }}
     >
-      {/* Bienvenida de 3 pantallas, solo la primera vez — se renderiza
-          siempre (no depende de activeTab), y ella sola decide si se
-          muestra o no según localStorage (ver OnboardingTour.jsx). */}
-      <OnboardingTour C={C} t={t} accent={personalAccent} />
+      {/* Recorrido de bienvenida, solo la primera vez — se renderiza
+          siempre (no depende de activeTab), y él solo decide si se
+          muestra o no según localStorage (ver OnboardingTour.jsx). Se le
+          pasa scrollToCompanionSection como onNavigate para que sus pasos
+          de "spotlight" puedan cambiar de pestaña/herramienta (ej. abrir
+          Modo Enfoque) reutilizando la misma navegación que ya usan el
+          menú "Ir a..." y los atajos — no una ruta paralela. */}
+      <OnboardingTour C={C} t={t} accent={personalAccent} onNavigate={scrollToCompanionSection} />
       <div style={{ maxWidth: "1000px", margin: "0 auto" }}>
         <InstallBanner C={C} t={t} />
         <PostDiagnosisCard C={C} t={t} />
@@ -1524,6 +1536,7 @@ export default function FocusFlowTDAH({
           <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
             {onChangeLanguage && <LanguageSwitcher C={C} lang={lang} onChange={onChangeLanguage} t={t} height="40px" />}
             <div
+              id="anro-tour-xp"
               style={{
                 background: C.surfaceAlt,
                 border: `1px solid ${C.border}`,
@@ -1843,7 +1856,12 @@ export default function FocusFlowTDAH({
           </p>
         )}
 
-        <Mascot streak={streak} C={C} t={t} accent={personalAccent} species={species} focusStatus={focusStatus} />
+        {/* id usado por el recorrido de bienvenida (OnboardingTour.jsx) para
+            señalar la mascota con un spotlight — un div envolvente en vez
+            de un prop en Mascot.jsx, para no tocar su firma de props. */}
+        <div id="anro-tour-mascot">
+          <Mascot streak={streak} C={C} t={t} accent={personalAccent} species={species} focusStatus={focusStatus} />
+        </div>
 
         {activeMedicationAlarm && (
           <MedicationAlarm
@@ -2598,7 +2616,7 @@ export default function FocusFlowTDAH({
             </Panel>
             </div>
 
-            <div ref={focusModeSectionRef} style={toolStyle("focusMode")}>
+            <div id="anro-tour-focus-mode" ref={focusModeSectionRef} style={toolStyle("focusMode")}>
             <Panel C={C}
               accent={C.coral}
               icon={<Headphones size={22} />}
