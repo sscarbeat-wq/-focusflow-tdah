@@ -459,8 +459,19 @@ const es = {
     stageOwlHint: "2 semanas de constancia.",
     stageDragonLabel: "Imparable",
     stageDragonHint: "30+ días — nivel leyenda.",
-    resetLabel: "Volviendo a empezar — sin problema",
-    resetHint: "Las rachas suben y bajan. Lo que ya lograste sigue contando (mira tu mejor racha a la derecha).",
+    resetLabel: "Reiniciando — así es la constancia con TDAH",
+    resetHint:
+      "Perder una racha no borra lo que ya construiste. Con TDAH la atención y la energía varían de un día a otro — eso no es fracaso, es parte de cómo funciona. Lo que cuenta es volver a empezar.",
+    resetLabel2: "Aquí vamos de nuevo",
+    resetHint2:
+      "Las rachas no son un examen que se aprueba o se reprueba. Tu mejor racha sigue guardada (a la derecha), y puedes construir otra cuando quieras.",
+    resetLabel3: "Nueva racha, mismo tú",
+    resetHint3: "El reinicio solo borra el número — no borra lo que ya aprendiste ni lo que ya lograste antes.",
+    resetLabel4: "Hoy es un buen día para empezar otra vez",
+    resetHint4: "No existe una racha perfecta con TDAH, y no la necesitas. Lo que importa es que sigues intentándolo.",
+    resetLabel5: "Vamos otra vez, con calma",
+    resetHint5:
+      "Ser duro contigo no te hace avanzar más rápido. Trátate como tratarías a alguien que quieres mucho, y sigue.",
     dayWord: (n) => (n === 1 ? "día" : "días"),
     bestStreakTitle: "Tu mejor racha — queda guardada aunque la racha actual se reinicie",
     bestStreakLabel: "mejor racha",

@@ -441,8 +441,19 @@ const pt = {
     stageOwlHint: "2 semanas de constância.",
     stageDragonLabel: "Imparável",
     stageDragonHint: "30+ dias — nível lenda.",
-    resetLabel: "Começando de novo — sem problema",
-    resetHint: "As sequências sobem e descem. O que você já conquistou continua contando (veja sua melhor sequência à direita).",
+    resetLabel: "Reiniciando — é assim que funciona a constância com TDAH",
+    resetHint:
+      "Perder uma sequência não apaga o que você já construiu. Com TDAH, a atenção e a energia variam de um dia para o outro — isso não é fracasso, é só como funciona. O que importa é recomeçar.",
+    resetLabel2: "Vamos de novo",
+    resetHint2:
+      "Sequências não são uma prova de passa ou não passa. Sua melhor sequência continua salva (à direita), e você pode construir outra quando quiser.",
+    resetLabel3: "Nova sequência, o mesmo você",
+    resetHint3: "O reinício só apaga o número — não apaga o que você já aprendeu nem o que já conquistou.",
+    resetLabel4: "Hoje é um bom dia para recomeçar",
+    resetHint4: "Não existe sequência perfeita com TDAH, e você não precisa de uma. O que importa é continuar tentando.",
+    resetLabel5: "Vamos de novo, com calma",
+    resetHint5:
+      "Ser duro com você mesmo não te faz avançar mais rápido. Trate-se como trataria alguém que você ama, e continue.",
     dayWord: (n) => (n === 1 ? "dia" : "dias"),
     bestStreakTitle: "Sua melhor sequência — fica guardada mesmo que a sequência atual reinicie",
     bestStreakLabel: "melhor sequência",

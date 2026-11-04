@@ -436,8 +436,19 @@ const en = {
     stageOwlHint: "2 weeks of consistency.",
     stageDragonLabel: "Unstoppable",
     stageDragonHint: "30+ days — legend status.",
-    resetLabel: "Starting over — no worries",
-    resetHint: "Streaks go up and down. What you already achieved still counts (check your best streak on the right).",
+    resetLabel: "Restarting — that's what consistency with ADHD looks like",
+    resetHint:
+      "Losing a streak doesn't erase what you've already built. With ADHD, attention and energy vary from day to day — that's not failure, it's just how it works. What matters is starting again.",
+    resetLabel2: "Here we go again",
+    resetHint2:
+      "Streaks aren't a pass-or-fail test. Your best streak is still saved (on the right), and you can build another one whenever you're ready.",
+    resetLabel3: "New streak, same you",
+    resetHint3: "The reset only erases the number — it doesn't erase what you already learned or already achieved.",
+    resetLabel4: "Today's a good day to start again",
+    resetHint4: "There's no perfect streak with ADHD, and you don't need one. What matters is that you keep trying.",
+    resetLabel5: "Let's go again, gently",
+    resetHint5:
+      "Being hard on yourself doesn't make you move faster. Treat yourself the way you'd treat someone you love, and keep going.",
     dayWord: (n) => (n === 1 ? "day" : "days"),
     bestStreakTitle: "Your best streak — stays saved even if your current streak resets",
     bestStreakLabel: "best streak",

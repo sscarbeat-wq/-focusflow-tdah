@@ -1,7 +1,14 @@
 import React, { useEffect, useRef, useState } from "react";
 import { Flame, Trophy, Volume2, VolumeX } from "lucide-react";
 import { tint } from "./theme";
-import { stageFor, progressFraction, DEFAULT_SPECIES } from "./mascotLogic";
+import {
+  stageFor,
+  progressFraction,
+  DEFAULT_SPECIES,
+  RESET_VARIANT_COUNT,
+  getStoredResetVariant,
+  storeResetVariant,
+} from "./mascotLogic";
 import {
   playLevelUpSound,
   playHatchSound,
@@ -104,7 +111,13 @@ export default function Mascot({ streak, C, t, accent, species, focusStatus = "i
   const current = streak?.current || 0;
   const longest = streak?.longest || 0;
   const resolvedSpecies = species || DEFAULT_SPECIES;
-  const stage = stageFor(current, longest, resolvedSpecies);
+
+  // Cuál de los 2 mensajes de reinicio de racha toca mostrar (preferencia
+  // de dispositivo, mismo patrón que la especie elegida y el sonido) — se
+  // alterna solo cuando empieza un reinicio nuevo, ver el useEffect de
+  // abajo, no en cada render.
+  const [resetVariant, setResetVariant] = useState(() => getStoredResetVariant());
+  const stage = stageFor(current, longest, resolvedSpecies, resetVariant);
   const label = t.mascot[stage.labelKey];
   const hint = t.mascot[stage.hintKey];
   const ringColor = accent || C.lavender;
@@ -164,6 +177,15 @@ export default function Mascot({ streak, C, t, accent, species, focusStatus = "i
         const timeout = setTimeout(() => setCelebrate(false), 900);
         return () => clearTimeout(timeout);
       }
+      // Reinicio de racha nuevo (no solo seguir viendo el mismo reinicio en
+      // otro render): alterna cuál de los 2 mensajes toca la próxima vez,
+      // guardado por dispositivo para que la alternancia siga aunque
+      // cierre y abra la app.
+      setResetVariant((prev) => {
+        const next = (prev + 1) % RESET_VARIANT_COUNT;
+        storeResetVariant(next);
+        return next;
+      });
     }
   }, [stage.emoji, isReset, soundOn]);
 
