@@ -438,8 +438,20 @@ const fr = {
     stageOwlHint: "2 semaines de régularité.",
     stageDragonLabel: "Imparable",
     stageDragonHint: "30 jours ou plus — niveau légende.",
-    resetLabel: "On repart à zéro — pas de problème",
-    resetHint: "Les séries montent et descendent. Ce que tu as déjà accompli compte toujours (regarde ta meilleure série à droite).",
+    resetLabel: "On recommence — c'est ça, la constance avec le TDAH",
+    resetHint:
+      "Perdre une série n'efface pas ce que tu as déjà construit. Avec le TDAH, l'attention et l'énergie varient d'un jour à l'autre — ce n'est pas un échec, c'est juste comme ça que ça fonctionne. Ce qui compte, c'est de recommencer.",
+    resetLabel2: "Et on repart",
+    resetHint2:
+      "Les séries ne sont pas un examen qu'on réussit ou qu'on rate. Ta meilleure série reste enregistrée (à droite), et tu peux en construire une autre quand tu veux.",
+    resetLabel3: "Nouvelle série, même toi",
+    resetHint3: "Le redémarrage efface seulement le chiffre — pas ce que tu as déjà appris ni déjà accompli.",
+    resetLabel4: "Aujourd'hui est un bon jour pour recommencer",
+    resetHint4:
+      "Il n'existe pas de série parfaite avec le TDAH, et tu n'en as pas besoin. Ce qui compte, c'est que tu continues d'essayer.",
+    resetLabel5: "On repart, en douceur",
+    resetHint5:
+      "Être dur avec toi-même ne te fait pas avancer plus vite. Traite-toi comme tu traiterais quelqu'un que tu aimes, et continue.",
     dayWord: (n) => (n === 1 ? "jour" : "jours"),
     bestStreakTitle: "Ta meilleure série — reste enregistrée même si la série actuelle redémarre",
     bestStreakLabel: "meilleure série",
