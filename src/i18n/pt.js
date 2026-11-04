@@ -932,6 +932,22 @@ const pt = {
         title: "Comece pelo Início",
         body: "Ali você sempre vai ver seu próximo passo em destaque, o que vem depois, e acessos diretos às ferramentas mais usadas na hora.",
       },
+      {
+        title: "Seu bichinho e sua sequência",
+        body: "Este é seu bichinho — o humor dele muda de acordo com sua sequência de dias usando o app. Não é sobre ter uma sequência perfeita: o que importa é voltar, mesmo que ela se reinicie de vez em quando.",
+      },
+      {
+        title: "O que é o \"foco acumulado\"?",
+        body: "Esse número sobe cada vez que você faz algo que te ajuda — não só ao usar o Modo Foco. Marcar uma tarefa, anotar como você se sente, tomar seu remédio na hora, usar o desmembrador de tarefas... tudo isso também soma. É um indicador de constância geral, não só de tempo focado.",
+      },
+      {
+        title: "Memória ANRO, a um toque",
+        body: "Este botão flutuante (o cérebro) deixa você anotar o que vier à cabeça, ou o que não quer esquecer, de qualquer tela — sem precisar procurar a aba certa primeiro.",
+      },
+      {
+        title: "Modo Foco",
+        body: "Aqui você pode colocar um temporizador e silenciar distrações enquanto trabalha em algo. É útil quando você precisa de ajuda para começar, ou para ficar em uma só tarefa.",
+      },
     ],
     back: "Voltar",
     next: "Próximo",

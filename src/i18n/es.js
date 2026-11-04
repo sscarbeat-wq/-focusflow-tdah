@@ -952,6 +952,22 @@ const es = {
         title: "Empieza por Inicio",
         body: "Ahí siempre vas a ver tu próximo paso destacado, lo que sigue después, y accesos directos a las herramientas que más se usan en el momento.",
       },
+      {
+        title: "Tu mascota y tu racha",
+        body: "Esta es tu mascota — su ánimo cambia según tu racha de días seguidos usando la app. No se trata de tener una racha perfecta: lo que importa es volver, aunque se reinicie de vez en cuando.",
+      },
+      {
+        title: "¿Qué es el \"foco acumulado\"?",
+        body: "Este número sube cada vez que haces algo que te ayuda — no solo al usar Modo Enfoque. Marcar una tarea, anotar cómo te sientes, tomar tu medicamento a tiempo, usar el desglosador... todo eso también suma. Es un marcador de constancia general, no solo de tiempo enfocada.",
+      },
+      {
+        title: "Memoria ANRO, a un toque",
+        body: "Este botón flotante (el cerebro) te deja anotar lo que se te ocurra o lo que no quieres olvidar desde cualquier pantalla, sin tener que buscar primero la pestaña correcta.",
+      },
+      {
+        title: "Modo Enfoque",
+        body: "Aquí puedes poner un temporizador y silenciar distracciones mientras trabajas en algo. Es útil cuando necesitas ayuda para empezar o para quedarte en una sola tarea.",
+      },
     ],
     back: "Atrás",
     next: "Siguiente",
