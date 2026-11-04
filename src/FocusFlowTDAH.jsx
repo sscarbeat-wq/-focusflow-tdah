@@ -121,6 +121,8 @@ import {
   resolveQuickNote,
   removeQuickNote,
   oldForgottenNote,
+  setQuickNoteReminder,
+  reminderDateKeyFromPreset,
 } from "./quickCapture";
 import { DEFAULT_SLEEP_LOG, recordBedtime, todayBedtime } from "./sleepLog";
 import { DEFAULT_IMPULSE_BRAKE_LOG, recordImpulseBrakeUse } from "./impulseBrakeLog";
@@ -878,6 +880,19 @@ export default function FocusFlowTDAH({
 
   const handleRemoveQuickNote = useCallback((id) => {
     setQuickNotes((prev) => removeQuickNote(prev, id));
+  }, []);
+
+  // "Recordarme en..." (8 de noviembre de 2026) — decisión explícita de la
+  // doctora: solo opciones fijas ("mañana"/"en3dias"/"en1semana"), nunca un
+  // selector de fecha/hora libre. `preset` llega tal cual desde el botón que
+  // tocó la persona (ver CaptureHubPanel.jsx); pasar `null` quita el
+  // recordatorio. El cálculo de la fecha en sí vive en quickCapture.js
+  // (reminderDateKeyFromPreset), no aquí, para que sea la misma función pura
+  // que el cron de api/send-reminders.js pueda usar/probar por su cuenta.
+  const handleSetQuickNoteReminder = useCallback((id, preset) => {
+    setQuickNotes((prev) =>
+      setQuickNoteReminder(prev, id, preset ? reminderDateKeyFromPreset(preset, new Date()) : null)
+    );
   }, []);
 
   const handleConfirmQuickMedication = useCallback((fields) => {
@@ -2043,6 +2058,7 @@ export default function FocusFlowTDAH({
             onConfirmMedication={handleConfirmQuickMedication}
             onConfirmPayment={handleConfirmQuickPayment}
             onConfirmStep={handleConfirmQuickStep}
+            onSetReminder={handleSetQuickNoteReminder}
           />
           </PlusLockedPanel>
         </Panel>
@@ -3155,6 +3171,7 @@ export default function FocusFlowTDAH({
         onConfirmMedication={handleConfirmQuickMedication}
         onConfirmPayment={handleConfirmQuickPayment}
         onConfirmStep={handleConfirmQuickStep}
+        onSetReminder={handleSetQuickNoteReminder}
         bottomOffset={isNarrow ? 64 : 0}
       />
     </div>

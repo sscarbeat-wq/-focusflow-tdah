@@ -75,6 +75,35 @@ export function removeQuickNote(list, id) {
   return (list || []).filter((n) => n.id !== id);
 }
 
+// "Recordarme en..." (8 de noviembre de 2026) — decisión explícita de la
+// doctora: NO un selector de fecha/hora libre, solo 3 botones de tiempo fijo
+// ("mañana", "en 3 días", "en 1 semana"), revisados una sola vez al día por
+// el mismo cron del digest (api/send-reminders.js) — sin infraestructura
+// nueva de cron cada 15 minutos. `remindAt` (string "YYYY-MM-DD" o null) se
+// guarda en la nota misma; pasar `null` quita el recordatorio.
+export const QUICK_NOTE_REMINDER_PRESET_DAYS = {
+  manana: 1,
+  en3dias: 3,
+  en1semana: 7,
+};
+
+// `now` es la fecha/hora YA en términos de la que llama (misma convención
+// que el resto del archivo: quien llama decide si hay que ajustar zona
+// horaria antes de pasarla aquí) — solo suma días de calendario sobre
+// `todayKey(now)`, reutilizando daysBetween()/todayKey() de streak.js en vez
+// de reinventar aritmética de fechas.
+export function reminderDateKeyFromPreset(preset, now = new Date()) {
+  const days = QUICK_NOTE_REMINDER_PRESET_DAYS[preset];
+  if (!days) return null;
+  const base = new Date(now);
+  base.setDate(base.getDate() + days);
+  return todayKey(base);
+}
+
+export function setQuickNoteReminder(list, id, remindAt) {
+  return (list || []).map((n) => (n.id === id ? { ...n, remindAt: remindAt || null } : n));
+}
+
 // Pendientes, más recientes primero — para mostrarlas en su propio panel.
 export function pendingQuickNotes(list) {
   return (list || [])

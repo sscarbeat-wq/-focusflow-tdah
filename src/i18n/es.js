@@ -665,6 +665,12 @@ const es = {
     searchNoResults: "No encontré ninguna nota con ese texto.",
     searchResultsLabel: (n) => (n === 1 ? "1 nota encontrada" : `${n} notas encontradas`),
     resolvedTag: "Ya resuelta",
+    reminderButton: "Recordarme esto",
+    reminderPresetTomorrow: "Mañana",
+    reminderPresetIn3Days: "En 3 días",
+    reminderPresetInWeek: "En 1 semana",
+    reminderClearButton: "Quitar recordatorio",
+    reminderHint: "Te lo recordamos en tu resumen de la mañana (alrededor de las 8am), no a la hora exacta.",
   },
 
   oneThing: {

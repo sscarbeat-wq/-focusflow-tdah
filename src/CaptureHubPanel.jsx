@@ -1,5 +1,5 @@
 import React, { useRef, useState } from "react";
-import { Mic, Square, Keyboard, Trash2, CheckCircle2, StickyNote, AlertTriangle, Sparkles, Inbox, ImagePlus, Search, X, Image as ImageIcon } from "lucide-react";
+import { Mic, Square, Keyboard, Trash2, CheckCircle2, StickyNote, AlertTriangle, Sparkles, Inbox, ImagePlus, Search, X, Image as ImageIcon, Bell } from "lucide-react";
 import {
   pendingQuickNotes,
   searchQuickNotes,
@@ -8,6 +8,13 @@ import {
   QUICK_NOTE_PHOTOS_BUCKET,
 } from "./quickCapture";
 import { supabase } from "./supabaseClient";
+
+// Mismo patrón de ClinicalReportPanel.jsx/ScheduleAgendaPanel.jsx: este
+// mapeo de locale se duplica por archivo en vez de vivir en un helper
+// compartido (no existe uno en este proyecto) — aquí solo se usa para
+// mostrar la fecha de un recordatorio de "Recordarme en..." en el idioma
+// de la persona.
+const DATE_LOCALES = { es: "es-MX", en: "en-US", fr: "fr-FR", pt: "pt-BR" };
 
 // Tamaño máximo de foto que se acepta para adjuntar a una nota — generoso
 // para una foto de celular normal, pero suficiente para no dejar que una
@@ -46,6 +53,7 @@ export default function CaptureHubPanel({
   onConfirmMedication,
   onConfirmPayment,
   onConfirmStep,
+  onSetReminder,
 }) {
   const [mode, setMode] = useState("quick"); // "quick" = Captura rápida (una idea) | "dump" = Descarga mental (varias)
   const [recording, setRecording] = useState(false);
@@ -635,11 +643,13 @@ export default function CaptureHubPanel({
                   note={n}
                   C={C}
                   t={t}
+                  lang={lang}
                   isForgotten={false}
                   showResolved
                   onResolveNote={onResolveNote}
                   onRemoveNote={onRemoveNote}
                   onViewPhoto={handleViewPhoto}
+                  onSetReminder={onSetReminder}
                 />
               ))}
             </>
@@ -655,11 +665,13 @@ export default function CaptureHubPanel({
                 note={n}
                 C={C}
                 t={t}
+                lang={lang}
                 isForgotten={n.id === oldForgottenNoteId}
                 showResolved={false}
                 onResolveNote={onResolveNote}
                 onRemoveNote={onRemoveNote}
                 onViewPhoto={handleViewPhoto}
+                onSetReminder={onSetReminder}
               />
             ))}
           </div>
@@ -673,15 +685,32 @@ export default function CaptureHubPanel({
 // (solo pendientes) y los resultados de búsqueda (pendientes Y resueltas) —
 // para que agregar el botón de "Ver foto" o cambiar el estilo de una fila
 // no se tenga que hacer en dos lugares a la vez y se desincronicen.
-function NoteRow({ note, C, t, isForgotten, showResolved, onResolveNote, onRemoveNote, onViewPhoto }) {
+function NoteRow({ note, C, t, lang, isForgotten, showResolved, onResolveNote, onRemoveNote, onViewPhoto, onSetReminder }) {
   const resolved = note.status === "resolved";
+  // "Recordarme en..." (8 de noviembre de 2026) — el picker de presets se
+  // abre/cierra solo, por fila, sin tocar ningún estado de CaptureHubPanel
+  // (igual de espíritu que el resto de este archivo: cada fila es lo más
+  // autónoma posible).
+  const [pickerOpen, setPickerOpen] = useState(false);
+  const reminderDateLabel =
+    note.remindAt &&
+    new Date(`${note.remindAt}T00:00:00`).toLocaleDateString(DATE_LOCALES[lang] || "es-MX", {
+      day: "numeric",
+      month: "long",
+    });
+
+  const choosePreset = (preset) => {
+    onSetReminder(note.id, preset);
+    setPickerOpen(false);
+  };
+  const clearReminder = () => {
+    onSetReminder(note.id, null);
+    setPickerOpen(false);
+  };
+
   return (
     <div
       style={{
-        display: "flex",
-        alignItems: "flex-start",
-        justifyContent: "space-between",
-        gap: "10px",
         background: isForgotten ? C.surfaceAlt : "transparent",
         border: `1px solid ${isForgotten ? C.amber : C.border}`,
         borderRadius: "12px",
@@ -689,56 +718,128 @@ function NoteRow({ note, C, t, isForgotten, showResolved, onResolveNote, onRemov
         marginBottom: "8px",
       }}
     >
-      <div>
-        {isForgotten && (
-          <span style={{ display: "block", fontSize: "11px", color: C.amber, marginBottom: "3px", fontWeight: 600 }}>
-            {t.quickCapture.oldPending}
-          </span>
-        )}
-        {showResolved && resolved && (
-          <span style={{ display: "block", fontSize: "11px", color: C.mint, marginBottom: "3px", fontWeight: 600 }}>
-            {t.captureHub.resolvedTag}
-          </span>
-        )}
-        <span style={{ fontSize: "13px", color: C.text }}>{note.text}</span>
-        {note.photoPath && (
+      <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: "10px" }}>
+        <div>
+          {isForgotten && (
+            <span style={{ display: "block", fontSize: "11px", color: C.amber, marginBottom: "3px", fontWeight: 600 }}>
+              {t.quickCapture.oldPending}
+            </span>
+          )}
+          {showResolved && resolved && (
+            <span style={{ display: "block", fontSize: "11px", color: C.mint, marginBottom: "3px", fontWeight: 600 }}>
+              {t.captureHub.resolvedTag}
+            </span>
+          )}
+          <span style={{ fontSize: "13px", color: C.text }}>{note.text}</span>
+          {note.photoPath && (
+            <button
+              onClick={() => onViewPhoto(note.photoPath)}
+              style={{
+                display: "flex",
+                alignItems: "center",
+                gap: "4px",
+                background: "transparent",
+                border: "none",
+                color: C.lavenderText,
+                fontSize: "11px",
+                fontWeight: 600,
+                cursor: "pointer",
+                padding: "4px 0 0",
+              }}
+            >
+              <ImageIcon size={12} /> {t.captureHub.viewPhotoButton}
+            </button>
+          )}
+        </div>
+        <div style={{ display: "flex", alignItems: "center", gap: "6px", flexShrink: 0 }}>
+          {!resolved && onSetReminder && (
+            <button
+              onClick={() => setPickerOpen((v) => !v)}
+              title={t.captureHub.reminderButton}
+              style={{
+                display: "flex",
+                alignItems: "center",
+                gap: "3px",
+                background: "transparent",
+                border: "none",
+                color: note.remindAt ? C.amber : C.textMuted,
+                fontSize: "11px",
+                fontWeight: note.remindAt ? 600 : 400,
+                cursor: "pointer",
+                padding: "2px",
+              }}
+            >
+              <Bell size={14} />
+              {reminderDateLabel}
+            </button>
+          )}
+          {!resolved && (
+            <button
+              onClick={() => onResolveNote(note.id)}
+              title={t.quickCapture.resolveTitle}
+              style={{ background: "transparent", border: "none", color: C.mint, cursor: "pointer" }}
+            >
+              <CheckCircle2 size={15} />
+            </button>
+          )}
           <button
-            onClick={() => onViewPhoto(note.photoPath)}
-            style={{
-              display: "flex",
-              alignItems: "center",
-              gap: "4px",
-              background: "transparent",
-              border: "none",
-              color: C.lavenderText,
-              fontSize: "11px",
-              fontWeight: 600,
-              cursor: "pointer",
-              padding: "4px 0 0",
-            }}
+            onClick={() => onRemoveNote(note.id)}
+            title={t.quickCapture.deleteTitle}
+            style={{ background: "transparent", border: "none", color: C.textMuted, cursor: "pointer" }}
           >
-            <ImageIcon size={12} /> {t.captureHub.viewPhotoButton}
+            <Trash2 size={15} />
           </button>
-        )}
+        </div>
       </div>
-      <div style={{ display: "flex", alignItems: "center", gap: "6px", flexShrink: 0 }}>
-        {!resolved && (
-          <button
-            onClick={() => onResolveNote(note.id)}
-            title={t.quickCapture.resolveTitle}
-            style={{ background: "transparent", border: "none", color: C.mint, cursor: "pointer" }}
-          >
-            <CheckCircle2 size={15} />
-          </button>
-        )}
-        <button
-          onClick={() => onRemoveNote(note.id)}
-          title={t.quickCapture.deleteTitle}
-          style={{ background: "transparent", border: "none", color: C.textMuted, cursor: "pointer" }}
+
+      {pickerOpen && (
+        <div
+          style={{
+            display: "flex",
+            gap: "6px",
+            flexWrap: "wrap",
+            marginTop: "8px",
+            paddingTop: "8px",
+            borderTop: `1px solid ${C.border}`,
+          }}
         >
-          <Trash2 size={15} />
-        </button>
-      </div>
+          <button onClick={() => choosePreset("manana")} style={presetBtnStyle(C)}>
+            {t.captureHub.reminderPresetTomorrow}
+          </button>
+          <button onClick={() => choosePreset("en3dias")} style={presetBtnStyle(C)}>
+            {t.captureHub.reminderPresetIn3Days}
+          </button>
+          <button onClick={() => choosePreset("en1semana")} style={presetBtnStyle(C)}>
+            {t.captureHub.reminderPresetInWeek}
+          </button>
+          {note.remindAt && (
+            <button
+              onClick={clearReminder}
+              style={{ background: "transparent", border: "none", color: C.textMuted, fontSize: "12px", cursor: "pointer", padding: "7px 4px" }}
+            >
+              {t.captureHub.reminderClearButton}
+            </button>
+          )}
+          {/* Aclaración explícita para la paciente (8 de noviembre de 2026,
+              a petición de la doctora): sin esto, "mañana"/"en 3 días" podría
+              sonar como una alarma a la hora exacta — en realidad solo se
+              menciona dentro del resumen matutino (mismo cron de las 8am
+              CDMX que ya avisa de "El Regreso"), nunca al instante. */}
+          <p style={{ width: "100%", fontSize: "11px", color: C.textMuted, margin: "4px 0 0" }}>
+            {t.captureHub.reminderHint}
+          </p>
+        </div>
+      )}
     </div>
   );
 }
+
+const presetBtnStyle = (C) => ({
+  background: "transparent",
+  border: `1px solid ${C.border}`,
+  borderRadius: "10px",
+  padding: "6px 10px",
+  color: C.text,
+  fontSize: "12px",
+  cursor: "pointer",
+});
