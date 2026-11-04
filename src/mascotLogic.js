@@ -71,9 +71,56 @@ function emojiFor(species, stageIndex) {
 // (Compañero de apoyo, Ayuda con mensajes). El emoji de reinicio es el de
 // la propia etapa inicial de la especie elegida (huellas para gato, semilla
 // para planta, etc.), no siempre un huevo.
-export function stageFor(current, longest, species = DEFAULT_SPECIES) {
+//
+// 8 de noviembre de 2026 — revisión de voz clínica: la doctora aprobó
+// varias redacciones distintas para este mensaje (todas con el mismo
+// principio sin culpa) y pidió que se alternen en vez de mostrar siempre la
+// misma — primero 2, ampliado el mismo día a 5 a petición suya (mismo
+// patrón de "solo contenido nuevo, sin lógica nueva" ya usado con el
+// programa de TCC y las cápsulas científicas). El llamador (Mascot.jsx)
+// decide cuál tocó mostrar y lo manda aquí como `resetVariant` (0 a
+// RESET_VARIANT_COUNT-1) — esta función se queda pura, solo traduce esa
+// decisión a la llave de i18n correspondiente (variante 0 usa
+// "resetLabel"/"resetHint" tal cual, por compatibilidad con el nombre
+// original; las siguientes usan "resetLabel2"/"resetHint2",
+// "resetLabel3"/"resetHint3", etc.).
+export const RESET_VARIANT_COUNT = 5;
+export const RESET_VARIANT_STORAGE_KEY = "anro-reset-variant";
+
+export function getStoredResetVariant() {
+  if (typeof window === "undefined") return 0;
+  try {
+    const stored = Number(window.localStorage.getItem(RESET_VARIANT_STORAGE_KEY));
+    if (Number.isInteger(stored) && stored >= 0 && stored < RESET_VARIANT_COUNT) return stored;
+  } catch (err) {
+    // localStorage no disponible — se queda con el valor por defecto.
+  }
+  return 0;
+}
+
+export function storeResetVariant(variant) {
+  if (typeof window === "undefined") return;
+  if (!Number.isInteger(variant) || variant < 0 || variant >= RESET_VARIANT_COUNT) return;
+  try {
+    window.localStorage.setItem(RESET_VARIANT_STORAGE_KEY, String(variant));
+  } catch (err) {
+    // No pasa nada si no se pudo guardar — solo no se recuerda la próxima vez.
+  }
+}
+
+export function stageFor(current, longest, species = DEFAULT_SPECIES, resetVariant = 0) {
   if (current === 0 && longest > 0) {
-    return { emoji: emojiFor(species, 0), labelKey: "resetLabel", hintKey: "resetHint" };
+    // Módulo "seguro" (nunca negativo) por si algún día llega un valor
+    // fuera de rango — variante 0 usa las llaves originales sin sufijo
+    // ("resetLabel"/"resetHint"), 1 en adelante usa "resetLabel2"/
+    // "resetHint2", "resetLabel3"/"resetHint3", etc.
+    const variant = ((resetVariant % RESET_VARIANT_COUNT) + RESET_VARIANT_COUNT) % RESET_VARIANT_COUNT;
+    const suffix = variant === 0 ? "" : String(variant + 1);
+    return {
+      emoji: emojiFor(species, 0),
+      labelKey: `resetLabel${suffix}`,
+      hintKey: `resetHint${suffix}`,
+    };
   }
   let stageIndex = 0;
   for (let i = 0; i < STAGE_META.length; i++) {
