@@ -38,6 +38,7 @@ export default function MemoriaAnroLauncher({
   onConfirmMedication,
   onConfirmPayment,
   onConfirmStep,
+  onSetReminder,
   bottomOffset = 0,
 }) {
   const [open, setOpen] = React.useState(false);
@@ -133,6 +134,7 @@ export default function MemoriaAnroLauncher({
               onConfirmMedication={onConfirmMedication}
               onConfirmPayment={onConfirmPayment}
               onConfirmStep={onConfirmStep}
+              onSetReminder={onSetReminder}
             />
           </div>
         </div>
