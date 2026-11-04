@@ -927,6 +927,22 @@ const en = {
         title: "Start with Home",
         body: "There you'll always see your next step front and center, what's coming after that, and quick shortcuts to the tools you use most in the moment.",
       },
+      {
+        title: "Your pet and your streak",
+        body: "This is your pet — its mood changes with your streak of days using the app in a row. It's not about a perfect streak: what matters is coming back, even if it resets sometimes.",
+      },
+      {
+        title: "What does \"focus earned\" mean?",
+        body: "This number goes up every time you do something that helps you — not only while using Focus Mode. Checking off a task, logging how you feel, taking your medication on time, using the task breakdown tool... all of that counts too. It's a general consistency score, not just focused time.",
+      },
+      {
+        title: "ANRO Memory, one tap away",
+        body: "This floating button (the brain) lets you jot down whatever comes to mind, or whatever you don't want to forget, from any screen — no need to find the right tab first.",
+      },
+      {
+        title: "Focus Mode",
+        body: "Here you can set a timer and mute distractions while you work on something. It helps when you need a push to get started, or to stay on one task.",
+      },
     ],
     back: "Back",
     next: "Next",

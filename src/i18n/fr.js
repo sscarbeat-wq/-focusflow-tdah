@@ -930,6 +930,22 @@ const fr = {
         title: "Commence par Accueil",
         body: "Tu y verras toujours ta prochaine étape mise en avant, ce qui vient après, et des accès directs aux outils les plus utilisés sur le moment.",
       },
+      {
+        title: "Ta mascotte et ta série",
+        body: "Voici ta mascotte — son humeur change selon ta série de jours d'utilisation de l'appli. L'idée n'est pas d'avoir une série parfaite : ce qui compte, c'est de revenir, même si elle se réinitialise parfois.",
+      },
+      {
+        title: "C'est quoi la \"concentration cumulée\" ?",
+        body: "Ce nombre augmente chaque fois que tu fais quelque chose qui t'aide — pas seulement en utilisant le Mode Concentration. Cocher une tâche, noter comment tu te sens, prendre ton médicament à l'heure, utiliser le décomposeur de tâches... tout ça compte aussi. C'est un indicateur de constance générale, pas seulement de temps concentré.",
+      },
+      {
+        title: "Mémoire ANRO, à portée de main",
+        body: "Ce bouton flottant (le cerveau) te permet de noter ce qui te passe par la tête, ou ce que tu ne veux pas oublier, depuis n'importe quel écran — sans avoir à chercher d'abord le bon onglet.",
+      },
+      {
+        title: "Mode Concentration",
+        body: "Ici tu peux lancer un minuteur et faire taire les distractions pendant que tu travailles sur quelque chose. C'est utile quand tu as besoin d'aide pour démarrer, ou pour rester sur une seule tâche.",
+      },
     ],
     back: "Retour",
     next: "Suivant",
