@@ -39,7 +39,7 @@ import { pendingRoutineTemplates } from "../src/routines.js";
 import { daysBetween } from "../src/streak.js";
 import { programStatus } from "../src/cbtProgram.js";
 import { capsuleForKey } from "../src/scienceCapsules.js";
-import { oldForgottenNote } from "../src/quickCapture.js";
+import { oldForgottenNote, setQuickNoteReminder } from "../src/quickCapture.js";
 
 const supabaseAdmin = createClient(process.env.VITE_SUPABASE_URL, process.env.SUPABASE_SERVICE_ROLE_KEY);
 
@@ -420,9 +420,16 @@ async function handleDigestCheck(req, res) {
 
     const progressByUser = Object.fromEntries((rows || []).map((r) => [r.user_id, r.data || {}]));
     const now = mxNow();
+    const today = todayKeyMX();
 
     let sent = 0;
     const toRemove = [];
+    // "Recordarme en..." (8 de noviembre de 2026) — igual que nudgedUserIds
+    // en handleDailyCheck: un usuario con varios dispositivos (varias filas
+    // en `subs`) solo debe limpiar sus `remindAt` vencidos UNA vez, no una
+    // vez por dispositivo.
+    const remindersClearedUserIds = new Set();
+    const progressUpdates = [];
 
     for (const sub of subs) {
       const progress = progressByUser[sub.user_id] || {};
@@ -476,6 +483,43 @@ async function handleDigestCheck(req, res) {
         parts.push("una nota antigua que volvió a aparecer en Memoria ANRO (El Regreso)");
       }
 
+      // "Recordarme en..." (8 de noviembre de 2026) — notas de Memoria ANRO
+      // con un recordatorio de fecha fija (ver quickCapture.js:
+      // reminderDateKeyFromPreset/setQuickNoteReminder) cuyo día ya llegó o
+      // ya pasó. Se excluye la nota de "El Regreso" de arriba (si aplica)
+      // para nunca mencionar la misma nota dos veces en el mismo resumen —
+      // aunque en la práctica casi nunca coinciden, porque "El Regreso" es
+      // automático a los 3+ días y esto es una fecha que la paciente eligió
+      // a propósito.
+      const dueReminders = (progress.quickNotes || []).filter(
+        (n) => n.status !== "resolved" && n.remindAt && n.remindAt <= today && n.id !== forgotten?.id
+      );
+      if (dueReminders.length > 0) {
+        parts.push(
+          dueReminders.length === 1
+            ? "un recordatorio que pediste en Memoria ANRO"
+            : `${dueReminders.length} recordatorios que pediste en Memoria ANRO`
+        );
+        // Se "consume" el recordatorio una vez avisado (igual que el resto
+        // de ANRO TDAH nunca repite un aviso ya dado) — si la paciente
+        // quiere que le vuelva a avisar, puede pedir otro recordatorio
+        // desde la nota. Se limpia con el mismo patrón "leer todo al
+        // inicio, escribir todo junto al final" que ya usa el resto de
+        // este archivo.
+        if (!remindersClearedUserIds.has(sub.user_id)) {
+          remindersClearedUserIds.add(sub.user_id);
+          let updatedNotes = progress.quickNotes || [];
+          for (const n of dueReminders) {
+            updatedNotes = setQuickNoteReminder(updatedNotes, n.id, null);
+          }
+          progressUpdates.push({
+            user_id: sub.user_id,
+            data: { ...progress, quickNotes: updatedNotes },
+            updated_at: new Date().toISOString(),
+          });
+        }
+      }
+
       if (parts.length === 0) continue; // nada real que avisar hoy
 
       try {
@@ -499,6 +543,9 @@ async function handleDigestCheck(req, res) {
 
     if (toRemove.length) {
       await supabaseAdmin.from("push_subscriptions").delete().in("endpoint", toRemove);
+    }
+    if (progressUpdates.length) {
+      await supabaseAdmin.from("progress").upsert(progressUpdates);
     }
 
     res.status(200).json({ sent, total: subs.length });
