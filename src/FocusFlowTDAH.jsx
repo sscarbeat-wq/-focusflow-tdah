@@ -49,6 +49,8 @@ import {
   ArrowLeft,
   Lock,
   Network,
+  Info,
+  X,
 } from "lucide-react";
 
 import LanguageSwitcher from "./LanguageSwitcher";
@@ -149,8 +151,16 @@ import {
   moveScheduleBlock,
 } from "./scheduleBlocks";
 import ScheduleAgendaPanel from "./ScheduleAgendaPanel";
-import { tint, ACCENT_OPTIONS } from "./theme";
-import { SPECIES_OPTIONS, matureEmoji, DEFAULT_SPECIES } from "./mascotLogic";
+import { tint, ACCENT_OPTIONS, UNLOCKABLE_ACCENT_OPTIONS } from "./theme";
+import {
+  SPECIES_OPTIONS,
+  matureEmoji,
+  DEFAULT_SPECIES,
+  ACCESSORY_OPTIONS,
+  ACCESSORY_EMOJI,
+  DEFAULT_ACCESSORY,
+} from "./mascotLogic";
+import { XP_MILESTONES, isUnlocked, justCrossedMilestones } from "./xpMilestones";
 
 const DEFAULT_PROGRESS = {
   xp: 0,
@@ -290,6 +300,8 @@ export default function FocusFlowTDAH({
   onChangeAccent,
   species,
   onChangeSpecies,
+  accessory,
+  onChangeAccessory,
   t,
   lang,
   onChangeLanguage,
@@ -305,7 +317,12 @@ export default function FocusFlowTDAH({
   // todavía (pantallas que no pasan por App.jsx, o una prop opcional no
   // enviada) — C.lavender como respaldo es el mismo color que ya se usaba
   // fijo antes de este cambio, así que nunca se ve distinto si falta.
-  const personalAccent = (accentKey && C[accentKey]) || C.lavender;
+  //
+  // 8 de noviembre de 2026: el cálculo de `personalAccent` se movió más
+  // abajo en este archivo (justo después de declarar `xp`), porque ahora
+  // necesita saber cuántos puntos tiene la paciente para decidir si un
+  // color con candado (UNLOCKABLE_ACCENT_OPTIONS, ver theme.js) ya está
+  // desbloqueado — ver ese bloque para los detalles.
 
   const bodyDouble = useBodyDouble(userId);
 
@@ -319,6 +336,7 @@ export default function FocusFlowTDAH({
 
   const [accentPickerOpen, setAccentPickerOpen] = useState(false);
   const [speciesPickerOpen, setSpeciesPickerOpen] = useState(false);
+  const [accessoryPickerOpen, setAccessoryPickerOpen] = useState(false);
   const [isNarrow, setIsNarrow] = useState(false);
   useEffect(() => {
     const check = () => setIsNarrow(window.innerWidth < 760);
@@ -629,6 +647,21 @@ export default function FocusFlowTDAH({
   const [routines, setRoutines] = useState(saved.routines);
   const [scheduleBlocks, setScheduleBlocks] = useState(saved.scheduleBlocks);
 
+  // Acento personal con candado por puntos (8 de noviembre de 2026, ver
+  // UNLOCKABLE_ACCENT_OPTIONS en theme.js y XP_MILESTONES en
+  // xpMilestones.js) — declarado aquí, después de `xp`, porque necesita
+  // saber cuántos puntos tiene la paciente para decidir si el color
+  // guardado en localStorage ya se ganó. Si `accentKey` es uno de los 3
+  // colores con candado y todavía no se alcanzan los puntos necesarios, se
+  // usa el respaldo de siempre (C.lavender) en vez de aplicar un color que
+  // no se ganó — así, guardar (o editar a mano) un valor viejo en
+  // localStorage nunca puede mostrar una recompensa todavía no
+  // desbloqueada. Los 9 colores libres de siempre (ACCENT_OPTIONS) nunca
+  // pasan por este candado.
+  const accentLocked =
+    accentKey && UNLOCKABLE_ACCENT_OPTIONS.includes(accentKey) && !isUnlocked(accentKey, "accent", xp);
+  const personalAccent = (accentKey && !accentLocked && C[accentKey]) || C.lavender;
+
   const firstRender = useRef(true);
   useEffect(() => {
     if (firstRender.current) {
@@ -690,6 +723,24 @@ export default function FocusFlowTDAH({
   // ---- XP + jar ----
   const [xpMsg, setXpMsg] = useState("");
   const xpTimeout = useRef(null);
+  // 8 de noviembre de 2026: la doctora reportó que "foco acumulado" se
+  // presta a confusión (suena a que solo cuenta el tiempo en Modo
+  // Enfoque, cuando en realidad sube por ~17 acciones distintas en toda
+  // la app). Se le agregó una explicación a esto en el paso 5 del
+  // recorrido de bienvenida interactivo (OnboardingTour.jsx), pero ese
+  // recorrido solo se muestra UNA vez por dispositivo — quien ya lo vio
+  // (o cerró la pestaña antes de llegar a ese paso) no tenía forma de
+  // volver a consultarlo. Este ícono de información es independiente del
+  // recorrido: cualquier paciente puede tocarlo cuantas veces quiera.
+  const [xpInfoOpen, setXpInfoOpen] = useState(false);
+  useEffect(() => {
+    if (!xpInfoOpen) return;
+    const onKeyDown = (e) => {
+      if (e.key === "Escape") setXpInfoOpen(false);
+    };
+    window.addEventListener("keydown", onKeyDown);
+    return () => window.removeEventListener("keydown", onKeyDown);
+  }, [xpInfoOpen]);
 
   // Micro-recompensa de sonido + vibración al ganar XP — preferencia de
   // dispositivo, no de paciente (como el tema claro/oscuro), por eso vive
@@ -721,6 +772,43 @@ export default function FocusFlowTDAH({
       return next;
     });
   }, [t]);
+
+  // Desbloqueos por puntos (8 de noviembre de 2026, ver XP_MILESTONES en
+  // xpMilestones.js) — `prevXpRef` guarda el valor de `xp` del render
+  // anterior para poder detectar el momento EXACTO en que se cruza un
+  // umbral (no solo "ya está arriba de"), comparándolo cada vez que `xp`
+  // cambia. Se hace en un efecto separado de grantXp (en vez de dentro de
+  // su setXp) para no tener que agregar `xp` a las dependencias de
+  // grantXp ni volver a crearlo en cada punto ganado. Al montar, el ref
+  // arranca con el mismo valor que `xp` ya tiene (el guardado), así que si
+  // la paciente ya había cruzado un umbral antes (en otra sesión) no se
+  // vuelve a festejar al recargar la página.
+  const prevXpRef = useRef(xp);
+  const [unlockQueue, setUnlockQueue] = useState([]);
+  useEffect(() => {
+    const prev = prevXpRef.current;
+    if (xp > prev) {
+      const crossed = justCrossedMilestones(prev, xp);
+      if (crossed.length > 0) setUnlockQueue((q) => [...q, ...crossed]);
+    }
+    prevXpRef.current = xp;
+  }, [xp]);
+  // Desbloqueo que se muestra ahora mismo en el modal de celebración (el
+  // primero de la cola) — si se cruzan dos umbrales de un solo golpe de XP
+  // (no debería pasar con +0.85 por acción, pero por si acaso), se
+  // festejan uno por uno en vez de encimados.
+  const activeUnlock = unlockQueue[0] || null;
+  const dismissUnlock = useCallback(() => {
+    setUnlockQueue((q) => q.slice(1));
+  }, []);
+  useEffect(() => {
+    if (!activeUnlock) return;
+    const onKeyDown = (e) => {
+      if (e.key === "Escape") dismissUnlock();
+    };
+    window.addEventListener("keydown", onKeyDown);
+    return () => window.removeEventListener("keydown", onKeyDown);
+  }, [activeUnlock, dismissUnlock]);
 
   const grantXp = useCallback(
     (label) => {
@@ -1551,8 +1639,95 @@ export default function FocusFlowTDAH({
               <Sparkles size={18} color={C.amber} />
               <div>
                 <div style={{ fontSize: "16px", fontWeight: 600, lineHeight: 1.1 }}>{xp.toFixed(2)} {t.app.xpUnit}</div>
-                <div style={{ fontSize: "11px", color: C.textMuted }}>{t.app.xpCaption}</div>
+                <div style={{ fontSize: "11px", color: C.textMuted, display: "flex", alignItems: "center", gap: "3px" }}>
+                  {t.app.xpCaption}
+                  {/* 8 de noviembre de 2026: ícono de información permanente
+                      (no depende del recorrido de bienvenida, que solo se ve
+                      una vez) — ver nota en el estado xpInfoOpen arriba. */}
+                  <button
+                    onClick={() => setXpInfoOpen((v) => !v)}
+                    aria-label={t.app.xpInfoLabel}
+                    aria-expanded={xpInfoOpen}
+                    style={{
+                      width: "20px",
+                      height: "20px",
+                      minWidth: "20px",
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "center",
+                      background: "transparent",
+                      border: "none",
+                      color: C.textMuted,
+                      cursor: "pointer",
+                      padding: 0,
+                      // position+zIndex por encima del fondo transparente de
+                      // cierre (zIndex 90, ver abajo) — si no, con el
+                      // popover abierto el fondo tapa este mismo botón y
+                      // tocarlo de nuevo para cerrar (en vez de tocar fuera
+                      // o la X) no hacía nada. Detectado con Playwright
+                      // antes de entregar.
+                      position: "relative",
+                      zIndex: 92,
+                      borderRadius: "50%",
+                    }}
+                  >
+                    <Info size={13} />
+                  </button>
+                </div>
               </div>
+              {xpInfoOpen && (
+                <>
+                  {/* Fondo transparente a pantalla completa, solo para
+                      detectar el toque afuera y cerrar — mismo patrón que ya
+                      usan los modales de la app (OnboardingTour.jsx,
+                      MemoriaAnroLauncher.jsx). */}
+                  <div
+                    style={{ position: "fixed", inset: 0, zIndex: 90 }}
+                    onMouseDown={() => setXpInfoOpen(false)}
+                  />
+                  <div
+                    role="dialog"
+                    aria-label={t.app.xpInfoLabel}
+                    style={{
+                      position: "absolute",
+                      top: "calc(100% + 8px)",
+                      right: 0,
+                      width: "min(280px, 80vw)",
+                      background: C.surface,
+                      border: `1px solid ${C.border}`,
+                      borderRadius: "14px",
+                      padding: "14px 16px",
+                      boxShadow: "0 8px 24px rgba(0,0,0,0.18)",
+                      zIndex: 91,
+                      textAlign: "left",
+                    }}
+                  >
+                    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: "8px", marginBottom: "6px" }}>
+                      <strong style={{ fontSize: "13px", color: C.text }}>{t.app.xpInfoLabel}</strong>
+                      <button
+                        onClick={() => setXpInfoOpen(false)}
+                        aria-label={t.common.close}
+                        style={{
+                          width: "24px",
+                          height: "24px",
+                          minWidth: "24px",
+                          display: "flex",
+                          alignItems: "center",
+                          justifyContent: "center",
+                          background: "transparent",
+                          border: "none",
+                          color: C.textMuted,
+                          cursor: "pointer",
+                          borderRadius: "6px",
+                        }}
+                      >
+                        <X size={14} />
+                      </button>
+                    </div>
+                    <p style={{ fontSize: "12.5px", color: C.textMuted, lineHeight: 1.6, margin: 0 }}>{t.app.xpInfoBody}</p>
+                  </div>
+                </>
+              )}
               {xpMsg && (
                 <div
                   style={{
@@ -1705,6 +1880,51 @@ export default function FocusFlowTDAH({
                           }}
                         />
                       ))}
+                      {/* Colores con candado por puntos (8 de noviembre de
+                          2026, ver UNLOCKABLE_ACCENT_OPTIONS en theme.js) —
+                          se muestran siempre, incluso bloqueados, para que
+                          la paciente sepa que existen y cuánto le falta;
+                          nunca se puede tocar uno todavía bloqueado. */}
+                      {UNLOCKABLE_ACCENT_OPTIONS.map((key) => {
+                        const unlocked = isUnlocked(key, "accent", xp);
+                        const milestone = XP_MILESTONES.find((m) => m.kind === "accent" && m.key === key);
+                        const remaining =
+                          !unlocked && milestone ? Math.max(0, Math.round((milestone.xp - xp) * 100) / 100) : null;
+                        const lockedLabel =
+                          remaining != null
+                            ? `${t.app.rewardsLockedShort(t.app.accentPicker.names[key])} — ${t.app.rewardsRemaining(remaining)}`
+                            : t.app.rewardsLockedShort(t.app.accentPicker.names[key]);
+                        return (
+                          <button
+                            key={key}
+                            onClick={() => {
+                              if (!unlocked) return;
+                              onChangeAccent(key);
+                              setAccentPickerOpen(false);
+                            }}
+                            disabled={!unlocked}
+                            aria-label={unlocked ? t.app.accentPicker.names[key] : lockedLabel}
+                            title={unlocked ? t.app.accentPicker.names[key] : lockedLabel}
+                            style={{
+                              position: "relative",
+                              width: "32px",
+                              height: "32px",
+                              borderRadius: "50%",
+                              background: C[key],
+                              opacity: unlocked ? 1 : 0.35,
+                              boxShadow: key === accentKey ? `0 0 0 3px ${C.text}` : `0 0 0 1px ${C.border}`,
+                              border: "none",
+                              cursor: unlocked ? "pointer" : "not-allowed",
+                              padding: 0,
+                              display: "flex",
+                              alignItems: "center",
+                              justifyContent: "center",
+                            }}
+                          >
+                            {!unlocked && <Lock size={12} color={C.text} />}
+                          </button>
+                        );
+                      })}
                     </div>
                   </div>
                 )}
@@ -1801,6 +2021,117 @@ export default function FocusFlowTDAH({
                 )}
               </div>
             )}
+            {onChangeAccessory && (
+              <div style={{ position: "relative" }}>
+                <button
+                  onClick={() => setAccessoryPickerOpen((prev) => !prev)}
+                  aria-label={t.app.accessoryPicker.label}
+                  title={t.app.accessoryPicker.label}
+                  style={{
+                    background: "transparent",
+                    border: `1px solid ${C.border}`,
+                    borderRadius: "12px",
+                    width: "40px",
+                    height: "40px",
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    cursor: "pointer",
+                    fontSize: "18px",
+                  }}
+                >
+                  {ACCESSORY_EMOJI[accessory] ? (
+                    <span aria-hidden="true">{ACCESSORY_EMOJI[accessory]}</span>
+                  ) : (
+                    <Sparkles size={16} color={C.textMuted} />
+                  )}
+                </button>
+                {accessoryPickerOpen && (
+                  <div
+                    style={{
+                      position: "absolute",
+                      top: "48px",
+                      right: 0,
+                      background: C.surface,
+                      border: `1px solid ${C.border}`,
+                      borderRadius: "16px",
+                      padding: "14px",
+                      boxShadow: "0 8px 20px rgba(0,0,0,0.18)",
+                      zIndex: 10,
+                      width: "236px",
+                    }}
+                  >
+                    <div style={{ fontSize: "12px", color: C.textMuted, marginBottom: "10px" }}>
+                      {t.app.accessoryPicker.prompt}
+                    </div>
+                    <div style={{ display: "flex", flexWrap: "wrap", gap: "8px" }}>
+                      {ACCESSORY_OPTIONS.map((key) => {
+                        const selected = key === (accessory || DEFAULT_ACCESSORY);
+                        const unlocked = key === "none" || isUnlocked(key, "accessory", xp);
+                        // Puntos que faltan para ESTE accesorio en particular
+                        // (no "el siguiente hito cualquiera", que podría ser
+                        // un color de acento y confundir la cifra mostrada).
+                        const milestone = XP_MILESTONES.find((m) => m.kind === "accessory" && m.key === key);
+                        const remaining = !unlocked && milestone ? Math.max(0, Math.round((milestone.xp - xp) * 100) / 100) : null;
+                        return (
+                          <button
+                            key={key}
+                            onClick={() => {
+                              if (!unlocked) return;
+                              onChangeAccessory(key);
+                              setAccessoryPickerOpen(false);
+                            }}
+                            disabled={!unlocked}
+                            style={{
+                              display: "flex",
+                              flexDirection: "column",
+                              alignItems: "center",
+                              gap: "6px",
+                              width: "64px",
+                              padding: "10px 4px 8px",
+                              borderRadius: "14px",
+                              background: selected ? tint(personalAccent, 0.18) : tint(C.textMuted, 0.06),
+                              border: selected ? `2px solid ${personalAccent}` : "2px solid transparent",
+                              cursor: unlocked ? "pointer" : "not-allowed",
+                              opacity: unlocked ? 1 : 0.55,
+                            }}
+                          >
+                            <span
+                              aria-hidden="true"
+                              style={{
+                                width: "40px",
+                                height: "40px",
+                                borderRadius: "50%",
+                                background: C.surfaceAlt,
+                                display: "flex",
+                                alignItems: "center",
+                                justifyContent: "center",
+                                fontSize: "20px",
+                                filter: "drop-shadow(0 1px 2px rgba(0,0,0,0.18))",
+                              }}
+                            >
+                              {unlocked ? (
+                                ACCESSORY_EMOJI[key] || <Sparkles size={18} color={C.textMuted} />
+                              ) : (
+                                <Lock size={16} color={C.textMuted} />
+                              )}
+                            </span>
+                            <span style={{ fontSize: "10px", color: C.textMuted, textAlign: "center" }}>
+                              {t.app.accessoryPicker.names[key]}
+                            </span>
+                            {!unlocked && remaining != null && (
+                              <span style={{ fontSize: "9px", color: C.textMuted, textAlign: "center" }}>
+                                {t.app.rewardsRemaining(remaining)}
+                              </span>
+                            )}
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
             {onManageSubscription && (
               <button
                 onClick={onManageSubscription}
@@ -1860,8 +2191,111 @@ export default function FocusFlowTDAH({
             señalar la mascota con un spotlight — un div envolvente en vez
             de un prop en Mascot.jsx, para no tocar su firma de props. */}
         <div id="anro-tour-mascot">
-          <Mascot streak={streak} C={C} t={t} accent={personalAccent} species={species} focusStatus={focusStatus} />
+          <Mascot
+            streak={streak}
+            C={C}
+            t={t}
+            accent={personalAccent}
+            species={species}
+            focusStatus={focusStatus}
+            accessory={accessory}
+          />
         </div>
+
+        {/* Modal de celebración al cruzar un hito de puntos (8 de noviembre
+            de 2026, ver XP_MILESTONES en xpMilestones.js) — independiente
+            del aviso corto xpMsg (que sale en cada acción): este solo
+            aparece el momento exacto en que se cruza un umbral, y se queda
+            visible hasta que la paciente lo cierre (no desaparece solo),
+            para que el logro se note. Mismo patrón de modal centrado que ya
+            usa OnboardingTour.jsx (fondo oscuro + tarjeta al centro). */}
+        {activeUnlock && (
+          <div
+            role="dialog"
+            aria-label={t.app.unlockModal.title}
+            style={{
+              position: "fixed",
+              inset: 0,
+              background: "rgba(0,0,0,0.5)",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              padding: "18px",
+              zIndex: 95,
+            }}
+            onMouseDown={(e) => {
+              if (e.target === e.currentTarget) dismissUnlock();
+            }}
+          >
+            <div
+              style={{
+                background: C.surface,
+                borderRadius: "20px",
+                padding: "28px 24px",
+                width: "min(300px, 100%)",
+                textAlign: "center",
+                boxShadow: "0 12px 32px rgba(0,0,0,0.3)",
+              }}
+            >
+              <div
+                aria-hidden="true"
+                style={{
+                  width: "72px",
+                  height: "72px",
+                  borderRadius: "50%",
+                  background: tint(personalAccent, 0.18),
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  fontSize: "36px",
+                  margin: "0 auto 16px",
+                }}
+              >
+                {activeUnlock.kind === "accessory" ? (
+                  ACCESSORY_EMOJI[activeUnlock.key] || <Sparkles size={32} color={personalAccent} />
+                ) : (
+                  <span
+                    style={{
+                      width: "36px",
+                      height: "36px",
+                      borderRadius: "50%",
+                      background: C[activeUnlock.key],
+                      display: "block",
+                      boxShadow: `0 0 0 1px ${C.border}`,
+                    }}
+                  />
+                )}
+              </div>
+              <strong style={{ display: "block", fontSize: "16px", color: C.text, marginBottom: "6px" }}>
+                {t.app.unlockModal.title}
+              </strong>
+              <p style={{ fontSize: "13px", color: C.textMuted, lineHeight: 1.6, margin: "0 0 20px" }}>
+                {activeUnlock.kind === "accessory"
+                  ? t.app.unlockModal.accessoryBody(t.app.accessoryPicker.names[activeUnlock.key])
+                  : t.app.unlockModal.accentBody(t.app.accentPicker.names[activeUnlock.key])}
+              </p>
+              <button
+                onClick={dismissUnlock}
+                style={{
+                  background: personalAccent,
+                  // "#fff" fijo, no C.text — mismo patrón que ya usa el
+                  // botón principal de OnboardingTour.jsx para un fondo
+                  // sólido del color de acento (que puede ser casi
+                  // cualquier color de los 9+3 disponibles).
+                  color: "#fff",
+                  border: "none",
+                  borderRadius: "12px",
+                  padding: "10px 24px",
+                  fontSize: "14px",
+                  fontWeight: 700,
+                  cursor: "pointer",
+                }}
+              >
+                {t.app.unlockModal.button}
+              </button>
+            </div>
+          </div>
+        )}
 
         {activeMedicationAlarm && (
           <MedicationAlarm
