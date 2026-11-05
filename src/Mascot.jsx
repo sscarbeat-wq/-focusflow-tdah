@@ -8,6 +8,7 @@ import {
   RESET_VARIANT_COUNT,
   getStoredResetVariant,
   storeResetVariant,
+  ACCESSORY_EMOJI,
 } from "./mascotLogic";
 import {
   playLevelUpSound,
@@ -107,7 +108,7 @@ const RING_STROKE = 8;
 const RING_CIRCUMFERENCE = 2 * Math.PI * RING_RADIUS;
 const EGG_EMOJI = "🥚";
 
-export default function Mascot({ streak, C, t, accent, species, focusStatus = "idle" }) {
+export default function Mascot({ streak, C, t, accent, species, focusStatus = "idle", accessory = "none" }) {
   const current = streak?.current || 0;
   const longest = streak?.longest || 0;
   const resolvedSpecies = species || DEFAULT_SPECIES;
@@ -468,6 +469,26 @@ export default function Mascot({ streak, C, t, accent, species, focusStatus = "i
             filter: "blur(1px)",
           }}
         />
+        {/* Accesorio cosmético desbloqueable por puntos (8 de noviembre de
+            2026, ver ACCESSORY_EMOJI en mascotLogic.js y xpMilestones.js) —
+            una insignia chica encima de la mascota, no un disfraz de verdad
+            (la mascota sigue siendo un solo emoji) para no complicar el
+            dibujo. "none" no renderiza nada. */}
+        {ACCESSORY_EMOJI[accessory] && (
+          <span
+            aria-hidden="true"
+            style={{
+              position: "absolute",
+              top: "-2px",
+              right: "-2px",
+              fontSize: "26px",
+              lineHeight: 1,
+              filter: "drop-shadow(0 2px 3px rgba(0,0,0,0.25))",
+            }}
+          >
+            {ACCESSORY_EMOJI[accessory]}
+          </span>
+        )}
       </div>
       <div style={{ position: "relative", flex: 1, minWidth: 0 }}>
         <div style={{ fontSize: "15px", fontWeight: 700, color: C.text }}>{label}</div>

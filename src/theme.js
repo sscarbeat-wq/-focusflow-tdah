@@ -45,6 +45,13 @@ export const DARK_THEME = {
   whiteText: "#1E2433",
   black: "#5B6478",
   blackText: "#F2F4FA",
+  // Acentos desbloqueables por puntos de "foco acumulado" (ver
+  // UNLOCKABLE_ACCENT_OPTIONS y xpMilestones.js, 8 de noviembre de 2026) —
+  // valores de un primer pase, se pueden afinar después sin tocar ninguna
+  // lógica.
+  gold: "#E8C94A",
+  jade: "#3FB08C",
+  ruby: "#E0515F",
 };
 
 export const LIGHT_THEME = {
@@ -76,6 +83,9 @@ export const LIGHT_THEME = {
   whiteText: "#1E2433",
   black: "#1E2433",
   blackText: "#FFFFFF",
+  gold: "#9C7F0C",
+  jade: "#1F7A5C",
+  ruby: "#A9222F",
 };
 
 export const THEME_STORAGE_KEY = "senda-theme";
@@ -133,11 +143,31 @@ export const ACCENT_OPTIONS = ["lavender", "mint", "coral", "rose", "amber", "sk
 export const DEFAULT_ACCENT = "lavender";
 export const ACCENT_STORAGE_KEY = "anro-accent";
 
+// --- Acentos desbloqueables por puntos -----------------------------------
+//
+// 8 de noviembre de 2026: a diferencia de los 9 de arriba (libres desde el
+// inicio, sin ningún candado), estos 3 se desbloquean al llegar a ciertos
+// puntos de "foco acumulado" — mismas llaves que usa XP_MILESTONES en
+// xpMilestones.js (kind: "accent"). No reemplazan ni restringen
+// ACCENT_OPTIONS; se muestran como opciones adicionales en el mismo
+// selector, bloqueadas hasta desbloquearse.
+export const UNLOCKABLE_ACCENT_OPTIONS = ["gold", "jade", "ruby"];
+
+// Nota: esto valida que la llave exista en la paleta (libre o
+// desbloqueable), NO que ya esté desbloqueada con los puntos actuales —
+// ese chequeo (isUnlocked, ver xpMilestones.js) se hace aparte, al
+// calcular qué color aplicar de verdad (ver personalAccent en
+// FocusFlowTDAH.jsx), para que guardar un valor viejo en localStorage
+// nunca pueda aplicar un color todavía no desbloqueado.
+function isKnownAccentKey(key) {
+  return ACCENT_OPTIONS.includes(key) || UNLOCKABLE_ACCENT_OPTIONS.includes(key);
+}
+
 export function getStoredAccent() {
   if (typeof window === "undefined") return DEFAULT_ACCENT;
   try {
     const stored = window.localStorage.getItem(ACCENT_STORAGE_KEY);
-    if (ACCENT_OPTIONS.includes(stored)) return stored;
+    if (isKnownAccentKey(stored)) return stored;
   } catch (err) {
     // localStorage no disponible — se queda con el valor por defecto.
   }
@@ -146,7 +176,7 @@ export function getStoredAccent() {
 
 export function storeAccent(accentKey) {
   if (typeof window === "undefined") return;
-  if (!ACCENT_OPTIONS.includes(accentKey)) return;
+  if (!isKnownAccentKey(accentKey)) return;
   try {
     window.localStorage.setItem(ACCENT_STORAGE_KEY, accentKey);
   } catch (err) {

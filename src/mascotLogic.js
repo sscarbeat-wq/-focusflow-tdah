@@ -180,3 +180,44 @@ export function storeSpecies(speciesKey) {
     // No pasa nada si no se pudo guardar — solo no se recuerda la próxima vez.
   }
 }
+
+// --- Accesorio cosmético desbloqueable por puntos -----------------------
+//
+// 8 de noviembre de 2026: a diferencia de la especie de arriba (libre desde
+// el inicio), estos se desbloquean al llegar a ciertos puntos de "foco
+// acumulado" — ver XP_MILESTONES en xpMilestones.js, que referencia estas
+// mismas llaves por nombre (sin importar este archivo, para no crear una
+// dependencia circular entre los dos). "none" siempre está disponible, sin
+// necesidad de ningún punto. Se dibuja como una insignia chica encima de la
+// mascota (ver Mascot.jsx) — mismo patrón de preferencia de DISPOSITIVO en
+// localStorage que la especie y el acento personal, nunca progreso clínico.
+export const ACCESSORY_EMOJI = {
+  none: null,
+  sparkle: "✨",
+  crown: "👑",
+  scarf: "🧣",
+};
+export const ACCESSORY_OPTIONS = Object.keys(ACCESSORY_EMOJI);
+export const DEFAULT_ACCESSORY = "none";
+export const ACCESSORY_STORAGE_KEY = "anro-mascot-accessory";
+
+export function getStoredAccessory() {
+  if (typeof window === "undefined") return DEFAULT_ACCESSORY;
+  try {
+    const stored = window.localStorage.getItem(ACCESSORY_STORAGE_KEY);
+    if (ACCESSORY_OPTIONS.includes(stored)) return stored;
+  } catch (err) {
+    // localStorage no disponible — se queda con el valor por defecto.
+  }
+  return DEFAULT_ACCESSORY;
+}
+
+export function storeAccessory(accessoryKey) {
+  if (typeof window === "undefined") return;
+  if (!ACCESSORY_OPTIONS.includes(accessoryKey)) return;
+  try {
+    window.localStorage.setItem(ACCESSORY_STORAGE_KEY, accessoryKey);
+  } catch (err) {
+    // No pasa nada si no se pudo guardar — solo no se recuerda la próxima vez.
+  }
+}
