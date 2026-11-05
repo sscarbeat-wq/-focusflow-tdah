@@ -1018,6 +1018,14 @@ const es = {
     noEmailSubtitle: "Sistema de habituación y regulación",
     xpUnit: "XP",
     xpCaption: "foco acumulado",
+    // 8 de noviembre de 2026: ícono de información permanente junto al
+    // contador (independiente del recorrido de bienvenida, que solo se ve
+    // una vez por dispositivo) — mismo texto que el paso 5 del recorrido
+    // interactivo (OnboardingTour.jsx), para que no quede un mensaje
+    // distinto en cada lugar.
+    xpInfoLabel: "¿Qué es el \"foco acumulado\"?",
+    xpInfoBody:
+      "Este número sube cada vez que haces algo que te ayuda — no solo al usar Modo Enfoque. Marcar una tarea, anotar cómo te sientes, tomar tu medicamento a tiempo, usar el desglosador... todo eso también suma. Es un marcador de constancia general, no solo de tiempo enfocada.",
     xpGained: (label) => `+0.85 XP — ${label}`,
     muteOn: "Apagar sonido y vibración al completar",
     muteOff: "Encender sonido y vibración al completar",
@@ -1036,6 +1044,11 @@ const es = {
         gray: "Gris",
         white: "Blanco",
         black: "Negro",
+        // Colores con candado por puntos (8 de noviembre de 2026, ver
+        // UNLOCKABLE_ACCENT_OPTIONS en theme.js).
+        gold: "Dorado",
+        jade: "Jade",
+        ruby: "Rubí",
       },
     },
     speciesPicker: {
@@ -1049,6 +1062,31 @@ const es = {
         perro: "Perro",
         pez: "Pez",
       },
+    },
+    // 8 de noviembre de 2026 — accesorios cosméticos de la mascota que se
+    // desbloquean por puntos de "foco acumulado" (ver ACCESSORY_EMOJI en
+    // mascotLogic.js y XP_MILESTONES en xpMilestones.js).
+    accessoryPicker: {
+      label: "Accesorio de tu mascota",
+      prompt: "Elige un accesorio para tu mascota — algunos se desbloquean subiendo tu foco acumulado.",
+      names: {
+        none: "Ninguno",
+        sparkle: "Destello",
+        crown: "Corona",
+        scarf: "Bufanda",
+      },
+    },
+    // Textos reutilizables para el estado "todavía bloqueado" en ambos
+    // selectores (accesorio y colores con candado).
+    rewardsLockedShort: (name) => `Bloqueado — ${name}`,
+    rewardsRemaining: (n) => `Te faltan ${n} puntos`,
+    // Modal de celebración al cruzar un hito de puntos — distinto del
+    // aviso corto que ya sale en cada acción (xpGained).
+    unlockModal: {
+      title: "¡Desbloqueaste algo nuevo!",
+      accessoryBody: (name) => `Tu foco acumulado te ganó un accesorio nuevo para tu mascota: ${name}.`,
+      accentBody: (name) => `Tu foco acumulado te ganó un color nuevo: ${name}.`,
+      button: "Genial",
     },
     mySubscription: "Mi suscripción",
     jarLabel: "Tarro de logros",
