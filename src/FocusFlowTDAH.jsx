@@ -87,6 +87,7 @@ import GoodMomentsPanel from "./GoodMomentsPanel";
 import DayTimelinePanel from "./DayTimelinePanel";
 import QuickNavMenu from "./QuickNavMenu";
 import MemoriaAnroLauncher from "./MemoriaAnroLauncher";
+import BreathingBubbleLauncher from "./BreathingBubbleLauncher";
 import { hasPlusAccess } from "./plans";
 import { PlusLockedPanel, PlusUpsellBadge, PlusUpsellInline } from "./PlusUpsellCard";
 import { scheduleStepsOnCalendar } from "./calendarSync";
@@ -1685,6 +1686,9 @@ export default function FocusFlowTDAH({
                     style={{ position: "fixed", inset: 0, zIndex: 90 }}
                     onMouseDown={() => setXpInfoOpen(false)}
                   />
+                  <BreathingBubbleLauncher
+
+/>
                   <div
                     role="dialog"
                     aria-label={t.app.xpInfoLabel}
@@ -3626,6 +3630,13 @@ export default function FocusFlowTDAH({
         onSetReminder={handleSetQuickNoteReminder}
         bottomOffset={isNarrow ? 64 : 0}
       />
+      <BreathingBubbleLauncher
+  C={C}
+  t={t}
+  accent={personalAccent}
+  grantXp={grantXp}
+  bottomOffset={isNarrow ? 64 : 0}
+/>
     </div>
   );
 }
