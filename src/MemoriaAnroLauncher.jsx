@@ -1,6 +1,7 @@
 import React, { useEffect } from "react";
 import { Brain, X } from "lucide-react";
 import CaptureHubPanel from "./CaptureHubPanel";
+import { useDraggableBubble } from "./useDraggableBubble";
 
 // "Memoria ANRO" (3 de noviembre de 2026) — versión chica del "Prompt
 // maestro" que la doctora compartió (inspirado en una app que le llamó la
@@ -17,12 +18,18 @@ import CaptureHubPanel from "./CaptureHubPanel";
 // entrada ADICIONAL, no un reemplazo, para no romper el hábito de quien ya
 // usa la pestaña.
 //
-// Posición fija a la IZQUIERDA (QuickNavMenu, el menú "Ir a...", ya ocupa
-// la derecha) con el mismo bottomOffset que QuickNavMenu usa para subir
-// por encima de AppTabBar en móvil — mismo z-index (60) porque nunca están
-// abiertos los dos a la vez en la práctica, y uno más alto (70) para el
-// modal en sí, para quedar por encima de todo lo demás incluida la barra
-// de pestañas fija.
+// 2026-11 — igual que QuickNavMenu, la doctora pidió que este botón se
+// pueda arrastrar a cualquier parte de la pantalla (a veces el punto fijo
+// tapaba contenido). La posición ahora vive en useDraggableBubble
+// (persistida por dispositivo en localStorage, nunca progreso clínico) en
+// vez de un left/bottom fijo. Mientras `pos` es `null` (justo antes de
+// montar) se usa el mismo lugar de siempre como resguardo, para no mostrar
+// nada "saltando" al cargar — ese lugar de siempre (izquierda, porque
+// QuickNavMenu ya ocupa la derecha) sigue siendo también la posición
+// inicial por defecto una vez montado, hasta que se arrastre por primera
+// vez.
+const BUBBLE_SIZE = { w: 52, h: 52 };
+
 export default function MemoriaAnroLauncher({
   C,
   t,
@@ -43,6 +50,16 @@ export default function MemoriaAnroLauncher({
 }) {
   const [open, setOpen] = React.useState(false);
 
+  const getDefaultPosition = (vw, vh) => ({
+    x: 16,
+    y: vh - BUBBLE_SIZE.h - (20 + bottomOffset),
+  });
+  const { pos, dragHandlers, wasDragged } = useDraggableBubble(
+    "anro-bubble-pos-memoria",
+    getDefaultPosition,
+    BUBBLE_SIZE
+  );
+
   // Mismo gesto de cerrar con Escape que ya usa QuickNavMenu — solo
   // escucha mientras el modal está abierto.
   useEffect(() => {
@@ -53,6 +70,21 @@ export default function MemoriaAnroLauncher({
     window.addEventListener("keydown", onKeyDown);
     return () => window.removeEventListener("keydown", onKeyDown);
   }, [open]);
+
+  const handleButtonClick = () => {
+    if (wasDragged()) return; // ese click fue el final de un arrastre, se ignora
+    setOpen((v) => !v);
+  };
+
+  const buttonStyle = pos
+    ? { position: "fixed", left: `${pos.x}px`, top: `${pos.y}px`, right: "auto", bottom: "auto" }
+    : {
+        position: "fixed",
+        left: "16px",
+        bottom: `${20 + bottomOffset}px`,
+        right: "auto",
+        top: "auto",
+      };
 
   return (
     <>
@@ -141,19 +173,24 @@ export default function MemoriaAnroLauncher({
       )}
 
       <button
-        // id usado por el recorrido de bienvenida (OnboardingTour.jsx, 8 de
-        // noviembre de 2026) para señalar este botón con un spotlight.
+        // id usado por el recorrido de bienvenida (OnboardingTour.jsx) para
+        // señalar este botón con un spotlight — se mantiene igual aunque el
+        // botón ya se pueda arrastrar: el spotlight lee la posición real
+        // del elemento en el DOM (getBoundingClientRect), no una coordenada
+        // fija, así que sigue encontrándolo donde sea que se haya movido.
         id="anro-tour-memoria-anro"
-        onClick={() => setOpen((v) => !v)}
+        onClick={handleButtonClick}
+        onPointerDown={dragHandlers.onPointerDown}
+        onPointerMove={dragHandlers.onPointerMove}
+        onPointerUp={dragHandlers.onPointerUp}
+        onPointerCancel={dragHandlers.onPointerCancel}
         aria-label={open ? t.common.close : t.captureHub.fabLabel}
         aria-haspopup="dialog"
         aria-expanded={open}
         style={{
-          position: "fixed",
-          left: "16px",
-          bottom: `${20 + bottomOffset}px`,
-          width: "52px",
-          height: "52px",
+          ...buttonStyle,
+          width: `${BUBBLE_SIZE.w}px`,
+          height: `${BUBBLE_SIZE.h}px`,
           borderRadius: "50%",
           background: accent,
           color: "#fff",
@@ -162,7 +199,8 @@ export default function MemoriaAnroLauncher({
           display: "flex",
           alignItems: "center",
           justifyContent: "center",
-          cursor: "pointer",
+          cursor: "grab",
+          touchAction: "none",
           zIndex: 60,
         }}
       >

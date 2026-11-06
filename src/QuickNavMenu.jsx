@@ -1,5 +1,7 @@
 import React, { useEffect, useState } from "react";
 import { Compass, X } from "lucide-react";
+import { useDraggableBubble } from "./useDraggableBubble";
+import { computeAnchoredPanelPosition } from "./draggableBubblePure";
 
 // "Ir a..." — Módulo 1 de ANRO TDAH 2.0 (navegación). La app es una sola
 // página larga con más de 25 paneles (desglosador, rutinas, respiración,
@@ -13,8 +15,28 @@ import { Compass, X } from "lucide-react";
 // página — el componente solo pinta la lista y llama a onNavigate(key); la
 // lógica de scroll (igual que ya usa el Compañero de apoyo) vive en
 // FocusFlowTDAH.jsx, para no duplicar ese mecanismo.
+//
+// 2026-11 — la doctora pidió que este botón (y el de Memoria ANRO) se
+// puedan arrastrar a cualquier parte de la pantalla, porque a veces el
+// punto fijo donde aparecían tapaba contenido. La posición ahora vive en
+// useDraggableBubble (persistida por dispositivo en localStorage, nunca
+// progreso clínico) en vez de un right/bottom fijo. Mientras `pos` es
+// `null` (justo antes de montar) se usa el mismo lugar de siempre como
+// resguardo, para no mostrar nada "saltando" al cargar.
+const BUBBLE_SIZE = { w: 52, h: 52 };
+
 export default function QuickNavMenu({ C, t, accent, sections, onNavigate, bottomOffset = 0 }) {
   const [open, setOpen] = useState(false);
+
+  const getDefaultPosition = (vw, vh) => ({
+    x: vw - BUBBLE_SIZE.w - 16,
+    y: vh - BUBBLE_SIZE.h - (20 + bottomOffset),
+  });
+  const { pos, dragHandlers, wasDragged } = useDraggableBubble(
+    "anro-bubble-pos-quicknav",
+    getDefaultPosition,
+    BUBBLE_SIZE
+  );
 
   // Cerrar con Escape — mismo gesto que se espera de cualquier menú
   // flotante; solo escucha mientras está abierto, para no agregar un
@@ -33,6 +55,37 @@ export default function QuickNavMenu({ C, t, accent, sections, onNavigate, botto
     onNavigate?.(key);
   };
 
+  const handleButtonClick = () => {
+    if (wasDragged()) return; // ese click fue el final de un arrastre, se ignora
+    setOpen((v) => !v);
+  };
+
+  const buttonStyle = pos
+    ? { position: "fixed", left: `${pos.x}px`, top: `${pos.y}px`, right: "auto", bottom: "auto" }
+    : {
+        position: "fixed",
+        right: "16px",
+        bottom: `${20 + bottomOffset}px`,
+        left: "auto",
+        top: "auto",
+      };
+
+  const menuPanelStyle = (() => {
+    if (!pos) {
+      return { right: "16px", bottom: `${84 + bottomOffset}px`, left: "auto", top: "auto" };
+    }
+    const panelW = Math.min(300, typeof window !== "undefined" ? window.innerWidth - 32 : 300);
+    const panelH = Math.min(typeof window !== "undefined" ? window.innerHeight * 0.6 : 420, 520);
+    const { top, left } = computeAnchoredPanelPosition(
+      pos,
+      BUBBLE_SIZE,
+      { w: panelW, h: panelH },
+      typeof window !== "undefined" ? window.innerWidth : 360,
+      typeof window !== "undefined" ? window.innerHeight : 640
+    );
+    return { top: `${top}px`, left: `${left}px`, right: "auto", bottom: "auto" };
+  })();
+
   return (
     <>
       {open && (
@@ -41,8 +94,7 @@ export default function QuickNavMenu({ C, t, accent, sections, onNavigate, botto
           aria-label={t.quickNav.title}
           style={{
             position: "fixed",
-            right: "16px",
-            bottom: `${84 + bottomOffset}px`,
+            ...menuPanelStyle,
             width: "min(300px, calc(100vw - 32px))",
             maxHeight: "min(60vh, 520px)",
             overflowY: "auto",
@@ -112,16 +164,21 @@ export default function QuickNavMenu({ C, t, accent, sections, onNavigate, botto
       )}
 
       <button
-        onClick={() => setOpen((v) => !v)}
+        onClick={handleButtonClick}
+        onPointerDown={(e) => {
+          if (open) setOpen(false);
+          dragHandlers.onPointerDown(e);
+        }}
+        onPointerMove={dragHandlers.onPointerMove}
+        onPointerUp={dragHandlers.onPointerUp}
+        onPointerCancel={dragHandlers.onPointerCancel}
         aria-label={open ? t.quickNav.closeLabel : t.quickNav.openLabel}
         aria-haspopup="menu"
         aria-expanded={open}
         style={{
-          position: "fixed",
-          right: "16px",
-          bottom: `${20 + bottomOffset}px`,
-          width: "52px",
-          height: "52px",
+          ...buttonStyle,
+          width: `${BUBBLE_SIZE.w}px`,
+          height: `${BUBBLE_SIZE.h}px`,
           borderRadius: "50%",
           background: accent,
           color: "#fff",
@@ -130,7 +187,8 @@ export default function QuickNavMenu({ C, t, accent, sections, onNavigate, botto
           display: "flex",
           alignItems: "center",
           justifyContent: "center",
-          cursor: "pointer",
+          cursor: "grab",
+          touchAction: "none",
           zIndex: 60,
         }}
       >
