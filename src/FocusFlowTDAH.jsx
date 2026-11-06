@@ -1686,9 +1686,6 @@ export default function FocusFlowTDAH({
                     style={{ position: "fixed", inset: 0, zIndex: 90 }}
                     onMouseDown={() => setXpInfoOpen(false)}
                   />
-                  <BreathingBubbleLauncher
-
-/>
                   <div
                     role="dialog"
                     aria-label={t.app.xpInfoLabel}
