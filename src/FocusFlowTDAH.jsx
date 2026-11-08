@@ -55,7 +55,7 @@ import {
 
 import LanguageSwitcher from "./LanguageSwitcher";
 import AppTabBar from "./AppTabBar";
-import QuickAccessGrid from "./QuickAccessGrid";
+import QuickAccessCompass from "./QuickAccessCompass";
 import ToolsGrid from "./ToolsGrid";
 import OnboardingTour from "./OnboardingTour";
 import InstallBanner from "./InstallBanner";
@@ -2203,6 +2203,24 @@ export default function FocusFlowTDAH({
           />
         </div>
 
+        {/* 8 de noviembre de 2026 — rediseño "estilo K": los 4 accesos
+            rápidos de Inicio se acomodan en círculo justo debajo de la
+            mascota (antes vivían como cuadrícula dentro del panel "Hoy",
+            ver QuickAccessCompass.jsx para el motivo del cambio). Mismos
+            `quickAccessItems`/`scrollToCompanionSection` de siempre — solo
+            cambió dónde y cómo se presentan, nada de su comportamiento. */}
+        <div style={{ marginBottom: "20px" }}>
+          <QuickAccessCompass
+            C={C}
+            t={t}
+            accent={personalAccent}
+            items={quickAccessItems}
+            onSelect={scrollToCompanionSection}
+            streak={streak}
+            species={species}
+          />
+        </div>
+
         {/* Modal de celebración al cruzar un hito de puntos (8 de noviembre
             de 2026, ver XP_MILESTONES en xpMilestones.js) — independiente
             del aviso corto xpMsg (que sale en cada acción): este solo
@@ -2357,9 +2375,6 @@ export default function FocusFlowTDAH({
               routines={routines}
               onNavigate={scrollToCompanionSection}
             />
-            <div style={{ marginTop: "18px" }}>
-              <QuickAccessGrid C={C} t={t} accent={personalAccent} items={quickAccessItems} onSelect={scrollToCompanionSection} />
-            </div>
           </Panel>
         </div>
 
