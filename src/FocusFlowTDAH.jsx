@@ -30,6 +30,7 @@ import {
   VolumeX,
   BookOpen,
   HeartHandshake,
+  MessageCircle,
   MessageSquare,
   ListChecks,
   Pill,
@@ -51,6 +52,8 @@ import {
   Network,
   Info,
   X,
+  Wrench,
+  Flame,
 } from "lucide-react";
 
 import LanguageSwitcher from "./LanguageSwitcher";
@@ -62,7 +65,6 @@ import InstallBanner from "./InstallBanner";
 import PostDiagnosisCard from "./PostDiagnosisCard";
 import ScienceCapsulePanel from "./ScienceCapsulePanel";
 import MindfulnessPanel from "./MindfulnessPanel";
-import Mascot from "./Mascot";
 import FocusMode from "./FocusMode";
 import OneThingPanel from "./OneThingPanel";
 import KanbanBoard from "./KanbanBoard";
@@ -95,7 +97,7 @@ import { useBodyDouble } from "./bodyDouble";
 import { celebrate } from "./celebrate";
 import { DEFAULT_STREAK, nextStreak, effectiveStreak } from "./streak";
 import { DEFAULT_MOOD_LOG, recordMood } from "./moodLog";
-import { DEFAULT_FOCUS_SESSION_LOG, logFocusSession } from "./focusSessionLog";
+import { DEFAULT_FOCUS_SESSION_LOG, logFocusSession, todayFocusPercent } from "./focusSessionLog";
 import { DEFAULT_ENERGY_LOG, recordEnergy } from "./energyLog";
 import {
   DEFAULT_MEDICATIONS,
@@ -150,8 +152,13 @@ import {
   removeScheduleBlock,
   updateScheduleBlock,
   moveScheduleBlock,
+  scheduleBlocksForDay,
+  formatMinutesAsTime,
 } from "./scheduleBlocks";
 import ScheduleAgendaPanel from "./ScheduleAgendaPanel";
+import { buildTodayItems } from "./todayView";
+import { timeOfDayPeriod, timeOfDayPalette, timeOfDayBackground } from "./timeOfDayPalette";
+import HomeHeader from "./HomeHeader";
 import { tint, ACCENT_OPTIONS, UNLOCKABLE_ACCENT_OPTIONS } from "./theme";
 import {
   SPECIES_OPTIONS,
@@ -160,7 +167,10 @@ import {
   ACCESSORY_OPTIONS,
   ACCESSORY_EMOJI,
   DEFAULT_ACCESSORY,
+  getStoredCompassSelection,
+  storeCompassSelection,
 } from "./mascotLogic";
+import CompassEditSheet from "./CompassEditSheet";
 import { XP_MILESTONES, isUnlocked, justCrossedMilestones } from "./xpMilestones";
 
 const DEFAULT_PROGRESS = {
@@ -338,6 +348,10 @@ export default function FocusFlowTDAH({
   const [accentPickerOpen, setAccentPickerOpen] = useState(false);
   const [speciesPickerOpen, setSpeciesPickerOpen] = useState(false);
   const [accessoryPickerOpen, setAccessoryPickerOpen] = useState(false);
+  // "✏️ Editar" de la brújula de Inicio (ver COMPASS_POOL más abajo) —
+  // preferencia de dispositivo, mismo patrón que especie/accesorio/fijado.
+  const [compassEditOpen, setCompassEditOpen] = useState(false);
+  const [compassKeys, setCompassKeys] = useState(() => getStoredCompassSelection());
   const [isNarrow, setIsNarrow] = useState(false);
   useEffect(() => {
     const check = () => setIsNarrow(window.innerWidth < 760);
@@ -570,14 +584,31 @@ export default function FocusFlowTDAH({
     { key: "habits", icon: <Moon size={18} />, label: t.app.panels.habits.title },
   ];
 
-  // Fase 2 (Inicio simplificado): los 4 accesos rápidos que eligió la
-  // doctora (desglosador, compañero de apoyo, freno de impulsividad,
-  // burbuja de enfoque) — se arman filtrando quickNavSections en vez de
-  // declarar íconos/etiquetas nuevos, para que SIEMPRE coincidan con el
-  // ícono y el título real de cada herramienta (si alguno cambia ahí,
-  // cambia aquí solo).
-  const QUICK_ACCESS_KEYS = ["desglosador", "companion", "freno", "burbuja"];
-  const quickAccessItems = QUICK_ACCESS_KEYS.map((key) => quickNavSections.find((s) => s.key === key)).filter(Boolean);
+  // Catálogo completo para "✏️ Editar" (botón del mockup original que
+  // había quedado fuera de la primera entrega, 9 de noviembre de 2026):
+  // la paciente elige hasta 6 de estos para su brújula de Inicio, en vez
+  // de los 6 fijos de siempre. Reutiliza `quickNavSections` (misma lista,
+  // mismos íconos/etiquetas, que el menú flotante "Ir a...") para no
+  // mantener un segundo catálogo de destinos aparte — con 3 agregados
+  // sintéticos al principio que no son secciones individuales sino
+  // atajos: "todayNextStep" (salta al primer pendiente real de HOY, el
+  // mismo que calcula buildTodayItems más abajo — el destino cambia según
+  // el día, pero la paciente solo elige "quiero este atajo" una vez) y
+  // "herramientasRoot"/"agendaRoot" (saltan a la raíz de esas pestañas,
+  // no a una herramienta en particular). No se tocó `quickNavSections` en
+  // sí — ese array lo sigue usando tal cual el menú "Ir a..." y el
+  // filtro de la cuadrícula de Herramientas (SECTION_TABS) más abajo.
+  const COMPASS_POOL = [
+    { key: "todayNextStep", icon: <ListChecks size={18} />, label: t.today.compassNextStep },
+    { key: "herramientasRoot", icon: <Wrench size={18} />, label: t.appTabs.herramientas },
+    { key: "agendaRoot", icon: <CalendarClock size={18} />, label: t.appTabs.agenda },
+    ...quickNavSections,
+  ];
+  const DEFAULT_COMPASS_KEYS = ["companion", "insights", "agendaRoot", "mood", "todayNextStep", "herramientasRoot"];
+
+  // Los 6 accesos de la brújula de Inicio (reemplaza a los 4 anteriores —
+  // ver nota larga del 9 de noviembre de 2026 más abajo, junto a
+  // <QuickAccessCompass>, de dónde sale cada uno).
 
   // Fase 2B (Herramientas como cuadrícula): las 20 tarjetas, en el mismo
   // orden en que ya aparecían como lista — reutiliza quickNavSections
@@ -635,6 +666,11 @@ export default function FocusFlowTDAH({
   const [moodLog, setMoodLog] = useState(saved.moodLog);
   const [energyLog, setEnergyLog] = useState(saved.energyLog);
   const [focusSessionLog, setFocusSessionLog] = useState(saved.focusSessionLog);
+  // % real de enfoque de hoy (rediseño "estilo K" de Inicio, 9 de noviembre
+  // de 2026) — alimenta el anillo de la mascota en QuickAccessCompass.jsx.
+  // Cálculo puro y barato (solo suma minutos del día de hoy), se recalcula
+  // en cada render sin necesidad de memorizarlo.
+  const focusPercent = todayFocusPercent(focusSessionLog);
   const [medications, setMedications] = useState(saved.medications);
   const [medicationDoseLog, setMedicationDoseLog] = useState(saved.medicationDoseLog);
   const [payments, setPayments] = useState(saved.payments);
@@ -2189,37 +2225,197 @@ export default function FocusFlowTDAH({
         )}
 
         {/* id usado por el recorrido de bienvenida (OnboardingTour.jsx) para
-            señalar la mascota con un spotlight — un div envolvente en vez
-            de un prop en Mascot.jsx, para no tocar su firma de props. */}
-        <div id="anro-tour-mascot">
-          <Mascot
-            streak={streak}
-            C={C}
-            t={t}
-            accent={personalAccent}
-            species={species}
-            focusStatus={focusStatus}
-            accessory={accessory}
-          />
-        </div>
+            señalar la mascota con un spotlight — sigue apuntando aquí, solo
+            que ahora envuelve a toda la brújula en vez de a una tarjeta
+            aparte (ver nota del 9 de noviembre más abajo). */}
+        {/* 9 de noviembre de 2026 — reconstrucción fiel al mockup "Opción K"
+            (la doctora señaló, con los mockups originales en mano, que el
+            diseño aprobado era UNA sola pieza circular: mascota + anillo de
+            "% de enfoque de hoy" + accesos rápidos girando alrededor — no
+            una tarjeta de mascota más un adorno de accesos aparte, que fue
+            el problema que reportó como "se ven dos mascotas"). Por eso ya
+            no hay una <Mascot> aparte aquí: vive DENTRO de
+            QuickAccessCompass.jsx (en su centro), que es ahora el único
+            lugar de toda la pantalla donde se dibuja la mascota. El % del
+            anillo es real (todayFocusPercent(focusSessionLog), calculado
+            arriba) — no un número inventado ni el progreso de racha
+            reciclado.
 
-        {/* 8 de noviembre de 2026 — rediseño "estilo K": los 4 accesos
-            rápidos de Inicio se acomodan en círculo justo debajo de la
-            mascota (antes vivían como cuadrícula dentro del panel "Hoy",
-            ver QuickAccessCompass.jsx para el motivo del cambio). Mismos
-            `quickAccessItems`/`scrollToCompanionSection` de siempre — solo
-            cambió dónde y cómo se presentan, nada de su comportamiento. */}
-        <div style={{ marginBottom: "20px" }}>
-          <QuickAccessCompass
-            C={C}
-            t={t}
-            accent={personalAccent}
-            items={quickAccessItems}
-            onSelect={scrollToCompanionSection}
-            streak={streak}
-            species={species}
-          />
-        </div>
+            Segunda corrección, el mismo 9 de noviembre: la doctora reenvió
+            los 3 mockups originales completos y los accesos reales eran 6
+            (no los 4 que se habían reconstruido antes), cada uno saliendo
+            de un dato real distinto:
+              - Próximo paso: el primer pendiente real de buildTodayItems()
+                (el mismo motor que ya usa <TodayPanel>) — si no hay nada
+                pendiente, apunta a la sección "Hoy", que ya sabe mostrar
+                "no tienes nada pendiente" en vez de inventar una tarea.
+              - Herramientas / Agenda: saltan a la raíz de esas pestañas
+                (no a una herramienta en particular).
+              - Compañero / Ánimo: los de siempre (scrollToCompanionSection).
+              - Racha · puntos: streak.current y xp, ambos ya reales y
+                persistidos — salta a Insights (Progreso), donde viven esos
+                mismos números en detalle.
+            El mockup también mostraba "Agenda · 4pm" con una hora fija —
+            aquí se calculó de verdad (el siguiente bloque de la agenda de
+            HOY que todavía no pasó); si no queda ninguno, se muestra solo
+            "Agenda" sin hora inventada. */}
+        {(() => {
+          const now = new Date();
+          const period = timeOfDayPeriod(now);
+          const palette = timeOfDayPalette(now);
+          const todayItems = buildTodayItems({
+            steps,
+            moodLog,
+            energyLog,
+            medications,
+            medicationDoseLog,
+            payments,
+            paymentPaidLog,
+            cbtProgram,
+            habits: { screensOff, sleepEnv, ateWell, hydrated, deskCleared },
+            quickNotes,
+            routines,
+            now,
+            t,
+          });
+          const nextStepTarget = todayItems[0]?.sectionRef || "today";
+          const nowMinutes = now.getHours() * 60 + now.getMinutes();
+          const nextBlock = scheduleBlocksForDay(scheduleBlocks, now).find((b) => b.startMin > nowMinutes) || null;
+          const agendaLabel = nextBlock
+            ? `${t.appTabs.agenda} · ${formatMinutesAsTime(nextBlock.startMin)}`
+            : t.appTabs.agenda;
+
+          // `variant`/orden (9 de noviembre de 2026, TERCERA corrección de
+          // fidelidad — la doctora mandó una foto nítida de los 3 mockups
+          // completos y se ve claro que: (a) el orden empieza en "Compañero"
+          // arriba, no en "Próximo paso"; (b) la rueda usa UN SOLO color
+          // (el acento) en los 6, nunca el acento2 — acento2 es solo para el
+          // aviso de "próxima actividad" arriba del saludo. Solo 2 de los 6
+          // llevan relleno sólido y los otros 4 van con aro blanco + borde
+          // de color — ANTES eso dependía de CUÁL acceso era (Próximo paso/
+          // Herramientas siempre sólidos); ahora que los 6 son editables
+          // (ver COMPASS_POOL/compassKeys más arriba), el relleno sólido se
+          // decide por POSICIÓN en la rueda (índices 4 y 5 — abajo-izquierda
+          // y arriba-izquierda en ORBIT_ANCHORS de QuickAccessCompass.jsx,
+          // que son los del mockup con relleno sólido), no por identidad del
+          // acceso — así cualquier combinación que elija la paciente
+          // mantiene el mismo patrón visual 2 sólidos / 4 aro.
+          //
+          // `effectiveKeys`: lo elegido por la paciente (compassKeys,
+          // guardado en localStorage por CompassEditSheet) o los 6 de
+          // siempre si todavía no eligió nada. Cada key se resuelve contra
+          // COMPASS_POOL para ícono/etiqueta — con 2 excepciones que
+          // necesitan un dato que cambia en vivo y no puede vivir en el
+          // catálogo estático: "todayNextStep" (apunta al primer pendiente
+          // REAL de hoy, calculado arriba con buildTodayItems — ver nota
+          // larga más abajo de dónde sale) e "insights" (muestra la racha y
+          // los puntos reales de hoy en vez de la etiqueta genérica
+          // "Progreso" del catálogo).
+          const effectiveKeys = compassKeys || DEFAULT_COMPASS_KEYS;
+          const compassItems = effectiveKeys.map((key, i) => {
+            const variant = i >= 4 ? "accent-solid" : "accent-outline";
+            if (key === "todayNextStep") {
+              return { key: nextStepTarget, icon: <ListChecks size={18} />, label: t.today.compassNextStep, variant };
+            }
+            if (key === "insights") {
+              return {
+                key: "insights",
+                icon: <Flame size={18} />,
+                label: `${streak.current} ${t.mascot.dayWord(streak.current)} · ${xp} ${t.today.pointsAbbrev}`,
+                variant,
+              };
+            }
+            if (key === "agendaRoot") {
+              return { key: "agendaRoot", icon: <CalendarClock size={18} />, label: agendaLabel, variant };
+            }
+            const poolItem = COMPASS_POOL.find((p) => p.key === key);
+            if (!poolItem) return null; // clave guardada que ya no existe (ej. sección renombrada) — se omite en vez de romper
+            return { ...poolItem, variant };
+          }).filter(Boolean);
+
+          const handleCompassSelect = (key) => {
+            if (key === "herramientasRoot") {
+              setActiveTool(null);
+              if (activeTab !== "herramientas") setActiveTab("herramientas");
+              return;
+            }
+            if (key === "agendaRoot") {
+              if (activeTab !== "agenda") setActiveTab("agenda");
+              return;
+            }
+            scrollToCompanionSection(key);
+          };
+
+          return (
+            <div
+              style={{
+                background: timeOfDayBackground(period),
+                borderRadius: "20px",
+                marginBottom: "28px",
+                overflow: "hidden",
+              }}
+            >
+              <HomeHeader
+                C={C}
+                t={t}
+                palette={palette}
+                period={period}
+                nextBlock={nextBlock}
+                nowMinutes={nowMinutes}
+                onEditClick={() => setCompassEditOpen(true)}
+              />
+              {compassEditOpen && (
+                <CompassEditSheet
+                  C={C}
+                  t={t}
+                  accent={personalAccent}
+                  pool={COMPASS_POOL}
+                  selectedKeys={effectiveKeys}
+                  defaultKeys={DEFAULT_COMPASS_KEYS}
+                  onClose={() => setCompassEditOpen(false)}
+                  onSave={(keys) => {
+                    setCompassKeys(keys);
+                    storeCompassSelection(keys);
+                    setCompassEditOpen(false);
+                  }}
+                />
+              )}
+              <div id="anro-tour-mascot" style={{ marginTop: "8px", paddingBottom: "20px" }}>
+                <QuickAccessCompass
+                  C={C}
+                  t={t}
+                  // 9 de noviembre de 2026 — tercera pasada: se había
+                  // probado acá con el acento/acento2 de la PALETA
+                  // automática por hora (para calcar el color fijo del
+                  // mockup en las 3 franjas horarias), pero la doctora
+                  // confirmó explícitamente que el color PERSONAL de la
+                  // paciente (el mismo que ya manda en todo el resto de
+                  // la app — botones, resaltados, el aro de la mascota en
+                  // cualquier otro lugar) también debe mandar ACÁ adentro,
+                  // sin excepción. Por eso vuelve a ser `personalAccent`
+                  // (no `palette.accent`): el dial punteado, los 6 íconos
+                  // y el anillo de "% de enfoque" se ven ahora del color
+                  // que cada paciente eligió para sí misma, distinto entre
+                  // pacientes — ya no un azul-verdoso fijo igual para
+                  // todas. Lo que SÍ sigue siendo automático por hora (y
+                  // no se tocó) es el FONDO con degradado y el color del
+                  // texto (`palette` más abajo) — esa es la única parte
+                  // de este rediseño que depende de la hora del día.
+                  accent={personalAccent}
+                  accent2={personalAccent}
+                  items={compassItems}
+                  onSelect={handleCompassSelect}
+                  streak={streak}
+                  species={species}
+                  focusStatus={focusStatus}
+                  accessory={accessory}
+                  focusPercent={focusPercent}
+                  palette={palette}
+                />
+              </div>
+            </div>
+          );
+        })()}
 
         {/* Modal de celebración al cruzar un hito de puntos (8 de noviembre
             de 2026, ver XP_MILESTONES en xpMilestones.js) — independiente

@@ -153,6 +153,70 @@ export function progressFraction(current, longest) {
 
 export const STAGES = STAGE_META;
 
+// Acceso rápido "fijado arriba" de la brújula de Inicio (rediseño "estilo
+// K", 9 de noviembre de 2026 — ver el footnote del mockup original,
+// "mantén presionado para fijar uno arriba"). Preferencia de dispositivo,
+// mismo patrón que la especie elegida, el sonido de la mascota y la
+// variante de reinicio de racha: se guarda la `key` del acceso (una de
+// `quickAccessItems`, ver FocusFlowTDAH.jsx) y QuickAccessCompass.jsx la
+// saca de la rueda que gira para dejarla fija arriba; null = nada fijado
+// (todos giran, como siempre).
+export const PINNED_ACCESS_STORAGE_KEY = "anro-compass-pinned-access";
+
+export function getStoredPinnedAccess() {
+  if (typeof window === "undefined") return null;
+  try {
+    return window.localStorage.getItem(PINNED_ACCESS_STORAGE_KEY) || null;
+  } catch (err) {
+    return null;
+  }
+}
+
+export function storePinnedAccess(key) {
+  if (typeof window === "undefined") return;
+  try {
+    if (key) window.localStorage.setItem(PINNED_ACCESS_STORAGE_KEY, key);
+    else window.localStorage.removeItem(PINNED_ACCESS_STORAGE_KEY);
+  } catch (err) {
+    // No pasa nada si no se pudo guardar — solo no se recuerda la próxima vez.
+  }
+}
+
+// Selección editable de los 6 accesos de la brújula (9 de noviembre de
+// 2026 — botón "✏️ Editar" del mockup original, que había quedado fuera de
+// la primera entrega). Mismo patrón que lo fijado arriba: preferencia de
+// DISPOSITIVO en localStorage, nunca progreso clínico. Se guarda un array
+// JSON de hasta 6 `key` (de COMPASS_POOL, ver FocusFlowTDAH.jsx); null/
+// ausente/corrupto = usar los 6 por defecto.
+export const COMPASS_SELECTION_STORAGE_KEY = "anro-compass-selection";
+
+export function getStoredCompassSelection() {
+  if (typeof window === "undefined") return null;
+  try {
+    const raw = window.localStorage.getItem(COMPASS_SELECTION_STORAGE_KEY);
+    if (!raw) return null;
+    const parsed = JSON.parse(raw);
+    if (!Array.isArray(parsed) || parsed.length === 0) return null;
+    if (!parsed.every((k) => typeof k === "string")) return null;
+    return parsed.slice(0, 6);
+  } catch (err) {
+    return null;
+  }
+}
+
+export function storeCompassSelection(keys) {
+  if (typeof window === "undefined") return;
+  try {
+    if (Array.isArray(keys) && keys.length > 0) {
+      window.localStorage.setItem(COMPASS_SELECTION_STORAGE_KEY, JSON.stringify(keys.slice(0, 6)));
+    } else {
+      window.localStorage.removeItem(COMPASS_SELECTION_STORAGE_KEY);
+    }
+  } catch (err) {
+    // No pasa nada si no se pudo guardar — solo no se recuerda la próxima vez.
+  }
+}
+
 // --- Especie elegida ---------------------------------------------------
 //
 // Mismo patrón que el tema claro/oscuro y el acento personal (theme.js):
