@@ -456,6 +456,7 @@ const en = {
     focusDistractedLabel: "You're back!",
     muteSoundLabel: "Mute pet sounds",
     unmuteSoundLabel: "Unmute pet sounds",
+    focusTodayLabel: "FOCUS TODAY",
   },
 
   medication: {
@@ -911,6 +912,24 @@ const en = {
     showMore: (n) => `Show ${n} more`,
     showLess: "Show less",
     quickAccessLabel: "Quick access",
+    quickAccessPinHint: "These spin on their own · press and hold to pin one at the top",
+    pinAccessAria: (label) => `Pin "${label}" to the top`,
+    unpinAccessAria: (label) => `Unpin "${label}" from the top`,
+    editCompassButton: "Edit",
+    editCompassTitle: "Edit compass shortcuts",
+    editCompassClose: "Close",
+    editCompassCount: (n) => `${n}/6 selected`,
+    editCompassReset: "Reset",
+    editCompassSave: "Save",
+    compassNextStep: "Next step",
+    compassCompanionLabel: "Companion",
+    compassMoodLabel: "Mood",
+    pointsAbbrev: "pts",
+    greetingMorning: "Good morning! Focus on one thing at a time today",
+    greetingAfternoon: "Good afternoon! Keep focusing on one thing at a time",
+    greetingNight: "Good evening — close the day with one last step",
+    motivationalQuote: "Small steps are still steps.",
+    upcomingBlockBanner: (text, minutes) => `Your next activity (${text}) is in ${minutes} min`,
   },
 
   onboarding: {

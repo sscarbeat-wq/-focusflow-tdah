@@ -459,6 +459,7 @@ const fr = {
     focusDistractedLabel: "Tu es de retour !",
     muteSoundLabel: "Couper le son de la mascotte",
     unmuteSoundLabel: "Activer le son de la mascotte",
+    focusTodayLabel: "CONCENTRATION AUJOURD'HUI",
   },
 
   medication: {
@@ -914,6 +915,24 @@ const fr = {
     showMore: (n) => `Voir ${n} de plus`,
     showLess: "Voir moins",
     quickAccessLabel: "Accès rapides",
+    quickAccessPinHint: "Ils tournent seuls · reste appuyé pour en épingler un en haut",
+    pinAccessAria: (label) => `Épingler « ${label} » en haut`,
+    unpinAccessAria: (label) => `Ne plus épingler « ${label} »`,
+    editCompassButton: "Modifier",
+    editCompassTitle: "Modifier les accès de la boussole",
+    editCompassClose: "Fermer",
+    editCompassCount: (n) => `${n}/6 sélectionnés`,
+    editCompassReset: "Réinitialiser",
+    editCompassSave: "Enregistrer",
+    compassNextStep: "Prochaine étape",
+    compassCompanionLabel: "Compagnon",
+    compassMoodLabel: "Humeur",
+    pointsAbbrev: "pts",
+    greetingMorning: "Bonjour ! Concentre-toi sur une chose à la fois aujourd'hui",
+    greetingAfternoon: "Bon après-midi ! Continue à te concentrer sur une chose à la fois",
+    greetingNight: "Bonsoir — termine la journée avec une dernière étape",
+    motivationalQuote: "Les petits pas restent des pas.",
+    upcomingBlockBanner: (text, minutes) => `Ta prochaine activité (${text}) est dans ${minutes} min`,
   },
 
   onboarding: {

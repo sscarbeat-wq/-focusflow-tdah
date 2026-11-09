@@ -479,6 +479,7 @@ const es = {
     focusDistractedLabel: "¡Volviste!",
     muteSoundLabel: "Silenciar sonidos de la mascota",
     unmuteSoundLabel: "Activar sonidos de la mascota",
+    focusTodayLabel: "ENFOQUE HOY",
   },
 
   medication: {
@@ -936,6 +937,31 @@ const es = {
     showMore: (n) => `Ver ${n} más`,
     showLess: "Ver menos",
     quickAccessLabel: "Accesos rápidos",
+    quickAccessPinHint: "Los accesos giran solos · mantén presionado para fijar uno arriba",
+    pinAccessAria: (label) => `Fijar "${label}" arriba`,
+    unpinAccessAria: (label) => `Dejar de fijar "${label}" arriba`,
+    // "✏️ Editar" de la brújula (9 de noviembre de 2026) — CompassEditSheet.jsx
+    editCompassButton: "Editar",
+    editCompassTitle: "Editar accesos de la brújula",
+    editCompassClose: "Cerrar",
+    editCompassCount: (n) => `${n}/6 seleccionados`,
+    editCompassReset: "Restablecer",
+    editCompassSave: "Guardar",
+    // Rediseño de la brújula de 6 accesos (9 de noviembre de 2026): labels
+    // cortos para los accesos que no reutilizan el título completo de su
+    // panel (sería muy largo para caber en el círculo chico de la
+    // brújula) — ver compassItems en FocusFlowTDAH.jsx. El saludo y la
+    // frase varían por hora del día (ver timeOfDayPalette.js); la frase es
+    // la misma en las 3 franjas, tal como la tenía el mockup original.
+    compassNextStep: "Próximo paso",
+    compassCompanionLabel: "Compañero",
+    compassMoodLabel: "Ánimo",
+    pointsAbbrev: "pts",
+    greetingMorning: "¡Buenos días! Hoy enfócate en un punto a la vez",
+    greetingAfternoon: "¡Buenas tardes! Sigue enfocado en un punto a la vez",
+    greetingNight: "Buenas noches — cierra el día con un último paso",
+    motivationalQuote: "Pequeños pasos siguen siendo pasos.",
+    upcomingBlockBanner: (text, minutes) => `Tu próxima actividad (${text}) es en ${minutes} min`,
   },
 
   onboarding: {
