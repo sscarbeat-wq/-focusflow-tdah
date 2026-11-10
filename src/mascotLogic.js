@@ -128,8 +128,11 @@ const SHEET_POSES = ["a", "b", "sleep", "eat", "play"];
 export const SHEET_COLUMNS = SHEET_POSES.length;
 export const SHEET_ROWS = STAGE_GROUP_KEYS.length;
 
+// Las imágenes viven sueltas en /public (no en /public/mascots): así
+// quedaron al subirlas por la web de GitHub, y moverlas ahí uno por uno no
+// se puede. /public/<especie>.webp se sirve como /<especie>.webp.
 export function mascotSheetPath(species) {
-  return `/mascots/${species}.webp`;
+  return `/${species}.webp`;
 }
 
 // Fila/columna del cuadro de una etapa+pose dentro de la imagen del
