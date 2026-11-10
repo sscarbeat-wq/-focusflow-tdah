@@ -480,6 +480,7 @@ const es = {
     muteSoundLabel: "Silenciar sonidos de la mascota",
     unmuteSoundLabel: "Activar sonidos de la mascota",
     focusTodayLabel: "ENFOQUE HOY",
+    petLabel: "Saludar a tu mascota",
   },
 
   medication: {
@@ -947,6 +948,7 @@ const es = {
     editCompassCount: (n) => `${n}/6 seleccionados`,
     editCompassReset: "Restablecer",
     editCompassSave: "Guardar",
+    backToHome: "Volver al inicio",
     // Rediseño de la brújula de 6 accesos (9 de noviembre de 2026): labels
     // cortos para los accesos que no reutilizan el título completo de su
     // panel (sería muy largo para caber en el círculo chico de la
@@ -1087,7 +1089,32 @@ const es = {
         dragon: "Dragón",
         perro: "Perro",
         pez: "Pez",
+        panda: "Panda",
+        zorro: "Zorro",
+        koala: "Koala",
+        pulpo: "Pulpo",
+        ajolote: "Ajolote",
+        buho: "Búho",
+        tortuga: "Tortuga",
+        dinosaurio: "Dinosaurio",
+        mariposa: "Mariposa",
+        tigre: "Tigre",
+        leon: "León",
+        aguila: "Águila",
       },
+      stageGroups: {
+        reciennacida: "Recién nacida",
+        pequena: "Pequeña",
+        juvenil: "Juvenil",
+        adulta: "Adulta",
+      },
+      useButton: "Usar esta mascota",
+      back: "Volver",
+      close: "Cerrar",
+      previewAria: (name) => `Ver cómo crece ${name}`,
+      lockedNote: (xpNeeded, remaining) => `Se desbloquea al llegar a ${xpNeeded} puntos de foco acumulado — te faltan ${remaining}. Nunca se pierde: aunque se reinicie tu racha, lo que desbloqueas se queda.`,
+      stagesNote: "Así se ve en cada etapa de tu racha:",
+      interactionHint: "En Inicio, tócala para saludarla y dale doble toque para que juegue. Come cada vez que ganas puntos.",
     },
     // 8 de noviembre de 2026 — accesorios cosméticos de la mascota que se
     // desbloquean por puntos de "foco acumulado" (ver ACCESSORY_EMOJI en
@@ -1112,6 +1139,7 @@ const es = {
       title: "¡Desbloqueaste algo nuevo!",
       accessoryBody: (name) => `Tu foco acumulado te ganó un accesorio nuevo para tu mascota: ${name}.`,
       accentBody: (name) => `Tu foco acumulado te ganó un color nuevo: ${name}.`,
+      speciesBody: (name) => `Tu foco acumulado te ganó una mascota nueva: ${name}. Ya puedes elegirla.`,
       button: "Genial",
     },
     mySubscription: "Mi suscripción",
