@@ -1,3 +1,4 @@
+import { PLUS_THEMES, PLUS_THEME_KEYS } from "./plusThemes";
 // Paletas de color para ANRO TDAH — modo oscuro (el original) y modo claro.
 // Tienen exactamente las mismas claves para que cualquier componente que
 // reciba `C` como prop funcione igual sin importar cuál esté activo.
@@ -58,6 +59,11 @@ export const DARK_THEME = {
   solar: "#A58BEA",
   solarDark: "#7A5BD6",
   solarText: "#1A1033",
+  // Más colores desbloqueables (10 de noviembre de 2026).
+  ocean: "#64A8F0",
+  violet: "#B794F4",
+  sunset: "#F59A6B",
+  forest: "#6CC070",
 };
 
 export const LIGHT_THEME = {
@@ -95,6 +101,10 @@ export const LIGHT_THEME = {
   solar: "#6E45D8",
   solarDark: "#5631B8",
   solarText: "#FFFFFF",
+  ocean: "#1565C0",
+  violet: "#7B3FBF",
+  sunset: "#D9531E",
+  forest: "#2E7D32",
 };
 
 export const THEME_STORAGE_KEY = "senda-theme";
@@ -189,6 +199,7 @@ export function luminance(hex) {
 }
 export function planetColorsFor(accentKey, accentHex) {
   if (accentKey === "solar") return SOLAR_PLANETS;
+  if (PLUS_THEMES[accentKey]) return PLUS_THEMES[accentKey].planets;
   // Base un poco más profunda que el acento (los pastel se veían grises)
   // y 6 tonos alrededor de ella.
   const base = luminance(accentHex) > 0.3 ? shadeColor(accentHex, -0.3) : accentHex;
@@ -205,7 +216,16 @@ export const ACCENT_STORAGE_KEY = "anro-accent";
 // xpMilestones.js (kind: "accent"). No reemplazan ni restringen
 // ACCENT_OPTIONS; se muestran como opciones adicionales en el mismo
 // selector, bloqueadas hasta desbloquearse.
-export const UNLOCKABLE_ACCENT_OPTIONS = ["gold", "jade", "ruby"];
+// Colección Plus (10 de noviembre de 2026): temas con diseño (galaxia,
+// cielo, aurora...) que no se ganan con XP — vienen con ANRO Plus. Ver
+// plusThemes.js. Su color para botones se agrega a DARK_THEME/LIGHT_THEME
+// abajo, para que C[llave] funcione igual que con cualquier acento.
+export const PLUS_ACCENTS = PLUS_THEME_KEYS;
+export const UNLOCKABLE_ACCENT_OPTIONS = ["gold", "jade", "ocean", "violet", "ruby", "sunset", "forest", ...PLUS_ACCENTS];
+PLUS_THEME_KEYS.forEach((key) => {
+  DARK_THEME[key] = PLUS_THEMES[key].accentDark;
+  LIGHT_THEME[key] = PLUS_THEMES[key].accentLight;
+});
 
 // Nota: esto valida que la llave exista en la paleta (libre o
 // desbloqueable), NO que ya esté desbloqueada con los puntos actuales —

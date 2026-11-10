@@ -539,6 +539,8 @@ export default function QuickAccessCompass({
   nextUnlock,
   onStartFocus,
   onSeeRewards,
+  isPlus,
+  onRequestUpgrade,
 }) {
   const textColor = palette ? palette.text : C.text;
   const mutedColor = palette ? palette.textMuted : C.textMuted;
@@ -832,6 +834,8 @@ export default function QuickAccessCompass({
             nextUnlock={nextUnlock}
             onStartFocus={onStartFocus}
             onSeeRewards={onSeeRewards}
+            isPlus={isPlus}
+            onRequestUpgrade={onRequestUpgrade}
           />
         </div>
 

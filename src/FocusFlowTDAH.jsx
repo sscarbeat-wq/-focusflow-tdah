@@ -168,14 +168,18 @@ import ScheduleAgendaPanel from "./ScheduleAgendaPanel";
 import { buildTodayItems } from "./todayView";
 import { timeOfDayPeriod, timeOfDayPalette, timeOfDayBackground } from "./timeOfDayPalette";
 import HomeHeader from "./HomeHeader";
-import { tint, ACCENT_OPTIONS, UNLOCKABLE_ACCENT_OPTIONS, planetColorsFor, SOLAR_PLANETS } from "./theme";
+import { tint, ACCENT_OPTIONS, UNLOCKABLE_ACCENT_OPTIONS, PLUS_ACCENTS, planetColorsFor, SOLAR_PLANETS } from "./theme";
+import { PlusUpsellBadge as PlusMark } from "./PlusUpsellCard";
+import { PLUS_THEMES } from "./plusThemes";
 import {
   matureEmoji,
   DEFAULT_SPECIES,
   isUnlockableSpecies,
+  isPlusSpecies,
   ACCESSORY_OPTIONS,
   ACCESSORY_EMOJI,
   DEFAULT_ACCESSORY,
+  PLUS_ACCESSORIES,
   getStoredCompassSelection,
   storeCompassSelection,
 } from "./mascotLogic";
@@ -754,13 +758,31 @@ export default function FocusFlowTDAH({
   // desbloqueada. Los 9 colores libres de siempre (ACCENT_OPTIONS) nunca
   // pasan por este candado.
   const accentLocked =
-    accentKey && UNLOCKABLE_ACCENT_OPTIONS.includes(accentKey) && !isUnlocked(accentKey, "accent", xp);
+    accentKey &&
+    UNLOCKABLE_ACCENT_OPTIONS.includes(accentKey) &&
+    (PLUS_ACCENTS.includes(accentKey) ? !isPlus : !isUnlocked(accentKey, "accent", xp));
+  // Mismo candado para el accesorio guardado: uno de la Colección Plus sin
+  // Plus, o uno por XP todavía no ganado, no se dibuja.
+  const resolvedAccessory = !accessory
+    ? DEFAULT_ACCESSORY
+    : PLUS_ACCESSORIES.includes(accessory)
+    ? isPlus
+      ? accessory
+      : DEFAULT_ACCESSORY
+    : accessory === DEFAULT_ACCESSORY || isUnlocked(accessory, "accessory", xp)
+    ? accessory
+    : DEFAULT_ACCESSORY;
   const personalAccent = (accentKey && !accentLocked && C[accentKey]) || C.lavender;
   // Mismo candado para la mascota (10 de noviembre de 2026): un personaje
   // nuevo guardado en este dispositivo solo se muestra si ya se tienen los
   // puntos; si no, se usa el de siempre (Ave).
   const chosenSpecies = species || DEFAULT_SPECIES;
-  const speciesLocked = isUnlockableSpecies(chosenSpecies) && !isUnlocked(chosenSpecies, "species", xp);
+  // Las de Plus (isPlusSpecies) dependen de la suscripción, no de los XP.
+  // Con Plus, todas las mascotas al instante (las de Plus y también las que
+  // las demás ganan con XP) — decisión de la doctora, 10 de noviembre de 2026.
+  const speciesLocked = isPlus
+    ? false
+    : isPlusSpecies(chosenSpecies) || (isUnlockableSpecies(chosenSpecies) && !isUnlocked(chosenSpecies, "species", xp));
   const resolvedSpecies = speciesLocked ? DEFAULT_SPECIES : chosenSpecies;
 
   const firstRender = useRef(true);
@@ -889,7 +911,8 @@ export default function FocusFlowTDAH({
   useEffect(() => {
     const prev = prevXpRef.current;
     if (xp > prev) {
-      const crossed = justCrossedMilestones(prev, xp);
+      // Con Plus ya tiene todas las mascotas: no se le "desbloquea" una.
+      const crossed = justCrossedMilestones(prev, xp).filter((m) => !(isPlus && m.kind === "species"));
       if (crossed.length > 0) setUnlockQueue((q) => [...q, ...crossed]);
     }
     prevXpRef.current = xp;
@@ -1741,7 +1764,19 @@ export default function FocusFlowTDAH({
         {(() => {
           const now = new Date();
           const period = timeOfDayPeriod(now);
-          const palette = timeOfDayPalette(now);
+          // Tema con diseño de la Colección Plus (galaxia, cielo...): su
+          // fondo y sus colores de texto reemplazan a los automáticos por
+          // hora (10 de noviembre de 2026).
+          const plusTheme = !accentLocked ? PLUS_THEMES[accentKey] : null;
+          const palette = plusTheme
+            ? {
+                ...timeOfDayPalette(now),
+                bg: plusTheme.haloBg,
+                text: plusTheme.text,
+                textMuted: plusTheme.textMuted,
+                circleFilter: undefined,
+              }
+            : timeOfDayPalette(now);
           const todayItems = buildTodayItems({
             steps,
             moodLog,
@@ -1871,7 +1906,7 @@ export default function FocusFlowTDAH({
           return (
             <div
               style={{
-                background: timeOfDayBackground(period),
+                background: plusTheme ? plusTheme.background : timeOfDayBackground(period),
                 // 9 de noviembre de 2026, QUINTA corrección de fidelidad —
                 // la cuarta corrección solo sangraba hasta el borde de la
                 // columna de 1000px en escritorio (seguía habiendo un
@@ -1969,7 +2004,7 @@ export default function FocusFlowTDAH({
                   streak={streak}
                   species={resolvedSpecies}
                   focusStatus={focusStatus}
-                  accessory={accessory}
+                  accessory={resolvedAccessory}
                   focusPercent={focusPercent}
                   palette={palette}
                   xp={xp}
@@ -1983,7 +2018,9 @@ export default function FocusFlowTDAH({
                   focusMinutes={todayFocusMinutes(focusSessionLog)}
                   focusGoal={DAILY_FOCUS_GOAL_MIN}
                   nextUnlock={(() => {
-                    const next = [...XP_MILESTONES].sort((a, b) => a.xp - b.xp).find((m) => m.xp > xp);
+                    const next = [...XP_MILESTONES]
+                      .sort((a, b) => a.xp - b.xp)
+                      .find((m) => m.xp > xp && !(isPlus && m.kind === "species"));
                     if (!next) return null;
                     const names =
                       next.kind === "species"
@@ -1994,6 +2031,8 @@ export default function FocusFlowTDAH({
                     return { remaining: Math.max(1, Math.ceil(next.xp - xp)), name: names[next.key] || next.key, kind: next.kind };
                   })()}
                   onStartFocus={() => scrollToCompanionSection("focusMode")}
+                  isPlus={isPlus}
+                  onRequestUpgrade={onRequestUpgrade}
                   // Lleva a Perfil con abierto justo el selector del
                   // siguiente premio (mascota, color o accesorio).
                   onSeeRewards={(kind) => {
@@ -2304,7 +2343,11 @@ export default function FocusFlowTDAH({
                           height: "22px",
                           borderRadius: "50%",
                           background:
-                            accentKey === "solar" ? `conic-gradient(${[...SOLAR_PLANETS, SOLAR_PLANETS[0]].join(", ")})` : personalAccent,
+                            accentKey === "solar"
+                              ? `conic-gradient(${[...SOLAR_PLANETS, SOLAR_PLANETS[0]].join(", ")})`
+                              : !accentLocked && PLUS_THEMES[accentKey]
+                              ? PLUS_THEMES[accentKey].background
+                              : personalAccent,
                           boxShadow: `0 0 0 1px ${C.border}`,
                           display: "block",
                         }}
@@ -2324,9 +2367,9 @@ export default function FocusFlowTDAH({
                     style={tileStyle(accessoryPickerOpen)}
                   >
                     <span aria-hidden="true" style={{ ...tileIcon, fontSize: "20px" }}>
-                      {ACCESSORY_EMOJI[accessory] ? ACCESSORY_EMOJI[accessory] : <Sparkles size={18} />}
+                      {ACCESSORY_EMOJI[resolvedAccessory] ? ACCESSORY_EMOJI[resolvedAccessory] : <Sparkles size={18} />}
                     </span>
-                    {tileText(st.accessory, t.app.accessoryPicker.names[accessory || DEFAULT_ACCESSORY])}
+                    {tileText(st.accessory, t.app.accessoryPicker.names[resolvedAccessory])}
                   </button>
                 )}
                 {onToggleTheme && (
@@ -2412,24 +2455,30 @@ export default function FocusFlowTDAH({
                           se muestran siempre, incluso bloqueados, para que
                           la paciente sepa que existen y cuánto le falta;
                           nunca se puede tocar uno todavía bloqueado. */}
-                      {UNLOCKABLE_ACCENT_OPTIONS.map((key) => {
-                        const unlocked = isUnlocked(key, "accent", xp);
+                      {UNLOCKABLE_ACCENT_OPTIONS.filter((key) => !PLUS_ACCENTS.includes(key)).map((key) => {
+                        const plusOnly = PLUS_ACCENTS.includes(key);
+                        const unlocked = plusOnly ? isPlus : isUnlocked(key, "accent", xp);
                         const milestone = XP_MILESTONES.find((m) => m.kind === "accent" && m.key === key);
                         const remaining =
-                          !unlocked && milestone ? Math.max(0, Math.round((milestone.xp - xp) * 100) / 100) : null;
-                        const lockedLabel =
-                          remaining != null
+                          !unlocked && milestone ? Math.max(1, Math.ceil(milestone.xp - xp)) : null;
+                        const lockedLabel = plusOnly
+                          ? `${t.app.accentPicker.names[key]} — ${t.upsell.badge}`
+                          : remaining != null
                             ? `${t.app.rewardsLockedShort(t.app.accentPicker.names[key])} — ${t.app.rewardsRemaining(remaining)}`
                             : t.app.rewardsLockedShort(t.app.accentPicker.names[key]);
                         return (
                           <button
                             key={key}
                             onClick={() => {
-                              if (!unlocked) return;
+                              if (!unlocked) {
+                                // Colección Plus sin Plus: lleva a los planes.
+                                if (plusOnly && onRequestUpgrade) onRequestUpgrade();
+                                return;
+                              }
                               onChangeAccent(key);
                               setAccentPickerOpen(false);
                             }}
-                            disabled={!unlocked}
+                            disabled={!unlocked && !plusOnly}
                             aria-label={unlocked ? t.app.accentPicker.names[key] : lockedLabel}
                             title={unlocked ? t.app.accentPicker.names[key] : lockedLabel}
                             style={{
@@ -2438,21 +2487,109 @@ export default function FocusFlowTDAH({
                               height: "32px",
                               borderRadius: "50%",
                               background: C[key],
-                              opacity: unlocked ? 1 : 0.35,
+                              opacity: unlocked ? 1 : plusOnly ? 0.6 : 0.35,
                               boxShadow: key === accentKey ? `0 0 0 3px ${C.text}` : `0 0 0 1px ${C.border}`,
                               border: "none",
-                              cursor: unlocked ? "pointer" : "not-allowed",
+                              cursor: unlocked || plusOnly ? "pointer" : "not-allowed",
                               padding: 0,
                               display: "flex",
                               alignItems: "center",
                               justifyContent: "center",
                             }}
                           >
-                            {!unlocked && <Lock size={12} color={C.text} />}
+                            {!unlocked && (plusOnly ? <Sparkles size={13} color="#fff" /> : <Lock size={12} color={C.text} />)}
                           </button>
                         );
                       })}
                     </div>
+                  {/* Colección Plus con diseño (galaxia, cielo, aurora...) —
+                      muestras grandes con su dibujo, porque un circulito no
+                      deja ver las estrellas ni las nubes. Cambian también el
+                      fondo de Inicio. Sin Plus, tocar una lleva a los planes. */}
+                  <div style={{ marginTop: "16px", display: "flex", alignItems: "center", gap: "8px", flexWrap: "wrap" }}>
+                    <strong style={{ fontSize: "13px" }}>{t.app.accentPicker.plusTitle}</strong>
+                    <PlusMark C={C} t={t} />
+                  </div>
+                  <p style={{ margin: "4px 0 10px", fontSize: "12px", color: C.textMuted }}>{t.app.accentPicker.plusHint}</p>
+                  <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(84px, 1fr))", gap: "10px" }}>
+                    {PLUS_ACCENTS.map((key) => {
+                      const selected = key === accentKey && !accentLocked;
+                      return (
+                        <button
+                          key={key}
+                          type="button"
+                          onClick={() => {
+                            if (!isPlus) {
+                              if (onRequestUpgrade) onRequestUpgrade();
+                              return;
+                            }
+                            onChangeAccent(key);
+                            setAccentPickerOpen(false);
+                          }}
+                          aria-label={isPlus ? t.app.accentPicker.names[key] : `${t.app.accentPicker.names[key]} — ${t.upsell.badge}`}
+                          aria-pressed={selected}
+                          style={{
+                            display: "flex",
+                            flexDirection: "column",
+                            alignItems: "center",
+                            gap: "6px",
+                            padding: 0,
+                            background: "transparent",
+                            border: "none",
+                            cursor: "pointer",
+                            color: C.text,
+                          }}
+                        >
+                          <span
+                            aria-hidden="true"
+                            style={{
+                              position: "relative",
+                              width: "100%",
+                              aspectRatio: "1 / 1",
+                              borderRadius: "16px",
+                              background: PLUS_THEMES[key].background,
+                              boxShadow: selected ? `0 0 0 3px ${C.text}` : `0 0 0 1px ${C.border}`,
+                              display: "flex",
+                              alignItems: "center",
+                              justifyContent: "center",
+                            }}
+                          >
+                            {/* Un planetita con los colores del tema encima del fondo */}
+                            <span
+                              style={{
+                                width: "34%",
+                                aspectRatio: "1 / 1",
+                                borderRadius: "50%",
+                                background: `radial-gradient(circle at 32% 26%, rgba(255,255,255,0.75) 0%, rgba(255,255,255,0) 42%), ${PLUS_THEMES[key].planets[0]}`,
+                                boxShadow: "0 3px 8px rgba(0,0,0,0.3)",
+                              }}
+                            />
+                            {!isPlus && (
+                              <span
+                                style={{
+                                  position: "absolute",
+                                  top: "6px",
+                                  right: "6px",
+                                  width: "20px",
+                                  height: "20px",
+                                  borderRadius: "50%",
+                                  background: "rgba(0,0,0,0.45)",
+                                  display: "flex",
+                                  alignItems: "center",
+                                  justifyContent: "center",
+                                }}
+                              >
+                                <Lock size={11} color="#fff" />
+                              </span>
+                            )}
+                          </span>
+                          <span style={{ fontSize: "11px", fontWeight: 600, textAlign: "center", lineHeight: 1.2 }}>
+                            {t.app.accentPicker.names[key]}
+                          </span>
+                        </button>
+                      );
+                    })}
+                  </div>
                 </div>
               )}
               {accessoryPickerOpen && (
@@ -2460,22 +2597,26 @@ export default function FocusFlowTDAH({
                   <div style={{ fontSize: "12px", color: C.textMuted, marginBottom: "10px" }}>{t.app.accessoryPicker.prompt}</div>
                     <div style={{ display: "flex", flexWrap: "wrap", gap: "8px" }}>
                       {ACCESSORY_OPTIONS.map((key) => {
-                        const selected = key === (accessory || DEFAULT_ACCESSORY);
-                        const unlocked = key === "none" || isUnlocked(key, "accessory", xp);
+                        const selected = key === resolvedAccessory;
+                        const plusOnly = PLUS_ACCESSORIES.includes(key);
+                        const unlocked = key === "none" || (plusOnly ? isPlus : isUnlocked(key, "accessory", xp));
                         // Puntos que faltan para ESTE accesorio en particular
                         // (no "el siguiente hito cualquiera", que podría ser
                         // un color de acento y confundir la cifra mostrada).
                         const milestone = XP_MILESTONES.find((m) => m.kind === "accessory" && m.key === key);
-                        const remaining = !unlocked && milestone ? Math.max(0, Math.round((milestone.xp - xp) * 100) / 100) : null;
+                        const remaining = !unlocked && milestone ? Math.max(1, Math.ceil(milestone.xp - xp)) : null;
                         return (
                           <button
                             key={key}
                             onClick={() => {
-                              if (!unlocked) return;
+                              if (!unlocked) {
+                                if (plusOnly && onRequestUpgrade) onRequestUpgrade();
+                                return;
+                              }
                               onChangeAccessory(key);
                               setAccessoryPickerOpen(false);
                             }}
-                            disabled={!unlocked}
+                            disabled={!unlocked && !plusOnly}
                             style={{
                               display: "flex",
                               flexDirection: "column",
@@ -2486,8 +2627,8 @@ export default function FocusFlowTDAH({
                               borderRadius: "14px",
                               background: selected ? tint(personalAccent, 0.18) : tint(C.textMuted, 0.06),
                               border: selected ? `2px solid ${personalAccent}` : "2px solid transparent",
-                              cursor: unlocked ? "pointer" : "not-allowed",
-                              opacity: unlocked ? 1 : 0.55,
+                              cursor: unlocked || plusOnly ? "pointer" : "not-allowed",
+                              opacity: unlocked ? 1 : plusOnly ? 0.75 : 0.55,
                             }}
                           >
                             <span
@@ -2504,7 +2645,7 @@ export default function FocusFlowTDAH({
                                 filter: "drop-shadow(0 1px 2px rgba(0,0,0,0.18))",
                               }}
                             >
-                              {unlocked ? (
+                              {unlocked || plusOnly ? (
                                 ACCESSORY_EMOJI[key] || <Sparkles size={18} color={C.textMuted} />
                               ) : (
                                 <Lock size={16} color={C.textMuted} />
@@ -2513,10 +2654,15 @@ export default function FocusFlowTDAH({
                             <span style={{ fontSize: "10px", color: C.textMuted, textAlign: "center" }}>
                               {t.app.accessoryPicker.names[key]}
                             </span>
-                            {!unlocked && remaining != null && (
-                              <span style={{ fontSize: "9px", color: C.textMuted, textAlign: "center" }}>
-                                {t.app.rewardsRemaining(remaining)}
-                              </span>
+                            {plusOnly ? (
+                              <PlusMark C={C} t={t} />
+                            ) : (
+                              !unlocked &&
+                              remaining != null && (
+                                <span style={{ fontSize: "9px", color: C.textMuted, textAlign: "center" }}>
+                                  {t.app.rewardsRemaining(remaining)}
+                                </span>
+                              )
                             )}
                           </button>
                         );
@@ -2531,6 +2677,8 @@ export default function FocusFlowTDAH({
                     accent={personalAccent}
                     xp={xp}
                     selected={resolvedSpecies}
+                    isPlus={isPlus}
+                    onRequestUpgrade={onRequestUpgrade}
                     onSelect={onChangeSpecies}
                     onClose={() => setSpeciesPickerOpen(false)}
                   />

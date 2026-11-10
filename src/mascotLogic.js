@@ -97,8 +97,19 @@ const IMAGE_SPECIES_SET = new Set(IMAGE_SPECIES);
 const ILLUSTRATED_FREE_SPECIES = ["ave", "gato", "planta"];
 const ART_SPECIES_SET = new Set([...IMAGE_SPECIES, ...ILLUSTRATED_FREE_SPECIES]);
 
-export const SPECIES_OPTIONS = [...Object.keys(SPECIES_EMOJI), ...IMAGE_SPECIES];
-export const FREE_SPECIES_OPTIONS = Object.keys(SPECIES_EMOJI);
+// Gratis desde el inicio (10 de noviembre de 2026, decisión de la doctora):
+// solo Ave, Gato, Perro y Planta. Dragón y Pez pasaron a ser premios por
+// XP, junto con Panda, Zorro y Koala (ver XP_MILESTONES). El resto, Plus.
+export const FREE_SPECIES_OPTIONS = ["ave", "gato", "perro", "planta"];
+const XP_SPECIES = ["panda", "zorro", "pez", "koala", "dragon"];
+const XP_SPECIES_SET = new Set(XP_SPECIES);
+// Orden del selector: las gratis, luego los premios por XP (en el orden en
+// que se desbloquean), luego las de Plus.
+export const SPECIES_OPTIONS = [
+  ...FREE_SPECIES_OPTIONS,
+  ...XP_SPECIES,
+  ...IMAGE_SPECIES.filter((s) => !XP_SPECIES_SET.has(s)),
+];
 export const DEFAULT_SPECIES = "ave";
 
 // ¿Se dibuja con ilustración (imagen) en vez de emoji?
@@ -106,9 +117,21 @@ export function isImageSpecies(species) {
   return ART_SPECIES_SET.has(species);
 }
 
-// ¿Es de las que se desbloquean con puntos? (los 6 de siempre nunca).
+// Mascotas de ANRO Plus (10 de noviembre de 2026, decisión de la doctora:
+// "a partir del koala los demás animales son de suscripción Plus"). Con
+// Plus se pueden usar todas al instante, sin juntar XP; sin Plus se ven con
+// candado y la etiqueta "Plus". Panda, Zorro y Koala siguen siendo premios
+// por XP para todas.
+export const PLUS_SPECIES = ["pulpo", "ajolote", "buho", "tortuga", "dinosaurio", "mariposa", "tigre", "leon", "aguila"];
+const PLUS_SPECIES_SET = new Set(PLUS_SPECIES);
+export function isPlusSpecies(species) {
+  return PLUS_SPECIES_SET.has(species);
+}
+
+// ¿Es de las que se desbloquean con puntos? (los 6 de siempre nunca; las
+// de Plus tampoco — esas dependen de la suscripción, ver isPlusSpecies).
 export function isUnlockableSpecies(species) {
-  return IMAGE_SPECIES_SET.has(species);
+  return XP_SPECIES_SET.has(species);
 }
 
 // 6 etapas internas → 4 grupos de ilustración.
@@ -368,12 +391,44 @@ export function storeSpecies(speciesKey) {
 // necesidad de ningún punto. Se dibuja como una insignia chica encima de la
 // mascota (ver Mascot.jsx) — mismo patrón de preferencia de DISPOSITIVO en
 // localStorage que la especie y el acento personal, nunca progreso clínico.
+// En el orden en que se ganan (así se ven en el selector: lo más cercano
+// primero), y al final la Colección Plus.
 export const ACCESSORY_EMOJI = {
   none: null,
-  sparkle: "✨",
-  crown: "👑",
-  scarf: "🧣",
+  sparkle: "✨", // 10 XP
+  bow: "🎀", // 20
+  glasses: "🕶️", // 40
+  crown: "👑", // 50
+  balloon: "🎈", // 55
+  flower: "🌸", // 60
+  clover: "🍀", // 75
+  cap: "🧢", // 90
+  music: "🎵", // 130
+  sunflower: "🌻", // 160
+  headphones: "🎧", // 175
+  scarf: "🧣", // 200
+  backpack: "🎒", // 250
+  star: "⭐", // 275
+  lollipop: "🍭", // 300
+  rainbow: "🌈", // 350
+  medal: "🏅", // 450
+  kite: "🪁", // 500
+  art: "🎨", // 600
+  ball: "⚽", // 650
+  wand: "🪄", // 700
+  cupcake: "🧁", // 800
+  gem: "💎", // 900
+  trophy: "🏆", // 1000
+  // Colección Plus (10 de noviembre de 2026): solo con ANRO Plus, nunca
+  // por XP — ver PLUS_ACCESSORIES.
+  tophat: "🎩",
+  crystal: "🔮",
+  moon: "🌙",
+  planet: "🪐",
+  comet: "💫",
+  unicorn: "🦄",
 };
+export const PLUS_ACCESSORIES = ["tophat", "crystal", "moon", "planet", "comet", "unicorn"];
 export const ACCESSORY_OPTIONS = Object.keys(ACCESSORY_EMOJI);
 export const DEFAULT_ACCESSORY = "none";
 export const ACCESSORY_STORAGE_KEY = "anro-mascot-accessory";

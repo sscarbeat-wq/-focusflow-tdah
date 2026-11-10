@@ -14,6 +14,7 @@ import {
 import { MascotArt, MascotSprite } from "./MascotSprite";
 import CelebrationBurst from "./CelebrationBurst";
 import { tapFeedback } from "./celebrate";
+import { playAnimalSound } from "./animalSounds";
 import {
   playLevelUpSound,
   playHatchSound,
@@ -179,6 +180,11 @@ export default function Mascot({
   nextUnlock = null,
   onStartFocus,
   onSeeRewards,
+  // Aviso suave de Plus (10 de noviembre de 2026): solo justo después de
+  // que la mascota crece (un momento feliz), nunca más de una vez por
+  // semana, y nunca si ya tiene Plus.
+  isPlus = true,
+  onRequestUpgrade,
 }) {
   const isHero = variant === "hero";
   const current = streak?.current || 0;
@@ -209,12 +215,16 @@ export default function Mascot({
   const handlePet = () => {
     tapFeedback("tap");
     const now = Date.now();
+    // Cada animal tiene su sonidito (animalSounds.js): "hola" al tocar,
+    // más agudo y juguetón con doble toque. Respeta el botón de silencio.
     if (now - lastTapRef.current < 450) {
       setPlaySignal((n) => n + 1);
       lastTapRef.current = 0;
+      if (soundOnRef.current) playAnimalSound(resolvedSpecies, "play");
     } else {
       setTapSignal((n) => n + 1);
       lastTapRef.current = now;
+      if (soundOnRef.current) playAnimalSound(resolvedSpecies, "greet");
     }
   };
   // Celebraciones (10 de noviembre de 2026): al cargar la app los puntos y
@@ -240,14 +250,20 @@ export default function Mascot({
     pendingRef.current = { eat: false, small: false, big: false, play: false, evolution: null };
     if (p.evolution) {
       setEvolution(p.evolution);
-      if (soundOnRef.current) playLevelUpSound();
+      maybeShowPlusHint();
+      if (soundOnRef.current) playAnimalSound(resolvedSpecies, "evolve");
       if (evolutionTimeoutRef.current) clearTimeout(evolutionTimeoutRef.current);
       evolutionTimeoutRef.current = setTimeout(() => setEvolution(null), 2600);
     }
     if (p.big || p.evolution) setBigBurst((n) => n + 1);
     else if (p.small) setSmallBurst((n) => n + 1);
-    if (p.play) setPlaySignal((n) => n + 1);
-    else if (p.eat) setEatSignal((n) => n + 1);
+    if (p.play) {
+      setPlaySignal((n) => n + 1);
+      if (soundOnRef.current) playAnimalSound(resolvedSpecies, "play");
+    } else if (p.eat) {
+      setEatSignal((n) => n + 1);
+      if (soundOnRef.current) playAnimalSound(resolvedSpecies, "eat");
+    }
   };
   const queueCelebration = (changes) => {
     const p = pendingRef.current;
@@ -301,6 +317,28 @@ export default function Mascot({
   // regaño; se va solo. "quiet": cada ~50s rota entre 3 frases suaves.
   // "good"/"night": una sola vez, un rato después de entrar.
   const [nudge, setNudge] = useState(null);
+  const [plusHint, setPlusHint] = useState(false);
+  const plusHintTimers = useRef([]);
+  const maybeShowPlusHint = () => {
+    if (isPlus || !onRequestUpgrade || !t.mascot.plusHint) return;
+    const KEY = "anro-plus-hint-at";
+    const WEEK = 7 * 24 * 60 * 60 * 1000;
+    try {
+      const last = Number(window.localStorage.getItem(KEY) || 0);
+      if (Date.now() - last < WEEK) return;
+      window.localStorage.setItem(KEY, String(Date.now()));
+    } catch (e) {
+      /* sin localStorage: se muestra igual, una vez por sesión basta */
+    }
+    // Después de la animación de "¡Creció!", no encima de ella.
+    plusHintTimers.current.push(
+      setTimeout(() => {
+        setPlusHint(true);
+        plusHintTimers.current.push(setTimeout(() => setPlusHint(false), 9000));
+      }, 2800)
+    );
+  };
+  useEffect(() => () => plusHintTimers.current.forEach(clearTimeout), []);
   // Globito de explicación abierto: "focus" | "xp" | null.
   const [infoOpen, setInfoOpen] = useState(null);
   useEffect(() => {
@@ -1035,7 +1073,42 @@ export default function Mascot({
             </span>
           </span>
         )}
-        {nudge && !evolution && (
+        {plusHint && !evolution && (
+          <button
+            type="button"
+            onClick={() => {
+              setPlusHint(false);
+              onRequestUpgrade();
+            }}
+            aria-label={t.mascot.plusHintAria}
+            style={{
+              position: "absolute",
+              left: "50%",
+              top: `${-4 * heroScale}px`,
+              transform: "translate(-50%, -100%)",
+              zIndex: 8,
+              width: "max-content",
+              maxWidth: `${210 * Math.min(heroScale, 1.25)}px`,
+              background: C.surface,
+              color: C.text,
+              border: `1.5px solid ${tint(C.amber, 0.7)}`,
+              borderRadius: "14px",
+              padding: `${7 * Math.min(heroScale, 1.25)}px ${12 * Math.min(heroScale, 1.25)}px`,
+              fontSize: `${12.5 * Math.min(heroScale, 1.25)}px`,
+              fontWeight: 700,
+              lineHeight: 1.3,
+              textAlign: "center",
+              boxShadow: "0 6px 16px rgba(0,0,0,0.15)",
+              cursor: "pointer",
+              animation: "anroNudgeIn 0.35s ease-out",
+            }}
+          >
+            <span aria-hidden="true">✨ </span>
+            {t.mascot.plusHint}
+            <span style={{ display: "block", marginTop: "4px", color: C.amber, fontSize: "0.9em" }}>{t.mascot.plusHintAria} →</span>
+          </button>
+        )}
+        {nudge && !evolution && !plusHint && (
           <span
             role="status"
             className="anro-nudge"

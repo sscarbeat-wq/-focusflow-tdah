@@ -2,7 +2,8 @@ import React, { useEffect, useState } from "react";
 import { X, Lock, Check, Eye, ArrowLeft } from "lucide-react";
 import { tint } from "./theme";
 import { MascotArt } from "./MascotSprite";
-import { SPECIES_OPTIONS, isUnlockableSpecies, matureEmoji, emojiFor, STAGE_GROUP_KEYS } from "./mascotLogic";
+import { PlusUpsellBadge } from "./PlusUpsellCard";
+import { SPECIES_OPTIONS, isUnlockableSpecies, isPlusSpecies, matureEmoji, emojiFor, STAGE_GROUP_KEYS } from "./mascotLogic";
 import { XP_MILESTONES, isUnlocked } from "./xpMilestones";
 
 // Selector de mascota (10 de noviembre de 2026) — reemplaza al globito
@@ -23,7 +24,11 @@ import { XP_MILESTONES, isUnlocked } from "./xpMilestones";
 // adulta).
 const REPRESENTATIVE_STAGE = { reciennacida: 0, pequena: 1, juvenil: 3, adulta: 5 };
 
-function lockInfo(key, xp) {
+function lockInfo(key, xp, isPlus) {
+  // Mascotas de ANRO Plus: sin Plus, candado "Plus" (sin importar los XP).
+  // Con Plus, TODAS al instante — también las que sin Plus se ganan con XP.
+  if (isPlusSpecies(key)) return isPlus ? { unlocked: true, plus: true } : { unlocked: false, plus: true };
+  if (isPlus) return { unlocked: true };
   if (!isUnlockableSpecies(key)) return { unlocked: true };
   const milestone = XP_MILESTONES.find((m) => m.kind === "species" && m.key === key);
   const unlocked = isUnlocked(key, "species", xp);
@@ -37,7 +42,7 @@ function lockInfo(key, xp) {
   };
 }
 
-export default function SpeciesPickerSheet({ C, t, accent, xp = 0, selected, onSelect, onClose }) {
+export default function SpeciesPickerSheet({ C, t, accent, xp = 0, isPlus = false, onRequestUpgrade, selected, onSelect, onClose }) {
   const [previewKey, setPreviewKey] = useState(null);
   const sp = t.app.speciesPicker;
 
@@ -56,7 +61,7 @@ export default function SpeciesPickerSheet({ C, t, accent, xp = 0, selected, onS
     onClose();
   };
 
-  const preview = previewKey ? lockInfo(previewKey, xp) : null;
+  const preview = previewKey ? lockInfo(previewKey, xp, isPlus) : null;
 
   return (
     <div
@@ -199,6 +204,46 @@ export default function SpeciesPickerSheet({ C, t, accent, xp = 0, selected, onS
               >
                 {sp.useButton}
               </button>
+            ) : preview.plus ? (
+              <div style={{ display: "flex", flexDirection: "column", gap: "10px" }}>
+                <p
+                  style={{
+                    margin: 0,
+                    display: "flex",
+                    gap: "8px",
+                    alignItems: "flex-start",
+                    background: tint(accent, 0.1),
+                    borderRadius: "12px",
+                    padding: "12px 14px",
+                    fontSize: "13px",
+                    lineHeight: 1.5,
+                  }}
+                >
+                  <Lock size={16} style={{ flexShrink: 0, marginTop: "2px" }} />
+                  <span>{sp.plusNote}</span>
+                </p>
+                {onRequestUpgrade && (
+                  <button
+                    onClick={() => {
+                      onClose();
+                      onRequestUpgrade();
+                    }}
+                    style={{
+                      width: "100%",
+                      background: accent,
+                      border: "none",
+                      borderRadius: "12px",
+                      padding: "12px 14px",
+                      color: "#fff",
+                      fontSize: "14px",
+                      fontWeight: 700,
+                      cursor: "pointer",
+                    }}
+                  >
+                    {sp.plusButton}
+                  </button>
+                )}
+              </div>
             ) : (
               <p
                 style={{
@@ -229,7 +274,7 @@ export default function SpeciesPickerSheet({ C, t, accent, xp = 0, selected, onS
             }}
           >
             {SPECIES_OPTIONS.map((key) => {
-              const info = lockInfo(key, xp);
+              const info = lockInfo(key, xp, isPlus);
               const isSelected = key === selected;
               return (
                 <div key={key} style={{ position: "relative" }}>
@@ -259,26 +304,32 @@ export default function SpeciesPickerSheet({ C, t, accent, xp = 0, selected, onS
                         display: "flex",
                         alignItems: "center",
                         justifyContent: "center",
-                        filter: info.unlocked ? "drop-shadow(0 2px 3px rgba(0,0,0,0.15))" : "grayscale(1)",
-                        opacity: info.unlocked ? 1 : 0.45,
+                        // Las de Plus se ven casi a color (para que se antojen);
+                        // las que faltan por XP, en gris.
+                        filter: info.unlocked ? "drop-shadow(0 2px 3px rgba(0,0,0,0.15))" : info.plus ? "grayscale(0.35)" : "grayscale(1)",
+                        opacity: info.unlocked ? 1 : info.plus ? 0.8 : 0.45,
                       }}
                     >
                       <MascotArt visual={matureEmoji(key)} size={64} />
                     </span>
                     <span style={{ fontSize: "12px", fontWeight: 600, textAlign: "center" }}>{sp.names[key]}</span>
-                    {!info.unlocked && (
-                      <span
-                        style={{
-                          display: "flex",
-                          alignItems: "center",
-                          gap: "4px",
-                          fontSize: "10px",
-                          color: C.textMuted,
-                          textAlign: "center",
-                        }}
-                      >
-                        <Lock size={10} /> {t.app.rewardsRemaining(info.remaining)}
-                      </span>
+                    {info.plus ? (
+                      <PlusUpsellBadge C={C} t={t} />
+                    ) : (
+                      !info.unlocked && (
+                        <span
+                          style={{
+                            display: "flex",
+                            alignItems: "center",
+                            gap: "4px",
+                            fontSize: "10px",
+                            color: C.textMuted,
+                            textAlign: "center",
+                          }}
+                        >
+                          <Lock size={10} /> {t.app.rewardsRemaining(info.remaining)}
+                        </span>
+                      )
                     )}
                     {isSelected && (
                       <span
