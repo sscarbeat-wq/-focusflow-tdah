@@ -548,6 +548,10 @@ export default function QuickAccessCompass({
   onSeeRewards,
   isPlus,
   onRequestUpgrade,
+  // Cuarto de la mascota (estilo Pou): botón debajo de la brújula, con un
+  // iconito si alguna necesidad está bajita (ver petNeeds.js).
+  onOpenRoom,
+  roomBadge,
 }) {
   const textColor = palette ? palette.text : C.text;
   const mutedColor = palette ? palette.textMuted : C.textMuted;
@@ -896,6 +900,45 @@ export default function QuickAccessCompass({
         })}
       </div>
 
+      {onOpenRoom && (
+        <button
+          type="button"
+          onClick={() => {
+            tapFeedback("tap");
+            onOpenRoom();
+          }}
+          style={{
+            display: "inline-flex",
+            alignItems: "center",
+            gap: "8px",
+            minHeight: "44px",
+            margin: "4px auto 0",
+            padding: "0 18px",
+            borderRadius: "999px",
+            border: `1.5px solid ${tint(accent, 0.5)}`,
+            background: palette?.chipBg || C.surface,
+            // Sobre el fondo blanco de siempre, texto oscuro (de noche el
+            // texto de la paleta es claro y no se leía); en los temas Plus,
+            // el de su pastilla.
+            color: palette?.chipBg ? textColor : C.text,
+            fontSize: "14px",
+            fontWeight: 800,
+            cursor: "pointer",
+            boxShadow: `0 6px 14px ${tint(accent, 0.25)}`,
+          }}
+        >
+          <span aria-hidden="true">🏠</span>
+          {t.petRoom.open}
+          {roomBadge && (
+            <span
+              aria-hidden="true"
+              style={{ fontSize: "13px", background: tint(accent, 0.18), borderRadius: "999px", padding: "1px 7px" }}
+            >
+              {roomBadge}
+            </span>
+          )}
+        </button>
+      )}
       <p
         style={{
           fontSize: "11px",
