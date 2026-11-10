@@ -480,6 +480,18 @@ const es = {
     muteSoundLabel: "Silenciar sonidos de la mascota",
     unmuteSoundLabel: "Activar sonidos de la mascota",
     focusTodayLabel: "ENFOQUE HOY",
+    // Explicaciones del centro de la brújula (10 de noviembre de 2026: "el
+    // paciente tiene que saber para qué es").
+    focusMinutes: (m, g) => `${m} de ${g} min`,
+    focusInfoTitle: "Tu enfoque de hoy",
+    focusInfoBody: (m, g) => `Este círculo se llena con el tiempo que usas Modo Enfoque hoy. Tu meta del día es de ${g} minutos y llevas ${m}. Cada día empieza de nuevo en 0.`,
+    focusInfoButton: "Empezar Modo Enfoque",
+    focusInfoAria: "¿Qué significa este porcentaje?",
+    xpBadge: (n) => `${n} XP`,
+    xpBadgeAria: (n) => `Tienes ${n} XP. ¿Qué son?`,
+    xpNext: (n, name) => `Te faltan ${n} XP para desbloquear: ${name}`,
+    xpAllUnlocked: "¡Ya desbloqueaste todos los premios!",
+    xpInfoButton: "Ver premios",
     petLabel: "Saludar a tu mascota",
     // Interactividad (10 de noviembre de 2026): la mascota reacciona a
     // cómo va el día — mensajes cortos y amables, nunca un regaño.
@@ -964,7 +976,7 @@ const es = {
     compassNextStep: "Próximo paso",
     compassCompanionLabel: "Compañero",
     compassMoodLabel: "Ánimo",
-    pointsAbbrev: "pts",
+    pointsAbbrev: "XP",
     greetingMorning: "¡Buenos días! Hoy enfócate en un punto a la vez",
     greetingAfternoon: "¡Buenas tardes! Sigue enfocado en un punto a la vez",
     greetingNight: "Buenas noches — cierra el día con un último paso",
@@ -991,8 +1003,8 @@ const es = {
         body: "Esta es tu mascota — su ánimo cambia según tu racha de días seguidos usando la app. No se trata de tener una racha perfecta: lo que importa es volver, aunque se reinicie de vez en cuando.",
       },
       {
-        title: "¿Qué es el \"foco acumulado\"?",
-        body: "Este número sube cada vez que haces algo que te ayuda — no solo al usar Modo Enfoque. Marcar una tarea, anotar cómo te sientes, tomar tu medicamento a tiempo, usar el desglosador... todo eso también suma. Es un marcador de constancia general, no solo de tiempo enfocada.",
+        title: "¿Qué son los XP?",
+        body: "Los XP son puntos que ganas con todo lo que haces en ANRO: completar un paso, anotar cómo te sientes, respirar, tomar tu medicamento a tiempo… No son solo del Modo Enfoque. Nunca se pierden, ni aunque se reinicie tu racha, y sirven para desbloquear mascotas, colores y accesorios.",
       },
       {
         title: "Memoria ANRO, a un toque",
@@ -1051,20 +1063,33 @@ const es = {
     sessionOf: (email) => `Sesión de ${email}`,
     noEmailSubtitle: "Sistema de habituación y regulación",
     xpUnit: "XP",
-    xpCaption: "foco acumulado",
+    xpCaption: "puntos para premios",
     // 8 de noviembre de 2026: ícono de información permanente junto al
     // contador (independiente del recorrido de bienvenida, que solo se ve
     // una vez por dispositivo) — mismo texto que el paso 5 del recorrido
     // interactivo (OnboardingTour.jsx), para que no quede un mensaje
     // distinto en cada lugar.
-    xpInfoLabel: "¿Qué es el \"foco acumulado\"?",
+    xpInfoLabel: "¿Qué son los XP?",
     xpInfoBody:
-      "Este número sube cada vez que haces algo que te ayuda — no solo al usar Modo Enfoque. Marcar una tarea, anotar cómo te sientes, tomar tu medicamento a tiempo, usar el desglosador... todo eso también suma. Es un marcador de constancia general, no solo de tiempo enfocada.",
+      "Los XP son puntos que ganas con todo lo que haces en ANRO: completar un paso, anotar cómo te sientes, respirar, tomar tu medicamento a tiempo… No son solo del Modo Enfoque. Nunca se pierden, ni aunque se reinicie tu racha, y sirven para desbloquear mascotas, colores y accesorios.",
     xpGained: (label) => `+0.85 XP — ${label}`,
     muteOn: "Apagar sonido y vibración al completar",
     muteOff: "Encender sonido y vibración al completar",
     soundOnMsg: "Sonido y vibración activados",
     soundOffMsg: "Sonido y vibración desactivados",
+    settingsCard: {
+      title: "Personaliza tu ANRO",
+      mascot: "Mascota",
+      color: "Color",
+      accessory: "Accesorio",
+      theme: "Tema",
+      themeLight: "Claro",
+      themeDark: "Oscuro",
+      sound: "Sonidos y vibración",
+      soundOn: "Activados",
+      soundOff: "Silenciados",
+      language: "Idioma",
+    },
     accentPicker: {
       label: "Elige tu color",
       prompt: "Elige el color que más te guste para tu mascota y tu pantalla de Hoy.",
@@ -1119,7 +1144,7 @@ const es = {
       back: "Volver",
       close: "Cerrar",
       previewAria: (name) => `Ver cómo crece ${name}`,
-      lockedNote: (xpNeeded, remaining) => `Se desbloquea al llegar a ${xpNeeded} puntos de foco acumulado — te faltan ${remaining}. Nunca se pierde: aunque se reinicie tu racha, lo que desbloqueas se queda.`,
+      lockedNote: (xpNeeded, remaining) => `Se desbloquea al llegar a ${xpNeeded} XP — te faltan ${remaining}. Nunca se pierde: aunque se reinicie tu racha, lo que desbloqueas se queda.`,
       stagesNote: "Así se ve en cada etapa de tu racha:",
       interactionHint: "En Inicio, tócala para saludarla y dale doble toque para que juegue. Come cada vez que ganas puntos.",
     },
@@ -1128,7 +1153,7 @@ const es = {
     // mascotLogic.js y XP_MILESTONES en xpMilestones.js).
     accessoryPicker: {
       label: "Accesorio de tu mascota",
-      prompt: "Elige un accesorio para tu mascota — algunos se desbloquean subiendo tu foco acumulado.",
+      prompt: "Elige un accesorio para tu mascota — algunos se desbloquean juntando XP.",
       names: {
         none: "Ninguno",
         sparkle: "Destello",
@@ -1144,9 +1169,9 @@ const es = {
     // aviso corto que ya sale en cada acción (xpGained).
     unlockModal: {
       title: "¡Desbloqueaste algo nuevo!",
-      accessoryBody: (name) => `Tu foco acumulado te ganó un accesorio nuevo para tu mascota: ${name}.`,
-      accentBody: (name) => `Tu foco acumulado te ganó un color nuevo: ${name}.`,
-      speciesBody: (name) => `Tu foco acumulado te ganó una mascota nueva: ${name}. Ya puedes elegirla.`,
+      accessoryBody: (name) => `Con tus XP ganaste un accesorio nuevo para tu mascota: ${name}.`,
+      accentBody: (name) => `Con tus XP ganaste un color nuevo: ${name}.`,
+      speciesBody: (name) => `Con tus XP ganaste una mascota nueva: ${name}. Ya puedes elegirla.`,
       button: "Genial",
     },
     mySubscription: "Mi suscripción",
