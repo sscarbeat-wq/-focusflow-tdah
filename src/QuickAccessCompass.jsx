@@ -425,6 +425,9 @@ export default function QuickAccessCompass({
   focusStatus = "idle",
   accessory = "none",
   focusPercent = 0,
+  // Puntos de "foco acumulado": la mascota come cuando suben (ver
+  // MascotSprite.jsx). Opcional.
+  xp,
   // Paleta automática por hora del día (timeOfDayPalette.js) — opcional,
   // así este componente sigue sirviendo igual si algún día se usa fuera
   // de un fondo con degradado. Cuando se manda, todo el texto de ADENTRO
@@ -673,6 +676,7 @@ export default function QuickAccessCompass({
             heroRingRadius={sizes.heroRingRadius}
             heroRingStroke={sizes.heroRingStroke}
             heroEmojiSize={sizes.heroEmojiSize}
+            xp={xp}
           />
         </div>
 

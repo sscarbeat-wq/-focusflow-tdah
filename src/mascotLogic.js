@@ -45,18 +45,128 @@ export const SPECIES_EMOJI = {
   pez: ["🥚", "🐟", "🐠", "🐡", "🦈", "🐋✨"],
 };
 
-export const SPECIES_OPTIONS = Object.keys(SPECIES_EMOJI);
+// 10 de noviembre de 2026 — mascotas nuevas con ilustración real.
+// La doctora generó en Gemini 12 personajes nuevos con estilo de
+// "sticker" y varias poses por etapa (en reposo, segundo paso para
+// caminar, dormido/ojos cerrados, comiendo, jugando) — ver los prototipos
+// "<animal>-movimiento-real.html". Cada personaje es UNA sola imagen
+// /public/mascots/<animal>.webp (~170 KB) con todas sus poses en
+// cuadrícula — 4 filas (etapas) × 5 columnas (en reposo, segundo paso,
+// dormida, comiendo, jugando), cada cuadro de 256×256 con el dibujo pegado
+// abajo y centrado. Una sola imagen por animal en vez de 204 sueltas: se
+// descarga una vez, cambiar de pose nunca parpadea, y se suben 12 archivos
+// a GitHub en vez de 204 (la subida web acepta máx. 100 a la vez).
+//
+// Las ilustraciones vienen en 4 etapas ("Recién nacida", "Pequeña",
+// "Juvenil", "Adulta"), pero la racha sigue usando las mismas 6 etapas
+// internas de siempre (textos clínicos ya aprobados, sin tocar) — se
+// agrupan así: 0 días → recién nacida; 1–6 días → pequeña; 7–29 días →
+// juvenil; 30+ días → adulta (ver STAGE_GROUP_BY_INDEX).
+//
+// Desbloqueo: decisión ya aprobada por la doctora en la propuesta de
+// expansión de mascotas — los 6 de siempre siguen gratis; los nuevos se
+// desbloquean con puntos de "foco acumulado" (nunca con la racha, para que
+// perder una racha jamás quite un personaje). Los puntos de cada uno viven
+// en xpMilestones.js.
+//
+// El conejo todavía no entra: sus imágenes tienen otro estilo (acuarela,
+// no sticker) y le faltan las poses de comer y jugar.
+export const IMAGE_SPECIES = [
+  "panda",
+  "zorro",
+  "koala",
+  "pulpo",
+  "ajolote",
+  "buho",
+  "tortuga",
+  "dinosaurio",
+  "mariposa",
+  "tigre",
+  "leon",
+  "aguila",
+];
+const IMAGE_SPECIES_SET = new Set(IMAGE_SPECIES);
+
+// Los 6 de siempre también ya tienen ilustración (10 de noviembre de 2026,
+// "se ven feas, hazlas como las otras"): se generaron en Gemini con el
+// mismo estilo de sticker y las mismas 5 poses, y viven igual en
+// /public/mascots/<especie>.webp. Siguen GRATIS — solo cambia cómo se
+// dibujan, no el desbloqueo. SPECIES_EMOJI se queda como respaldo (y como
+// referencia de qué es cada etapa). Las que todavía no tienen su imagen
+// (Dragón, Perro, Pez) siguen con emoji hasta que se agreguen aquí.
+const ILLUSTRATED_FREE_SPECIES = ["ave", "gato", "planta"];
+const ART_SPECIES_SET = new Set([...IMAGE_SPECIES, ...ILLUSTRATED_FREE_SPECIES]);
+
+export const SPECIES_OPTIONS = [...Object.keys(SPECIES_EMOJI), ...IMAGE_SPECIES];
+export const FREE_SPECIES_OPTIONS = Object.keys(SPECIES_EMOJI);
 export const DEFAULT_SPECIES = "ave";
+
+// ¿Se dibuja con ilustración (imagen) en vez de emoji?
+export function isImageSpecies(species) {
+  return ART_SPECIES_SET.has(species);
+}
+
+// ¿Es de las que se desbloquean con puntos? (los 6 de siempre nunca).
+export function isUnlockableSpecies(species) {
+  return IMAGE_SPECIES_SET.has(species);
+}
+
+// 6 etapas internas → 4 grupos de ilustración.
+export const STAGE_GROUP_KEYS = ["reciennacida", "pequena", "juvenil", "adulta"];
+const STAGE_GROUP_BY_INDEX = ["reciennacida", "pequena", "pequena", "juvenil", "juvenil", "adulta"];
+export function stageGroupFor(stageIndex) {
+  return STAGE_GROUP_BY_INDEX[stageIndex] || "reciennacida";
+}
+
+// Poses disponibles por grupo — la recién nacida solo tiene "en reposo" y
+// "dormida" (no camina, no come, no juega todavía).
+export function posesFor(group) {
+  return group === "reciennacida" ? ["a", "sleep"] : ["a", "b", "sleep", "eat", "play"];
+}
+
+const SHEET_POSES = ["a", "b", "sleep", "eat", "play"];
+export const SHEET_COLUMNS = SHEET_POSES.length;
+export const SHEET_ROWS = STAGE_GROUP_KEYS.length;
+
+export function mascotSheetPath(species) {
+  return `/mascots/${species}.webp`;
+}
+
+// Fila/columna del cuadro de una etapa+pose dentro de la imagen del
+// personaje (una pose que esa etapa no tiene cae en "en reposo").
+export function mascotFrame(group, pose = "a") {
+  const safePose = posesFor(group).includes(pose) ? pose : "a";
+  return { row: Math.max(0, STAGE_GROUP_KEYS.indexOf(group)), col: SHEET_POSES.indexOf(safePose) };
+}
+
+// Igual que con los emoji, lo que viaja por el resto del código (stage.emoji,
+// matureEmoji) sigue siendo un STRING — "img:<especie>:<grupo>" — para que
+// las comparaciones por valor que ya existían (p. ej. Mascot.jsx detecta un
+// cambio de etapa comparando ese valor con el anterior) sigan funcionando
+// igual. Ver MascotSprite.jsx para cómo se dibuja.
+const IMAGE_PREFIX = "img:";
+export function imageVisualKey(species, group) {
+  return `${IMAGE_PREFIX}${species}:${group}`;
+}
+export function parseImageVisual(value) {
+  if (typeof value !== "string" || !value.startsWith(IMAGE_PREFIX)) return null;
+  const [species, group] = value.slice(IMAGE_PREFIX.length).split(":");
+  if (!ART_SPECIES_SET.has(species) || !STAGE_GROUP_KEYS.includes(group)) return null;
+  return { species, group };
+}
 
 // El emoji "maduro" de cada especie (última etapa) — se usa en el selector
 // para mostrar de una vez a dónde llega cada personaje, no solo cómo
-// empieza.
+// empieza. Para los personajes con ilustración, es la marca de su imagen
+// adulta.
 export function matureEmoji(species) {
+  if (ART_SPECIES_SET.has(species)) return imageVisualKey(species, "adulta");
   const emojis = SPECIES_EMOJI[species] || SPECIES_EMOJI[DEFAULT_SPECIES];
   return emojis[emojis.length - 1];
 }
 
-function emojiFor(species, stageIndex) {
+export function emojiFor(species, stageIndex) {
+  if (ART_SPECIES_SET.has(species)) return imageVisualKey(species, stageGroupFor(stageIndex));
   const emojis = SPECIES_EMOJI[species] || SPECIES_EMOJI[DEFAULT_SPECIES];
   return emojis[stageIndex];
 }

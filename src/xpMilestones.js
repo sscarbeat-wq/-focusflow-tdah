@@ -16,15 +16,37 @@
 // theme.js). Es una capa nueva que se suma encima, sin restringir lo que
 // ya existía.
 //
+// 10 de noviembre de 2026 — mascotas nuevas con ilustración real: tercer
+// tipo de recompensa, "species" (ver IMAGE_SPECIES en mascotLogic.js),
+// intercalado con los accesorios y colores que ya existían para que la
+// recompensa nunca sea siempre del mismo tipo. Los 6 personajes de siempre
+// siguen gratis. Los primeros llegan rápido (5, 15, 35 puntos) para que
+// la paciente vea pronto que sumar puntos sí desbloquea algo; los más
+// "imponentes" (tigre, león, águila) quedan al final. Son solo datos: se
+// pueden ajustar sin tocar ninguna lógica. Debe quedar en orden
+// ascendente (nextMilestone lo asume).
+//
 // Lógica pura (sin DOM ni React) para poder probarla con Node, mismo
 // patrón que mascotLogic.js.
 export const XP_MILESTONES = [
+  { xp: 5, kind: "species", key: "panda" },
   { xp: 10, kind: "accessory", key: "sparkle" },
+  { xp: 15, kind: "species", key: "zorro" },
   { xp: 25, kind: "accent", key: "gold" },
+  { xp: 35, kind: "species", key: "koala" },
   { xp: 50, kind: "accessory", key: "crown" },
+  { xp: 65, kind: "species", key: "pulpo" },
+  { xp: 80, kind: "species", key: "ajolote" },
   { xp: 100, kind: "accent", key: "jade" },
+  { xp: 125, kind: "species", key: "buho" },
+  { xp: 150, kind: "species", key: "tortuga" },
   { xp: 200, kind: "accessory", key: "scarf" },
+  { xp: 250, kind: "species", key: "dinosaurio" },
+  { xp: 300, kind: "species", key: "mariposa" },
   { xp: 400, kind: "accent", key: "ruby" },
+  { xp: 500, kind: "species", key: "tigre" },
+  { xp: 600, kind: "species", key: "leon" },
+  { xp: 750, kind: "species", key: "aguila" },
 ];
 
 // Todos los hitos ya alcanzados con este total de XP (orden ascendente,

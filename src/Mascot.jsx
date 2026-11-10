@@ -9,7 +9,9 @@ import {
   getStoredResetVariant,
   storeResetVariant,
   ACCESSORY_EMOJI,
+  isImageSpecies,
 } from "./mascotLogic";
+import { MascotArt, MascotSprite } from "./MascotSprite";
 import {
   playLevelUpSound,
   playHatchSound,
@@ -159,6 +161,9 @@ export default function Mascot({
   heroRingRadius = HERO_RING_RADIUS,
   heroRingStroke = HERO_RING_STROKE,
   heroEmojiSize = HERO_EMOJI_SIZE,
+  // Puntos de "foco acumulado" — solo para notar cuándo SUBEN y hacer que
+  // la mascota coma (10 de noviembre de 2026, ver MascotSprite.jsx).
+  xp,
 }) {
   const isHero = variant === "hero";
   const current = streak?.current || 0;
@@ -176,6 +181,33 @@ export default function Mascot({
   const ringColor = accent || C.lavender;
   const fraction = progressFraction(current, longest);
   const isAquatic = resolvedSpecies === "pez";
+  const hasArt = isImageSpecies(resolvedSpecies);
+
+  // Interacción con la mascota (10 de noviembre de 2026, "quiero que la
+  // app sea interactiva"): tocarla la hace saludar, un doble toque la pone
+  // a jugar, y cada vez que suben los puntos de "foco acumulado" come algo
+  // — así ganar puntos se VE, no solo se cuenta. Ver MascotSprite.jsx.
+  const [tapSignal, setTapSignal] = useState(0);
+  const [playSignal, setPlaySignal] = useState(0);
+  const [eatSignal, setEatSignal] = useState(0);
+  const lastTapRef = useRef(0);
+  const handlePet = () => {
+    const now = Date.now();
+    if (now - lastTapRef.current < 450) {
+      setPlaySignal((n) => n + 1);
+      lastTapRef.current = 0;
+    } else {
+      setTapSignal((n) => n + 1);
+      lastTapRef.current = now;
+    }
+  };
+  const prevXpRef = useRef(xp);
+  useEffect(() => {
+    if (typeof xp === "number" && typeof prevXpRef.current === "number" && xp > prevXpRef.current) {
+      setEatSignal((n) => n + 1);
+    }
+    prevXpRef.current = xp;
+  }, [xp]);
 
   const ringSize = isHero ? heroRingSize : RING_SIZE;
   const ringRadius = isHero ? heroRingRadius : RING_RADIUS;
@@ -394,9 +426,12 @@ export default function Mascot({
             // cuelgan hacia abajo, así que la de un acceso que pasa por
             // arriba llegaba a taparlo (verificado con Playwright: ~1/5 del
             // tiempo); abajo, ninguna etiqueta llega nunca.
+            // Ajuste del mismo día: en diagonal exacta (las "4:30") rozaba
+            // el texto "ENFOQUE HOY" ya agrandado; ahora va sobre el anillo
+            // a las "4:00" (120° desde arriba), a la derecha del texto.
             position: "absolute",
-            top: `${ringSize - (18 + 22) * heroScale}px`,
-            right: `${18 * heroScale}px`,
+            top: `${ringSize / 2 + 65 * heroScale * 0.5 - 11 * heroScale}px`,
+            right: `${ringSize / 2 - 65 * heroScale * 0.866 - 11 * heroScale}px`,
             zIndex: 1,
             background: C.surface,
             border: `1px solid ${C.border}`,
@@ -473,11 +508,27 @@ export default function Mascot({
         aria-hidden="true"
       >
         <span
-          className={`anro-mascot-emoji${isAquatic ? " anro-mascot-emoji-aquatic" : ""}${
+          className={`${hasArt ? "anro-mascot-art" : "anro-mascot-emoji"}${isAquatic ? " anro-mascot-emoji-aquatic" : ""}${
             celebrate ? " anro-mascot-celebrate" : ""
           }${hatching ? " anro-mascot-hatch" : ""}${distracted ? " anro-mascot-distracted-anim" : ""}`}
         >
-          {stage.emoji}
+          {isHero ? (
+            // Ilustración: la caja mide ~1.9× el tamaño del emoji de
+            // siempre — la imagen trae su propio contorno blanco y ocupa
+            // menos "peso" visual que un emoji del mismo tamaño.
+            <MascotSprite
+              visual={stage.emoji}
+              size={Math.round(emojiFontSize * 1.9)}
+              tapSignal={tapSignal}
+              playSignal={playSignal}
+              eatSignal={eatSignal}
+              walking={focusStatus === "focusing"}
+            />
+          ) : hasArt ? (
+            <MascotArt visual={stage.emoji} size={Math.round(emojiFontSize * 1.4)} />
+          ) : (
+            stage.emoji
+          )}
         </span>
         {hatching && (
           <>
@@ -516,6 +567,32 @@ export default function Mascot({
           </div>
         )}
       </div>
+      {isHero && (
+        // Zona para tocar a la mascota (saludo / doble toque: jugar). Va
+        // aparte del dibujo porque ese bloque está oculto a lectores de
+        // pantalla; este botón sí se anuncia. Cubre solo la parte de
+        // arriba del círculo (donde está el animal), lejos del botón de
+        // silenciar, que vive abajo a la derecha.
+        <button
+          type="button"
+          onClick={handlePet}
+          aria-label={t.mascot.petLabel}
+          title={t.mascot.petLabel}
+          style={{
+            position: "absolute",
+            top: `${ringSize * 0.14}px`,
+            left: `${ringSize * 0.2}px`,
+            width: `${ringSize * 0.6}px`,
+            height: `${ringSize * 0.52}px`,
+            borderRadius: "50%",
+            background: "transparent",
+            border: "none",
+            padding: 0,
+            cursor: "pointer",
+            WebkitTapHighlightColor: "transparent",
+          }}
+        />
+      )}
       {/* Sombra de "piso" — sensación de que la mascota está apoyada en
           algo, no flotando en el vacío. */}
       <div
@@ -635,6 +712,22 @@ export default function Mascot({
         .anro-mascot-emoji.anro-mascot-distracted-anim {
           animation: anroMascotDistracted 0.6s ease-in-out;
         }
+        /* Ilustración (MascotSprite.jsx): el balanceo de reposo lo hace el
+           propio sprite (entre sus imágenes), aquí solo la sombra y los
+           mismos festejos de etapa que el emoji. */
+        .anro-mascot-art {
+          display: inline-block;
+          filter: drop-shadow(0 3px 6px rgba(0,0,0,0.16));
+        }
+        .anro-mascot-art.anro-mascot-celebrate {
+          animation: anroMascotLevelUp 0.9s ease-in-out;
+        }
+        .anro-mascot-art.anro-mascot-hatch {
+          animation: anroMascotHatch 1.1s cubic-bezier(0.36, 0.07, 0.19, 0.97);
+        }
+        .anro-mascot-art.anro-mascot-distracted-anim {
+          animation: anroMascotDistracted 0.6s ease-in-out;
+        }
         .anro-mascot-glow {
           animation: anroMascotGlow 2.8s ease-in-out infinite;
         }
@@ -658,6 +751,9 @@ export default function Mascot({
           .anro-mascot-emoji.anro-mascot-celebrate,
           .anro-mascot-emoji.anro-mascot-hatch,
           .anro-mascot-emoji.anro-mascot-distracted-anim,
+          .anro-mascot-art.anro-mascot-celebrate,
+          .anro-mascot-art.anro-mascot-hatch,
+          .anro-mascot-art.anro-mascot-distracted-anim,
           .anro-mascot-glow,
           .anro-mascot-spark-a,
           .anro-mascot-spark-b {
