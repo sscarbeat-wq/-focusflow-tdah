@@ -34,9 +34,8 @@
 // mascotas, para que entre un premio y el siguiente nunca haya un hueco
 // largo (al principio cada 5–10 XP; después cada 25–100), y una meta
 // final de 1000 XP (trofeo) para quien lleve meses usando la app.
-// Mismo día, más tarde: las 9 mascotas después del Koala pasaron a ser de
-// ANRO Plus (ver PLUS_SPECIES en mascotLogic.js) — con Plus se usan todas
-// al instante, así que ya no son premios por XP y salen de esta lista.
+// Mismo día: se probó que las 9 mascotas después del Koala fueran solo de
+// Plus, y la doctora decidió regresarlas a premios por XP para todas.
 export const XP_MILESTONES = [
   { xp: 5, kind: "species", key: "panda" },
   { xp: 10, kind: "accessory", key: "sparkle" },
@@ -50,26 +49,35 @@ export const XP_MILESTONES = [
   { xp: 50, kind: "accessory", key: "crown" },
   { xp: 55, kind: "accessory", key: "balloon" },
   { xp: 60, kind: "accessory", key: "flower" },
+  { xp: 65, kind: "species", key: "pulpo" },
   { xp: 75, kind: "accessory", key: "clover" },
+  { xp: 80, kind: "species", key: "ajolote" },
   { xp: 90, kind: "accessory", key: "cap" },
   { xp: 100, kind: "accent", key: "jade" },
   { xp: 115, kind: "accent", key: "ocean" },
+  { xp: 125, kind: "species", key: "buho" },
   { xp: 130, kind: "accessory", key: "music" },
+  { xp: 150, kind: "species", key: "tortuga" },
   { xp: 160, kind: "accessory", key: "sunflower" },
   { xp: 175, kind: "accessory", key: "headphones" },
   { xp: 200, kind: "accessory", key: "scarf" },
   { xp: 225, kind: "accent", key: "violet" },
-  { xp: 250, kind: "accessory", key: "backpack" },
+  { xp: 240, kind: "accessory", key: "backpack" },
+  { xp: 250, kind: "species", key: "dinosaurio" },
   { xp: 275, kind: "accessory", key: "star" },
-  { xp: 300, kind: "accessory", key: "lollipop" },
+  { xp: 300, kind: "species", key: "mariposa" },
+  { xp: 320, kind: "accessory", key: "lollipop" },
   { xp: 350, kind: "accessory", key: "rainbow" },
   { xp: 400, kind: "accent", key: "ruby" },
   { xp: 450, kind: "accessory", key: "medal" },
-  { xp: 500, kind: "accessory", key: "kite" },
+  { xp: 500, kind: "species", key: "tigre" },
+  { xp: 520, kind: "accessory", key: "kite" },
   { xp: 550, kind: "accent", key: "sunset" },
-  { xp: 600, kind: "accessory", key: "art" },
+  { xp: 600, kind: "species", key: "leon" },
+  { xp: 620, kind: "accessory", key: "art" },
   { xp: 650, kind: "accessory", key: "ball" },
   { xp: 700, kind: "accessory", key: "wand" },
+  { xp: 750, kind: "species", key: "aguila" },
   { xp: 800, kind: "accessory", key: "cupcake" },
   { xp: 850, kind: "accent", key: "forest" },
   { xp: 900, kind: "accessory", key: "gem" },

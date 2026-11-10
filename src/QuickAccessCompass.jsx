@@ -252,6 +252,10 @@ function CompassAccessButton({
   labelFontSize: labelFontSizeProp,
   circleFilter,
   labelHalo,
+  // Fondo de "pastilla" detrás de la etiqueta (temas con dibujo, ver
+  // chipBg en FocusFlowTDAH.jsx): sobre estrellas, fresas o encaje, un
+  // halo no basta para que se lea; una pastilla del color base del tema sí.
+  labelChip,
   // Arrastrar para reacomodar (10 de noviembre de 2026, "más interactiva"):
   // solo si el padre manda estos 3 (si no, el acceso funciona como siempre).
   onDragStart,
@@ -440,7 +444,10 @@ function CompassAccessButton({
             // arriba, su etiqueta cuelga hacia la mascota y en el teléfono
             // más angosto puede rozar unos píxeles el borde del círculo
             // blanco — el halo la mantiene legible también de noche.
-            textShadow: labelHalo,
+            textShadow: labelChip ? "none" : labelHalo,
+            ...(labelChip
+              ? { background: labelChip, padding: "2px 8px", borderRadius: "10px", boxShadow: "0 1px 4px rgba(0,0,0,0.15)" }
+              : {}),
           }}
         >
           {item.label}
@@ -878,6 +885,7 @@ export default function QuickAccessCompass({
                 labelFontSize={sizes.labelFontSize}
                 circleFilter={circleFilter}
                 labelHalo={labelHalo}
+                labelChip={palette?.chipBg}
                 {...dragHandlers}
                 dragging={draggingKey === item.key}
                 planetColor={planetColors ? planetColors[slot % planetColors.length] : undefined}
@@ -891,9 +899,12 @@ export default function QuickAccessCompass({
       <p
         style={{
           fontSize: "11px",
-          color: mutedColor,
-          margin: "12px 0 0",
-          opacity: 0.8,
+          color: palette?.chipBg ? textColor : mutedColor,
+          margin: "12px auto 0",
+          opacity: palette?.chipBg ? 1 : 0.8,
+          ...(palette?.chipBg
+            ? { background: palette.chipBg, display: "table", padding: "4px 12px", borderRadius: "10px", maxWidth: "92%" }
+            : {}),
         }}
       >
         {t.today.quickAccessPinHint}

@@ -101,7 +101,22 @@ const ART_SPECIES_SET = new Set([...IMAGE_SPECIES, ...ILLUSTRATED_FREE_SPECIES])
 // solo Ave, Gato, Perro y Planta. Dragón y Pez pasaron a ser premios por
 // XP, junto con Panda, Zorro y Koala (ver XP_MILESTONES). El resto, Plus.
 export const FREE_SPECIES_OPTIONS = ["ave", "gato", "perro", "planta"];
-const XP_SPECIES = ["panda", "zorro", "pez", "koala", "dragon"];
+const XP_SPECIES = [
+  "panda",
+  "zorro",
+  "pez",
+  "koala",
+  "dragon",
+  "pulpo",
+  "ajolote",
+  "buho",
+  "tortuga",
+  "dinosaurio",
+  "mariposa",
+  "tigre",
+  "leon",
+  "aguila",
+];
 const XP_SPECIES_SET = new Set(XP_SPECIES);
 // Orden del selector: las gratis, luego los premios por XP (en el orden en
 // que se desbloquean), luego las de Plus.
@@ -122,7 +137,11 @@ export function isImageSpecies(species) {
 // Plus se pueden usar todas al instante, sin juntar XP; sin Plus se ven con
 // candado y la etiqueta "Plus". Panda, Zorro y Koala siguen siendo premios
 // por XP para todas.
-export const PLUS_SPECIES = ["pulpo", "ajolote", "buho", "tortuga", "dinosaurio", "mariposa", "tigre", "leon", "aguila"];
+// Mismo día, más tarde: la doctora decidió regresar al esquema anterior —
+// TODAS las mascotas que no son gratis se ganan con XP, igual para todas
+// (con o sin Plus). La lista queda vacía; se conserva por si algún día
+// vuelve a haber mascotas exclusivas de Plus.
+export const PLUS_SPECIES = [];
 const PLUS_SPECIES_SET = new Set(PLUS_SPECIES);
 export function isPlusSpecies(species) {
   return PLUS_SPECIES_SET.has(species);

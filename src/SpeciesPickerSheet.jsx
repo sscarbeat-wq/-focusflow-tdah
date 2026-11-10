@@ -26,9 +26,8 @@ const REPRESENTATIVE_STAGE = { reciennacida: 0, pequena: 1, juvenil: 3, adulta: 
 
 function lockInfo(key, xp, isPlus) {
   // Mascotas de ANRO Plus: sin Plus, candado "Plus" (sin importar los XP).
-  // Con Plus, TODAS al instante — también las que sin Plus se ganan con XP.
+  // (Hoy no hay mascotas exclusivas de Plus: PLUS_SPECIES está vacía.)
   if (isPlusSpecies(key)) return isPlus ? { unlocked: true, plus: true } : { unlocked: false, plus: true };
-  if (isPlus) return { unlocked: true };
   if (!isUnlockableSpecies(key)) return { unlocked: true };
   const milestone = XP_MILESTONES.find((m) => m.kind === "species" && m.key === key);
   const unlocked = isUnlocked(key, "species", xp);

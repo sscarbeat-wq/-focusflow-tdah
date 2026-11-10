@@ -780,9 +780,11 @@ export default function FocusFlowTDAH({
   // Las de Plus (isPlusSpecies) dependen de la suscripción, no de los XP.
   // Con Plus, todas las mascotas al instante (las de Plus y también las que
   // las demás ganan con XP) — decisión de la doctora, 10 de noviembre de 2026.
-  const speciesLocked = isPlus
-    ? false
-    : isPlusSpecies(chosenSpecies) || (isUnlockableSpecies(chosenSpecies) && !isUnlocked(chosenSpecies, "species", xp));
+  // Todas las mascotas que no son gratis se ganan con XP, igual con o sin
+  // Plus (decisión de la doctora, 10 de noviembre de 2026).
+  const speciesLocked =
+    (isPlusSpecies(chosenSpecies) && !isPlus) ||
+    (isUnlockableSpecies(chosenSpecies) && !isUnlocked(chosenSpecies, "species", xp));
   const resolvedSpecies = speciesLocked ? DEFAULT_SPECIES : chosenSpecies;
 
   const firstRender = useRef(true);
@@ -911,8 +913,7 @@ export default function FocusFlowTDAH({
   useEffect(() => {
     const prev = prevXpRef.current;
     if (xp > prev) {
-      // Con Plus ya tiene todas las mascotas: no se le "desbloquea" una.
-      const crossed = justCrossedMilestones(prev, xp).filter((m) => !(isPlus && m.kind === "species"));
+      const crossed = justCrossedMilestones(prev, xp);
       if (crossed.length > 0) setUnlockQueue((q) => [...q, ...crossed]);
     }
     prevXpRef.current = xp;
@@ -1775,6 +1776,10 @@ export default function FocusFlowTDAH({
                 text: plusTheme.text,
                 textMuted: plusTheme.textMuted,
                 circleFilter: undefined,
+                // Pastilla detrás de cada texto (etiquetas de la brújula,
+                // saludo, pie): el color base del tema casi opaco, para que
+                // las letras se lean sobre cualquier dibujo.
+                chipBg: `color-mix(in srgb, ${plusTheme.haloBg} 86%, transparent)`,
               }
             : timeOfDayPalette(now);
           const todayItems = buildTodayItems({
@@ -2020,7 +2025,7 @@ export default function FocusFlowTDAH({
                   nextUnlock={(() => {
                     const next = [...XP_MILESTONES]
                       .sort((a, b) => a.xp - b.xp)
-                      .find((m) => m.xp > xp && !(isPlus && m.kind === "species"));
+                      .find((m) => m.xp > xp);
                     if (!next) return null;
                     const names =
                       next.kind === "species"

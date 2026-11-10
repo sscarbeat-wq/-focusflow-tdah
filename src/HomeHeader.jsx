@@ -109,7 +109,7 @@ export default function HomeHeader({ C, t, palette, period, nextBlock, nowMinute
                 display: "flex",
                 alignItems: "center",
                 gap: "5px",
-                background: "transparent",
+                background: palette.chipBg || "transparent",
                 border: `1px solid ${tint(palette.text, 0.25)}`,
                 borderRadius: "10px",
                 padding: "7px 10px",
@@ -127,9 +127,18 @@ export default function HomeHeader({ C, t, palette, period, nextBlock, nowMinute
           )}
         </div>
       )}
-      <div style={{ textAlign: "center" }}>
+      <div
+        style={{
+          textAlign: "center",
+          // Temas con dibujo (Colección Plus): el saludo va sobre una
+          // pastilla del color base del tema para que siempre se lea.
+          ...(palette.chipBg
+            ? { background: palette.chipBg, borderRadius: "14px", padding: "8px 14px", margin: "0 auto", width: "fit-content", maxWidth: "100%", boxSizing: "border-box" }
+            : {}),
+        }}
+      >
         <span style={{ fontSize: "15px", fontWeight: 700, color: palette.text }}>{greeting}</span>
-        <div style={{ fontSize: "12px", color: palette.textMuted, fontStyle: "italic", marginTop: "4px" }}>
+        <div style={{ fontSize: "12px", color: palette.chipBg ? palette.text : palette.textMuted, fontStyle: "italic", marginTop: "4px", opacity: palette.chipBg ? 0.85 : 1 }}>
           "{t.today.motivationalQuote}"
         </div>
       </div>
