@@ -36,6 +36,14 @@ export const TIME_OF_DAY_PALETTES = {
     accent2: "#E3A857",
     text: "#EDEAF7",
     textMuted: "#8A8AA8",
+    // 10 de noviembre de 2026: de noche, el círculo central y los 6
+    // accesos de la brújula (sobre todo los blancos) eran la parte más
+    // brillante de toda la pantalla justo antes de dormir — a contramano
+    // de bajar estímulos en la noche. Este filtro los atenúa un poco y los
+    // entibia (menos luz "azul-blanca"), sin cambiar ningún color de la
+    // marca ni el acento personal de la paciente. Solo existe en "night":
+    // mañana y tarde quedan exactamente igual.
+    circleFilter: "brightness(0.82) sepia(0.2)",
   },
 };
 

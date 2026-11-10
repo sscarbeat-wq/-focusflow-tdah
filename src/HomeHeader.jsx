@@ -37,23 +37,65 @@ export default function HomeHeader({ C, t, palette, period, nextBlock, nowMinute
   return (
     <div style={{ padding: "4px 4px 0" }}>
       {(showBanner || onEditClick) && (
-        <div style={{ display: "flex", alignItems: "center", gap: "8px", marginBottom: "12px" }}>
+        <div
+          style={{
+            display: "flex",
+            alignItems: "center",
+            gap: "8px",
+            marginBottom: "12px",
+            // En el teléfono más angosto, con el aviso ya más grande, el
+            // botón "Editar" lo apretaba a 4 renglones — ahora, si no caben
+            // los dos, "Editar" baja a su propio renglón (a la derecha) y el
+            // aviso usa todo el ancho.
+            flexWrap: "wrap",
+            justifyContent: "flex-end",
+          }}
+        >
           {showBanner && (
+            // 10 de noviembre de 2026 ("las de los avisos también más
+            // grandes"): 12px→15px de letra y 14→17 el ícono del reloj.
+            // Misma fecha, después — jerarquía: lo único ACCIONABLE de esta
+            // pantalla (qué viene ahorita) era una franja tenue, mientras
+            // lo decorativo (la mascota) se llevaba toda la atención. Para
+            // alguien con dificultades de función ejecutiva lo que tiene
+            // que hacer ya debe ser lo que más resalta: ahora es una
+            // tarjeta con fondo de color, borde y sombra, el ícono dentro
+            // de su propio círculo de color, y la letra en negrita. Sin
+            // inventar datos ni acciones nuevas: el texto es el mismo.
             <div
+              role="status"
               style={{
                 display: "flex",
                 alignItems: "center",
-                gap: "8px",
-                background: tint(palette.accent, 0.1),
-                borderLeft: `3px solid ${palette.accent2}`,
-                borderRadius: "10px",
-                padding: "8px 12px",
-                flex: 1,
+                gap: "12px",
+                background: `linear-gradient(135deg, ${tint(palette.accent2, 0.3)} 0%, ${tint(palette.accent2, 0.16)} 100%)`,
+                border: `1.5px solid ${tint(palette.accent2, 0.6)}`,
+                borderLeft: `6px solid ${palette.accent2}`,
+                borderRadius: "14px",
+                padding: "12px 16px",
+                boxShadow: `0 6px 18px ${tint(palette.accent2, 0.25)}`,
+                flex: "1 1 260px",
                 minWidth: 0,
               }}
             >
-              <Clock size={14} color={palette.accent2} aria-hidden="true" />
-              <span style={{ fontSize: "12px", fontWeight: 600, color: palette.text }}>
+              <span
+                aria-hidden="true"
+                style={{
+                  flexShrink: 0,
+                  width: "34px",
+                  height: "34px",
+                  borderRadius: "50%",
+                  background: palette.accent2,
+                  color: "#fff",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  boxShadow: "0 3px 8px rgba(0,0,0,0.18)",
+                }}
+              >
+                <Clock size={18} />
+              </span>
+              <span style={{ fontSize: "16px", fontWeight: 700, color: palette.text, lineHeight: 1.3 }}>
                 {t.today.upcomingBlockBanner(nextBlock.text, minutesUntil)}
               </span>
             </div>

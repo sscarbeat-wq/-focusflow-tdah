@@ -1,4 +1,4 @@
-import React, { useRef, useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import { Pin } from "lucide-react";
 import { tint } from "./theme";
 import Mascot from "./Mascot";
@@ -54,16 +54,121 @@ import { stageFor, getStoredResetVariant, getStoredPinnedAccess, storePinnedAcce
 // desbordar en el teléfono más angosto que soporta la app (igual que
 // antes, verificado con Playwright a 320/375px y 1100px), y 48s de giro
 // (el período exacto del mockup, antes eran 60s).
+// Estos 4 números están afinados específicamente para el teléfono más
+// angosto que soporta la app (320px, verificado con Playwright): el
+// anillo-hero de Mascot.jsx (150px) + aire alrededor, y 6 accesos cada
+// 60° sin pisarse entre sí ni con el botón de silenciar. Quedan como
+// piso/default para pantallas angostas — ver la nota de la sexta
+// corrección más abajo (DESKTOP_SIZES) para cómo crecen en pantallas
+// anchas sin tocar este piso ya verificado.
 const CENTER_SIZE = 160; // alcanza el anillo-hero (150px + 10px de sombra de piso) con aire alrededor
 const BUTTON_SIZE = 38;
 const ITEM_WIDTH = 64;
 const SPIN_SECONDS = 48;
 const LONG_PRESS_MS = 550;
-// clamp() en vez de un ancho fijo — el mismo valor sirve para la caja del
-// dial (ancho+alto por aspect-ratio 1:1) y para la rueda que gira adentro
-// (100% de esa caja), así que ambas siempre miden exactamente lo mismo sin
-// necesidad de un número de radio en píxeles aparte.
-const DIAL_WIDTH_EXPR = "clamp(260px, 90vw, 340px)";
+// Ancho del dial (caja cuadrada por aspect-ratio 1:1, la rueda que gira
+// adentro mide 100% de ella) — ver computeDialSize() más abajo: ya no es
+// un clamp() de CSS sino un número calculado en JS a partir del ancho real
+// de la ventana, para poder hacer la transición suave teléfono→escritorio.
+
+// Sexta corrección de fidelidad (9 de noviembre de 2026): con el fondo ya
+// ocupando casi toda la pantalla (quinta corrección, "en grande"), la
+// doctora pidió agrandar también el animal y los círculos de acceso.
+// Agrandar TODO por igual rompía el "mantener presionado para fijar" a
+// 320px (verificado con Playwright: en el teléfono más angosto no hay
+// sitio físico de más), así que el tamaño grande es solo para pantallas
+// anchas. MOBILE_SIZES = los valores de siempre, ya verificados en
+// teléfono; DESKTOP_SIZES = los grandes de escritorio.
+const MOBILE_SIZES = {
+  centerSize: CENTER_SIZE,
+  buttonSize: BUTTON_SIZE,
+  itemWidth: ITEM_WIDTH,
+  paddingY: 34,
+  labelFontSize: 10, // = BUTTON_SIZE * 0.263, la cuenta de siempre
+  // Mismos valores que los defaults de Mascot.jsx (HERO_RING_SIZE etc.).
+  heroRingSize: 150,
+  heroRingRadius: 62,
+  heroRingStroke: 10,
+  heroEmojiSize: 40,
+};
+// Séptima/octava corrección (10 de noviembre de 2026): animal más grande
+// (anillo 250px) y letras más grandes (18px), sin tocar el tamaño de los
+// 6 accesos ni la rotación.
+const DESKTOP_SIZES = {
+  centerSize: 260, // 250px de anillo-hero + 10px de sombra de piso
+  buttonSize: 54,
+  itemWidth: 88,
+  paddingY: 48,
+  labelFontSize: 18,
+  heroRingSize: 250,
+  heroRingRadius: 105,
+  heroRingStroke: 17,
+  heroEmojiSize: 66,
+};
+
+// Novena corrección (10 de noviembre de 2026): antes había un corte seco
+// en 760px — de un píxel al otro todo saltaba del tamaño de teléfono al de
+// escritorio (se notaba como un "brinco" al redimensionar la ventana, y
+// una tablet vertical de ~768px recibía de golpe el tamaño completo de
+// escritorio). Ahora, entre TRANSITION_MIN y TRANSITION_MAX, cada medida
+// pasa poco a poco de su valor de teléfono a su valor de escritorio. Fuera
+// de ese rango todo queda exactamente igual que antes (<480: teléfono tal
+// cual; >900: escritorio tal cual).
+//
+// Por qué esto no puede hacer que los accesos se encimen en medio de la
+// transición: dentro de 480–900px el dial de teléfono ya está topado en
+// 340px y el de escritorio en 480px, así que el dial, el centro y los
+// botones son las 3 mezclas lineales con el MISMO factor `t` entre dos
+// configuraciones ya verificadas. El espacio libre entre el centro y cada
+// acceso (dial*radio − botón/2 − centro/2) también es lineal en esas 3
+// medidas, o sea que en cualquier punto intermedio es un promedio
+// ponderado de dos números positivos — siempre positivo. Igual se
+// verificó con Playwright a 600px y 760px.
+const TRANSITION_MIN = 480;
+const TRANSITION_MAX = 900;
+
+function clampNum(v, lo, hi) {
+  return Math.min(hi, Math.max(lo, v));
+}
+function lerp(a, b, t) {
+  return a + (b - a) * t;
+}
+
+function computeDialSize(width) {
+  const mobile = clampNum(width * 0.9, 260, 340); // = el clamp(260px, 90vw, 340px) de siempre
+  const desktop = clampNum(width * 0.45, 480, 560); // = el clamp(480px, 45vw, 560px) de escritorio
+  const t = clampNum((width - TRANSITION_MIN) / (TRANSITION_MAX - TRANSITION_MIN), 0, 1);
+  return lerp(mobile, desktop, t);
+}
+
+function computeSizes(width) {
+  const t = clampNum((width - TRANSITION_MIN) / (TRANSITION_MAX - TRANSITION_MIN), 0, 1);
+  const out = { dialSize: computeDialSize(width) };
+  for (const key of Object.keys(MOBILE_SIZES)) {
+    out[key] = lerp(MOBILE_SIZES[key], DESKTOP_SIZES[key], t);
+  }
+  return out;
+}
+
+function useViewportWidth() {
+  const [width, setWidth] = useState(() => (typeof window !== "undefined" ? window.innerWidth : 1024));
+  useEffect(() => {
+    const onResize = () => setWidth(window.innerWidth);
+    onResize();
+    window.addEventListener("resize", onResize);
+    return () => window.removeEventListener("resize", onResize);
+  }, []);
+  return width;
+}
+
+// Novena corrección, parte 2 — "que el giro no distraiga": la rueda se
+// detiene en cuanto la paciente pone el mouse/dedo encima o navega con
+// teclado a un acceso, para que nunca tenga que leer o tocar un blanco en
+// movimiento, y vuelve a girar sola un rato después de que deja de
+// interactuar. Complementa (no reemplaza) prefers-reduced-motion, que
+// sigue apagando el giro por completo para quien lo tenga activado.
+const RESUME_AFTER_LEAVE_MS = 1500;
+const RESUME_AFTER_TOUCH_MS = 5000;
 
 // Un solo botón de acceso — propio componente chico solo para no repetir
 // la lógica de "mantener presionado" 4 veces en el render principal.
@@ -72,34 +177,82 @@ const DIAL_WIDTH_EXPR = "clamp(260px, 90vw, 340px)";
 // acento/acento2); sin `variant`, se queda con el estilo genérico de
 // siempre (tinte suave del acento), para que el componente no se rompa si
 // algún día se usa con items que no traigan esa etiqueta.
+//
+// Séptima corrección (9 de noviembre de 2026, "que se vean los botones
+// como en 3D, como en el sistema solar"): cada círculo pasa de un color
+// plano a una esfera con luz — un brillo blanco suave arriba-izquierda
+// (como si la luz les pegara desde ahí) y una sombra sutil abajo-derecha,
+// con el color de siempre todavía en el medio. Es el mismo truco que
+// cualquier ilustración de "planeta": 2 capas de gradiente radial encima
+// del color/fondo de base, nada de imágenes nuevas. La sombra que ya
+// proyecta cada botón (`boxShadow`) también se agranda un poco para que
+// se sientan "flotando" arriba de la pantalla, no pegados a ella — igual
+// que un planeta orbitando, con su propia sombra.
 function iconCircleStyle(variant, accent, accent2, pinned) {
   const ringColor = variant === "accent2-solid" || variant === "accent2-outline" ? accent2 : accent;
+  const sphereHighlight = "radial-gradient(circle at 32% 26%, rgba(255,255,255,0.65) 0%, rgba(255,255,255,0) 42%)";
+  const sphereShade = "radial-gradient(circle at 72% 78%, rgba(0,0,0,0.20) 0%, rgba(0,0,0,0) 58%)";
   if (variant === "accent-solid" || variant === "accent2-solid") {
     return {
-      background: ringColor,
+      background: `${sphereHighlight}, ${sphereShade}, ${ringColor}`,
       border: pinned ? "2px solid #fff" : "none",
       color: "#fff",
-      boxShadow: pinned ? `0 0 0 4px ${tint(ringColor, 0.35)}` : "0 4px 10px rgba(0,0,0,0.12)",
+      boxShadow: pinned
+        ? `0 0 0 4px ${tint(ringColor, 0.35)}, 0 6px 14px rgba(0,0,0,0.22)`
+        : "0 6px 14px rgba(0,0,0,0.22)",
     };
   }
   if (variant === "accent-outline" || variant === "accent2-outline") {
     return {
-      background: "#FFFFFF",
+      background: `${sphereHighlight}, radial-gradient(circle at 72% 78%, ${tint(ringColor, 0.12)} 0%, rgba(255,255,255,0) 60%), #FFFFFF`,
       border: pinned ? `2px solid ${ringColor}` : `1.5px solid ${tint(ringColor, 0.45)}`,
       color: ringColor,
-      boxShadow: pinned ? `0 0 0 4px ${tint(ringColor, 0.22)}` : "0 4px 10px rgba(0,0,0,0.08)",
+      boxShadow: pinned
+        ? `0 0 0 4px ${tint(ringColor, 0.22)}, 0 6px 12px rgba(0,0,0,0.14)`
+        : "0 6px 12px rgba(0,0,0,0.14)",
     };
   }
   return {
-    background: tint(accent, 0.16),
+    background: `${sphereHighlight}, radial-gradient(circle at 72% 78%, ${tint(accent, 0.3)} 0%, rgba(255,255,255,0) 60%), ${tint(accent, 0.16)}`,
     border: pinned ? `2px solid ${accent}` : `1.5px solid ${tint(accent, 0.35)}`,
     color: accent,
-    boxShadow: pinned ? `0 0 0 4px ${tint(accent, 0.22)}` : "0 4px 10px rgba(0,0,0,0.08)",
+    boxShadow: pinned
+      ? `0 0 0 4px ${tint(accent, 0.22)}, 0 6px 12px rgba(0,0,0,0.14)`
+      : "0 6px 12px rgba(0,0,0,0.14)",
   };
 }
 
-function CompassAccessButton({ item, anchorStyle, rotating, pinned, onPin, onUnpin, onSelect, C, accent, accent2, t, textColor }) {
+function CompassAccessButton({
+  item,
+  anchorStyle,
+  rotating,
+  pinned,
+  onPin,
+  onUnpin,
+  onSelect,
+  C,
+  accent,
+  accent2,
+  t,
+  textColor,
+  buttonSize = BUTTON_SIZE,
+  itemWidth = ITEM_WIDTH,
+  labelFontSize: labelFontSizeProp,
+  circleFilter,
+}) {
   const timerRef = useRef(null);
+  // El resto de medidas del botón (insignia de "fijado", tamaño de letra
+  // de la etiqueta) se derivan de `buttonSize` en vez de ser números fijos
+  // aparte — así, al recibir el tamaño más grande de escritorio
+  // (DESKTOP_SIZES, sexta corrección), todo el botón crece junto y en
+  // proporción, sin un segundo juego de números que mantener a mano.
+  // `labelFontSize` (octava corrección, "las letras más grandes") es la
+  // excepción: cuando viene mandado desde fuera se usa tal cual (más
+  // grande que la cuenta proporcional de siempre), para poder agrandar
+  // SOLO la letra sin que eso arrastre también el tamaño del círculo.
+  const pinBadgeSize = buttonSize * 0.42;
+  const pinIconSize = buttonSize * 0.26;
+  const labelFontSize = labelFontSizeProp ?? buttonSize * 0.263;
   const firedRef = useRef(false);
 
   const startPress = () => {
@@ -146,7 +299,7 @@ function CompassAccessButton({ item, anchorStyle, rotating, pinned, onPin, onUnp
           flexDirection: "column",
           alignItems: "center",
           gap: "5px",
-          width: `${ITEM_WIDTH}px`,
+          width: `${itemWidth}px`,
           background: "transparent",
           border: "none",
           padding: 0,
@@ -158,14 +311,19 @@ function CompassAccessButton({ item, anchorStyle, rotating, pinned, onPin, onUnp
           aria-hidden="true"
           style={{
             position: "relative",
-            width: `${BUTTON_SIZE}px`,
-            height: `${BUTTON_SIZE}px`,
+            width: `${buttonSize}px`,
+            height: `${buttonSize}px`,
             borderRadius: "50%",
             flexShrink: 0,
             display: "flex",
             alignItems: "center",
             justifyContent: "center",
             ...iconCircleStyle(item.variant, accent, accent2, pinned),
+            // Novena corrección: de noche los círculos (sobre todo los
+            // blancos) se atenúan y entibian un poco — ver circleFilter en
+            // timeOfDayPalette.js. undefined de mañana/tarde = sin cambio.
+            filter: circleFilter,
+            transition: "filter 0.6s ease",
           }}
         >
           {item.icon}
@@ -175,8 +333,8 @@ function CompassAccessButton({ item, anchorStyle, rotating, pinned, onPin, onUnp
                 position: "absolute",
                 top: "-3px",
                 right: "-3px",
-                width: "16px",
-                height: "16px",
+                width: `${pinBadgeSize}px`,
+                height: `${pinBadgeSize}px`,
                 borderRadius: "50%",
                 background: accent,
                 color: "#fff",
@@ -186,11 +344,11 @@ function CompassAccessButton({ item, anchorStyle, rotating, pinned, onPin, onUnp
                 boxShadow: "0 1px 3px rgba(0,0,0,0.3)",
               }}
             >
-              <Pin size={10} />
+              <Pin size={pinIconSize} />
             </span>
           )}
         </span>
-        <span style={{ fontSize: "10px", fontWeight: 700, color: textColor, lineHeight: 1.2 }}>{item.label}</span>
+        <span style={{ fontSize: `${labelFontSize}px`, fontWeight: 700, color: textColor, lineHeight: 1.2 }}>{item.label}</span>
       </button>
     </div>
   );
@@ -250,6 +408,34 @@ export default function QuickAccessCompass({
 }) {
   const textColor = palette ? palette.text : C.text;
   const mutedColor = palette ? palette.textMuted : C.textMuted;
+  // Sexta corrección de fidelidad (9 de noviembre de 2026): "el animal más
+  // grande, los círculos grandes" — ver la nota junto a DESKTOP_SIZES más
+  // arriba para por qué este agrandado es solo de >=760px en adelante.
+  const viewportWidth = useViewportWidth();
+  const sizes = computeSizes(viewportWidth);
+  const circleFilter = palette?.circleFilter;
+
+  // Pausa del giro mientras la paciente interactúa (ver la nota junto a
+  // RESUME_AFTER_LEAVE_MS más arriba).
+  const [spinPaused, setSpinPaused] = useState(false);
+  const resumeTimerRef = useRef(null);
+  const pauseSpin = () => {
+    if (resumeTimerRef.current) {
+      clearTimeout(resumeTimerRef.current);
+      resumeTimerRef.current = null;
+    }
+    setSpinPaused(true);
+  };
+  const resumeSpinLater = (ms) => {
+    if (resumeTimerRef.current) clearTimeout(resumeTimerRef.current);
+    resumeTimerRef.current = setTimeout(() => {
+      resumeTimerRef.current = null;
+      setSpinPaused(false);
+    }, ms);
+  };
+  useEffect(() => () => {
+    if (resumeTimerRef.current) clearTimeout(resumeTimerRef.current);
+  }, []);
   const [pinnedKey, setPinnedKey] = useState(() => getStoredPinnedAccess());
 
   const pin = (key) => {
@@ -313,6 +499,10 @@ export default function QuickAccessCompass({
         .anro-compass-counter {
           animation: anroCompassCounterSpin ${SPIN_SECONDS}s linear infinite;
         }
+        .anro-compass-dial.anro-compass-paused .anro-compass-wheel,
+        .anro-compass-dial.anro-compass-paused .anro-compass-counter {
+          animation-play-state: paused;
+        }
         @media (prefers-reduced-motion: reduce) {
           .anro-compass-wheel,
           .anro-compass-counter {
@@ -321,10 +511,27 @@ export default function QuickAccessCompass({
         }
       `}</style>
       <div
+        className={`anro-compass-dial${spinPaused ? " anro-compass-paused" : ""}`}
+        data-spin-paused={spinPaused ? "true" : "false"}
+        // Mouse: se detiene al entrar, sigue 1.5s después de salir.
+        // Dedo: no hay "salir", así que se detiene al tocar y sigue sola 5s
+        // después del último toque. Teclado: se detiene mientras haya un
+        // acceso enfocado (onFocus/onBlur de React sí burbujean).
+        onPointerEnter={(e) => {
+          if (e.pointerType === "mouse") pauseSpin();
+        }}
+        onPointerLeave={(e) => {
+          if (e.pointerType === "mouse") resumeSpinLater(RESUME_AFTER_LEAVE_MS);
+        }}
+        onPointerDown={(e) => {
+          pauseSpin();
+          if (e.pointerType !== "mouse") resumeSpinLater(RESUME_AFTER_TOUCH_MS);
+        }}
+        onFocus={pauseSpin}
+        onBlur={() => resumeSpinLater(RESUME_AFTER_LEAVE_MS)}
         style={{
           position: "relative",
-          width: DIAL_WIDTH_EXPR,
-          maxWidth: "340px",
+          width: `${sizes.dialSize}px`,
           aspectRatio: "1 / 1",
           margin: "0 auto",
           // boxSizing: "border-box" (9 de noviembre de 2026, al agregar los
@@ -343,8 +550,9 @@ export default function QuickAccessCompass({
           // sea cuadrada (quedan centradas en cada eje igual).
           boxSizing: "border-box",
           // Espacio de sobra para que las etiquetas de texto debajo/encima
-          // de los botones no queden recortadas.
-          padding: "34px 0",
+          // de los botones no queden recortadas (escalado junto con
+          // buttonSize/itemWidth, sexta corrección).
+          padding: `${sizes.paddingY}px 0`,
         }}
       >
         {/* Dial punteado decorativo — fijo, no gira (solo la rueda de
@@ -376,12 +584,18 @@ export default function QuickAccessCompass({
             position: "absolute",
             top: "50%",
             left: "50%",
-            width: `${CENTER_SIZE}px`,
-            height: `${CENTER_SIZE}px`,
+            width: `${sizes.centerSize}px`,
+            height: `${sizes.centerSize}px`,
             transform: "translate(-50%, -50%)",
             borderRadius: "50%",
-            background: `radial-gradient(circle at 50% 38%, ${C.surface} 0%, ${C.surfaceAlt} 100%)`,
-            boxShadow: `0 6px 16px ${tint(accent, 0.22)}`,
+            // Mismo truco de "esfera con luz" que los 6 accesos (séptima
+            // corrección) — un brillo suave arriba-izquierda encima del
+            // degradado de siempre, para que el centro también se sienta
+            // un cuerpo con volumen, no un círculo plano.
+            background: `radial-gradient(circle at 32% 24%, rgba(255,255,255,0.7) 0%, rgba(255,255,255,0) 38%), radial-gradient(circle at 50% 38%, ${C.surface} 0%, ${C.surfaceAlt} 100%)`,
+            boxShadow: `0 10px 24px ${tint(accent, 0.28)}, 0 2px 6px rgba(0,0,0,0.12)`,
+            filter: circleFilter,
+            transition: "filter 0.6s ease",
             display: "flex",
             alignItems: "center",
             justifyContent: "center",
@@ -397,6 +611,10 @@ export default function QuickAccessCompass({
             focusStatus={focusStatus}
             accessory={accessory}
             focusPercent={focusPercent}
+            heroRingSize={sizes.heroRingSize}
+            heroRingRadius={sizes.heroRingRadius}
+            heroRingStroke={sizes.heroRingStroke}
+            heroEmojiSize={sizes.heroEmojiSize}
           />
         </div>
 
@@ -416,6 +634,10 @@ export default function QuickAccessCompass({
               accent2={accent2}
               t={t}
               textColor={textColor}
+              buttonSize={sizes.buttonSize}
+              itemWidth={sizes.itemWidth}
+              labelFontSize={sizes.labelFontSize}
+              circleFilter={circleFilter}
             />
           </div>
         )}
@@ -465,6 +687,10 @@ export default function QuickAccessCompass({
                   accent2={accent2}
                   t={t}
                   textColor={textColor}
+                  buttonSize={sizes.buttonSize}
+                  itemWidth={sizes.itemWidth}
+                  labelFontSize={sizes.labelFontSize}
+                  circleFilter={circleFilter}
                 />
               </div>
             );
