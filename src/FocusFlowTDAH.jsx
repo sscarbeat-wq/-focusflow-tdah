@@ -54,6 +54,7 @@ import {
   X,
   Wrench,
   Flame,
+  Globe,
 } from "lucide-react";
 
 import LanguageSwitcher from "./LanguageSwitcher";
@@ -99,7 +100,13 @@ import { useBodyDouble } from "./bodyDouble";
 import { celebrate } from "./celebrate";
 import { DEFAULT_STREAK, nextStreak, effectiveStreak } from "./streak";
 import { DEFAULT_MOOD_LOG, recordMood } from "./moodLog";
-import { DEFAULT_FOCUS_SESSION_LOG, logFocusSession, todayFocusPercent } from "./focusSessionLog";
+import {
+  DEFAULT_FOCUS_SESSION_LOG,
+  logFocusSession,
+  todayFocusPercent,
+  todayFocusMinutes,
+  DAILY_FOCUS_GOAL_MIN,
+} from "./focusSessionLog";
 import { DEFAULT_ENERGY_LOG, recordEnergy } from "./energyLog";
 import {
   DEFAULT_MEDICATIONS,
@@ -1970,6 +1977,32 @@ export default function FocusFlowTDAH({
                   // Planetas en tonos del color que eligió la paciente (o de
                   // colores, si eligió "Sistema solar") — 10 de noviembre de 2026.
                   planetColors={planetColorsFor(accentLocked ? null : accentKey, personalAccent)}
+                  // Explicaciones del centro (10 de noviembre de 2026): qué
+                  // mide el %, qué son los XP y cuánto falta para el
+                  // siguiente premio.
+                  focusMinutes={todayFocusMinutes(focusSessionLog)}
+                  focusGoal={DAILY_FOCUS_GOAL_MIN}
+                  nextUnlock={(() => {
+                    const next = [...XP_MILESTONES].sort((a, b) => a.xp - b.xp).find((m) => m.xp > xp);
+                    if (!next) return null;
+                    const names =
+                      next.kind === "species"
+                        ? t.app.speciesPicker.names
+                        : next.kind === "accent"
+                        ? t.app.accentPicker.names
+                        : t.app.accessoryPicker.names;
+                    return { remaining: Math.max(1, Math.ceil(next.xp - xp)), name: names[next.key] || next.key, kind: next.kind };
+                  })()}
+                  onStartFocus={() => scrollToCompanionSection("focusMode")}
+                  // Lleva a Perfil con abierto justo el selector del
+                  // siguiente premio (mascota, color o accesorio).
+                  onSeeRewards={(kind) => {
+                    goToTab("perfil");
+                    if (kind === "accent") setAccentPickerOpen(true);
+                    else if (kind === "accessory") setAccessoryPickerOpen(true);
+                    else setSpeciesPickerOpen(true);
+                    requestAnimationFrame(() => window.scrollTo({ top: 0, behavior: "auto" }));
+                  }}
                   onReorder={(keys) => {
                     setCompassKeys(keys);
                     storeCompassSelection(keys);
@@ -2025,13 +2058,6 @@ export default function FocusFlowTDAH({
               />
               <h1 style={{ fontSize: "24px", fontWeight: 700, margin: 0 }}>{t.common.appName}</h1>
             </div>
-            {/* 50px = 40px del logo + 10px del espacio entre el logo y el
-                título (mismo gap del contenedor de arriba) — para que el
-                subtítulo quede alineado justo debajo del texto del título,
-                no del logo. */}
-            <p style={{ fontSize: "13px", color: C.textMuted, margin: "6px 0 0 50px" }}>
-              {userEmail ? t.app.sessionOf(userEmail) : t.app.noEmailSubtitle}
-            </p>
           </div>
           {/* flexWrap (10 de noviembre de 2026): en el teléfono esta fila
               (idiomas + puntos + 5 botones) medía ~550px y empujaba toda
@@ -2039,7 +2065,11 @@ export default function FocusFlowTDAH({
               390px de ancho, verificado con Playwright). Ahora baja a un
               segundo renglón cuando no cabe. */}
           <div style={{ display: "flex", alignItems: "center", gap: "10px", flexWrap: "wrap", maxWidth: "100%" }}>
-            {onChangeLanguage && <LanguageSwitcher C={C} lang={lang} onChange={onChangeLanguage} t={t} height="40px" />}
+            {/* 10 de noviembre de 2026 ("¿podrías acomodar de otra manera
+                esto?"): la fila de 9 botones sueltos (idioma, sonido, tema,
+                color, mascota, accesorio, suscripción, salir) se movió a la
+                tarjeta "Personaliza tu ANRO" de Perfil, con etiquetas en vez
+                de puros íconos. Aquí arriba solo quedan los puntos. */}
             <div
               id="anro-tour-xp"
               style={{
@@ -2055,7 +2085,7 @@ export default function FocusFlowTDAH({
             >
               <Sparkles size={18} color={C.amber} />
               <div>
-                <div style={{ fontSize: "16px", fontWeight: 600, lineHeight: 1.1 }}>{xp.toFixed(2)} {t.app.xpUnit}</div>
+                <div style={{ fontSize: "16px", fontWeight: 600, lineHeight: 1.1 }}>{Math.round(xp)} {t.app.xpUnit}</div>
                 <div style={{ fontSize: "11px", color: C.textMuted, display: "flex", alignItems: "center", gap: "3px" }}>
                   {t.app.xpCaption}
                   {/* 8 de noviembre de 2026: ícono de información permanente
@@ -2163,112 +2193,191 @@ export default function FocusFlowTDAH({
                 </div>
               )}
             </div>
-            <button
-              onClick={toggleCelebrate}
-              aria-label={celebrateOn ? t.app.muteOn : t.app.muteOff}
-              title={celebrateOn ? t.app.muteOn : t.app.muteOff}
+          </div>
+        </header>
+
+        {manageSubscriptionError && (
+          <p
+            role="alert"
+            style={{
+              fontSize: "13px",
+              color: C.amber,
+              textAlign: "center",
+              margin: "0 0 12px",
+              lineHeight: 1.5,
+            }}
+          >
+            {manageSubscriptionError}
+          </p>
+        )}
+
+        {/* Personaliza tu ANRO (10 de noviembre de 2026) — lo que antes eran
+            9 botones de puro ícono en el encabezado, ahora como mosaicos con
+            nombre y valor actual ("Mascota · Gato", "Tema · Claro"), solo en
+            Perfil. Color y accesorio se eligen en un panel que se abre
+            debajo de los mosaicos (no un globito flotante que en el
+            teléfono se salía de la pantalla). */}
+        {activeTab === "perfil" && (() => {
+          const st = t.app.settingsCard;
+          const tileStyle = (active) => ({
+            display: "flex",
+            alignItems: "center",
+            gap: "12px",
+            width: "100%",
+            minHeight: "64px",
+            padding: "10px 14px",
+            borderRadius: "16px",
+            border: active ? `2px solid ${personalAccent}` : `1px solid ${C.border}`,
+            background: active ? tint(personalAccent, 0.1) : C.surfaceAlt,
+            color: C.text,
+            cursor: "pointer",
+            textAlign: "left",
+            position: "relative",
+            boxSizing: "border-box",
+          });
+          const tileIcon = {
+            width: "40px",
+            height: "40px",
+            borderRadius: "12px",
+            background: C.surface,
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            flexShrink: 0,
+            color: C.textMuted,
+          };
+          const tileText = (label, value) => (
+            <span style={{ display: "flex", flexDirection: "column", minWidth: 0 }}>
+              <span style={{ fontSize: "12px", color: C.textMuted, fontWeight: 600 }}>{label}</span>
+              <span style={{ fontSize: "14px", fontWeight: 700, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{value}</span>
+            </span>
+          );
+          const panelStyle = {
+            marginTop: "12px",
+            padding: "14px",
+            borderRadius: "16px",
+            border: `1px solid ${C.border}`,
+            background: C.surfaceAlt,
+          };
+          return (
+            <section
+              aria-label={st.title}
               style={{
-                position: "relative",
-                background: "transparent",
+                background: C.surface,
                 border: `1px solid ${C.border}`,
-                borderRadius: "12px",
-                width: "40px",
-                height: "40px",
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center",
-                color: C.textMuted,
-                cursor: "pointer",
+                borderRadius: "20px",
+                padding: "18px",
+                marginBottom: "20px",
               }}
             >
-              {celebrateOn ? <Volume2 size={16} /> : <VolumeX size={16} />}
-              {celebrateMsg && (
-                <div
-                  style={{
-                    position: "absolute",
-                    top: "-32px",
-                    right: 0,
-                    background: C.mintDark,
-                    color: C.mintText,
-                    fontSize: "12px",
-                    padding: "5px 10px",
-                    borderRadius: "12px",
-                    whiteSpace: "nowrap",
-                  }}
-                >
-                  {celebrateMsg}
-                </div>
-              )}
-            </button>
-            {onToggleTheme && (
-              <button
-                onClick={onToggleTheme}
-                aria-label={theme === "light" ? t.common.toDarkMode : t.common.toLightMode}
-                title={theme === "light" ? t.common.toDarkMode : t.common.toLightMode}
+              <h2 style={{ fontSize: "17px", fontWeight: 700, margin: "0 0 14px" }}>{st.title}</h2>
+              <div
                 style={{
-                  background: "transparent",
-                  border: `1px solid ${C.border}`,
-                  borderRadius: "12px",
-                  width: "40px",
-                  height: "40px",
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "center",
-                  color: C.textMuted,
-                  cursor: "pointer",
+                  display: "grid",
+                  // 2 columnas en el teléfono, 3 en pantallas anchas.
+                  gridTemplateColumns: isNarrow ? "repeat(2, minmax(0, 1fr))" : "repeat(3, minmax(0, 1fr))",
+                  gap: "10px",
                 }}
               >
-                {theme === "light" ? <Moon size={16} /> : <Sun size={16} />}
-              </button>
-            )}
-            {onChangeAccent && (
-              <div style={{ position: "relative" }}>
-                <button
-                  onClick={() => setAccentPickerOpen((prev) => !prev)}
-                  aria-label={t.app.accentPicker.label}
-                  title={t.app.accentPicker.label}
-                  style={{
-                    background: "transparent",
-                    border: `1px solid ${C.border}`,
-                    borderRadius: "12px",
-                    width: "40px",
-                    height: "40px",
-                    display: "flex",
-                    alignItems: "center",
-                    justifyContent: "center",
-                    cursor: "pointer",
-                  }}
-                >
-                  <span
-                    style={{
-                      width: "18px",
-                      height: "18px",
-                      borderRadius: "50%",
-                      background: personalAccent,
-                      boxShadow: `0 0 0 1px ${C.border}`,
-                      display: "block",
+                {onChangeSpecies && (
+                  <button type="button" onClick={() => setSpeciesPickerOpen(true)} style={tileStyle(false)}>
+                    <span aria-hidden="true" style={tileIcon}>
+                      <MascotArt visual={matureEmoji(resolvedSpecies)} size={34} />
+                    </span>
+                    {tileText(st.mascot, t.app.speciesPicker.names[resolvedSpecies] || resolvedSpecies)}
+                  </button>
+                )}
+                {onChangeAccent && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setAccessoryPickerOpen(false);
+                      setAccentPickerOpen((prev) => !prev);
                     }}
-                    aria-hidden="true"
-                  />
-                </button>
-                {accentPickerOpen && (
+                    aria-expanded={accentPickerOpen}
+                    style={tileStyle(accentPickerOpen)}
+                  >
+                    <span aria-hidden="true" style={tileIcon}>
+                      <span
+                        style={{
+                          width: "22px",
+                          height: "22px",
+                          borderRadius: "50%",
+                          background:
+                            accentKey === "solar" ? `conic-gradient(${[...SOLAR_PLANETS, SOLAR_PLANETS[0]].join(", ")})` : personalAccent,
+                          boxShadow: `0 0 0 1px ${C.border}`,
+                          display: "block",
+                        }}
+                      />
+                    </span>
+                    {tileText(st.color, t.app.accentPicker.names[accentLocked ? "lavender" : accentKey] || t.app.accentPicker.names.lavender)}
+                  </button>
+                )}
+                {onChangeAccessory && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setAccentPickerOpen(false);
+                      setAccessoryPickerOpen((prev) => !prev);
+                    }}
+                    aria-expanded={accessoryPickerOpen}
+                    style={tileStyle(accessoryPickerOpen)}
+                  >
+                    <span aria-hidden="true" style={{ ...tileIcon, fontSize: "20px" }}>
+                      {ACCESSORY_EMOJI[accessory] ? ACCESSORY_EMOJI[accessory] : <Sparkles size={18} />}
+                    </span>
+                    {tileText(st.accessory, t.app.accessoryPicker.names[accessory || DEFAULT_ACCESSORY])}
+                  </button>
+                )}
+                {onToggleTheme && (
+                  <button type="button" onClick={onToggleTheme} style={tileStyle(false)} aria-label={theme === "light" ? t.common.toDarkMode : t.common.toLightMode}>
+                    <span aria-hidden="true" style={tileIcon}>
+                      {theme === "light" ? <Sun size={18} /> : <Moon size={18} />}
+                    </span>
+                    {tileText(st.theme, theme === "light" ? st.themeLight : st.themeDark)}
+                  </button>
+                )}
+                <button type="button" onClick={toggleCelebrate} style={tileStyle(false)} aria-label={celebrateOn ? t.app.muteOn : t.app.muteOff}>
+                  <span aria-hidden="true" style={tileIcon}>
+                    {celebrateOn ? <Volume2 size={18} /> : <VolumeX size={18} />}
+                  </span>
+                  {tileText(st.sound, celebrateOn ? st.soundOn : st.soundOff)}
+              {celebrateMsg && (
                   <div
                     style={{
                       position: "absolute",
-                      top: "48px",
+                      top: "-32px",
                       right: 0,
-                      background: C.surface,
-                      border: `1px solid ${C.border}`,
-                      borderRadius: "16px",
-                      padding: "12px",
-                      boxShadow: "0 8px 20px rgba(0,0,0,0.18)",
-                      zIndex: 10,
-                      width: "176px",
+                      background: C.mintDark,
+                      color: C.mintText,
+                      fontSize: "12px",
+                      padding: "5px 10px",
+                      borderRadius: "12px",
+                      whiteSpace: "nowrap",
                     }}
                   >
-                    <div style={{ fontSize: "12px", color: C.textMuted, marginBottom: "10px" }}>
-                      {t.app.accentPicker.prompt}
-                    </div>
+                    {celebrateMsg}
+                  </div>
+                )}
+                </button>
+                {onChangeLanguage && (
+                  <div style={{ ...tileStyle(false), cursor: "default" }}>
+                    {!isNarrow && (
+                      <span aria-hidden="true" style={tileIcon}>
+                        <Globe size={18} />
+                      </span>
+                    )}
+                    <span style={{ display: "flex", flexDirection: "column", gap: "4px", minWidth: 0, flex: 1 }}>
+                      <span style={{ fontSize: "12px", color: C.textMuted, fontWeight: 600 }}>{st.language}</span>
+                      <LanguageSwitcher C={C} lang={lang} onChange={onChangeLanguage} t={t} height="34px" />
+                    </span>
+                  </div>
+                )}
+              </div>
+
+              {accentPickerOpen && (
+                <div style={panelStyle}>
+                  <div style={{ fontSize: "12px", color: C.textMuted, marginBottom: "10px" }}>{t.app.accentPicker.prompt}</div>
                     <div style={{ display: "flex", flexWrap: "wrap", gap: "10px" }}>
                       {ACCENT_OPTIONS.map((key) => (
                         <button
@@ -2344,94 +2453,11 @@ export default function FocusFlowTDAH({
                         );
                       })}
                     </div>
-                  </div>
-                )}
-              </div>
-            )}
-            {onChangeSpecies && (
-              <div style={{ position: "relative" }}>
-                <button
-                  onClick={() => setSpeciesPickerOpen(true)}
-                  aria-label={t.app.speciesPicker.label}
-                  title={t.app.speciesPicker.label}
-                  style={{
-                    background: "transparent",
-                    border: `1px solid ${C.border}`,
-                    borderRadius: "12px",
-                    width: "40px",
-                    height: "40px",
-                    display: "flex",
-                    alignItems: "center",
-                    justifyContent: "center",
-                    cursor: "pointer",
-                    fontSize: "20px",
-                    padding: 0,
-                  }}
-                >
-                  <span aria-hidden="true" style={{ display: "flex", filter: "drop-shadow(0 1px 2px rgba(0,0,0,0.18))" }}>
-                    <MascotArt visual={matureEmoji(resolvedSpecies)} size={32} />
-                  </span>
-                </button>
-                {/* 10 de noviembre de 2026: con 18 personajes (12 nuevos con
-                    ilustración real) el globito de antes ya no daba — ahora
-                    es una hoja con cuadrícula, candados y vista previa de
-                    las 4 etapas (ver SpeciesPickerSheet.jsx). */}
-                {speciesPickerOpen && (
-                  <SpeciesPickerSheet
-                    C={C}
-                    t={t}
-                    accent={personalAccent}
-                    xp={xp}
-                    selected={resolvedSpecies}
-                    onSelect={onChangeSpecies}
-                    onClose={() => setSpeciesPickerOpen(false)}
-                  />
-                )}
-              </div>
-            )}
-            {onChangeAccessory && (
-              <div style={{ position: "relative" }}>
-                <button
-                  onClick={() => setAccessoryPickerOpen((prev) => !prev)}
-                  aria-label={t.app.accessoryPicker.label}
-                  title={t.app.accessoryPicker.label}
-                  style={{
-                    background: "transparent",
-                    border: `1px solid ${C.border}`,
-                    borderRadius: "12px",
-                    width: "40px",
-                    height: "40px",
-                    display: "flex",
-                    alignItems: "center",
-                    justifyContent: "center",
-                    cursor: "pointer",
-                    fontSize: "18px",
-                  }}
-                >
-                  {ACCESSORY_EMOJI[accessory] ? (
-                    <span aria-hidden="true">{ACCESSORY_EMOJI[accessory]}</span>
-                  ) : (
-                    <Sparkles size={16} color={C.textMuted} />
-                  )}
-                </button>
-                {accessoryPickerOpen && (
-                  <div
-                    style={{
-                      position: "absolute",
-                      top: "48px",
-                      right: 0,
-                      background: C.surface,
-                      border: `1px solid ${C.border}`,
-                      borderRadius: "16px",
-                      padding: "14px",
-                      boxShadow: "0 8px 20px rgba(0,0,0,0.18)",
-                      zIndex: 10,
-                      width: "236px",
-                    }}
-                  >
-                    <div style={{ fontSize: "12px", color: C.textMuted, marginBottom: "10px" }}>
-                      {t.app.accessoryPicker.prompt}
-                    </div>
+                </div>
+              )}
+              {accessoryPickerOpen && (
+                <div style={panelStyle}>
+                  <div style={{ fontSize: "12px", color: C.textMuted, marginBottom: "10px" }}>{t.app.accessoryPicker.prompt}</div>
                     <div style={{ display: "flex", flexWrap: "wrap", gap: "8px" }}>
                       {ACCESSORY_OPTIONS.map((key) => {
                         const selected = key === (accessory || DEFAULT_ACCESSORY);
@@ -2496,64 +2522,82 @@ export default function FocusFlowTDAH({
                         );
                       })}
                     </div>
-                  </div>
+                </div>
+              )}
+                {speciesPickerOpen && (
+                  <SpeciesPickerSheet
+                    C={C}
+                    t={t}
+                    accent={personalAccent}
+                    xp={xp}
+                    selected={resolvedSpecies}
+                    onSelect={onChangeSpecies}
+                    onClose={() => setSpeciesPickerOpen(false)}
+                  />
                 )}
-              </div>
-            )}
-            {onManageSubscription && (
-              <button
-                onClick={onManageSubscription}
-                style={{
-                  background: "transparent",
-                  border: `1px solid ${C.border}`,
-                  borderRadius: "12px",
-                  padding: "0 14px",
-                  height: "40px",
-                  color: C.textMuted,
-                  cursor: "pointer",
-                  fontSize: "12px",
-                }}
-              >
-                {t.app.mySubscription}
-              </button>
-            )}
-            {onSignOut && (
-              <button
-                onClick={onSignOut}
-                aria-label={t.common.signOut}
-                style={{
-                  background: "transparent",
-                  border: `1px solid ${C.border}`,
-                  borderRadius: "12px",
-                  width: "40px",
-                  height: "40px",
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "center",
-                  color: C.textMuted,
-                  cursor: "pointer",
-                }}
-              >
-                <LogOut size={16} />
-              </button>
-            )}
-          </div>
-        </header>
 
-        {manageSubscriptionError && (
-          <p
-            role="alert"
-            style={{
-              fontSize: "13px",
-              color: C.amber,
-              textAlign: "center",
-              margin: "0 0 12px",
-              lineHeight: 1.5,
-            }}
-          >
-            {manageSubscriptionError}
-          </p>
-        )}
+              <div
+                style={{
+                  marginTop: "16px",
+                  paddingTop: "14px",
+                  borderTop: `1px solid ${C.border}`,
+                  display: "flex",
+                  flexWrap: "wrap",
+                  alignItems: "center",
+                  justifyContent: "space-between",
+                  gap: "10px",
+                }}
+              >
+                <span style={{ fontSize: "13px", color: C.textMuted, minWidth: 0, overflowWrap: "anywhere" }}>
+                  {userEmail ? t.app.sessionOf(userEmail) : t.app.noEmailSubtitle}
+                </span>
+                <div style={{ display: "flex", gap: "8px", flexWrap: "wrap" }}>
+                  {onManageSubscription && (
+                    <button
+                      type="button"
+                      onClick={onManageSubscription}
+                      style={{
+                        minHeight: "40px",
+                        padding: "0 16px",
+                        borderRadius: "12px",
+                        border: `1px solid ${C.border}`,
+                        background: "transparent",
+                        color: C.text,
+                        fontSize: "13px",
+                        fontWeight: 600,
+                        cursor: "pointer",
+                      }}
+                    >
+                      {t.app.mySubscription}
+                    </button>
+                  )}
+                  {onSignOut && (
+                    <button
+                      type="button"
+                      onClick={onSignOut}
+                      style={{
+                        minHeight: "40px",
+                        padding: "0 16px",
+                        borderRadius: "12px",
+                        border: `1px solid ${C.border}`,
+                        background: "transparent",
+                        color: C.textMuted,
+                        fontSize: "13px",
+                        fontWeight: 600,
+                        cursor: "pointer",
+                        display: "flex",
+                        alignItems: "center",
+                        gap: "6px",
+                      }}
+                    >
+                      <LogOut size={15} /> {t.common.signOut}
+                    </button>
+                  )}
+                </div>
+              </div>
+            </section>
+          );
+        })()}
 
 
         {/* Modal de celebración al cruzar un hito de puntos (8 de noviembre

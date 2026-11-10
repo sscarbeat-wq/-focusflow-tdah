@@ -533,6 +533,12 @@ export default function QuickAccessCompass({
   // Color de cada planeta, en orden de lugar en la órbita (ver
   // planetColorsFor en theme.js). Sin esto, el estilo de siempre.
   planetColors,
+  // Pasan tal cual a la mascota del centro (explicaciones del % y los XP).
+  focusMinutes,
+  focusGoal,
+  nextUnlock,
+  onStartFocus,
+  onSeeRewards,
 }) {
   const textColor = palette ? palette.text : C.text;
   const mutedColor = palette ? palette.textMuted : C.textMuted;
@@ -821,6 +827,11 @@ export default function QuickAccessCompass({
             heroEmojiSize={sizes.heroEmojiSize}
             xp={xp}
             dayMood={dayMood}
+            focusMinutes={focusMinutes}
+            focusGoal={focusGoal}
+            nextUnlock={nextUnlock}
+            onStartFocus={onStartFocus}
+            onSeeRewards={onSeeRewards}
           />
         </div>
 

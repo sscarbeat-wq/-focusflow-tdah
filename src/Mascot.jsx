@@ -170,6 +170,15 @@ export default function Mascot({
   // "good" (ya hizo algo hoy) | "quiet" (todavía nada y ya es de día) |
   // "night" (de noche) | "neutral". Lo calcula FocusFlowTDAH.jsx.
   dayMood = "neutral",
+  // Explicaciones del centro (10 de noviembre de 2026, "el paciente tiene
+  // que saber para qué es"): minutos de Modo Enfoque de hoy y la meta,
+  // el siguiente premio que se desbloquea con XP ({ remaining, name } o
+  // null si ya tiene todo), y a dónde llevan los botones de cada globito.
+  focusMinutes = 0,
+  focusGoal = 50,
+  nextUnlock = null,
+  onStartFocus,
+  onSeeRewards,
 }) {
   const isHero = variant === "hero";
   const current = streak?.current || 0;
@@ -292,6 +301,27 @@ export default function Mascot({
   // regaño; se va solo. "quiet": cada ~50s rota entre 3 frases suaves.
   // "good"/"night": una sola vez, un rato después de entrar.
   const [nudge, setNudge] = useState(null);
+  // Globito de explicación abierto: "focus" | "xp" | null.
+  const [infoOpen, setInfoOpen] = useState(null);
+  useEffect(() => {
+    if (!infoOpen) return undefined;
+    // Se cierra al tocar en cualquier otra parte (sin un fondo a pantalla
+    // completa: dentro de la brújula, `position: fixed` quedaría atrapado
+    // en el círculo por su transform).
+    const onDown = (e) => {
+      if (e.target.closest && (e.target.closest("[data-anro-info-card]") || e.target.closest("[data-anro-info]"))) return;
+      setInfoOpen(null);
+    };
+    const onKey = (e) => {
+      if (e.key === "Escape") setInfoOpen(null);
+    };
+    document.addEventListener("pointerdown", onDown);
+    document.addEventListener("keydown", onKey);
+    return () => {
+      document.removeEventListener("pointerdown", onDown);
+      document.removeEventListener("keydown", onKey);
+    };
+  }, [infoOpen]);
   useEffect(() => {
     if (!isHero) return undefined;
     const timers = [];
@@ -688,6 +718,13 @@ export default function Mascot({
             >
               {t.mascot.focusTodayLabel}
             </div>
+            {/* Los minutos reales detrás del % — "0%" solo no dice nada;
+                "10 de 50 min" sí. */}
+            {t.mascot.focusMinutes && (
+              <div style={{ fontSize: `${8.5 * heroScale}px`, fontWeight: 600, color: C.textMuted, marginTop: `${1 * heroScale}px` }}>
+                {t.mascot.focusMinutes(Math.round(focusMinutes || 0), focusGoal)}
+              </div>
+            )}
           </div>
         )}
       </div>
@@ -716,6 +753,64 @@ export default function Mascot({
             WebkitTapHighlightColor: "transparent",
           }}
         />
+      )}
+      {isHero && t.mascot.focusInfoTitle && (
+        // Tocar el % (o los minutos) abre la explicación de qué mide.
+        <button
+          type="button"
+          data-anro-info="focus"
+          onClick={() => setInfoOpen((v) => (v === "focus" ? null : "focus"))}
+          aria-label={t.mascot.focusInfoAria}
+          aria-expanded={infoOpen === "focus"}
+          style={{
+            position: "absolute",
+            top: `${ringSize * 0.64}px`,
+            left: `${ringSize * 0.27}px`,
+            width: `${ringSize * 0.46}px`,
+            height: `${ringSize * 0.3}px`,
+            borderRadius: "12px",
+            background: "transparent",
+            border: "none",
+            padding: 0,
+            cursor: "help",
+            WebkitTapHighlightColor: "transparent",
+          }}
+        />
+      )}
+      {isHero && typeof xp === "number" && t.mascot.xpBadge && (
+        // XP junto al % (10 de noviembre de 2026): una pastillita en el
+        // borde de abajo del círculo; al tocarla explica qué son y cuánto
+        // falta para el siguiente premio.
+        <button
+          type="button"
+          data-anro-info="xp"
+          onClick={() => setInfoOpen((v) => (v === "xp" ? null : "xp"))}
+          aria-label={t.mascot.xpBadgeAria(Math.round(xp))}
+          aria-expanded={infoOpen === "xp"}
+          style={{
+            position: "absolute",
+            top: `${ringSize - 4 * heroScale}px`,
+            left: "50%",
+            transform: "translateX(-50%)",
+            zIndex: 3,
+            display: "flex",
+            alignItems: "center",
+            gap: `${4 * heroScale}px`,
+            whiteSpace: "nowrap",
+            padding: `${3 * heroScale}px ${10 * heroScale}px`,
+            borderRadius: "999px",
+            border: "2px solid #fff",
+            background: ringColor,
+            color: "#fff",
+            fontSize: `${11 * heroScale}px`,
+            fontWeight: 800,
+            cursor: "pointer",
+            boxShadow: `0 4px 10px ${tint(ringColor, 0.45)}`,
+          }}
+        >
+          <span aria-hidden="true">★</span>
+          {t.mascot.xpBadge(Math.round(xp))}
+        </button>
       )}
       {/* Sombra de "piso" — sensación de que la mascota está apoyada en
           algo, no flotando en el vacío. */}
@@ -968,6 +1063,67 @@ export default function Mascot({
           >
             {nudge}
           </span>
+        )}
+        {infoOpen && (
+          <div
+            role="dialog"
+            aria-label={infoOpen === "focus" ? t.mascot.focusInfoTitle : t.app.xpInfoLabel}
+            data-anro-info-card="true"
+            style={{
+              position: "absolute",
+              top: `${ringSize + 26 * Math.min(heroScale, 1.25)}px`,
+              left: "50%",
+              transform: "translateX(-50%)",
+              zIndex: 30,
+              width: `${250 * Math.min(heroScale, 1.2)}px`,
+              maxWidth: "86vw",
+              background: C.surface,
+              color: C.text,
+              border: `1px solid ${C.border}`,
+              borderRadius: "16px",
+              padding: "14px 16px",
+              boxShadow: "0 10px 28px rgba(0,0,0,0.22)",
+              textAlign: "left",
+            }}
+          >
+            <strong style={{ display: "block", fontSize: "14px", marginBottom: "6px" }}>
+              {infoOpen === "focus" ? t.mascot.focusInfoTitle : t.app.xpInfoLabel}
+            </strong>
+            <p style={{ margin: "0 0 10px", fontSize: "13px", lineHeight: 1.5, color: C.textMuted }}>
+              {infoOpen === "focus"
+                ? t.mascot.focusInfoBody(Math.round(focusMinutes || 0), focusGoal)
+                : t.app.xpInfoBody}
+            </p>
+            {infoOpen === "xp" && (
+              <p style={{ margin: "0 0 10px", fontSize: "13px", fontWeight: 700, color: C.text }}>
+                {nextUnlock ? t.mascot.xpNext(nextUnlock.remaining, nextUnlock.name) : t.mascot.xpAllUnlocked}
+              </p>
+            )}
+            {((infoOpen === "focus" && onStartFocus) || (infoOpen === "xp" && onSeeRewards)) && (
+              <button
+                type="button"
+                onClick={() => {
+                  const wasFocus = infoOpen === "focus";
+                  setInfoOpen(null);
+                  if (wasFocus) onStartFocus();
+                  else onSeeRewards(nextUnlock?.kind);
+                }}
+                style={{
+                  width: "100%",
+                  minHeight: "40px",
+                  border: "none",
+                  borderRadius: "12px",
+                  background: ringColor,
+                  color: "#fff",
+                  fontWeight: 700,
+                  fontSize: "13px",
+                  cursor: "pointer",
+                }}
+              >
+                {infoOpen === "focus" ? t.mascot.focusInfoButton : t.mascot.xpInfoButton}
+              </button>
+            )}
+          </div>
         )}
       </div>
     );
