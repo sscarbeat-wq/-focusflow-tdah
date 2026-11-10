@@ -26,7 +26,16 @@ import { computeAnchoredPanelPosition } from "./draggableBubblePure";
 // Misma burbuja arrastrable/persistida por dispositivo que Memoria ANRO y
 // "Ir a..." (useDraggableBubble → localStorage, nunca Supabase, nunca
 // progreso clínico).
-const BUBBLE_SIZE = { w: 52, h: 52 };
+// 10 de noviembre de 2026 ("las burbujas de acceso rápido también más
+// grandes"): 52→64px, igual que las otras 2 burbujas (MemoriaAnroLauncher,
+// QuickNavMenu) — se mantiene el mismo tamaño entre las 3 a propósito.
+const BUBBLE_SIZE = { w: 64, h: 64 };
+// Separación vertical entre esta burbuja y la de "Ir a..." (abajo de
+// ella): alto de la burbuja + 16px de aire — antes era un "68" fijo que
+// solo valía para el tamaño viejo (52+16); con el tamaño nuevo, calculado
+// en vez de otro número suelto, para que no se desalineen si el tamaño
+// vuelve a cambiar.
+const STACK_OFFSET = BUBBLE_SIZE.h + 16;
 const INHALE_MS = 4000;
 const HOLD_MS = 4000;
 const EXHALE_MS = 4000;
@@ -43,7 +52,7 @@ export default function BreathingBubbleLauncher({ C, t, accent, grantXp, bottomO
     // Apilada arriba de la burbuja de "Ir a..." para no nacer encima de
     // ella — una vez movida, la posición queda guardada y ya no importa.
     x: vw - BUBBLE_SIZE.w - 16,
-    y: vh - BUBBLE_SIZE.h - (20 + bottomOffset + 68),
+    y: vh - BUBBLE_SIZE.h - (20 + bottomOffset + STACK_OFFSET),
   });
   const { pos, dragHandlers, wasDragged } = useDraggableBubble(
     "anro-bubble-pos-breathing",
@@ -308,7 +317,7 @@ export default function BreathingBubbleLauncher({ C, t, accent, grantXp, bottomO
           zIndex: 60,
         }}
       >
-        {open ? <X size={22} /> : <Wind size={22} />}
+        {open ? <X size={26} /> : <Wind size={26} />}
       </button>
     </>
   );

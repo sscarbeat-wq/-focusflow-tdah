@@ -352,7 +352,13 @@ export default function FocusFlowTDAH({
   // preferencia de dispositivo, mismo patrón que especie/accesorio/fijado.
   const [compassEditOpen, setCompassEditOpen] = useState(false);
   const [compassKeys, setCompassKeys] = useState(() => getStoredCompassSelection());
-  const [isNarrow, setIsNarrow] = useState(false);
+  // Se calcula YA en el primer render (antes empezaba en `false` y se
+  // corregía en un useEffect): las 3 burbujas flotantes calculan su
+  // posición inicial al montarse, y como los efectos de los hijos corren
+  // ANTES que los del padre, en el teléfono la veían todavía en `false` —
+  // con bottomOffset 0 — y nacían encimadas sobre la barra de pestañas de
+  // abajo (tapando "Inicio" y "Perfil"). Verificado con Playwright a 390px.
+  const [isNarrow, setIsNarrow] = useState(() => typeof window !== "undefined" && window.innerWidth < 760);
   useEffect(() => {
     const check = () => setIsNarrow(window.innerWidth < 760);
     check();
@@ -546,7 +552,14 @@ export default function FocusFlowTDAH({
   // Igual que tabStyle, pero para las 20 herramientas dentro de la pestaña
   // Herramientas: solo se ve la que está "abierta" (activeTool === key), y
   // solo cuando además esa pestaña es la activa.
-  const toolStyle = (key) => ({ display: activeTab === "herramientas" && activeTool === key ? undefined : "none" });
+  // `gridColumn: "1 / -1"`: dentro de la cuadrícula de 2 columnas de más
+  // abajo, la herramienta abierta usa todo el ancho (solo se ve una a la
+  // vez, así que no tiene con quién compartir la fila). Fuera de una
+  // cuadrícula esta propiedad no hace nada.
+  const toolStyle = (key) => ({
+    display: activeTab === "herramientas" && activeTool === key ? undefined : "none",
+    gridColumn: "1 / -1",
+  });
 
   // Lista completa y en orden de las secciones de la página, para el menú
   // flotante "Ir a..." (Módulo 1). Reutiliza los mismos íconos que ya
@@ -1658,7 +1671,12 @@ export default function FocusFlowTDAH({
               {userEmail ? t.app.sessionOf(userEmail) : t.app.noEmailSubtitle}
             </p>
           </div>
-          <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
+          {/* flexWrap (10 de noviembre de 2026): en el teléfono esta fila
+              (idiomas + puntos + 5 botones) medía ~550px y empujaba toda
+              la página hacia los lados (scroll horizontal de ~180px a
+              390px de ancho, verificado con Playwright). Ahora baja a un
+              segundo renglón cuando no cabe. */}
+          <div style={{ display: "flex", alignItems: "center", gap: "10px", flexWrap: "wrap", maxWidth: "100%" }}>
             {onChangeLanguage && <LanguageSwitcher C={C} lang={lang} onChange={onChangeLanguage} t={t} height="40px" />}
             <div
               id="anro-tour-xp"
@@ -2224,6 +2242,22 @@ export default function FocusFlowTDAH({
           </p>
         )}
 
+        {/* Fase 2 (navegación, 28 de octubre de 2026): barra de 5 pestañas
+            que reemplaza el scroll largo como forma principal de moverse
+            por la app — fija abajo en móvil, fila arriba en tablet/
+            escritorio (ver AppTabBar.jsx, que decide cuál según isNarrow).
+            Cuando es fija abajo, su posición en el JSX no importa para el
+            layout (position:fixed).
+            10 de noviembre de 2026 ("no me gusta que las herramientas se
+            vean abajo"): antes iba DEBAJO de la brújula de Inicio, y la
+            brújula se veía en las 5 pestañas. Desde que la brújula ocupa
+            casi toda la pantalla, en escritorio eso dejaba la barra de
+            pestañas y el contenido de Agenda/Herramientas/Progreso/Perfil
+            una pantalla entera más abajo — había que bajar cada vez para
+            llegar. Ahora la barra va arriba de todo y la brújula solo se
+            ve en Inicio (ver `display` en su contenedor). */}
+        <AppTabBar C={C} t={t} accent={personalAccent} activeTab={activeTab} onChange={setActiveTab} isNarrow={isNarrow} />
+
         {/* id usado por el recorrido de bienvenida (OnboardingTour.jsx) para
             señalar la mascota con un spotlight — sigue apuntando aquí, solo
             que ahora envuelve a toda la brújula en vez de a una tarjeta
@@ -2315,18 +2349,45 @@ export default function FocusFlowTDAH({
           const compassItems = effectiveKeys.map((key, i) => {
             const variant = i >= 4 ? "accent-solid" : "accent-outline";
             if (key === "todayNextStep") {
-              return { key: nextStepTarget, icon: <ListChecks size={18} />, label: t.today.compassNextStep, variant };
+              // key propia ("todayNextStep") en vez de `nextStepTarget`
+              // (10 de noviembre de 2026): el próximo paso puede ser
+              // justamente "mood" o "insights", y entonces 2 accesos de la
+              // brújula tenían la MISMA key — React mezclaba los 2 y uno se
+              // quedaba atorado en el centro, encima de la mascota. El
+              // destino real se resuelve al tocarlo (handleCompassSelect).
+              return { key: "todayNextStep", icon: <ListChecks size={18} />, label: t.today.compassNextStep, variant };
             }
             if (key === "insights") {
               return {
                 key: "insights",
                 icon: <Flame size={18} />,
-                label: `${streak.current} ${t.mascot.dayWord(streak.current)} · ${xp} ${t.today.pointsAbbrev}`,
+                // Redondeado (10 de noviembre de 2026): los puntos se suman de a
+                // 0.85, así que `xp` puede traer decimales ("41.65 pts") — en
+                // un acceso tan chico de la brújula se lee mejor el entero; el
+                // valor exacto con 2 decimales se sigue viendo en el panel de
+                // puntos de siempre.
+                label: `${streak.current} ${t.mascot.dayWord(streak.current)} · ${Math.round(xp)} ${t.today.pointsAbbrev}`,
                 variant,
               };
             }
             if (key === "agendaRoot") {
               return { key: "agendaRoot", icon: <CalendarClock size={18} />, label: agendaLabel, variant };
+            }
+            // "companion"/"mood": corregido el mismo día — al agregar el
+            // catálogo editable se me había olvidado que estos 2 YA tenían
+            // una presentación más corta y específica para la brújula
+            // (ver tercera corrección de fidelidad más arriba: ícono de
+            // burbuja de chat para Compañero, etiqueta corta "Ánimo") que
+            // NO es la misma que su título genérico en `quickNavSections`
+            // ("Compañero de apoyo" con ícono de manos, "Registro de
+            // ánimo") — sin este caso especial, elegirlos desde "Editar"
+            // los mostraba con el ícono/etiqueta larga del panel en vez de
+            // la versión corta pensada para la brújula.
+            if (key === "companion") {
+              return { key: "companion", icon: <MessageCircle size={18} />, label: t.today.compassCompanionLabel, variant };
+            }
+            if (key === "mood") {
+              return { key: "mood", icon: <Smile size={18} />, label: t.today.compassMoodLabel, variant };
             }
             const poolItem = COMPASS_POOL.find((p) => p.key === key);
             if (!poolItem) return null; // clave guardada que ya no existe (ej. sección renombrada) — se omite en vez de romper
@@ -2334,6 +2395,10 @@ export default function FocusFlowTDAH({
           }).filter(Boolean);
 
           const handleCompassSelect = (key) => {
+            if (key === "todayNextStep") {
+              scrollToCompanionSection(nextStepTarget);
+              return;
+            }
             if (key === "herramientasRoot") {
               setActiveTool(null);
               if (activeTab !== "herramientas") setActiveTab("herramientas");
@@ -2350,9 +2415,35 @@ export default function FocusFlowTDAH({
             <div
               style={{
                 background: timeOfDayBackground(period),
-                borderRadius: "20px",
+                // 9 de noviembre de 2026, QUINTA corrección de fidelidad —
+                // la cuarta corrección solo sangraba hasta el borde de la
+                // columna de 1000px en escritorio (seguía habiendo un
+                // margen gris a los lados en pantallas anchas, y se quedaba
+                // corta de alto); la doctora pidió explícitamente que en
+                // escritorio también se vea "en grande". Ahora sangra hasta
+                // el borde REAL de la ventana en cualquier ancho —no solo
+                // el de la columna de 1000px— con el truco estándar de
+                // "romper" un contenedor centrado (`100vw` + margen
+                // izquierdo `calc(50% - 50vw)`): no depende de cuánto
+                // padding tenga el contenedor por fuera, a diferencia de
+                // los márgenes negativos de -18px que eran la versión
+                // anterior. Alto: ya no se exceptúa escritorio, el mismo
+                // calc(100vh - 64px) aplica siempre (los 64px son el alto
+                // fijo de AppTabBar en móvil nomás — en escritorio esos
+                // 64px de más no importan, sigue viéndose a pantalla
+                // completa igual).
+                marginLeft: "calc(50% - 50vw)",
+                marginRight: "calc(50% - 50vw)",
+                width: "100vw",
+                borderRadius: "0px",
                 marginBottom: "28px",
                 overflow: "hidden",
+                minHeight: "calc(100vh - 64px)",
+                // Solo en Inicio (ver la nota junto a <AppTabBar> arriba).
+                // display:none en vez de no montarla: igual que el resto de
+                // las pestañas, así nada se reinicia al ir y volver.
+                display: activeTab === "inicio" ? "flex" : "none",
+                flexDirection: "column",
               }}
             >
               <HomeHeader
@@ -2380,7 +2471,13 @@ export default function FocusFlowTDAH({
                   }}
                 />
               )}
-              <div id="anro-tour-mascot" style={{ marginTop: "8px", paddingBottom: "20px" }}>
+              {/* `flex: 1` + `justifyContent: "center"` (igual, cuarta
+                  corrección): con el fondo ahora ocupando toda la
+                  pantalla, la brújula se centra sola en el espacio que
+                  sobra debajo del saludo — igual que en el mockup, en vez
+                  de quedar pegada arriba con un hueco vacío abajo. */}
+              <div style={{ flex: 1, display: "flex", flexDirection: "column", justifyContent: "center" }}>
+                <div id="anro-tour-mascot" style={{ marginTop: "8px", paddingBottom: "20px" }}>
                 <QuickAccessCompass
                   C={C}
                   t={t}
@@ -2412,6 +2509,7 @@ export default function FocusFlowTDAH({
                   focusPercent={focusPercent}
                   palette={palette}
                 />
+                </div>
               </div>
             </div>
           );
@@ -2522,15 +2620,6 @@ export default function FocusFlowTDAH({
             onSnooze={handleMedicationAlarmSnooze}
           />
         )}
-
-        {/* Fase 2 (navegación, 28 de octubre de 2026): barra de 5 pestañas
-            que reemplaza el scroll largo como forma principal de moverse
-            por la app — fija abajo en móvil, fila arriba en tablet/
-            escritorio (ver AppTabBar.jsx, que decide cuál según isNarrow).
-            Cuando es fija abajo, su posición en el JSX no importa para el
-            layout (position:fixed), pero aquí mismo es donde aparece
-            inline cuando NO es fija — justo debajo de la mascota. */}
-        <AppTabBar C={C} t={t} accent={personalAccent} activeTab={activeTab} onChange={setActiveTab} isNarrow={isNarrow} />
 
         {/* role="tabpanel" sobre TODA la región de paneles (no solo los de
             la pestaña activa): como cada sección que no es de la pestaña
@@ -2775,8 +2864,26 @@ export default function FocusFlowTDAH({
           </Panel>
         </div>
 
-        <div style={{ display: "grid", gridTemplateColumns: isNarrow ? "1fr" : "1fr 1fr", gap: "0 20px" }}>
-          <div>
+        {/* 10 de noviembre de 2026 — "no me gusta que las herramientas se
+            vean abajo": antes este bloque tenía DOS columnas fijas, cada
+            una con su propia lista de secciones. Las 3 de Progreso y las 2
+            de Perfil estaban todas en la columna izquierda, y la derecha
+            solo tenía herramientas (que en Progreso/Perfil están ocultas),
+            así que en esas pestañas todo quedaba apilado en media pantalla
+            con la otra mitad vacía. Ahora cada sección es hija directa de
+            la cuadrícula: las ocultas (display:none) no ocupan lugar, y
+            las que sí se ven en la pestaña activa se acomodan solas lado a
+            lado, de 2 en 2. Una herramienta abierta usa el ancho completo
+            (ver toolStyle), igual que Captura rápida, Rutinas y Compañero,
+            que ya estaban afuera de esta cuadrícula a todo lo ancho. */}
+        <div
+          style={{
+            display: "grid",
+            gridTemplateColumns: isNarrow ? "minmax(0, 1fr)" : "minmax(0, 1fr) minmax(0, 1fr)",
+            gap: "0 20px",
+            alignItems: "start",
+          }}
+        >
             <div ref={mindMapSectionRef} style={toolStyle("mindMap")}>
             <Panel C={C}
               accent={C.lavender}
@@ -3421,9 +3528,6 @@ export default function FocusFlowTDAH({
               />
             </Panel>
             </div>
-          </div>
-
-          <div>
             <div ref={energySectionRef} style={toolStyle("energy")}>
             <Panel C={C}
               accent={C.mint}
@@ -3710,7 +3814,6 @@ export default function FocusFlowTDAH({
               </PlusLockedPanel>
             </Panel>
             </div>
-          </div>
         </div>
 
         <div ref={habitsSectionRef} style={toolStyle("habits")}>

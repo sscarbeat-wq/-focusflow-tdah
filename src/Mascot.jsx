@@ -120,11 +120,31 @@ const EGG_EMOJI = "🥚";
 // todayFocusPercent() en focusSessionLog.js) — es el número que pidió la
 // doctora ("un % real de enfoque de hoy"), no una reutilización del
 // progreso de racha, que mide otra cosa.
+// Valores "hero" de siempre, pensados para el teléfono más angosto que
+// soporta la app (verificado con Playwright a 320px, junto con
+// QuickAccessCompass.jsx: CENTER_SIZE/BUTTON_SIZE/ORBIT_ANCHORS ahí
+// dependen de que el anillo real mida ESTO por default). Quedan como
+// piso/default — ver la nota de la sexta corrección más abajo para cómo
+// se agranda en pantallas anchas sin tocar este piso.
 const HERO_RING_SIZE = 150;
 const HERO_RING_RADIUS = 62;
 const HERO_RING_STROKE = 10;
 const HERO_EMOJI_SIZE = 40;
 
+// 9 de noviembre de 2026, sexta corrección de fidelidad: con el fondo de
+// color ahora ocupando casi toda la pantalla (ver la nota de "cubre toda
+// la app" en FocusFlowTDAH.jsx), en pantallas anchas la mascota y la
+// brújula se veían chicas y perdidas en medio de tanto espacio — la
+// doctora pidió agrandar el animal y los círculos de acceso. PERO: en el
+// teléfono más angosto que soporta la app (320px) no hay lugar físico
+// para agrandar el anillo Y los 6 accesos a la vez sin que empiecen a
+// pisarse (verificado con Playwright: agrandar ambos ahí rompía el
+// "mantener presionado para fijar"). Por eso el agrandado es SOLO para
+// escritorio/pantallas anchas: QuickAccessCompass.jsx manda
+// `heroRingSize`/etc. más grandes únicamente cuando hay sitio (>=760px,
+// mismo punto de corte que ya usa el resto de la app); en el teléfono
+// estos props vienen undefined y se usan los defaults de arriba, igual
+// que siempre.
 export default function Mascot({
   streak,
   C,
@@ -135,6 +155,10 @@ export default function Mascot({
   accessory = "none",
   variant = "card",
   focusPercent = 0,
+  heroRingSize = HERO_RING_SIZE,
+  heroRingRadius = HERO_RING_RADIUS,
+  heroRingStroke = HERO_RING_STROKE,
+  heroEmojiSize = HERO_EMOJI_SIZE,
 }) {
   const isHero = variant === "hero";
   const current = streak?.current || 0;
@@ -153,11 +177,18 @@ export default function Mascot({
   const fraction = progressFraction(current, longest);
   const isAquatic = resolvedSpecies === "pez";
 
-  const ringSize = isHero ? HERO_RING_SIZE : RING_SIZE;
-  const ringRadius = isHero ? HERO_RING_RADIUS : RING_RADIUS;
-  const ringStroke = isHero ? HERO_RING_STROKE : RING_STROKE;
+  const ringSize = isHero ? heroRingSize : RING_SIZE;
+  const ringRadius = isHero ? heroRingRadius : RING_RADIUS;
+  const ringStroke = isHero ? heroRingStroke : RING_STROKE;
   const ringCircumference = 2 * Math.PI * ringRadius;
-  const emojiFontSize = isHero ? HERO_EMOJI_SIZE : 56;
+  const emojiFontSize = isHero ? heroEmojiSize : 56;
+  // Qué tanto más grande que el piso de siempre (150px) vino el anillo
+  // "hero" — en escritorio QuickAccessCompass.jsx manda un heroRingSize
+  // más grande (ver nota arriba), y el botón de silenciar + el texto del
+  // % necesitan crecer EN PROPORCIÓN para seguir viéndose bien pegados al
+  // anillo, en vez de quedar chicos y perdidos (o, al revés, más grandes
+  // de lo necesario) frente a un anillo que cambia de tamaño.
+  const heroScale = isHero ? heroRingSize / HERO_RING_SIZE : 1;
   // Hero: el anillo muestra el % real de enfoque de hoy, no el avance de
   // racha — son dos cosas distintas (ver comentario arriba de HERO_RING_SIZE).
   const ringFraction = isHero ? Math.max(0, Math.min(1, (focusPercent || 0) / 100)) : fraction;
@@ -348,18 +379,32 @@ export default function Mascot({
             // (antes -6px/26px) para que, con los 6 accesos de la
             // brújula (QuickAccessCompass.jsx), el de arriba-derecha no
             // quede pisando este botón — ver la nota junto a
-            // ORBIT_ANCHORS ahí.
+            // ORBIT_ANCHORS ahí. Sexta corrección: escalado con
+            // `heroScale` (1 en el teléfono, más en escritorio) para
+            // seguir viéndose proporcionado sea cual sea el tamaño real
+            // del anillo.
+            // Décima corrección (10 de noviembre de 2026): ahora los 6
+            // accesos pasan por TODOS los ángulos al girar en órbita, así
+            // que este botón ya no puede asomarse fuera del círculo blanco
+            // de la mascota (en la esquina de la caja del anillo quedaba
+            // afuera, justo en el camino de los accesos). Va 18px hacia
+            // adentro — montado sobre el anillo, dentro del círculo a
+            // cualquier tamaño (√2·(75−18−11)+11 ≈ 76 < 80) — y ABAJO a la
+            // derecha en vez de arriba: las etiquetas de los accesos
+            // cuelgan hacia abajo, así que la de un acceso que pasa por
+            // arriba llegaba a taparlo (verificado con Playwright: ~1/5 del
+            // tiempo); abajo, ninguna etiqueta llega nunca.
             position: "absolute",
-            top: "-2px",
-            right: "-2px",
+            top: `${ringSize - (18 + 22) * heroScale}px`,
+            right: `${18 * heroScale}px`,
             zIndex: 1,
             background: C.surface,
             border: `1px solid ${C.border}`,
             borderRadius: "50%",
             color: C.textMuted,
             cursor: "pointer",
-            width: "22px",
-            height: "22px",
+            width: `${22 * heroScale}px`,
+            height: `${22 * heroScale}px`,
             display: "flex",
             alignItems: "center",
             justifyContent: "center",
@@ -367,7 +412,7 @@ export default function Mascot({
             boxShadow: "0 2px 6px rgba(0,0,0,0.12)",
           }}
         >
-          {soundOn ? <Volume2 size={13} /> : <VolumeX size={13} />}
+          {soundOn ? <Volume2 size={13 * heroScale} /> : <VolumeX size={13 * heroScale} />}
         </button>
       )}
       <div
@@ -445,13 +490,21 @@ export default function Mascot({
           </>
         )}
         {isHero && (
-          <div style={{ marginTop: "1px", lineHeight: 1.15, textAlign: "center" }}>
-            <div style={{ fontSize: "17px", fontWeight: 800, color: C.text }}>
+          // Escalado con `heroScale` (sexta corrección) junto con el
+          // anillo — 1 en el teléfono (sin cambios), más grande en
+          // escritorio, para no quedar chico al lado del anillo ahí.
+          // Octava corrección (10 de noviembre de 2026, "las letras más
+          // grandes"): la base subió de 17/7.5 a 20/9 — un empujón extra
+          // de letra encima del escalado de siempre, que entra sin
+          // problema dentro del mismo anillo (no cambia ningún tamaño de
+          // afuera, solo el texto de adentro).
+          <div style={{ marginTop: `${2 * heroScale}px`, lineHeight: 1.15, textAlign: "center" }}>
+            <div style={{ fontSize: `${20 * heroScale}px`, fontWeight: 800, color: C.text }}>
               {Math.round(focusPercent || 0)}%
             </div>
             <div
               style={{
-                fontSize: "7.5px",
+                fontSize: `${9 * heroScale}px`,
                 fontWeight: 700,
                 color: C.textMuted,
                 textTransform: "uppercase",
