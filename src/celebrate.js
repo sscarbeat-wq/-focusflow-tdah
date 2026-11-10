@@ -40,10 +40,10 @@ function playSound() {
 // Vibración breve — solo hace algo en dispositivos/navegadores que
 // soportan la Vibration API (típicamente Android; iOS Safari y escritorio
 // la ignoran sin error, no truena en ningún caso).
-function vibrate() {
+function vibrate(ms = 15) {
   try {
     if (typeof navigator !== "undefined" && typeof navigator.vibrate === "function") {
-      navigator.vibrate(15);
+      navigator.vibrate(ms);
     }
   } catch (e) {
     /* algunos navegadores truenan si se llama sin interacción reciente del usuario — se ignora */
@@ -62,4 +62,53 @@ export function celebrate(enabled = true) {
     /* navegador sin soporte de Web Audio */
   }
   vibrate();
+}
+
+// Respuesta al TOCAR (10 de noviembre de 2026, "más interactiva"): un
+// "tic" mucho más suave y corto que el pop de ganar puntos, más una
+// vibración casi imperceptible en el celular — para que tocar un acceso,
+// a la mascota o reventar una burbuja se SIENTA, no solo se vea. Usa la
+// MISMA preferencia que el pop de puntos (el botón de bocina de la app,
+// "senda-celebrate"): si la paciente lo silenció, esto también calla y no
+// vibra. Se lee en cada toque (no se pasa por props) para no tener que
+// cablear la preferencia hasta cada botón.
+export function feedbackEnabled() {
+  try {
+    return window.localStorage.getItem("senda-celebrate") !== "off";
+  } catch (e) {
+    return true;
+  }
+}
+
+const TAP_TONES = {
+  tap: { from: 640, to: 720, dur: 0.06, gain: 0.04, buzz: 8 },
+  pick: { from: 480, to: 560, dur: 0.08, gain: 0.05, buzz: 12 },
+  drop: { from: 660, to: 990, dur: 0.1, gain: 0.05, buzz: 14 },
+  pop: { from: 900, to: 1400, dur: 0.07, gain: 0.05, buzz: 10 },
+};
+
+export function tapFeedback(kind = "tap") {
+  if (!feedbackEnabled()) return;
+  const k = TAP_TONES[kind] || TAP_TONES.tap;
+  try {
+    const ctx = getCtx();
+    if (ctx) {
+      if (ctx.state === "suspended") ctx.resume();
+      const now = ctx.currentTime;
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+      osc.type = "sine";
+      osc.frequency.setValueAtTime(k.from, now);
+      osc.frequency.exponentialRampToValueAtTime(k.to, now + k.dur * 0.8);
+      gain.gain.setValueAtTime(0.0001, now);
+      gain.gain.exponentialRampToValueAtTime(k.gain, now + 0.01);
+      gain.gain.exponentialRampToValueAtTime(0.0001, now + k.dur);
+      osc.connect(gain).connect(ctx.destination);
+      osc.start(now);
+      osc.stop(now + k.dur + 0.02);
+    }
+  } catch (e) {
+    /* sin Web Audio — solo vibra */
+  }
+  vibrate(k.buzz);
 }

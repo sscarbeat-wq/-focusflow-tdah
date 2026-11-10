@@ -1,7 +1,8 @@
 import React, { useEffect, useLayoutEffect, useRef, useState } from "react";
 import { Pin } from "lucide-react";
-import { tint } from "./theme";
+import { tint, luminance } from "./theme";
 import Mascot from "./Mascot";
+import { tapFeedback } from "./celebrate";
 import { stageFor, getStoredResetVariant, getStoredPinnedAccess, storePinnedAccess } from "./mascotLogic";
 
 // 8 de noviembre de 2026 — reemplaza a la antigua `QuickAccessGrid.jsx`
@@ -185,6 +186,21 @@ const RESUME_AFTER_TOUCH_MS = 5000;
 // proyecta cada botón (`boxShadow`) también se agranda un poco para que
 // se sientan "flotando" arriba de la pantalla, no pegados a ella — igual
 // que un planeta orbitando, con su propia sombra.
+// Planeta relleno de un color propio (ver planetColorsFor en theme.js):
+// esfera con luz arriba-izquierda y sombra abajo-derecha, y el ícono en
+// blanco u oscuro según qué tan claro sea el planeta.
+function planetCircleStyle(color, accent, pinned) {
+  const light = luminance(color) > 0.55;
+  return {
+    background: `radial-gradient(circle at 32% 26%, rgba(255,255,255,0.7) 0%, rgba(255,255,255,0) 40%), radial-gradient(circle at 72% 78%, rgba(0,0,0,0.26) 0%, rgba(0,0,0,0) 60%), ${color}`,
+    border: pinned ? "2px solid #fff" : "none",
+    color: light ? "#1E2433" : "#FFFFFF",
+    boxShadow: pinned
+      ? `0 0 0 4px ${tint(color, 0.4)}, 0 6px 14px rgba(0,0,0,0.22)`
+      : `0 6px 14px ${tint(color, 0.45)}, 0 2px 4px rgba(0,0,0,0.12)`,
+  };
+}
+
 function iconCircleStyle(variant, accent, accent2, pinned) {
   const ringColor = variant === "accent2-solid" || variant === "accent2-outline" ? accent2 : accent;
   const sphereHighlight = "radial-gradient(circle at 32% 26%, rgba(255,255,255,0.65) 0%, rgba(255,255,255,0) 42%)";
@@ -236,8 +252,22 @@ function CompassAccessButton({
   labelFontSize: labelFontSizeProp,
   circleFilter,
   labelHalo,
+  // Arrastrar para reacomodar (10 de noviembre de 2026, "más interactiva"):
+  // solo si el padre manda estos 3 (si no, el acceso funciona como siempre).
+  onDragStart,
+  onDragMove,
+  onDragEnd,
+  dragging = false,
+  isDropTarget = false,
+  planetColor,
 }) {
   const timerRef = useRef(null);
+  // Arrastre: se activa al mover el dedo/mouse más de 10px con el botón
+  // presionado — así un toque normal sigue siendo un toque, y "mantener
+  // presionado sin moverse" sigue fijando el acceso arriba, como siempre.
+  const dragRef = useRef(null);
+  const [dragDelta, setDragDelta] = useState(null);
+  const canDrag = typeof onDragEnd === "function";
   // El resto de medidas del botón (insignia de "fijado", tamaño de letra
   // de la etiqueta) se derivan de `buttonSize` en vez de ser números fijos
   // aparte — así, al recibir el tamaño más grande de escritorio
@@ -252,8 +282,9 @@ function CompassAccessButton({
   const labelFontSize = labelFontSizeProp ?? buttonSize * 0.263;
   const firedRef = useRef(false);
 
-  const startPress = () => {
+  const startPress = (e) => {
     firedRef.current = false;
+    if (canDrag && e) dragRef.current = { x: e.clientX, y: e.clientY, active: false };
     timerRef.current = setTimeout(() => {
       firedRef.current = true;
       if (pinned) onUnpin();
@@ -266,6 +297,37 @@ function CompassAccessButton({
       timerRef.current = null;
     }
   };
+  const handleMove = (e) => {
+    const d = dragRef.current;
+    if (!d) return;
+    const dx = e.clientX - d.x;
+    const dy = e.clientY - d.y;
+    if (!d.active) {
+      if (Math.hypot(dx, dy) < 10) return;
+      d.active = true;
+      cancelPress();
+      try {
+        e.currentTarget.setPointerCapture(e.pointerId);
+      } catch (err) {
+        /* algunos navegadores no dejan capturar — el arrastre sigue igual */
+      }
+      onDragStart?.(item.key);
+      tapFeedback("pick");
+    }
+    setDragDelta({ dx, dy });
+    onDragMove?.(item.key, e.clientX, e.clientY);
+  };
+  const endDrag = (e, cancelled) => {
+    cancelPress();
+    const d = dragRef.current;
+    dragRef.current = null;
+    if (d && d.active) {
+      // El click que sigue al soltar no debe además navegar.
+      firedRef.current = true;
+      setDragDelta(null);
+      onDragEnd?.(item.key, cancelled ? null : e.clientX, cancelled ? null : e.clientY);
+    }
+  };
   const handleClick = () => {
     // Si el timeout de "mantener presionado" ya disparó el fijado/
     // desfijado, este click que sigue (mouseup dispara click igual,
@@ -275,18 +337,33 @@ function CompassAccessButton({
       firedRef.current = false;
       return;
     }
+    tapFeedback("tap");
     onSelect(item.key);
   };
 
   return (
-    <div style={anchorStyle}>
+    <div
+      style={{
+        ...anchorStyle,
+        transform: dragDelta
+          ? `translate(${dragDelta.dx}px, ${dragDelta.dy}px) scale(1.12)`
+          : isDropTarget
+          ? "scale(1.14)"
+          : undefined,
+        transition: dragDelta ? "none" : "transform 0.2s ease",
+        filter: isDropTarget ? `drop-shadow(0 0 10px ${tint(accent, 0.9)})` : dragging ? "drop-shadow(0 10px 14px rgba(0,0,0,0.25))" : undefined,
+      }}
+    >
       <button
         type="button"
         onClick={handleClick}
         onPointerDown={startPress}
-        onPointerUp={cancelPress}
-        onPointerLeave={cancelPress}
-        onPointerCancel={cancelPress}
+        onPointerMove={canDrag ? handleMove : undefined}
+        onPointerUp={(e) => endDrag(e, false)}
+        onPointerLeave={() => {
+          if (!dragRef.current?.active) cancelPress();
+        }}
+        onPointerCancel={(e) => endDrag(e, true)}
         onContextMenu={(e) => e.preventDefault()}
         aria-label={pinned ? `${item.label} — ${t.today.unpinAccessAria(item.label)}` : item.label}
         title={pinned ? t.today.unpinAccessAria(item.label) : t.today.pinAccessAria(item.label)}
@@ -299,12 +376,17 @@ function CompassAccessButton({
           background: "transparent",
           border: "none",
           padding: 0,
-          cursor: "pointer",
-          touchAction: "manipulation",
+          cursor: dragging ? "grabbing" : "pointer",
+          // "none" (y no "manipulation") cuando se puede arrastrar: si no,
+          // en el celular el navegador se queda con el movimiento del dedo
+          // y el acceso nunca se mueve. En Inicio no hay nada que
+          // desplazar, así que no se pierde nada.
+          touchAction: canDrag ? "none" : "manipulation",
         }}
       >
         <span
           aria-hidden="true"
+          data-orbit-icon="true"
           style={{
             position: "relative",
             width: `${buttonSize}px`,
@@ -314,7 +396,7 @@ function CompassAccessButton({
             display: "flex",
             alignItems: "center",
             justifyContent: "center",
-            ...iconCircleStyle(item.variant, accent, accent2, pinned),
+            ...(planetColor ? planetCircleStyle(planetColor, accent, pinned) : iconCircleStyle(item.variant, accent, accent2, pinned)),
             // Novena corrección: de noche los círculos (sobre todo los
             // blancos) se atenúan y entibian un poco — ver circleFilter en
             // timeOfDayPalette.js. undefined de mañana/tarde = sin cambio.
@@ -443,6 +525,14 @@ export default function QuickAccessCompass({
   // la hora: solo el fondo y el texto son automáticos, el acento sigue
   // siendo 100% su elección en toda la app, acá también.
   palette = null,
+  // Cómo va el día, para la mascota (ver Mascot.jsx). Opcional.
+  dayMood = "neutral",
+  // Arrastrar un acceso encima de otro los intercambia de lugar; el padre
+  // recibe el nuevo orden de keys y lo guarda (10 de noviembre de 2026).
+  onReorder,
+  // Color de cada planeta, en orden de lugar en la órbita (ver
+  // planetColorsFor en theme.js). Sin esto, el estilo de siempre.
+  planetColors,
 }) {
   const textColor = palette ? palette.text : C.text;
   const mutedColor = palette ? palette.textMuted : C.textMuted;
@@ -502,7 +592,9 @@ export default function QuickAccessCompass({
 
   // --- Órbita (ver la nota de la décima corrección junto a orbitPoint) ---
   const reducedMotion = usePrefersReducedMotion();
-  const spinning = !spinPaused && !pinnedItem && !reducedMotion;
+  const [draggingKey, setDraggingKey] = useState(null);
+  const [dropKey, setDropKey] = useState(null);
+  const spinning = !spinPaused && !pinnedItem && !reducedMotion && !draggingKey;
   const phaseRef = useRef(0); // radianes; se conserva entre renders y pausas
   const itemElsRef = useRef(new Map()); // key -> <div> envoltorio de cada acceso
   const geometryRef = useRef({ keys: [], radius: 0, iconOffset: 0 });
@@ -553,6 +645,53 @@ export default function QuickAccessCompass({
     return () => cancelAnimationFrame(raf);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [spinning]);
+
+  // Arrastrar para reacomodar: el acceso que quede más cerca del dedo (a
+  // menos de ~1 círculo de distancia) es el lugar de destino; al soltar se
+  // intercambian. Si se suelta en otro lado, regresa a su lugar.
+  const findDropKey = (key, x, y) => {
+    if (x == null) return null;
+    let best = null;
+    let bestDist = Infinity;
+    itemElsRef.current.forEach((el, k) => {
+      if (k === key) return;
+      const icon = el.querySelector("[data-orbit-icon]");
+      if (!icon) return;
+      const r = icon.getBoundingClientRect();
+      const dist = Math.hypot(r.left + r.width / 2 - x, r.top + r.height / 2 - y);
+      if (dist < bestDist) {
+        bestDist = dist;
+        best = k;
+      }
+    });
+    return bestDist < sizes.buttonSize * 1.1 ? best : null;
+  };
+  const dragHandlers = onReorder
+    ? {
+        onDragStart: (key) => {
+          pauseSpin();
+          setDraggingKey(key);
+        },
+        onDragMove: (key, x, y) => {
+          const target = findDropKey(key, x, y);
+          setDropKey((prev) => (prev === target ? prev : target));
+        },
+        onDragEnd: (key, x, y) => {
+          const target = findDropKey(key, x, y);
+          setDraggingKey(null);
+          setDropKey(null);
+          resumeSpinLater(RESUME_AFTER_TOUCH_MS);
+          if (!target) return;
+          const keys = items.map((it) => it.key);
+          const a = keys.indexOf(key);
+          const b = keys.indexOf(target);
+          if (a < 0 || b < 0) return;
+          [keys[a], keys[b]] = [keys[b], keys[a]];
+          tapFeedback("drop");
+          onReorder(keys);
+        },
+      }
+    : {};
 
   // Label/hint de etapa + mejor racha + estado de enfoque — ANTES se
   // mostraban en texto propio debajo de la brújula (herencia de cuando
@@ -660,6 +799,10 @@ export default function QuickAccessCompass({
             display: "flex",
             alignItems: "center",
             justifyContent: "center",
+            // Encima de los accesos: el globito de la mascota y el confeti
+            // salen del círculo y no deben quedar tapados por un acceso
+            // que pasa (el que se arrastra va todavía más arriba, z 10).
+            zIndex: 2,
           }}
         >
           <Mascot
@@ -677,6 +820,7 @@ export default function QuickAccessCompass({
             heroRingStroke={sizes.heroRingStroke}
             heroEmojiSize={sizes.heroEmojiSize}
             xp={xp}
+            dayMood={dayMood}
           />
         </div>
 
@@ -684,7 +828,7 @@ export default function QuickAccessCompass({
             dial (left/top 50%) y placeOrbitItems() le pone el transform con
             su lugar en la órbita — fuera del render de React, así girar no
             vuelve a renderizar nada. */}
-        {orbitItems.map((item) => {
+        {orbitItems.map((item, slot) => {
           const isPinned = pinnedItem != null && item.key === pinnedItem.key;
           return (
             <div
@@ -699,6 +843,7 @@ export default function QuickAccessCompass({
                 left: "50%",
                 top: "50%",
                 willChange: spinning ? "transform" : undefined,
+                zIndex: draggingKey === item.key ? 10 : undefined,
               }}
             >
               <CompassAccessButton
@@ -718,6 +863,10 @@ export default function QuickAccessCompass({
                 labelFontSize={sizes.labelFontSize}
                 circleFilter={circleFilter}
                 labelHalo={labelHalo}
+                {...dragHandlers}
+                dragging={draggingKey === item.key}
+                planetColor={planetColors ? planetColors[slot % planetColors.length] : undefined}
+                isDropTarget={dropKey === item.key}
               />
             </div>
           );

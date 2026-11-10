@@ -57,6 +57,8 @@ import {
 } from "lucide-react";
 
 import LanguageSwitcher from "./LanguageSwitcher";
+import CalmBubbles from "./CalmBubbles";
+import ReorderHandle from "./ReorderHandle";
 import AppTabBar from "./AppTabBar";
 import QuickAccessCompass from "./QuickAccessCompass";
 import ToolsGrid from "./ToolsGrid";
@@ -159,7 +161,7 @@ import ScheduleAgendaPanel from "./ScheduleAgendaPanel";
 import { buildTodayItems } from "./todayView";
 import { timeOfDayPeriod, timeOfDayPalette, timeOfDayBackground } from "./timeOfDayPalette";
 import HomeHeader from "./HomeHeader";
-import { tint, ACCENT_OPTIONS, UNLOCKABLE_ACCENT_OPTIONS } from "./theme";
+import { tint, ACCENT_OPTIONS, UNLOCKABLE_ACCENT_OPTIONS, planetColorsFor, SOLAR_PLANETS } from "./theme";
 import {
   matureEmoji,
   DEFAULT_SPECIES,
@@ -369,6 +371,7 @@ export default function FocusFlowTDAH({
   }, []);
 
   const breathingSectionRef = useRef(null);
+  const calmBubblesSectionRef = useRef(null);
   const stopThinkSectionRef = useRef(null);
   const desglosadorSectionRef = useRef(null);
   const mindMapSectionRef = useRef(null);
@@ -470,6 +473,7 @@ export default function FocusFlowTDAH({
     mindMap: mindMapSectionRef,
     oneThing: oneThingSectionRef,
     burbuja: breathingSectionRef,
+    calmBubbles: calmBubblesSectionRef,
     auditor: auditorSectionRef,
     freno: stopThinkSectionRef,
     reestructuracion: reestructuracionSectionRef,
@@ -517,6 +521,7 @@ export default function FocusFlowTDAH({
     habits: "herramientas",
     freno: "herramientas",
     burbuja: "herramientas",
+    calmBubbles: "herramientas",
     mindfulness: "herramientas",
     reestructuracion: "herramientas",
     messageTone: "herramientas",
@@ -622,6 +627,7 @@ export default function FocusFlowTDAH({
     { key: "payments", icon: <CreditCard size={18} />, label: t.app.panels.payments.title },
     { key: "freno", icon: <Hand size={18} />, label: t.app.panels.stopThink.title },
     { key: "burbuja", icon: <Wind size={18} />, label: t.app.panels.breathing.title },
+    { key: "calmBubbles", icon: <Sparkles size={18} />, label: t.app.panels.calmBubbles.title },
     { key: "mindfulness", icon: <Flower2 size={18} />, label: t.app.panels.mindfulness.title },
     { key: "reestructuracion", icon: <Brain size={18} />, label: t.app.panels.reframe.title },
     { key: "messageTone", icon: <MessageSquare size={18} />, label: t.app.panels.messageTone.title },
@@ -678,6 +684,7 @@ export default function FocusFlowTDAH({
     habits: t.app.panels.habits.subtitle,
     freno: t.app.panels.stopThink.subtitle,
     burbuja: t.app.panels.breathing.subtitle,
+    calmBubbles: t.app.panels.calmBubbles.subtitle,
     mindfulness: t.app.panels.mindfulness.subtitle,
     reestructuracion: t.app.panels.reframe.subtitle,
     messageTone: t.app.panels.messageTone.subtitle,
@@ -1203,6 +1210,17 @@ export default function FocusFlowTDAH({
       })
     );
   const removeStep = (id) => setSteps((p) => p.filter((s) => s.id !== id));
+  // Acomodar los pasos jalándolos (10 de noviembre de 2026) — ver
+  // ReorderHandle.jsx. Mueve el paso `id` al lugar `to` de la lista.
+  const moveStep = (id, to) =>
+    setSteps((p) => {
+      const from = p.findIndex((s) => s.id === id);
+      if (from < 0) return p;
+      const next = [...p];
+      const [item] = next.splice(from, 1);
+      next.splice(Math.max(0, Math.min(next.length, to)), 0, item);
+      return next;
+    });
 
   // Fase 4, función #3 (31 de octubre de 2026 — tablero tipo Kanban,
   // gratis, decisión confirmada con la doctora: "AH GRATIS"): "list" |
@@ -1733,6 +1751,18 @@ export default function FocusFlowTDAH({
             t,
           });
           const nextStepTarget = todayItems[0]?.sectionRef || "today";
+          // Cómo va el día, para que la mascota reaccione (10 de noviembre
+          // de 2026, "más interactiva"): de noche descansa; si hoy ya ganó
+          // algún punto (cada entrada del frasco guarda la hora en su id)
+          // está contenta; si ya es de día y todavía nada, un globito
+          // amable de vez en cuando. Nunca regaña.
+          const hourNow = now.getHours();
+          const didSomethingToday = jar.some((j) => {
+            const d = new Date(j.id);
+            return d.toDateString() === now.toDateString();
+          });
+          const dayMood =
+            hourNow >= 22 || hourNow < 6 ? "night" : didSomethingToday ? "good" : hourNow >= 10 ? "quiet" : "neutral";
           const nowMinutes = now.getHours() * 60 + now.getMinutes();
           const nextBlock = scheduleBlocksForDay(scheduleBlocks, now).find((b) => b.startMin > nowMinutes) || null;
           const agendaLabel = nextBlock
@@ -1936,6 +1966,14 @@ export default function FocusFlowTDAH({
                   focusPercent={focusPercent}
                   palette={palette}
                   xp={xp}
+                  dayMood={dayMood}
+                  // Planetas en tonos del color que eligió la paciente (o de
+                  // colores, si eligió "Sistema solar") — 10 de noviembre de 2026.
+                  planetColors={planetColorsFor(accentLocked ? null : accentKey, personalAccent)}
+                  onReorder={(keys) => {
+                    setCompassKeys(keys);
+                    storeCompassSelection(keys);
+                  }}
                 />
                 </div>
               </div>
@@ -2245,7 +2283,8 @@ export default function FocusFlowTDAH({
                             width: "32px",
                             height: "32px",
                             borderRadius: "50%",
-                            background: C[key],
+                            background:
+                              key === "solar" ? `conic-gradient(${[...SOLAR_PLANETS, SOLAR_PLANETS[0]].join(", ")})` : C[key],
                             // Borde delgado siempre visible (no solo cuando está
                             // seleccionado) — 27 de octubre de 2026, necesario
                             // desde que se agregaron blanco y negro: un círculo
@@ -3223,9 +3262,21 @@ export default function FocusFlowTDAH({
                                   margin: "0 -6px",
                                   borderBottom: `1px solid ${C.border}`,
                                   borderRadius: chosenStep?.id === s.id ? "6px" : 0,
-                                  background: chosenStep?.id === s.id ? C.surfaceAlt : "transparent",
+                                  // Fondo sólido (no transparente) para que la fila
+                                  // se vea bien mientras se arrastra encima de las
+                                  // demás (ver ReorderHandle.jsx).
+                                  background: chosenStep?.id === s.id ? C.surfaceAlt : C.surface,
                                 }}
                               >
+                                {!oneStepMode && steps.length > 1 && (
+                                  <ReorderHandle
+                                    index={originalIndex}
+                                    count={steps.length}
+                                    onMove={(to) => moveStep(s.id, to)}
+                                    label={t.app.dismantler.dragStepAria(s.text)}
+                                    color={C.textMuted}
+                                  />
+                                )}
                                 <span
                                   onClick={() => toggleStep(s.id)}
                                   style={{
@@ -3283,6 +3334,9 @@ export default function FocusFlowTDAH({
                             );
                           })}
                         </ol>
+                        {!oneStepMode && steps.length > 1 && (
+                          <p style={{ fontSize: "12px", color: C.textMuted, margin: "8px 0 0" }}>{t.app.dismantler.dragStepHint}</p>
+                        )}
                         {hiddenPendingCount > 0 && (
                           <p style={{ fontSize: "12px", color: C.textMuted, margin: "8px 0 0" }}>
                             {t.app.dismantler.morePendingSteps(hiddenPendingCount)}
@@ -3740,6 +3794,18 @@ export default function FocusFlowTDAH({
                   </button>
                 </div>
               )}
+            </Panel>
+            </div>
+
+            {/* Mini juego de calma (10 de noviembre de 2026) — ver CalmBubbles.jsx. */}
+            <div ref={calmBubblesSectionRef} style={toolStyle("calmBubbles")}>
+            <Panel C={C}
+              accent={C.sky}
+              icon={<Sparkles size={22} />}
+              title={t.app.panels.calmBubbles.title}
+              subtitle={t.app.panels.calmBubbles.subtitle}
+            >
+              <CalmBubbles C={C} t={t} accent={personalAccent} onComplete={() => grantXp(t.app.xpLabels.calmBubblesCompleted)} />
             </Panel>
             </div>
 

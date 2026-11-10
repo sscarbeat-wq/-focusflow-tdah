@@ -52,6 +52,12 @@ export const DARK_THEME = {
   gold: "#E8C94A",
   jade: "#3FB08C",
   ruby: "#E0515F",
+  // "Sistema solar" (10 de noviembre de 2026): la brújula con cada planeta
+  // de un color distinto. Para el resto de la app (botones, resaltados)
+  // usa este violeta.
+  solar: "#A58BEA",
+  solarDark: "#7A5BD6",
+  solarText: "#1A1033",
 };
 
 export const LIGHT_THEME = {
@@ -86,6 +92,9 @@ export const LIGHT_THEME = {
   gold: "#9C7F0C",
   jade: "#1F7A5C",
   ruby: "#A9222F",
+  solar: "#6E45D8",
+  solarDark: "#5631B8",
+  solarText: "#FFFFFF",
 };
 
 export const THEME_STORAGE_KEY = "senda-theme";
@@ -139,7 +148,52 @@ export function storeTheme(theme) {
 // temas): "white" es un blanco casi puro en modo oscuro pero un gris perla
 // en modo claro, y "black" es lo opuesto — así siempre se alcanza a ver
 // contra el fondo, sea cual sea el tema activo.
-export const ACCENT_OPTIONS = ["lavender", "mint", "coral", "rose", "amber", "sky", "gray", "white", "black"];
+export const ACCENT_OPTIONS = ["lavender", "mint", "coral", "rose", "amber", "sky", "gray", "white", "black", "solar"];
+
+// Colores de los 6 planetas de la brújula de Inicio (10 de noviembre de
+// 2026, "se ven mal los colores"). La regla de siempre se mantiene: la
+// brújula usa el color que eligió la paciente. Lo que cambia es CÓMO: en
+// vez de 2 círculos rellenos y 4 blancos con borde (con los colores
+// pastel se veían deslavados, casi grises), los 6 son planetas rellenos
+// en tonos distintos de SU color — más claro, más oscuro — para que se
+// vean con volumen y se distingan entre sí. Si eligió "Sistema solar",
+// cada planeta es de un color diferente.
+export const SOLAR_PLANETS = ["#FF6B57", "#F5A524", "#1FAF7A", "#2E90FA", "#9B5CF6", "#EC4899"];
+
+function hexToRgb(hex) {
+  const h = String(hex || "").replace("#", "");
+  if (!/^[0-9a-fA-F]{6}$/.test(h)) return null;
+  return [0, 2, 4].map((i) => parseInt(h.slice(i, i + 2), 16));
+}
+function rgbToHex(rgb) {
+  return `#${rgb.map((v) => Math.max(0, Math.min(255, Math.round(v))).toString(16).padStart(2, "0")).join("")}`;
+}
+// amount < 0 oscurece (mezcla con un azul muy oscuro), > 0 aclara (con blanco).
+export function shadeColor(hex, amount) {
+  const rgb = hexToRgb(hex);
+  if (!rgb) return hex;
+  const target = amount < 0 ? [20, 22, 40] : [255, 255, 255];
+  const a = Math.abs(amount);
+  return rgbToHex(rgb.map((v, i) => v + (target[i] - v) * a));
+}
+// Luminancia relativa (0 = negro, 1 = blanco) — para decidir si el ícono
+// encima del planeta va blanco u oscuro.
+export function luminance(hex) {
+  const rgb = hexToRgb(hex);
+  if (!rgb) return 0.5;
+  const [r, g, b] = rgb.map((v) => {
+    const c = v / 255;
+    return c <= 0.03928 ? c / 12.92 : ((c + 0.055) / 1.055) ** 2.4;
+  });
+  return 0.2126 * r + 0.7152 * g + 0.0722 * b;
+}
+export function planetColorsFor(accentKey, accentHex) {
+  if (accentKey === "solar") return SOLAR_PLANETS;
+  // Base un poco más profunda que el acento (los pastel se veían grises)
+  // y 6 tonos alrededor de ella.
+  const base = luminance(accentHex) > 0.3 ? shadeColor(accentHex, -0.3) : accentHex;
+  return [-0.05, 0.18, -0.25, 0.08, -0.15, 0.28].map((amt) => shadeColor(base, amt));
+}
 export const DEFAULT_ACCENT = "lavender";
 export const ACCENT_STORAGE_KEY = "anro-accent";
 

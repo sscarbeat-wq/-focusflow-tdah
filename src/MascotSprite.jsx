@@ -58,6 +58,7 @@ export function MascotArt({ visual, size = 40, pose = "a", style, alt = "" }) {
 }
 
 const IDLE_TO_SLEEP_MS = 45000;
+const NIGHT_SLEEP_MS = 9000;
 const GREET_MS = 800;
 const GESTURE_MS = 2200;
 const WALK_MS = 3200;
@@ -83,7 +84,21 @@ function useReducedMotion() {
 // tapSignal / playSignal / eatSignal: números que el padre incrementa para
 // pedir "saluda", "juega", "come" — un contador en vez de un booleano para
 // que dos pedidos seguidos iguales también se noten.
-export function MascotSprite({ visual, size = 80, tapSignal = 0, playSignal = 0, eatSignal = 0, walking = false }) {
+// `dayMood` (10 de noviembre de 2026, "que reaccione a tu día", lo calcula
+// FocusFlowTDAH.jsx): "night" → se duerme mucho más rápido (de noche no
+// tiene que andar brincando); "good" → de vez en cuando da un brinquito
+// contento con un corazón, sola. `hidden`: se oculta (sin desmontarse)
+// mientras Mascot.jsx dibuja la animación de evolución encima.
+export function MascotSprite({
+  visual,
+  size = 80,
+  tapSignal = 0,
+  playSignal = 0,
+  eatSignal = 0,
+  walking = false,
+  dayMood = "neutral",
+  hidden = false,
+}) {
   const parsed = parseImageVisual(visual);
   const reducedMotion = useReducedMotion();
   const [mode, setMode] = useState("idle"); // idle | walk | sleep | greet | eat | play
@@ -108,7 +123,8 @@ export function MascotSprite({ visual, size = 80, tapSignal = 0, playSignal = 0,
     }, ms);
   };
   // Cualquier interacción reinicia la cuenta para dormirse.
-  const scheduleSleep = () => later("sleep", IDLE_TO_SLEEP_MS, () => setMode("sleep"));
+  const sleepAfter = dayMood === "night" ? NIGHT_SLEEP_MS : IDLE_TO_SLEEP_MS;
+  const scheduleSleep = () => later("sleep", sleepAfter, () => setMode("sleep"));
   const backToIdle = (ms) =>
     later("gesture", ms, () => {
       setMode("idle");
@@ -116,7 +132,7 @@ export function MascotSprite({ visual, size = 80, tapSignal = 0, playSignal = 0,
     });
   // Las caminatas espontáneas NO cuentan como interacción: si contaran,
   // reiniciarían la cuenta para dormirse y nunca llegaría a dormir.
-  const walkBackToIdle = (ms) => later("gesture", ms, () => setMode((m) => (m === "walk" ? "idle" : m)));
+  const walkBackToIdle = (ms) => later("gesture", ms, () => setMode((m) => (m === "walk" || m === "happy" ? "idle" : m)));
 
   // (Todas las poses viven en la misma imagen del personaje, así que en
   // cuanto carga una ya están todas: cambiar de pose nunca parpadea.)
@@ -126,7 +142,19 @@ export function MascotSprite({ visual, size = 80, tapSignal = 0, playSignal = 0,
     setMode("idle");
     scheduleSleep();
     return () => Object.keys(timers.current).forEach(clear);
-  }, [visual]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [visual, dayMood]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Día que va bien: un brinquito contento de vez en cuando (no cuenta
+  // como interacción, igual que las caminatas: no reinicia la cuenta para
+  // dormirse).
+  useEffect(() => {
+    if (dayMood !== "good" || reducedMotion || mode !== "idle") return undefined;
+    const tm = setTimeout(() => {
+      setMode("happy");
+      walkBackToIdle(1400);
+    }, 20000 + Math.random() * 15000);
+    return () => clearTimeout(tm);
+  }, [mode, dayMood, reducedMotion]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Parpadeo en reposo (no con movimiento reducido: es un destello).
   useEffect(() => {
@@ -200,7 +228,7 @@ export function MascotSprite({ visual, size = 80, tapSignal = 0, playSignal = 0,
   // imagen (un emoji no tiene "ojos cerrados" ni poses).
   if (!parsed) {
     return (
-      <span className={`anro-sprite anro-sprite-${mode}`} style={{ position: "relative", display: "inline-block" }}>
+      <span className={`anro-sprite anro-sprite-${mode}`} style={{ position: "relative", display: "inline-block", opacity: hidden ? 0 : 1 }}>
         <SpriteStyles />
         <span style={{ display: "inline-block" }} className="anro-sprite-body">
           {visual}
@@ -221,7 +249,14 @@ export function MascotSprite({ visual, size = 80, tapSignal = 0, playSignal = 0,
   return (
     <span
       className={`anro-sprite anro-sprite-${mode}${reducedMotion ? " anro-sprite-still" : ""}`}
-      style={{ position: "relative", display: "inline-block", width: `${size}px`, height: `${size}px` }}
+      style={{
+        position: "relative",
+        display: "inline-block",
+        width: `${size}px`,
+        height: `${size}px`,
+        opacity: hidden ? 0 : 1,
+        transition: "opacity 0.2s ease",
+      }}
     >
       <SpriteStyles />
       {mode === "walk" ? (
@@ -234,6 +269,7 @@ export function MascotSprite({ visual, size = 80, tapSignal = 0, playSignal = 0,
       )}
       {mode === "sleep" && <span className="anro-sprite-zzz">Zzz</span>}
       {mode === "greet" && <Sparkles />}
+      {mode === "happy" && <span className="anro-sprite-heart">💗</span>}
       {mode === "eat" && <span className="anro-sprite-nom">🍓</span>}
       {mode === "play" && <span className="anro-sprite-ball">🎾</span>}
     </span>
@@ -261,6 +297,9 @@ function SpriteStyles() {
       .anro-sprite-walk .anro-mascot-frame:nth-child(3) { animation: anroSpriteShowB 0.6s steps(1) infinite, anroSpriteStepB 0.6s steps(1) infinite; }
       .anro-sprite-sleep .anro-mascot-frame { animation: anroSpriteBobSlow 4s ease-in-out infinite; }
       .anro-sprite-greet .anro-mascot-frame, .anro-sprite-greet .anro-sprite-body { animation: anroSpriteGreet 0.8s cubic-bezier(.36,.07,.19,.97); }
+      .anro-sprite-happy .anro-mascot-frame, .anro-sprite-happy .anro-sprite-body { animation: anroSpriteHop 0.7s ease-out 2; }
+      .anro-sprite-heart { position: absolute; top: -4%; right: 4%; font-size: 15px; pointer-events: none; animation: anroSpriteSpark 1.4s ease-out forwards; }
+      @keyframes anroSpriteHop { 0%,100% { transform: translateY(0) scale(1); } 35% { transform: translateY(-14%) scale(1.04, .97); } 60% { transform: translateY(0) scale(1.03, .96); } }
       .anro-sprite-eat .anro-mascot-frame, .anro-sprite-eat .anro-sprite-body { animation: anroSpriteNom 0.5s ease-in-out infinite; }
       .anro-sprite-play .anro-mascot-frame { animation: anroSpriteWiggle 0.5s ease-in-out infinite; }
       .anro-sprite-zzz { position: absolute; top: 0; right: 4%; font-weight: 800; font-size: 13px; color: #7C6BAE; pointer-events: none; animation: anroSpriteZ 2.4s ease-in infinite; }
@@ -290,7 +329,7 @@ function SpriteStyles() {
       @keyframes anroSpriteNomPop { 0%,100% { opacity: 0; transform: translate(-50%,0) scale(0.8); } 50% { opacity: 1; transform: translate(-50%,-6px) scale(1.1); } }
       @keyframes anroSpriteBall { 0%,100% { opacity: 0.6; transform: rotate(0deg) scale(1); } 50% { opacity: 1; transform: rotate(25deg) scale(1.15); } }
       @media (prefers-reduced-motion: reduce) {
-        .anro-sprite .anro-mascot-frame, .anro-sprite .anro-sprite-body, .anro-sprite-zzz, .anro-sprite-spark, .anro-sprite-nom, .anro-sprite-ball { animation: none !important; }
+        .anro-sprite .anro-mascot-frame, .anro-sprite .anro-sprite-body, .anro-sprite-zzz, .anro-sprite-spark, .anro-sprite-nom, .anro-sprite-ball, .anro-sprite-heart { animation: none !important; }
         .anro-sprite-walk .anro-mascot-frame:nth-child(3) { opacity: 0; }
       }
     `}</style>

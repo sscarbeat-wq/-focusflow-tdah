@@ -12,6 +12,8 @@ import {
   isImageSpecies,
 } from "./mascotLogic";
 import { MascotArt, MascotSprite } from "./MascotSprite";
+import CelebrationBurst from "./CelebrationBurst";
+import { tapFeedback } from "./celebrate";
 import {
   playLevelUpSound,
   playHatchSound,
@@ -164,6 +166,10 @@ export default function Mascot({
   // Puntos de "foco acumulado" — solo para notar cuándo SUBEN y hacer que
   // la mascota coma (10 de noviembre de 2026, ver MascotSprite.jsx).
   xp,
+  // Cómo va el día (10 de noviembre de 2026, "que reaccione a tu día"):
+  // "good" (ya hizo algo hoy) | "quiet" (todavía nada y ya es de día) |
+  // "night" (de noche) | "neutral". Lo calcula FocusFlowTDAH.jsx.
+  dayMood = "neutral",
 }) {
   const isHero = variant === "hero";
   const current = streak?.current || 0;
@@ -192,6 +198,7 @@ export default function Mascot({
   const [eatSignal, setEatSignal] = useState(0);
   const lastTapRef = useRef(0);
   const handlePet = () => {
+    tapFeedback("tap");
     const now = Date.now();
     if (now - lastTapRef.current < 450) {
       setPlaySignal((n) => n + 1);
@@ -201,13 +208,117 @@ export default function Mascot({
       lastTapRef.current = now;
     }
   };
+  // Celebraciones (10 de noviembre de 2026): al cargar la app los puntos y
+  // la racha llegan de Supabase un momento DESPUÉS de montar (de 0 a lo
+  // guardado) — eso no es un logro nuevo. Durante los primeros segundos
+  // no se festeja nada.
+  const mountedAtRef = useRef(Date.now());
+  const settled = () => Date.now() - mountedAtRef.current > 3500;
+  const [smallBurst, setSmallBurst] = useState(0);
+  const [bigBurst, setBigBurst] = useState(0);
+  // Casi todos los puntos se ganan FUERA de Inicio (en Herramientas,
+  // Agenda...), donde la brújula está oculta (display:none, sin
+  // desmontarse). Festejar ahí sería festejar sin que nadie lo vea: los
+  // festejos se guardan y se disparan en cuanto la paciente vuelve a ver
+  // a su mascota.
+  const heroRef = useRef(null);
+  const pendingRef = useRef({ eat: false, small: false, big: false, play: false, evolution: null });
+  const pollRef = useRef(null);
+  const isShown = () => !heroRef.current || heroRef.current.offsetParent !== null;
+  const evolutionTimeoutRef = useRef(null);
+  const flushPending = () => {
+    const p = pendingRef.current;
+    pendingRef.current = { eat: false, small: false, big: false, play: false, evolution: null };
+    if (p.evolution) {
+      setEvolution(p.evolution);
+      if (soundOnRef.current) playLevelUpSound();
+      if (evolutionTimeoutRef.current) clearTimeout(evolutionTimeoutRef.current);
+      evolutionTimeoutRef.current = setTimeout(() => setEvolution(null), 2600);
+    }
+    if (p.big || p.evolution) setBigBurst((n) => n + 1);
+    else if (p.small) setSmallBurst((n) => n + 1);
+    if (p.play) setPlaySignal((n) => n + 1);
+    else if (p.eat) setEatSignal((n) => n + 1);
+  };
+  const queueCelebration = (changes) => {
+    const p = pendingRef.current;
+    if (changes.evolution) {
+      p.evolution = { from: p.evolution ? p.evolution.from : changes.evolution.from, to: changes.evolution.to };
+    }
+    ["eat", "small", "big", "play"].forEach((k) => {
+      if (changes[k]) p[k] = true;
+    });
+    if (isShown()) {
+      flushPending();
+      return;
+    }
+    if (pollRef.current) return;
+    pollRef.current = setInterval(() => {
+      if (isShown()) {
+        clearInterval(pollRef.current);
+        pollRef.current = null;
+        // Un respiro para que la pantalla ya esté pintada antes del festejo.
+        setTimeout(flushPending, 350);
+      }
+    }, 600);
+  };
+  useEffect(
+    () => () => {
+      if (pollRef.current) clearInterval(pollRef.current);
+      if (evolutionTimeoutRef.current) clearTimeout(evolutionTimeoutRef.current);
+    },
+    []
+  );
+
   const prevXpRef = useRef(xp);
   useEffect(() => {
     if (typeof xp === "number" && typeof prevXpRef.current === "number" && xp > prevXpRef.current) {
-      setEatSignal((n) => n + 1);
+      if (settled() && isHero) queueCelebration({ eat: true, small: true });
+      else setEatSignal((n) => n + 1);
     }
     prevXpRef.current = xp;
-  }, [xp]);
+  }, [xp]); // eslint-disable-line react-hooks/exhaustive-deps
+  // Subió la racha del día (la primera acción de hoy): festejo grande y la
+  // mascota se pone a jugar.
+  const prevCurrentRef = useRef(current);
+  useEffect(() => {
+    if (current > prevCurrentRef.current && settled() && isHero) {
+      queueCelebration({ big: true, play: true });
+    }
+    prevCurrentRef.current = current;
+  }, [current]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Globito de la mascota según cómo va el día — corto, amable, nunca un
+  // regaño; se va solo. "quiet": cada ~50s rota entre 3 frases suaves.
+  // "good"/"night": una sola vez, un rato después de entrar.
+  const [nudge, setNudge] = useState(null);
+  useEffect(() => {
+    if (!isHero) return undefined;
+    const timers = [];
+    const show = (text, ms) => {
+      setNudge(text);
+      timers.push(setTimeout(() => setNudge(null), ms));
+    };
+    if (dayMood === "quiet") {
+      const list = t.mascot.dayNudges || [];
+      let i = 0;
+      const cycle = () => {
+        if (!list.length) return;
+        show(list[i % list.length], 7000);
+        i += 1;
+        timers.push(setTimeout(cycle, 50000));
+      };
+      timers.push(setTimeout(cycle, 5000));
+    } else if (dayMood === "good" && t.mascot.goodNudge) {
+      timers.push(setTimeout(() => show(t.mascot.goodNudge, 5000), 4000));
+    } else if (dayMood === "night" && t.mascot.nightNudge) {
+      timers.push(setTimeout(() => show(t.mascot.nightNudge, 6000), 4000));
+    }
+    return () => {
+      timers.forEach(clearTimeout);
+      setNudge(null);
+    };
+  }, [dayMood, isHero, t]);
 
   const ringSize = isHero ? heroRingSize : RING_SIZE;
   const ringRadius = isHero ? heroRingRadius : RING_RADIUS;
@@ -228,6 +339,8 @@ export default function Mascot({
 
   // Sonidos (gratis, preferencia de dispositivo) — ver mascotSounds.js.
   const [soundOn, setSoundOn] = useState(() => getStoredMascotSoundPref());
+  const soundOnRef = useRef(soundOn);
+  soundOnRef.current = soundOn;
 
   // Los navegadores no deja sonar nada hasta una interacción real de la
   // persona; este listener "destraba" el audio en cuanto toque/haga click/
@@ -261,11 +374,20 @@ export default function Mascot({
   const isReset = current === 0 && longest > 0;
   const [celebrate, setCelebrate] = useState(false);
   const [hatching, setHatching] = useState(false);
+  // Evolución (10 de noviembre de 2026): cuando la mascota cambia de etapa
+  // de verdad (no al cargar), se ve el cambio — destello, la de antes se
+  // encoge, la nueva aparece creciendo — con confeti y "¡Creció!".
+  const [evolution, setEvolution] = useState(null); // { from, to }
 
   useEffect(() => {
     if (prevEmojiRef.current !== stage.emoji) {
       const wasEgg = prevEmojiRef.current === EGG_EMOJI;
+      const fromVisual = prevEmojiRef.current;
       prevEmojiRef.current = stage.emoji;
+      if (!isReset && isHero && settled()) {
+        queueCelebration({ evolution: { from: fromVisual, to: stage.emoji } });
+        return undefined;
+      }
       if (!isReset) {
         if (wasEgg) {
           setHatching(true);
@@ -519,6 +641,8 @@ export default function Mascot({
             <MascotSprite
               visual={stage.emoji}
               size={Math.round(emojiFontSize * 1.9)}
+              hidden={!!evolution}
+              dayMood={dayMood}
               tapSignal={tapSignal}
               playSignal={playSignal}
               eatSignal={eatSignal}
@@ -643,7 +767,7 @@ export default function Mascot({
     // que las vuelve a armar con stageFor() (misma función pura que usa
     // este archivo) para no perder esa información, solo reacomodarla.
     return (
-      <div style={{ position: "relative", display: "flex", alignItems: "center", justifyContent: "center" }}>
+      <div ref={heroRef} style={{ position: "relative", display: "flex", alignItems: "center", justifyContent: "center" }}>
         <style>{`
         @keyframes anroMascotFloat {
           0%, 100% { transform: translateY(0) rotate(0deg); }
@@ -760,8 +884,91 @@ export default function Mascot({
             animation: none !important;
           }
         }
+        @keyframes anroEvoFlash { 0% { opacity: 0; transform: translate(-50%,-50%) scale(.3); } 35% { opacity: .95; transform: translate(-50%,-50%) scale(1); } 100% { opacity: 0; transform: translate(-50%,-50%) scale(1.5); } }
+        @keyframes anroEvoOut { 0% { opacity: 1; transform: translate(-50%,-50%) scale(1); } 20% { transform: translate(-50%,-50%) scale(1.08) rotate(-6deg); } 45% { opacity: 0; transform: translate(-50%,-50%) scale(.2) rotate(8deg); } 100% { opacity: 0; } }
+        @keyframes anroEvoIn { 0%, 40% { opacity: 0; transform: translate(-50%,-50%) scale(.2); } 62% { opacity: 1; transform: translate(-50%,-50%) scale(1.25); } 80% { transform: translate(-50%,-50%) scale(.94); } 100% { opacity: 1; transform: translate(-50%,-50%) scale(1); } }
+        @keyframes anroEvoTag { 0%, 50% { opacity: 0; transform: translate(-50%, 6px) scale(.8); } 65% { opacity: 1; transform: translate(-50%, 0) scale(1.08); } 90% { opacity: 1; } 100% { opacity: 0; transform: translate(-50%, -6px); } }
+        @keyframes anroNudgeIn { 0% { opacity: 0; transform: translate(-50%, calc(-100% + 8px)) scale(.9); } 100% { opacity: 1; transform: translate(-50%, -100%) scale(1); } }
+        @media (prefers-reduced-motion: reduce) {
+          .anro-evo-flash, .anro-evo-out, .anro-evo-in, .anro-evo-tag, .anro-nudge { animation-duration: 0.01s !important; }
+        }
       `}</style>
         {ringBlock}
+        <CelebrationBurst signal={smallBurst} size="small" />
+        <CelebrationBurst signal={bigBurst} size="big" />
+        {evolution && (
+          // Evolución: la de antes se encoge y la nueva aparece creciendo,
+          // con un destello del color de la paciente detrás.
+          <span aria-hidden="true" style={{ position: "absolute", inset: 0, pointerEvents: "none", zIndex: 5 }}>
+            <span
+              className="anro-evo-flash"
+              style={{
+                position: "absolute",
+                left: "50%",
+                top: "40%",
+                width: `${ringSize * 0.8}px`,
+                height: `${ringSize * 0.8}px`,
+                borderRadius: "50%",
+                background: `radial-gradient(circle, #FFFFFF 0%, ${tint(ringColor, 0.55)} 45%, transparent 72%)`,
+                animation: "anroEvoFlash 1.6s ease-out forwards",
+              }}
+            />
+            <span className="anro-evo-out" style={{ position: "absolute", left: "50%", top: "40%", animation: "anroEvoOut 2.4s ease-in-out forwards" }}>
+              <MascotArt visual={evolution.from} size={Math.round(emojiFontSize * 1.9)} />
+            </span>
+            <span className="anro-evo-in" style={{ position: "absolute", left: "50%", top: "40%", animation: "anroEvoIn 2.4s ease-out forwards" }}>
+              <MascotArt visual={evolution.to} size={Math.round(emojiFontSize * 1.9)} />
+            </span>
+            <span
+              className="anro-evo-tag"
+              style={{
+                position: "absolute",
+                left: "50%",
+                top: "-6px",
+                whiteSpace: "nowrap",
+                background: ringColor,
+                color: "#fff",
+                fontWeight: 800,
+                fontSize: `${13 * heroScale}px`,
+                padding: `${4 * heroScale}px ${12 * heroScale}px`,
+                borderRadius: "999px",
+                boxShadow: "0 4px 12px rgba(0,0,0,0.2)",
+                animation: "anroEvoTag 2.6s ease-out forwards",
+              }}
+            >
+              {t.mascot.evolvedLabel}
+            </span>
+          </span>
+        )}
+        {nudge && !evolution && (
+          <span
+            role="status"
+            className="anro-nudge"
+            style={{
+              position: "absolute",
+              left: "50%",
+              top: `${-4 * heroScale}px`,
+              transform: "translate(-50%, -100%)",
+              zIndex: 7,
+              width: "max-content",
+              maxWidth: `${200 * Math.min(heroScale, 1.25)}px`,
+              background: C.surface,
+              color: C.text,
+              border: `1.5px solid ${tint(ringColor, 0.5)}`,
+              borderRadius: "14px",
+              padding: `${6 * Math.min(heroScale, 1.25)}px ${11 * Math.min(heroScale, 1.25)}px`,
+              fontSize: `${13 * Math.min(heroScale, 1.25)}px`,
+              fontWeight: 700,
+              lineHeight: 1.3,
+              textAlign: "center",
+              boxShadow: "0 6px 16px rgba(0,0,0,0.15)",
+              pointerEvents: "none",
+              animation: "anroNudgeIn 0.35s ease-out",
+            }}
+          >
+            {nudge}
+          </span>
+        )}
       </div>
     );
   }
