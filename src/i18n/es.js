@@ -481,6 +481,12 @@ const es = {
     unmuteSoundLabel: "Activar sonidos de la mascota",
     focusTodayLabel: "ENFOQUE HOY",
     petLabel: "Saludar a tu mascota",
+    // Interactividad (10 de noviembre de 2026): la mascota reacciona a
+    // cómo va el día — mensajes cortos y amables, nunca un regaño.
+    dayNudges: ["¿Empezamos con algo pequeño?", "Un paso de 2 minutos también cuenta", "Aquí estoy cuando quieras empezar"],
+    goodNudge: "¡Vas muy bien hoy!",
+    nightNudge: "Descansar también es avanzar",
+    evolvedLabel: "¡Creció!",
   },
 
   medication: {
@@ -938,7 +944,7 @@ const es = {
     showMore: (n) => `Ver ${n} más`,
     showLess: "Ver menos",
     quickAccessLabel: "Accesos rápidos",
-    quickAccessPinHint: "Los accesos giran solos · mantén presionado para fijar uno arriba",
+    quickAccessPinHint: "Los accesos giran solos · mantén presionado para fijar uno arriba · arrástralo para cambiarlo de lugar",
     pinAccessAria: (label) => `Fijar "${label}" arriba`,
     unpinAccessAria: (label) => `Dejar de fijar "${label}" arriba`,
     // "✏️ Editar" de la brújula (9 de noviembre de 2026) — CompassEditSheet.jsx
@@ -1077,6 +1083,7 @@ const es = {
         gold: "Dorado",
         jade: "Jade",
         ruby: "Rubí",
+        solar: "Sistema solar (de colores)",
       },
     },
     speciesPicker: {
@@ -1176,6 +1183,7 @@ const es = {
       payments: { title: "Pagos y suscripciones", subtitle: "Una lista manual con aviso antes de la fecha, para no pagar tarde ni olvidar una suscripción." },
       stopThink: { title: "Freno de impulsividad", subtitle: "Alto, respira, evalúa, actúa." },
       breathing: { title: "Burbuja de enfoque", subtitle: "Un minuto de respiración guiada para bajar la sobrecarga." },
+      calmBubbles: { title: "Burbujas de calma", subtitle: "Revienta burbujas al ritmo de tu respiración, un minuto." },
       mindfulness: { title: "Atención plena", subtitle: "Una práctica breve de mindfulness, guiada paso a paso." },
       reframe: { title: "Reestructuración de pensamientos", subtitle: "Un pensamiento automático no siempre es un hecho." },
       messageTone: { title: "Ayuda con mensajes", subtitle: "Reescribe el tono de un mensaje que vas a mandar, o lee con más calma uno que recibiste." },
@@ -1206,6 +1214,8 @@ const es = {
       startWith: (text) => `👉 Empieza con: ${text}`,
       noPendingSteps: "No tienes pasos pendientes para elegir.",
       removeStepAria: "Eliminar paso",
+      dragStepAria: (text) => `Mover "${text}": arrástralo o usa las flechas arriba y abajo`,
+      dragStepHint: "Arrastra los pasos desde los puntitos para cambiarles el orden.",
       morePendingSteps: (n) => `+${n} paso${n === 1 ? "" : "s"} más esperando — se irán mostrando uno a la vez.`,
       energyTagTitle: (energy) => `Pensado para energía ${energy}`,
       stepEnergyTooltip: "Energía que requiere este paso (opcional) — se usa para sugerirlo en 'Hoy' según tu check-in de energía",
@@ -1267,6 +1277,17 @@ const es = {
       finish: "Terminar",
     },
 
+    calmBubbles: {
+      inhale: "Inhala…",
+      exhale: "Exhala… y revienta",
+      start: "Empezar",
+      stop: "Terminar",
+      again: "Otra vez",
+      popped: (n) => `${n} ${n === 1 ? "burbuja" : "burbujas"}`,
+      intro: "Sigue el círculo: crece cuando inhalas y se encoge cuando exhalas. Mientras exhalas, toca las burbujas para reventarlas.",
+      done: "Listo. Un minuto para ti también cuenta.",
+      bubbleAria: "Reventar burbuja",
+    },
     breathing: {
       inhale: "Inhala",
       hold: "Retén",
@@ -1319,6 +1340,7 @@ const es = {
       stopThinkPurchase: "usaste el freno antes de una compra",
       stopThinkGeneral: "usaste el freno de impulsividad",
       breathingCompleted: "completaste tu minuto de respiración",
+      calmBubblesCompleted: "terminaste tu minuto de burbujas de calma",
       focusSessionCompleted: "sesión de enfoque completada",
       timeAuditRecorded: "registraste tu tiempo real",
       reframeCompleted: "reestructuraste un pensamiento",
