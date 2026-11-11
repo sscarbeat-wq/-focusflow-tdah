@@ -944,7 +944,7 @@ export default function QuickAccessCompass({
           // 11 nov 2026: en pantallas bajitas (celulares chicos) se oculta
           // esta ayuda para que quepa la franja "Mis hábitos de hoy" de
           // abajo sin tener que hacer scroll.
-          display: typeof window !== "undefined" && window.innerHeight < 720 ? "none" : undefined,
+          display: typeof window !== "undefined" && window.innerHeight < 720 && window.innerWidth < 760 ? "none" : undefined,
           fontSize: "11px",
           color: palette?.chipBg ? textColor : mutedColor,
           margin: "12px auto 0",

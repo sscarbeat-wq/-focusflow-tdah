@@ -46,7 +46,7 @@ export function weekAchievements(jar, days = 7, now = new Date()) {
 // respaldar con datos reales.
 export const HABIT_LABELS = [
   { key: "screensOff", label: "Apagar pantallas a tiempo" },
-  { key: "sleepEnv", label: "Preparar el entorno para dormir" },
+  { key: "sleepEnv", label: "Preparar el cuarto para dormir" },
   { key: "ateWell", label: "Comer algo nutritivo" },
   { key: "hydrated", label: "Hidratarte durante el día" },
   { key: "deskCleared", label: "Ordenar el escritorio" },

@@ -1,6 +1,7 @@
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import { CheckCircle2, Circle } from "lucide-react";
 import { tint } from "./theme";
+import HabitsInfoSheet from "./HabitsInfoSheet";
 import { HABIT_EMOJIS, CUSTOM_HABIT_MAX_LENGTH, MAX_CUSTOM_HABITS } from "./customHabits";
 
 // Emoji con el que arranca un hábito nuevo: el neutro (✨), no la pastilla.
@@ -11,12 +12,13 @@ const DEFAULT_EMOJI = HABIT_EMOJIS[HABIT_EMOJIS.length - 1];
 // Los propios traen un lápiz para cambiarles el nombre/emoji o quitarlos;
 // los fijos no se pueden editar. `items` viene armado desde
 // FocusFlowTDAH.jsx (misma lista que la franja de Inicio).
-export default function HabitsList({ C, t, isNarrow, items, canAdd, onAdd, onUpdate, onRemove }) {
+export default function HabitsList({ C, t, isNarrow, items, canAdd, onAdd, onUpdate, onRemove, openAddSignal = 0 }) {
   const h = t.app.habits;
   // null = nada abierto · "new" = agregando · id = editando ese hábito
   const [editing, setEditing] = useState(null);
   const [emoji, setEmoji] = useState(DEFAULT_EMOJI);
   const [label, setLabel] = useState("");
+  const [infoOpen, setInfoOpen] = useState(false);
   const doneCount = items.filter((it) => it.checked).length;
 
   const openNew = () => {
@@ -30,6 +32,12 @@ export default function HabitsList({ C, t, isNarrow, items, canAdd, onAdd, onUpd
     setEditing(it.id);
   };
   const close = () => setEditing(null);
+  // Llegando desde el "＋ Agregar un hábito mío" de Inicio: el formulario
+  // ya viene abierto (openAddSignal cambia en cada toque).
+  useEffect(() => {
+    if (openAddSignal && canAdd) openNew();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [openAddSignal]);
   const save = () => {
     if (!label.trim()) return;
     if (editing === "new") onAdd({ emoji, label });
@@ -142,6 +150,15 @@ export default function HabitsList({ C, t, isNarrow, items, canAdd, onAdd, onUpd
         </div>
       </div>
 
+      <button
+        type="button"
+        onClick={() => setInfoOpen(true)}
+        style={{ background: "transparent", border: "none", padding: "0 0 12px", color: C.text, fontSize: "13.5px", fontWeight: 700, textDecoration: "underline", cursor: "pointer" }}
+      >
+        ⓘ {t.habitsInfo.button}
+      </button>
+      {infoOpen && <HabitsInfoSheet C={C} t={t} onClose={() => setInfoOpen(false)} />}
+
       <div style={{ display: "grid", gridTemplateColumns: isNarrow ? "1fr" : "1fr 1fr", gap: "8px" }}>
         {items.map((it) =>
           it.custom && editing === it.id ? (
@@ -171,7 +188,14 @@ export default function HabitsList({ C, t, isNarrow, items, canAdd, onAdd, onUpd
                 }}
               >
                 <span aria-hidden="true" style={{ fontSize: "22px" }}>{it.emoji}</span>
-                <span style={{ flex: 1, minWidth: 0, overflowWrap: "anywhere" }}>{it.label}</span>
+                <span style={{ flex: 1, minWidth: 0, overflowWrap: "anywhere" }}>
+                  {it.label}
+                  {/* En qué consiste (solo los 4 fijos; el porqué completo
+                      está en "¿Para qué sirven?"). */}
+                  {it.hint && (
+                    <span style={{ display: "block", fontSize: "12.5px", fontWeight: 400, color: C.textMuted, lineHeight: 1.4, marginTop: "2px" }}>{it.hint}</span>
+                  )}
+                </span>
                 {it.checked ? <CheckCircle2 size={22} color={C.mint} /> : <Circle size={22} color={C.textMuted} />}
               </button>
               {it.custom && (

@@ -399,8 +399,18 @@ export default function FocusFlowTDAH({
   // con bottomOffset 0 — y nacían encimadas sobre la barra de pestañas de
   // abajo (tapando "Inicio" y "Perfil"). Verificado con Playwright a 390px.
   const [isNarrow, setIsNarrow] = useState(() => typeof window !== "undefined" && window.innerWidth < 760);
+  // Pantalla ancha (computadora) y pantalla bajita (celular chico) — las
+  // usa la franja de hábitos de Inicio: en pantalla ancha va A UN LADO de
+  // la brújula (debajo empujaba la barra de pestañas fuera de la pantalla)
+  // y en celulares bajitos se compacta.
+  const [isWide, setIsWide] = useState(() => typeof window !== "undefined" && window.innerWidth >= 1180);
+  const [isShort, setIsShort] = useState(() => typeof window !== "undefined" && window.innerHeight < 800);
   useEffect(() => {
-    const check = () => setIsNarrow(window.innerWidth < 760);
+    const check = () => {
+      setIsNarrow(window.innerWidth < 760);
+      setIsWide(window.innerWidth >= 1180);
+      setIsShort(window.innerHeight < 800);
+    };
     check();
     window.addEventListener("resize", check);
     return () => window.removeEventListener("resize", check);
@@ -1682,6 +1692,13 @@ export default function FocusFlowTDAH({
   // "¿Te mueves 5 minutos?" que aparece al terminar una sesión de enfoque.
   const [activeBreakStart, setActiveBreakStart] = useState(0);
   const [breakPrompt, setBreakPrompt] = useState(false);
+  // "＋ Agregar un hábito mío" desde la franja de Inicio: abre "Mis hábitos
+  // de hoy" con el formulario ya abierto (ver HabitsList.jsx).
+  const [habitAddSignal, setHabitAddSignal] = useState(0);
+  const openAddHabit = () => {
+    setHabitAddSignal(Date.now());
+    scrollToCompanionSection("habits");
+  };
 
   // Palomear un hábito. Los XP se dan UNA vez por hábito por día
   // (`habitXpGiven`): antes, marcar y desmarcar el mismo hábito daba XP
@@ -1701,10 +1718,10 @@ export default function FocusFlowTDAH({
   // y en la franja de Inicio (TodayHabitsStrip.jsx): los 4 fijos y luego
   // los que la paciente agregó (máximo 3, ver customHabits.js).
   const habitItems = [
-    { key: "screensOff", emoji: "📵", short: t.todayStrip.short.screensOff, label: t.app.habits.screensOff, checked: screensOff, onToggle: () => toggleXp(setScreensOff, screensOff, t.app.xpLabels.screensOffLabel, "screensOff") },
-    { key: "sleepEnv", emoji: "🛏️", short: t.todayStrip.short.sleepEnv, label: t.app.habits.sleepEnvReady, checked: sleepEnv, onToggle: () => toggleXp(setSleepEnv, sleepEnv, t.app.xpLabels.sleepEnvLabel, "sleepEnv") },
-    { key: "ateWell", emoji: "🥗", short: t.todayStrip.short.ateWell, label: t.app.habits.ateWell, checked: ateWell, onToggle: () => toggleXp(setAteWell, ateWell, t.app.xpLabels.ateWellLabel, "ateWell") },
-    { key: "hydrated", emoji: "💧", short: t.todayStrip.short.hydrated, label: t.app.habits.hydrated, checked: hydrated, onToggle: () => toggleXp(setHydrated, hydrated, t.app.xpLabels.hydratedLabel, "hydrated") },
+    { key: "screensOff", hint: t.habitsInfo.items.screensOff.what, emoji: "📵", short: t.todayStrip.short.screensOff, label: t.app.habits.screensOff, checked: screensOff, onToggle: () => toggleXp(setScreensOff, screensOff, t.app.xpLabels.screensOffLabel, "screensOff") },
+    { key: "sleepEnv", hint: t.habitsInfo.items.sleepEnv.what, emoji: "🛏️", short: t.todayStrip.short.sleepEnv, label: t.app.habits.sleepEnvReady, checked: sleepEnv, onToggle: () => toggleXp(setSleepEnv, sleepEnv, t.app.xpLabels.sleepEnvLabel, "sleepEnv") },
+    { key: "ateWell", hint: t.habitsInfo.items.ateWell.what, emoji: "🥗", short: t.todayStrip.short.ateWell, label: t.app.habits.ateWell, checked: ateWell, onToggle: () => toggleXp(setAteWell, ateWell, t.app.xpLabels.ateWellLabel, "ateWell") },
+    { key: "hydrated", hint: t.habitsInfo.items.hydrated.what, emoji: "💧", short: t.todayStrip.short.hydrated, label: t.app.habits.hydrated, checked: hydrated, onToggle: () => toggleXp(setHydrated, hydrated, t.app.xpLabels.hydratedLabel, "hydrated") },
     ...customHabits.map((ch) => ({
       key: `custom-${ch.id}`,
       id: ch.id,
@@ -2066,8 +2083,28 @@ export default function FocusFlowTDAH({
                   pantalla, la brújula se centra sola en el espacio que
                   sobra debajo del saludo — igual que en el mockup, en vez
                   de quedar pegada arriba con un hueco vacío abajo. */}
-              <div style={{ flex: 1, display: "flex", flexDirection: "column", justifyContent: "center" }}>
-                <div id="anro-tour-mascot" style={{ marginTop: "8px", paddingBottom: "20px" }}>
+              <div style={{ flex: 1, display: "flex", flexDirection: "column", justifyContent: "center", position: "relative" }}>
+                {/* Computadora: la franja de hábitos va a la derecha de la
+                    brújula, centrada a lo alto (ver TodayHabitsStrip.jsx).
+                    El envoltorio no recibe clics; solo la tarjeta. */}
+                {isWide && (
+                  <div style={{ position: "absolute", top: 0, bottom: 0, right: "max(24px, calc(50% - 640px))", width: "310px", display: "flex", alignItems: "center", pointerEvents: "none", zIndex: 3 }}>
+                    <div style={{ width: "100%", pointerEvents: "auto" }}>
+                      <TodayHabitsStrip
+                        C={C}
+                        t={t}
+                        palette={palette}
+                        items={habitItems}
+                        deskCleared={deskCleared}
+                        side
+                        onDesk={() => scrollToCompanionSection("focusMode")}
+                        onBreak={() => scrollToCompanionSection("activeBreak")}
+                        onAddHabit={canAddCustomHabit(customHabits) ? openAddHabit : undefined}
+                      />
+                    </div>
+                  </div>
+                )}
+                <div id="anro-tour-mascot" style={{ marginTop: "8px", paddingBottom: isNarrow && isShort ? "6px" : "20px" }}>
                 <QuickAccessCompass
                   C={C}
                   t={t}
@@ -2142,17 +2179,22 @@ export default function FocusFlowTDAH({
               </div>
               {/* Franja "Hoy" (hábitos + despejar + pausa activa), debajo
                   de la mascota — ver TodayHabitsStrip.jsx. */}
-              <div style={{ padding: isNarrow ? "0 14px 8px" : "0 18px 18px" }}>
-                <TodayHabitsStrip
-                  t={t}
-                  palette={palette}
-                  items={habitItems}
-                  deskCleared={deskCleared}
-                  isNarrow={isNarrow}
-                  onDesk={() => scrollToCompanionSection("focusMode")}
-                  onBreak={() => scrollToCompanionSection("activeBreak")}
-                />
-              </div>
+              {!isWide && (
+                <div style={{ padding: isNarrow ? "0 14px 8px" : "0 18px 18px" }}>
+                  <TodayHabitsStrip
+                    C={C}
+                    t={t}
+                    palette={palette}
+                    items={habitItems}
+                    deskCleared={deskCleared}
+                    isNarrow={isNarrow}
+                    isShort={isShort}
+                    onDesk={() => scrollToCompanionSection("focusMode")}
+                    onBreak={() => scrollToCompanionSection("activeBreak")}
+                    onAddHabit={canAddCustomHabit(customHabits) ? openAddHabit : undefined}
+                  />
+                </div>
+              )}
               {tabBarInHero && (
                 <div style={{ maxWidth: "1000px", width: "100%", margin: "0 auto", padding: "0 18px", boxSizing: "border-box" }}>
                   <AppTabBar C={C} t={t} accent={personalAccent} activeTab={activeTab} onChange={goToTab} isNarrow={isNarrow} />
@@ -4375,6 +4417,7 @@ export default function FocusFlowTDAH({
                   isNarrow={isNarrow}
                   items={habitItems}
                   canAdd={canAddCustomHabit(customHabits)}
+                  openAddSignal={habitAddSignal}
                   onAdd={(data) => setCustomHabits((list) => addCustomHabit(list, data))}
                   onUpdate={(id, data) => setCustomHabits((list) => updateCustomHabit(list, id, data))}
                   onRemove={(id) => setCustomHabits((list) => removeCustomHabit(list, id))}
