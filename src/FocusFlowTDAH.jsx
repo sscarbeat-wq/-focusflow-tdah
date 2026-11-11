@@ -1708,6 +1708,7 @@ export default function FocusFlowTDAH({
   // de hoy" con el formulario ya abierto (ver HabitsList.jsx).
   const [habitAddSignal, setHabitAddSignal] = useState(0);
   const [habitFormOpen, setHabitFormOpen] = useState(false);
+  const [breakInProgress, setBreakInProgress] = useState(false);
   const openAddHabit = () => {
     setHabitAddSignal(Date.now());
     scrollToCompanionSection("habits");
@@ -4267,7 +4268,7 @@ export default function FocusFlowTDAH({
               title={t.app.panels.activeBreak.title}
               subtitle={t.app.panels.activeBreak.subtitle}
             >
-              <ActiveBreak C={C} t={t} accent={C.amber} autoStart={activeBreakStart} onComplete={() => grantXp(t.app.xpLabels.activeBreakCompleted)} />
+              <ActiveBreak C={C} t={t} lang={lang} isNarrow={isNarrow} autoStart={activeBreakStart} onComplete={() => grantXp(t.app.xpLabels.activeBreakCompleted)} onActiveChange={setBreakInProgress} />
             </Panel>
             </div>
 
@@ -4524,7 +4525,11 @@ export default function FocusFlowTDAH({
           la franja "Mis hábitos de hoy" de abajo; ahí se ocultan (la
           brújula ya lleva a todo). Siguen montados (display:none), así que
           no pierden su estado, y en las demás pestañas se ven igual. */}
-      <div style={{ display: inicioCompass || (habitFormOpen && activeTab === "herramientas" && activeTool === "habits") ? "none" : undefined }}>
+      <div style={{ display:
+            inicioCompass ||
+            (activeTab === "herramientas" && ((habitFormOpen && activeTool === "habits") || (breakInProgress && activeTool === "activeBreak")))
+              ? "none"
+              : undefined, }}>
       <QuickNavMenu
         C={C}
         t={t}

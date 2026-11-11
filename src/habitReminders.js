@@ -78,7 +78,7 @@ export function habitReminderFor(progress, slot, now = new Date()) {
     if (done("hydrated")) return null;
     return {
       title: "¿Ya tomaste agua? 💧",
-      body: "Toma un vaso ahora y palomea tu hábito. Si llevas rato sin moverte, una pausa activa de 5 minutos ayuda.",
+      body: "Toma un vaso ahora y palomea tu hábito. Si llevas rato sin moverte, una pausa activa de unos minutos ayuda.",
       tag,
     };
   }
