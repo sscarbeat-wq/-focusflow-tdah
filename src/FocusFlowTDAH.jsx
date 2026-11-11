@@ -708,7 +708,9 @@ export default function FocusFlowTDAH({
     { key: "todayNextStep", icon: <ListChecks size={18} />, label: t.today.compassNextStep },
     { key: "herramientasRoot", icon: <Wrench size={18} />, label: t.appTabs.herramientas },
     { key: "agendaRoot", icon: <CalendarClock size={18} />, label: t.appTabs.agenda },
-    ...quickNavSections,
+    // "Mis hábitos de hoy" ya no se puede elegir como planeta (12 nov
+    // 2026): tiene su propia pestaña en Inicio y sería repetir lo mismo.
+    ...quickNavSections.filter((sec) => sec.key !== "habits"),
   ];
   const DEFAULT_COMPASS_KEYS = ["companion", "insights", "agendaRoot", "mood", "todayNextStep", "herramientasRoot"];
 
@@ -1961,7 +1963,14 @@ export default function FocusFlowTDAH({
           // larga más abajo de dónde sale) e "insights" (muestra la racha y
           // los puntos reales de hoy en vez de la etiqueta genérica
           // "Progreso" del catálogo).
-          const effectiveKeys = compassKeys || DEFAULT_COMPASS_KEYS;
+          // Si alguien ya tenía "habits" como planeta (antes de que tuviera
+          // su pestaña), se sustituye por el primer acceso de siempre que
+          // no esté ya en su brújula, para no dejarle un hueco.
+          const rawKeys = compassKeys || DEFAULT_COMPASS_KEYS;
+          const habitsReplacement = [...DEFAULT_COMPASS_KEYS, ...COMPASS_POOL.map((c) => c.key)].find((k) => !rawKeys.includes(k));
+          const effectiveKeys = rawKeys.includes("habits")
+            ? rawKeys.map((k) => (k === "habits" ? habitsReplacement : k)).filter(Boolean)
+            : rawKeys;
           const compassItems = effectiveKeys.map((key, i) => {
             const variant = i >= 4 ? "accent-solid" : "accent-outline";
             if (key === "todayNextStep") {
@@ -2104,8 +2113,8 @@ export default function FocusFlowTDAH({
                     brújula, centrada a lo alto (ver TodayHabitsStrip.jsx).
                     El envoltorio no recibe clics; solo la tarjeta. */}
                 {isWide && (
-                  <div style={{ position: "absolute", top: 0, bottom: 0, right: "max(24px, calc(50% - 640px))", width: "310px", display: "flex", alignItems: "center", pointerEvents: "none", zIndex: 3 }}>
-                    <div style={{ width: "100%", pointerEvents: "auto" }}>
+                  <div style={{ position: "absolute", top: 0, bottom: 0, right: 0, display: "flex", alignItems: "center", pointerEvents: "none", zIndex: 3 }}>
+                    <div style={{ pointerEvents: "auto" }}>
                       <TodayHabitsStrip
                         C={C}
                         t={t}
@@ -2116,11 +2125,12 @@ export default function FocusFlowTDAH({
                         onDesk={() => scrollToCompanionSection("focusMode")}
                         onBreak={() => scrollToCompanionSection("activeBreak")}
                         onAddHabit={canAddCustomHabit(customHabits) ? openAddHabit : undefined}
+                        onOpenAll={() => scrollToCompanionSection("habits")}
                       />
                     </div>
                   </div>
                 )}
-                <div id="anro-tour-mascot" style={{ marginTop: "8px", paddingBottom: isNarrow && isShort ? "6px" : "20px" }}>
+                <div id="anro-tour-mascot" style={{ marginTop: "8px", paddingBottom: isNarrow && isShort ? "2px" : "20px" }}>
                 <QuickAccessCompass
                   C={C}
                   t={t}
@@ -2196,7 +2206,7 @@ export default function FocusFlowTDAH({
               {/* Franja "Hoy" (hábitos + despejar + pausa activa), debajo
                   de la mascota — ver TodayHabitsStrip.jsx. */}
               {!isWide && (
-                <div style={{ padding: isNarrow ? "0 14px 8px" : "0 18px 18px" }}>
+                <div style={{ padding: isNarrow ? "0 12px" : "0 18px" }}>
                   <TodayHabitsStrip
                     C={C}
                     t={t}
@@ -2208,6 +2218,7 @@ export default function FocusFlowTDAH({
                     onDesk={() => scrollToCompanionSection("focusMode")}
                     onBreak={() => scrollToCompanionSection("activeBreak")}
                     onAddHabit={canAddCustomHabit(customHabits) ? openAddHabit : undefined}
+                    onOpenAll={() => scrollToCompanionSection("habits")}
                   />
                 </div>
               )}

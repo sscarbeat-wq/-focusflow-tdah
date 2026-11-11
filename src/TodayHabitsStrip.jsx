@@ -1,38 +1,64 @@
 import React, { useState } from "react";
 import HabitsInfoSheet from "./HabitsInfoSheet";
 
-// Franja "Hoy" debajo de la mascota en Inicio (11 de noviembre de 2026,
-// "quisiera que los hábitos estuvieran más a la vista, y también lo de
-// fuera de la vista y pausa activa"). Antes los hábitos solo se veían
-// entrando a Herramientas → Mi día a día. Ahora, en lo primero que se ve:
-//   - Los 4 hábitos del día como botones redondos con emoji y una palabra;
-//     un toque los palomea (mismo toggle y mismos XP que en la herramienta).
-//   - Dos accesos: "Despejar mi espacio" (abre Modo enfoque, donde está la
-//     explicación de "Fuera de la vista") y "Pausa activa".
-// Segunda vuelta (mismo día, "no dice para qué sirve, por qué es necesario…
-// y eso de cuarto, ¿qué es?"): un renglón que dice qué hacer, nombres más
-// claros ("Cuarto listo para dormir"), una frase bajo cada acceso y el
-// botón "¿Para qué sirven?" que abre la explicación de cada hábito
-// (HabitsInfoSheet.jsx).
+// Pestaña "Mis hábitos" de Inicio.
+//
+// Historia (11 y 12 de noviembre de 2026): empezó como una franja fija
+// debajo de la mascota ("quisiera que los hábitos estuvieran más a la
+// vista"); luego se le agregó poder arrastrarla y ocultarla; y la doctora
+// propuso algo más simple: "como una pestaña que pueda ocultarse". Así
+// quedó:
+//   - Teléfono: una pestaña abajo, pegada a la barra de Inicio/Agenda…
+//     Al tocarla el cuadro sube; al tocarla otra vez, baja.
+//   - Computadora (`side`): la pestaña va pegada al borde derecho de la
+//     pantalla y saca el cuadro hacia adentro.
+//   - Cerrada sigue mostrando el contador ("1 de 4").
+//   - Recuerda cómo se dejó (localStorage, por dispositivo). La primera
+//     vez aparece abierta, para que se descubra.
+// Adentro: los hábitos del día para palomear con un toque (mismo toggle y
+// mismos XP que en "Mis hábitos de hoy"), "Despejar espacio", "Pausa
+// activa" y tres enlaces: "¿Para qué sirven?", "Agregar" y "Ver todo".
 // Colores: los de la paleta de Inicio (cambia con la hora y con los temas
-// Plus), sobre una pastilla casi opaca para que siempre se lea.
-export default function TodayHabitsStrip({ C, t, palette, items, deskCleared, onDesk, onBreak, onAddHabit, isNarrow, isShort, side }) {
+// Plus), sobre un fondo casi opaco para que siempre se lea.
+const OPEN_KEY = "anro-habits-tab-open";
+
+function readOpen() {
+  try {
+    return window.localStorage.getItem(OPEN_KEY) !== "0";
+  } catch (e) {
+    return true;
+  }
+}
+
+export default function TodayHabitsStrip({ C, t, palette, items, deskCleared, onDesk, onBreak, onAddHabit, onOpenAll, isNarrow, isShort, side }) {
   const th = t.todayStrip;
   const [infoOpen, setInfoOpen] = useState(false);
+  const [open, setOpen] = useState(() => typeof window === "undefined" || readOpen());
+  const toggle = () => {
+    const next = !open;
+    setOpen(next);
+    try {
+      window.localStorage.setItem(OPEN_KEY, next ? "1" : "0");
+    } catch (e) {
+      /* solo no se recuerda */
+    }
+  };
+
   // Pantalla bajita (celular chico): se omiten los renglones de apoyo para
-  // que la franja siga cabiendo; la explicación completa está en el botón.
+  // que el cuadro siga cabiendo; la explicación completa está en el enlace.
   const shortScreen = !!(isNarrow && isShort);
   const done = items.filter((it) => it.checked).length;
-  // 4 fijos → una fila de 4. Con hábitos propios (5 a 7): en computadora
-  // siguen en UNA fila; en el teléfono, dos filas (3+2, 3+3 o 4+3).
-  // `side` (computadora): tarjeta angosta a un lado de la brújula, con los
-  // hábitos de 2 en 2 y los accesos uno bajo el otro.
+  // 4 fijos → una fila de 4. Con hábitos propios (5 a 7): dos filas en el
+  // teléfono (3+2, 3+3 o 4+3). `side` (computadora): de 2 en 2.
   const cols = side ? 2 : items.length <= 4 ? 4 : isNarrow ? Math.ceil(items.length / 2) : items.length;
   const oneRowScroll = shortScreen && items.length > 4;
+  // Accesos sin su renglón de apoyo: celular bajito, o teléfono con
+  // hábitos propios (dos filas), para que todo quepa sin bajar la pantalla.
+  const compactActions = shortScreen || (isNarrow && items.length > 4);
   const text = palette.text;
   const muted = palette.textMuted || palette.text;
   const accent = palette.accent || "#3F9C82";
-  const bg = palette.chipBg || `color-mix(in srgb, ${palette.bg} 84%, transparent)`;
+  const bg = palette.chipBg || `color-mix(in srgb, ${palette.bg} 90%, transparent)`;
   const line = `color-mix(in srgb, ${text} 16%, transparent)`;
 
   const action = (emoji, label, sub, onClick, isDone) => (
@@ -46,7 +72,7 @@ export default function TodayHabitsStrip({ C, t, palette, items, deskCleared, on
         alignItems: "center",
         justifyContent: side ? "flex-start" : "center",
         gap: isNarrow ? "6px" : "8px",
-        minHeight: shortScreen ? "40px" : "50px",
+        minHeight: shortScreen ? "36px" : compactActions ? "40px" : "50px",
         padding: isNarrow ? "0 6px" : side ? "0 14px" : "0 12px",
         borderRadius: "14px",
         border: `1px solid ${line}`,
@@ -61,84 +87,129 @@ export default function TodayHabitsStrip({ C, t, palette, items, deskCleared, on
       <span aria-hidden="true" style={{ fontSize: isNarrow ? "16px" : "18px" }}>{isDone ? "✅" : emoji}</span>
       <span style={{ minWidth: 0, textAlign: "left" }}>
         <span style={{ display: "block", overflow: "hidden", textOverflow: "ellipsis" }}>{label}</span>
-        {!shortScreen && (
+        {!compactActions && (
           <span style={{ display: "block", fontSize: "11px", fontWeight: 500, color: muted, overflow: "hidden", textOverflow: "ellipsis" }}>{sub}</span>
         )}
       </span>
     </button>
   );
 
-  return (
-    <div
+  const link = (label, onClick, key) => (
+    <button
+      key={key}
+      type="button"
+      onClick={onClick}
       style={{
-        width: "100%",
-        maxWidth: "560px",
-        margin: "0 auto",
-        boxSizing: "border-box",
-        padding: shortScreen ? "8px 12px" : isNarrow ? "10px 12px" : side ? "16px" : "14px 18px",
-        borderRadius: "20px",
-        background: bg,
-        border: `1px solid ${line}`,
+        flex: "0 0 auto",
+        minHeight: shortScreen ? "24px" : "32px",
+        padding: "0 2px",
+        background: "transparent",
+        border: "none",
         color: text,
+        fontSize: "12px",
+        fontWeight: 700,
+        cursor: "pointer",
+        whiteSpace: "nowrap",
       }}
     >
-      <div style={{ display: "flex", alignItems: "center", flexWrap: "wrap", gap: side ? "6px 8px" : "4px 8px", marginBottom: shortScreen ? "6px" : side ? "6px" : isNarrow && items.length > 4 ? "8px" : "2px" }}>
-        <span style={{ fontSize: "14px", fontWeight: 800, whiteSpace: "nowrap" }}>{th.title}</span>
-        {/* Celular bajito: en lugar del contador va el "＋" (las palomitas
-            ya se ven en cada botón) para no gastar otro renglón. */}
-        {!(shortScreen && onAddHabit) && (
-          <span style={{ fontSize: "13px", fontWeight: 700, color: muted, whiteSpace: "nowrap" }}>{th.count(done, items.length)}</span>
-        )}
-        <button
-          type="button"
-          onClick={() => setInfoOpen(true)}
-          style={{
-            marginLeft: side ? 0 : "auto",
-            minHeight: shortScreen ? "24px" : "30px",
-            padding: isNarrow ? "0 6px" : "0 10px",
-            borderRadius: "999px",
-            border: `1px solid ${line}`,
-            background: "transparent",
-            color: text,
-            fontSize: isNarrow ? "11px" : "12px",
-            fontWeight: 700,
-            cursor: "pointer",
-            whiteSpace: "nowrap",
-          }}
-        >
-          <span aria-hidden="true">ⓘ </span>
-          {t.habitsInfo.button}
-        </button>
-        {shortScreen && onAddHabit && (
-          <button
-            type="button"
-            onClick={onAddHabit}
-            aria-label={t.app.habits.addHabit}
-            title={t.app.habits.addHabit}
-            style={{
-              width: "26px",
-              height: "24px",
-              borderRadius: "999px",
-              border: `1px solid ${line}`,
-              background: "transparent",
-              color: text,
-              fontSize: "15px",
-              fontWeight: 800,
-              lineHeight: 1,
-              cursor: "pointer",
-              padding: 0,
-            }}
-          >
-            ＋
-          </button>
-        )}
-      </div>
+      {label}
+    </button>
+  );
+
+  // ---- La pestaña (siempre visible) ----
+  const tabLabel = (
+    <>
+      <span aria-hidden="true">🌱</span>
+      <span>{th.tabTitle}</span>
+      <span style={{ fontWeight: 700, color: muted }}>{th.count(done, items.length)}</span>
+    </>
+  );
+  const tabButton = side ? (
+    // Computadora: pestaña vertical pegada al borde derecho de la pantalla.
+    <button
+      type="button"
+      onClick={toggle}
+      aria-expanded={open}
+      aria-label={open ? th.closeAria : th.openAria}
+      title={open ? th.closeAria : th.openAria}
+      style={{
+        display: "flex",
+        flexDirection: "column",
+        alignItems: "center",
+        gap: "8px",
+        padding: "14px 9px",
+        border: `1px solid ${line}`,
+        borderRight: open ? `1px solid ${line}` : "none",
+        borderRadius: "14px 0 0 14px",
+        marginRight: open ? "-1px" : 0,
+        background: bg,
+        color: text,
+        fontSize: "13.5px",
+        fontWeight: 800,
+        cursor: "pointer",
+        boxShadow: "-3px 3px 12px rgba(0,0,0,0.12)",
+      }}
+    >
+      <span aria-hidden="true" style={{ fontSize: "13px" }}>{open ? "›" : "‹"}</span>
+      <span aria-hidden="true" style={{ fontSize: "18px" }}>🌱</span>
+      <span style={{ writingMode: "vertical-rl", transform: "rotate(180deg)", whiteSpace: "nowrap", letterSpacing: "0.02em" }}>
+        {th.tabTitle} <span style={{ fontWeight: 700, color: muted }}>· {th.count(done, items.length)}</span>
+      </span>
+    </button>
+  ) : (
+    // Teléfono: pestaña arriba del cuadro, centrada.
+    <button
+      type="button"
+      onClick={toggle}
+      aria-expanded={open}
+      aria-label={open ? th.closeAria : th.openAria}
+      style={{
+        display: "inline-flex",
+        alignItems: "center",
+        gap: "8px",
+        minHeight: shortScreen ? "30px" : "38px",
+        padding: "0 16px",
+        border: `1px solid ${line}`,
+        borderBottom: "none",
+        borderRadius: "16px 16px 0 0",
+        marginBottom: "-1px",
+        position: "relative",
+        zIndex: 1,
+        background: bg,
+        color: text,
+        fontSize: "13.5px",
+        fontWeight: 800,
+        cursor: "pointer",
+        whiteSpace: "nowrap",
+      }}
+    >
+      {tabLabel}
+      <span aria-hidden="true" style={{ fontSize: "12px", marginLeft: "2px" }}>{open ? "▾" : "▴"}</span>
+    </button>
+  );
+
+  // ---- El cuadro (solo abierto) ----
+  const panel = open && (
+    <div
+      style={{
+        width: side ? "300px" : "100%",
+        boxSizing: "border-box",
+        padding: shortScreen ? "8px 12px 2px" : isNarrow ? "10px 12px 2px" : "14px 16px 6px",
+        borderRadius: side ? "0 0 0 18px" : "18px 18px 0 0",
+        background: bg,
+        border: `1px solid ${line}`,
+        borderRight: side ? "none" : `1px solid ${line}`,
+        borderBottom: side ? `1px solid ${line}` : "none",
+        boxShadow: side ? "-3px 3px 12px rgba(0,0,0,0.12)" : "none",
+        color: text,
+        textAlign: "left",
+      }}
+    >
       {/* En el teléfono, con hábitos propios (dos filas) se omite este
-          renglón para que la franja siga cabiendo sin bajar la pantalla. */}
+          renglón para que el cuadro siga cabiendo sin bajar la pantalla. */}
       {!shortScreen && !(isNarrow && items.length > 4) && (
         <p style={{ fontSize: "12px", color: muted, margin: isNarrow ? "0 0 8px" : "0 0 10px", lineHeight: 1.35 }}>{th.subtitle}</p>
       )}
-      {infoOpen && <HabitsInfoSheet C={C} t={t} onClose={() => setInfoOpen(false)} />}
 
       <div
         role="group"
@@ -147,8 +218,7 @@ export default function TodayHabitsStrip({ C, t, palette, items, deskCleared, on
           oneRowScroll
             ? {
                 // Celular bajito con hábitos propios: una sola fila que se
-                // desliza de lado (el siguiente se asoma), para que la
-                // franja no crezca y siga cabiendo sin bajar la pantalla.
+                // desliza de lado (el siguiente se asoma).
                 display: "flex",
                 gap: "8px",
                 overflowX: "auto",
@@ -156,7 +226,7 @@ export default function TodayHabitsStrip({ C, t, palette, items, deskCleared, on
                 margin: "-7px 0 4px",
                 scrollbarWidth: "none",
               }
-            : { display: "grid", gridTemplateColumns: `repeat(${cols}, minmax(0, 1fr))`, gap: "8px", marginBottom: shortScreen ? "6px" : isNarrow ? "8px" : "10px" }
+            : { display: "grid", gridTemplateColumns: `repeat(${cols}, minmax(0, 1fr))`, gap: "8px", marginBottom: shortScreen ? "5px" : isNarrow ? "8px" : "10px" }
         }
       >
         {items.map((it) => (
@@ -233,29 +303,31 @@ export default function TodayHabitsStrip({ C, t, palette, items, deskCleared, on
         {action("🚶", th.activeBreak, th.activeBreakSub, onBreak, false)}
       </div>
 
-      {/* "¿Y dónde agrego más hábitos?" (11 nov 2026): acceso directo desde
-          Inicio; abre "Mis hábitos de hoy" con el formulario listo. No
-          aparece cuando ya tiene los 3 hábitos propios. */}
-      {!shortScreen && onAddHabit && (
-        <button
-          type="button"
-          onClick={onAddHabit}
-          style={{
-            display: "block",
-            width: "100%",
-            minHeight: "30px",
-            marginTop: "6px",
-            background: "transparent",
-            border: "none",
-            color: text,
-            fontSize: "12.5px",
-            fontWeight: 700,
-            cursor: "pointer",
-          }}
-        >
-          ＋ {t.app.habits.addHabit}
-        </button>
-      )}
+      {/* Enlaces: la explicación, agregar un hábito propio (no aparece si
+          ya tiene los 3) y la pantalla completa ("Mis hábitos de hoy": ahí
+          están el registro de sueño y el lápiz para editar). */}
+      <div style={{ display: "flex", justifyContent: "space-between", flexWrap: "wrap", gap: "0 8px", marginTop: shortScreen ? "2px" : "4px" }}>
+        {link(`ⓘ ${t.habitsInfo.button}`, () => setInfoOpen(true), "info")}
+        {onAddHabit && link(`＋ ${th.addShort}`, onAddHabit, "add")}
+        {onOpenAll && link(`${th.openAll} ›`, onOpenAll, "all")}
+      </div>
     </div>
+  );
+
+  return (
+    <>
+      {infoOpen && <HabitsInfoSheet C={C} t={t} onClose={() => setInfoOpen(false)} />}
+      {side ? (
+        <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "flex-end" }}>
+          {tabButton}
+          {panel}
+        </div>
+      ) : (
+        <div style={{ width: "100%", maxWidth: "560px", margin: "0 auto", textAlign: "center" }}>
+          {tabButton}
+          {panel}
+        </div>
+      )}
+    </>
   );
 }
