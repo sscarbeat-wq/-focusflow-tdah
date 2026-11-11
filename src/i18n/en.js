@@ -859,13 +859,32 @@ const en = {
     doneToday: "You already cleared your space today. Great start!",
   },
 
+  habitsInfo: {
+    button: "What are these for?",
+    title: "What are these habits for?",
+    intro: "With ADHD, sleeping badly, skipping meals or going hours without moving makes it harder to focus and regulate your mood. These simple habits take care of that foundation. Tap each one when you do it: you earn XP and see your day at a glance. It's not a grade: if you miss them one day, you start fresh tomorrow.",
+    whyLabel: "Why?",
+    items: {
+      screensOff: { title: "Screens off on time", what: "Put away your phone, TV and computer 30 to 60 minutes before bed.", why: "The light and what you watch on screens keep your brain awake, and with ADHD falling asleep is often already harder." },
+      sleepEnv: { title: "Bedroom ready for sleep", what: "Make your room dark, cool and quiet, with a clear bed and your phone away from the pillow.", why: "A prepared room tells your body it's time to rest and removes distractions at bedtime." },
+      ateWell: { title: "Eat something nutritious", what: "Have at least one full meal with some protein (eggs, chicken, beans, yogurt).", why: "With ADHD it's easy to skip meals, especially if your medication reduces your appetite. On an empty stomach it's harder to focus and easier to get irritable." },
+      hydrated: { title: "Drink water", what: "Keep a glass or bottle in sight and drink water several times during the day.", why: "When you're very focused it's easy to forget. Not drinking enough causes tiredness and headaches, which makes paying attention harder." },
+      desk: { title: "Clear my space", what: "Before working, put away your phone and whatever you won't use. It takes 1 minute.", why: "Whatever is in sight competes for your attention. It's easier to put it away first than to resist looking at it." },
+      activeBreak: { title: "Active break", what: "5 minutes of guided movement between work blocks: stretching, walking, breathing.", why: "Moving a little clears your head and helps you come back with more attention." },
+    },
+    footer: "Checkmarks clear on their own every morning. You can also add up to 3 habits of your own in Tools → My day-to-day → My habits today.",
+  },
+
   todayStrip: {
     title: "My habits today",
     count: (done, total) => `${done} of ${total}`,
     desk: "Clear my space",
     deskDone: "Space cleared",
     activeBreak: "Active break",
-    short: { screensOff: "Screens", sleepEnv: "Bedroom", ateWell: "Food", hydrated: "Water" },
+    short: { screensOff: "Screens off", sleepEnv: "Bedroom ready", ateWell: "Eat well", hydrated: "Drink water" },
+    subtitle: "Tap each one when you do it. They're the foundation for focusing and feeling better.",
+    deskSub: "Before working",
+    activeBreakSub: "5 min of movement",
   },
   progressSummary: {
     viewsLabel: "Progress sections",
@@ -1098,7 +1117,7 @@ const en = {
     dayNames: ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"],
     habitLabels: {
       screensOff: "Turn off screens on time",
-      sleepEnv: "Prepare your environment for sleep",
+      sleepEnv: "Get your bedroom ready for sleep",
       ateWell: "Eat something nutritious",
       hydrated: "Stay hydrated during the day",
       deskCleared: "Tidy up your desk",
@@ -1431,7 +1450,7 @@ const en = {
     habits: {
       sleepHygiene: "Sleep hygiene",
       screensOff: "I turned off screens on time",
-      sleepEnvReady: "I got my sleep environment ready",
+      sleepEnvReady: "I got my bedroom ready for sleep",
       bedtimeRegistered: (time) => `Today you logged: you fell asleep at ${time}.`,
       bedtimeQuestion: "What time did you fall asleep last night?",
       nutrition: "Eating",

@@ -888,13 +888,32 @@ const es = {
     doneToday: "Hoy ya despejaste tu espacio. ¡Buen inicio!",
   },
 
+  habitsInfo: {
+    button: "¿Para qué sirven?",
+    title: "¿Para qué sirven estos hábitos?",
+    intro: "Con TDAH, dormir mal, saltarse comidas o pasar horas sin moverse hace más difícil concentrarse y regular el ánimo. Estos hábitos sencillos cuidan esa base. Toca cada uno cuando lo hagas: ganas XP y ves tu día de un vistazo. No es una calificación: si un día no los cumples, mañana empiezas de cero.",
+    whyLabel: "¿Por qué?",
+    items: {
+      screensOff: { title: "Apagar pantallas a tiempo", what: "Deja el celular, la tele y la computadora entre 30 y 60 minutos antes de dormir.", why: "La luz y lo que ves en las pantallas mantienen despierto al cerebro, y con TDAH ya suele costar más conciliar el sueño." },
+      sleepEnv: { title: "Cuarto listo para dormir", what: "Deja tu cuarto oscuro, fresco y en silencio, con la cama despejada y el celular lejos de la almohada.", why: "Un cuarto preparado le avisa a tu cuerpo que ya toca descansar y quita distracciones a la hora de dormir." },
+      ateWell: { title: "Comer algo nutritivo", what: "Haz al menos una comida completa, con algo de proteína (huevo, pollo, frijoles, yogur).", why: "Con TDAH es fácil saltarse comidas, sobre todo si tu medicamento te quita el hambre. Con el estómago vacío cuesta más concentrarse y es más fácil irritarse." },
+      hydrated: { title: "Tomar agua", what: "Ten un vaso o una botella a la vista y toma agua varias veces durante el día.", why: "Cuando te concentras mucho es fácil olvidarlo. La falta de agua da cansancio y dolor de cabeza, y así cuesta más poner atención." },
+      desk: { title: "Despejar espacio", what: "Antes de trabajar, guarda el celular y lo que no vas a usar. Toma 1 minuto.", why: "Lo que está a la vista compite por tu atención. Es más fácil guardarlo antes que resistirte a mirarlo." },
+      activeBreak: { title: "Pausa activa", what: "5 minutos de movimientos guiados entre bloques de trabajo: estirarte, caminar, respirar.", why: "Moverte un poco despeja la cabeza y te ayuda a regresar con más atención." },
+    },
+    footer: "Las palomitas se borran solas cada mañana. También puedes agregar hasta 3 hábitos tuyos en Herramientas → Mi día a día → Mis hábitos de hoy.",
+  },
+
   todayStrip: {
     title: "Mis hábitos de hoy",
     count: (done, total) => `${done} de ${total}`,
     desk: "Despejar espacio",
     deskDone: "Espacio listo",
     activeBreak: "Pausa activa",
-    short: { screensOff: "Pantallas", sleepEnv: "Cuarto", ateWell: "Comida", hydrated: "Agua" },
+    short: { screensOff: "Apagar pantallas", sleepEnv: "Preparar cuarto", ateWell: "Comer bien", hydrated: "Tomar agua" },
+    subtitle: "Toca cada uno cuando lo hagas. Son la base para concentrarte y sentirte mejor.",
+    deskSub: "Antes de trabajar",
+    activeBreakSub: "5 min de movimiento",
   },
   progressSummary: {
     viewsLabel: "Secciones de Progreso",
@@ -1134,7 +1153,7 @@ const es = {
     dayNames: ["domingo", "lunes", "martes", "miércoles", "jueves", "viernes", "sábado"],
     habitLabels: {
       screensOff: "Apagar pantallas a tiempo",
-      sleepEnv: "Preparar el entorno para dormir",
+      sleepEnv: "Preparar el cuarto para dormir",
       ateWell: "Comer algo nutritivo",
       hydrated: "Hidratarte durante el día",
       deskCleared: "Ordenar el escritorio",
@@ -1482,7 +1501,7 @@ const es = {
     habits: {
       sleepHygiene: "Higiene del sueño",
       screensOff: "Apagué las pantallas a tiempo",
-      sleepEnvReady: "Preparé el entorno para dormir",
+      sleepEnvReady: "Preparé mi cuarto para dormir",
       bedtimeRegistered: (time) => `Hoy registraste: te dormiste a las ${time}.`,
       bedtimeQuestion: "¿A qué hora te dormiste anoche?",
       nutrition: "Alimentación",

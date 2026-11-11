@@ -862,13 +862,32 @@ const fr = {
     doneToday: "Tu as déjà dégagé ton espace aujourd'hui. Bon début !",
   },
 
+  habitsInfo: {
+    button: "À quoi ça sert ?",
+    title: "À quoi servent ces habitudes ?",
+    intro: "Avec le TDAH, mal dormir, sauter des repas ou rester des heures sans bouger rend plus difficile de se concentrer et de réguler son humeur. Ces habitudes simples protègent cette base. Touche chacune quand tu l'as faite : tu gagnes des XP et tu vois ta journée d'un coup d'œil. Ce n'est pas une note : si tu ne les fais pas un jour, tu repars de zéro le lendemain.",
+    whyLabel: "Pourquoi ?",
+    items: {
+      screensOff: { title: "Éteindre les écrans à temps", what: "Laisse le téléphone, la télé et l'ordinateur 30 à 60 minutes avant de dormir.", why: "La lumière et ce que tu regardes sur les écrans gardent le cerveau éveillé, et avec le TDAH s'endormir est souvent déjà plus difficile." },
+      sleepEnv: { title: "Chambre prête pour dormir", what: "Rends ta chambre sombre, fraîche et silencieuse, avec le lit dégagé et le téléphone loin de l'oreiller.", why: "Une chambre préparée indique à ton corps qu'il est temps de se reposer et enlève les distractions au moment de dormir." },
+      ateWell: { title: "Manger quelque chose de nutritif", what: "Prends au moins un repas complet avec des protéines (œufs, poulet, légumineuses, yaourt).", why: "Avec le TDAH, on saute facilement des repas, surtout si ton médicament te coupe l'appétit. Le ventre vide, on se concentre moins bien et on s'irrite plus vite." },
+      hydrated: { title: "Boire de l'eau", what: "Garde un verre ou une bouteille en vue et bois de l'eau plusieurs fois dans la journée.", why: "Quand on est très concentré, on oublie facilement. Le manque d'eau fatigue et donne mal à la tête, ce qui rend l'attention plus difficile." },
+      desk: { title: "Dégager l'espace", what: "Avant de travailler, range le téléphone et ce que tu ne vas pas utiliser. Ça prend 1 minute.", why: "Ce qui est en vue attire ton attention. C'est plus facile de le ranger avant que de résister à le regarder." },
+      activeBreak: { title: "Pause active", what: "5 minutes de mouvements guidés entre deux blocs de travail : s'étirer, marcher, respirer.", why: "Bouger un peu aère l'esprit et t'aide à revenir avec plus d'attention." },
+    },
+    footer: "Les coches s'effacent toutes seules chaque matin. Tu peux aussi ajouter jusqu'à 3 habitudes à toi dans Outils → Mon quotidien → Mes habitudes du jour.",
+  },
+
   todayStrip: {
     title: "Mes habitudes du jour",
     count: (done, total) => `${done} sur ${total}`,
     desk: "Dégager l'espace",
     deskDone: "Espace dégagé",
     activeBreak: "Pause active",
-    short: { screensOff: "Écrans", sleepEnv: "Chambre", ateWell: "Repas", hydrated: "Eau" },
+    short: { screensOff: "Éteindre les écrans", sleepEnv: "Préparer la chambre", ateWell: "Bien manger", hydrated: "Boire de l'eau" },
+    subtitle: "Touche chacune quand tu l'as faite. C'est la base pour te concentrer et te sentir mieux.",
+    deskSub: "Avant de travailler",
+    activeBreakSub: "5 min de mouvement",
   },
   progressSummary: {
     viewsLabel: "Sections de Progrès",
@@ -1101,7 +1120,7 @@ const fr = {
     dayNames: ["dimanche", "lundi", "mardi", "mercredi", "jeudi", "vendredi", "samedi"],
     habitLabels: {
       screensOff: "Éteindre les écrans à temps",
-      sleepEnv: "Préparer l'environnement pour dormir",
+      sleepEnv: "Préparer la chambre pour dormir",
       ateWell: "Manger quelque chose de nutritif",
       hydrated: "Rester hydraté·e pendant la journée",
       deskCleared: "Ranger le bureau",
@@ -1435,7 +1454,7 @@ const fr = {
     habits: {
       sleepHygiene: "Hygiène du sommeil",
       screensOff: "J'ai éteint les écrans à temps",
-      sleepEnvReady: "J'ai préparé l'environnement pour dormir",
+      sleepEnvReady: "J'ai préparé ma chambre pour dormir",
       bedtimeRegistered: (time) => `Aujourd'hui tu as enregistré : tu t'es endormi·e à ${time}.`,
       bedtimeQuestion: "À quelle heure t'es-tu endormi·e hier soir ?",
       nutrition: "Alimentation",
