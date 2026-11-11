@@ -276,6 +276,8 @@ const es = {
   },
 
   clinicalReport: {
+    showDetails: "Ver reporte",
+    hideDetails: "Ocultar reporte",
     printOnlyTitle: "Reporte para tu consulta — ANRO TDAH",
     printOnlyRange: (days, date) => `Últimos ${days} días, generado el ${date}.`,
     intro: (days) => `Resumen de tus últimos ${days} días en ANRO TDAH, armado solo con lo que ya registraste — nada generado por IA. Es un apoyo para platicar en tu consulta, no un diagnóstico ni una evaluación clínica.`,
@@ -293,7 +295,7 @@ const es = {
     sleepNone: "Sin registros de hora de dormir en este periodo.",
     sleepRegistered: (logged, total, late) => `Registrada ${logged} de ${total} noches — ${late} de esas noches fue después de la medianoche.`,
     impulseBrakeLabel: "Freno de impulsividad",
-    impulseBrakeUsed: (total, days, purchasePart) => `Usado ${total} vez${total === 1 ? "" : "es"} en los últimos ${days} días${purchasePart}.`,
+    impulseBrakeUsed: (total, days, purchasePart) => `Usado ${total} ${total === 1 ? "vez" : "veces"} en los últimos ${days} días${purchasePart}.`,
     impulseBrakePurchasePart: (purchase) => `, ${purchase} de ellas antes de una compra no planeada`,
     streakHabitsLabel: "Racha y hábitos",
     streakSummary: (current, longest) => `Racha actual: ${current} día${current === 1 ? "" : "s"} (mejor racha: ${longest}).`,
@@ -845,8 +847,17 @@ const es = {
     nextDay: "Día siguiente",
   },
 
+  progressSummary: {
+    viewsLabel: "Secciones de Progreso",
+    views: { semana: "Mi semana", momentos: "Momentos buenos", consulta: "Para mi consulta" },
+    title: "Tu semana",
+    focusLabel: "de enfoque esta semana",
+  },
+
   scienceCapsule: {
     title: "Dato del día sobre TDAH",
+    readMore: "Leer más",
+    readLess: "Leer menos",
     sourceLabel: (source) => `Fuente: ${source}`,
   },
 

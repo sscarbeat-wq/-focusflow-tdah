@@ -255,6 +255,8 @@ const fr = {
   },
 
   clinicalReport: {
+    showDetails: "Voir le rapport",
+    hideDetails: "Masquer le rapport",
     printOnlyTitle: "Rapport pour ta consultation — ANRO TDAH",
     printOnlyRange: (days, date) => `${days} derniers jours, généré le ${date}.`,
     intro: (days) => `Résumé de tes ${days} derniers jours dans ANRO TDAH, basé uniquement sur ce que tu as déjà enregistré — rien n'est généré par IA. C'est un appui pour ta discussion en consultation, pas un diagnostic ni une évaluation clinique.`,
@@ -819,8 +821,17 @@ const fr = {
     nextDay: "Jour suivant",
   },
 
+  progressSummary: {
+    viewsLabel: "Sections de Progrès",
+    views: { semana: "Ma semaine", momentos: "Bons moments", consulta: "Pour ma consultation" },
+    title: "Ta semaine",
+    focusLabel: "de concentration cette semaine",
+  },
+
   scienceCapsule: {
     title: "Info du jour sur le TDAH",
+    readMore: "Lire la suite",
+    readLess: "Réduire",
     sourceLabel: (source) => `Source : ${source}`,
   },
 
