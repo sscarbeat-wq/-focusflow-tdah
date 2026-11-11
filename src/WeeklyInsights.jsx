@@ -1,5 +1,5 @@
 import React from "react";
-import { weekMoodSummary, weekAchievements, pendingHabits, weekSleepPattern, weekFocusSummary } from "./weeklyInsights";
+import { weekMoodSummary, pendingHabits, weekSleepPattern, weekFocusSummary } from "./weeklyInsights";
 
 // `dateKey` viene en formato YYYY-MM-DD en hora local — se construye con
 // T00:00:00 para que no se interprete como UTC y "cambie de día". Los
@@ -16,7 +16,6 @@ function dayLabel(dateKey, dayNames) {
 // inventar un patrón.
 export default function WeeklyInsights({ C, t, moodLog, jar, streak, habits, sleepLog, focusSessionLog }) {
   const mood = weekMoodSummary(moodLog, 7);
-  const achievements = weekAchievements(jar, 7);
   const pending = pendingHabits(habits);
   const sleep = weekSleepPattern(sleepLog, 7);
   const focus = weekFocusSummary(focusSessionLog, 7);
@@ -45,26 +44,8 @@ export default function WeeklyInsights({ C, t, moodLog, jar, streak, habits, sle
         </div>
       )}
 
-      <div style={{ display: "flex", gap: "20px", marginBottom: "16px", flexWrap: "wrap" }}>
-        <div>
-          <p style={{ fontSize: "22px", fontWeight: 700, color: C.amber, margin: 0 }}>{streak?.current ?? 0}</p>
-          <p style={{ fontSize: "11px", color: C.textMuted, margin: 0 }}>{wi.currentStreak}</p>
-        </div>
-        <div>
-          <p style={{ fontSize: "22px", fontWeight: 700, color: C.amber, margin: 0 }}>{streak?.longest ?? 0}</p>
-          <p style={{ fontSize: "11px", color: C.textMuted, margin: 0 }}>{wi.bestStreak}</p>
-        </div>
-        <div>
-          <p style={{ fontSize: "22px", fontWeight: 700, color: C.amber, margin: 0 }}>
-            {achievements.count}
-            {achievements.capped ? "+" : ""}
-          </p>
-          <p style={{ fontSize: "11px", color: C.textMuted, margin: 0 }}>
-            {wi.achievementsThisWeek(achievements.count)}
-          </p>
-        </div>
-      </div>
-
+      {/* Racha, mejor racha y logros de la semana ahora van arriba de
+          Progreso, en "Tu semana" (ProgressSummary.jsx), para no repetirlos. */}
       <div
         style={{
           marginBottom: "16px",
@@ -101,6 +82,7 @@ export default function WeeklyInsights({ C, t, moodLog, jar, streak, habits, sle
                     <div
                       style={{
                         width: "70%",
+                        maxWidth: "28px",
                         height: minutes > 0 ? `${Math.max(6, (minutes / maxFocusMinutes) * 40)}px` : "2px",
                         borderRadius: "4px",
                         background: minutes > 0 ? C.coral : C.border,

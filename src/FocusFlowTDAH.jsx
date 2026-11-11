@@ -141,6 +141,7 @@ import {
 import { DEFAULT_SLEEP_LOG, recordBedtime, todayBedtime } from "./sleepLog";
 import { DEFAULT_IMPULSE_BRAKE_LOG, recordImpulseBrakeUse } from "./impulseBrakeLog";
 import { DEFAULT_GOOD_MOMENTS, addGoodMoment, removeGoodMoment } from "./goodMoments";
+import ProgressSummary from "./ProgressSummary";
 import { DEFAULT_ONE_THING, startOneThing, finishOneThing, exitOneThing } from "./oneThing";
 import {
   DEFAULT_ROUTINES,
@@ -246,7 +247,11 @@ function Panel({ accent, icon, title, subtitle, children, C }) {
   return (
     <div
       style={{
-        background: `linear-gradient(165deg, ${tint(accent, 0.07)}, ${C.surface} 55%)`,
+        // Capa de color encima de un fondo SÓLIDO: tint() es translúcido, y
+        // sin el color de fondo debajo se transparentaba el degradado de la
+        // página (la parte de arriba de la tarjeta se veía lavada y el
+        // subtítulo casi no se leía).
+        background: `linear-gradient(165deg, ${tint(accent, 0.07)}, transparent 55%), ${C.surface}`,
         borderRadius: "22px",
         padding: "24px 24px 26px",
         marginBottom: "20px",
@@ -575,6 +580,7 @@ export default function FocusFlowTDAH({
     const targetTab = SECTION_TABS[key] || "inicio";
     if (targetTab === "herramientas") setActiveTool(key);
     if (targetTab === "inicio") setInicioView("hoy");
+    if (targetTab === "progreso") setProgressView({ goodMoments: "momentos", report: "consulta" }[key] || "semana");
     if (targetTab !== activeTab) setActiveTab(targetTab);
     const behavior = opts.instant ? "auto" : "smooth";
     requestAnimationFrame(() => {
@@ -584,6 +590,8 @@ export default function FocusFlowTDAH({
   // Oculta (sin desmontar) cada sección que no sea de la pestaña activa —
   // ver la nota de arriba sobre por qué no se desmonta: ningún temporizador
   // ni estado interno de un panel se pierde al cambiar de pestaña.
+  // Qué parte de Progreso se ve (ver la barra de 3 opciones en esa pestaña).
+  const [progressView, setProgressView] = useState("semana");
   const tabStyle = (tab) => ({ display: activeTab === tab ? undefined : "none" });
   // En escritorio, estando en Inicio, la barra de pestañas va dentro de la
   // brújula (abajo) para que lo primero de la pantalla sea la mascota y el
@@ -2967,44 +2975,133 @@ export default function FocusFlowTDAH({
             brújula, el frasco de recompensas pasa a Progreso (es progreso) y
             el aviso de "no reemplaza a tu médico" a Perfil. */}
         <div>
-        {/* Dopamine jar */}
-        <div
-          style={{
-            ...tabStyle("progreso"),
-            background: C.surface,
-            border: `1px solid ${C.border}`,
-            borderRadius: "12px",
-            padding: "14px 18px",
-            marginBottom: "20px",
-          }}
-        >
-          <div style={{ display: "flex", alignItems: "center", gap: "8px", marginBottom: jar.length ? "10px" : 0 }}>
-            <Award size={16} color={C.lavender} />
-            <span style={{ fontSize: "13px", color: C.textMuted }}>{t.app.jarLabel}</span>
-          </div>
-          {jar.length === 0 ? (
-            <p style={{ fontSize: "13px", color: C.textMuted, margin: 0 }}>
-              {t.app.jarEmpty}
-            </p>
-          ) : (
-            <div style={{ display: "flex", flexWrap: "wrap", gap: "8px" }}>
-              {jar.map((j) => (
-                <span
-                  key={j.id}
+        {/* Pestaña Progreso (11 de noviembre de 2026). Primera versión: 5
+            tarjetas en 2 columnas — "son demasiados cuadros". Ahora: una
+            barra con 3 opciones (Mi semana · Momentos buenos · Para mi
+            consulta) y UNA sola tarjeta con lo que se eligió. Dentro, las
+            partes se separan con una línea fina, no con más cuadros.
+              - Mi semana: números + tarro de logros, insights (Plus) y el
+                dato del día.
+              - Momentos buenos: el banco de momentos.
+              - Para mi consulta: el reporte para imprimir (Plus). */}
+        <div style={tabStyle("progreso")}>
+          <div
+            role="tablist"
+            aria-label={t.progressSummary.viewsLabel}
+            style={{
+              display: "flex",
+              gap: "4px",
+              padding: "4px",
+              marginBottom: "16px",
+              background: C.surface,
+              borderRadius: "16px",
+              border: `1px solid ${C.border}`,
+            }}
+          >
+            {[
+              { key: "semana", emoji: "📈", label: t.progressSummary.views.semana },
+              { key: "momentos", emoji: "💛", label: t.progressSummary.views.momentos },
+              { key: "consulta", emoji: "📋", label: t.progressSummary.views.consulta },
+            ].map((v) => {
+              const active = progressView === v.key;
+              return (
+                <button
+                  key={v.key}
+                  type="button"
+                  role="tab"
+                  aria-selected={active}
+                  onClick={() => setProgressView(v.key)}
                   style={{
-                    background: C.surfaceAlt,
-                    border: `1px solid ${C.border}`,
-                    borderRadius: "20px",
-                    padding: "5px 12px",
-                    fontSize: "12px",
-                    color: C.lavender,
+                    flex: 1,
+                    minWidth: 0,
+                    minHeight: "44px",
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    gap: "6px",
+                    padding: "6px 8px",
+                    borderRadius: "12px",
+                    border: "none",
+                    background: active ? tint(personalAccent, 0.18) : "transparent",
+                    color: active ? C.text : C.textMuted,
+                    fontSize: isNarrow ? "12.5px" : "14px",
+                    fontWeight: active ? 800 : 600,
+                    cursor: "pointer",
+                    lineHeight: 1.2,
                   }}
                 >
-                  {j.label}
-                </span>
-              ))}
+                  <span aria-hidden="true">{v.emoji}</span>
+                  <span>{v.label}</span>
+                </button>
+              );
+            })}
+          </div>
+
+          <div
+            style={{
+              background: C.surface,
+              borderRadius: "22px",
+              padding: isNarrow ? "20px 18px" : "26px 28px",
+              marginBottom: "20px",
+              boxShadow: "0 1px 2px rgba(0,0,0,0.05), 0 10px 24px rgba(0,0,0,0.10), inset 0 1px 0 rgba(255,255,255,0.05)",
+            }}
+          >
+            <div ref={insightsSectionRef} style={{ display: progressView === "semana" ? undefined : "none" }}>
+              <ProgressSummary C={C} t={t} jar={jar} streak={streak} focusSessionLog={focusSessionLog} isNarrow={isNarrow} />
+              <div style={{ borderTop: `1px solid ${C.border}`, margin: "22px 0 18px" }} />
+              <div style={{ display: "flex", alignItems: "center", gap: "8px", marginBottom: "10px" }}>
+                <TrendingUp size={15} color={C.amber} />
+                <span style={{ fontSize: "13px", fontWeight: 700, color: C.text }}>{t.app.panels.insights.title}</span>
+              </div>
+              <PlusLockedPanel C={C} t={t} locked={!isPlus} onRequestUpgrade={onRequestUpgrade}>
+                <WeeklyInsights
+                  C={C}
+                  t={t}
+                  moodLog={moodLog}
+                  jar={jar}
+                  streak={streak}
+                  habits={{ screensOff, sleepEnv, ateWell, hydrated, deskCleared }}
+                  sleepLog={sleepLog}
+                  focusSessionLog={focusSessionLog}
+                />
+              </PlusLockedPanel>
+              <div style={{ borderTop: `1px solid ${C.border}`, margin: "20px 0 18px" }} />
+              <ScienceCapsulePanel C={C} t={t} />
             </div>
-          )}
+
+            <div ref={goodMomentsSectionRef} style={{ display: progressView === "momentos" ? undefined : "none" }}>
+              <h2 style={{ fontSize: "17px", fontWeight: 800, color: C.text, margin: "0 0 4px" }}>{t.app.panels.goodMoments.title}</h2>
+              <p style={{ fontSize: "13px", color: C.textMuted, margin: "0 0 16px", lineHeight: 1.5 }}>{t.app.panels.goodMoments.subtitle}</p>
+              <GoodMomentsPanel
+                C={C}
+                t={t}
+                lang={lang}
+                goodMoments={goodMoments}
+                onAdd={handleAddGoodMoment}
+                onRemove={handleRemoveGoodMoment}
+              />
+            </div>
+
+            <div ref={reportSectionRef} style={{ display: progressView === "consulta" ? undefined : "none" }}>
+              <h2 style={{ fontSize: "17px", fontWeight: 800, color: C.text, margin: "0 0 4px" }}>{t.app.panels.report.title}</h2>
+              <p style={{ fontSize: "13px", color: C.textMuted, margin: "0 0 16px", lineHeight: 1.5 }}>{t.app.panels.report.subtitle}</p>
+              <PlusLockedPanel C={C} t={t} locked={!isPlus} onRequestUpgrade={onRequestUpgrade}>
+                <ClinicalReportPanel
+                  C={C}
+                  t={t}
+                  lang={lang}
+                  moodLog={moodLog}
+                  energyLog={energyLog}
+                  medications={medications}
+                  medicationDoseLog={medicationDoseLog}
+                  habits={{ screensOff, sleepEnv, ateWell, hydrated, deskCleared }}
+                  streak={streak}
+                  sleepLog={sleepLog}
+                  impulseBrakeLog={impulseBrakeLog}
+                />
+              </PlusLockedPanel>
+            </div>
+          </div>
         </div>
 
         <div
@@ -3744,23 +3841,6 @@ export default function FocusFlowTDAH({
             </Panel>
             </div>
 
-            <div ref={goodMomentsSectionRef} style={tabStyle("progreso")}>
-            <Panel C={C}
-              accent={C.lavender}
-              icon={<Heart size={22} />}
-              title={t.app.panels.goodMoments.title}
-              subtitle={t.app.panels.goodMoments.subtitle}
-            >
-              <GoodMomentsPanel
-                C={C}
-                t={t}
-                lang={lang}
-                goodMoments={goodMoments}
-                onAdd={handleAddGoodMoment}
-                onRemove={handleRemoveGoodMoment}
-              />
-            </Panel>
-            </div>
 
             <div ref={cbtSectionRef} style={toolStyle("cbt")}>
             <Panel C={C}
@@ -3773,58 +3853,8 @@ export default function FocusFlowTDAH({
             </Panel>
             </div>
 
-            {/* Dato del día: antes salía en las 5 pestañas; ahora solo en
-                Progreso (Inicio es solo la brújula). */}
-            <div style={tabStyle("progreso")}>
-              <ScienceCapsulePanel C={C} t={t} />
-            </div>
 
-            <div ref={insightsSectionRef} style={tabStyle("progreso")}>
-            <Panel C={C}
-              accent={C.amber}
-              icon={<TrendingUp size={22} />}
-              title={t.app.panels.insights.title}
-              subtitle={t.app.panels.insights.subtitle}
-            >
-              <PlusLockedPanel C={C} t={t} locked={!isPlus} onRequestUpgrade={onRequestUpgrade}>
-              <WeeklyInsights
-                C={C}
-                t={t}
-                moodLog={moodLog}
-                jar={jar}
-                streak={streak}
-                habits={{ screensOff, sleepEnv, ateWell, hydrated, deskCleared }}
-                sleepLog={sleepLog}
-                focusSessionLog={focusSessionLog}
-              />
-              </PlusLockedPanel>
-            </Panel>
-            </div>
 
-            <div ref={reportSectionRef} style={tabStyle("progreso")}>
-            <Panel C={C}
-              accent={C.amber}
-              icon={<FileText size={22} />}
-              title={t.app.panels.report.title}
-              subtitle={t.app.panels.report.subtitle}
-            >
-              <PlusLockedPanel C={C} t={t} locked={!isPlus} onRequestUpgrade={onRequestUpgrade}>
-              <ClinicalReportPanel
-                C={C}
-                t={t}
-                lang={lang}
-                moodLog={moodLog}
-                energyLog={energyLog}
-                medications={medications}
-                medicationDoseLog={medicationDoseLog}
-                habits={{ screensOff, sleepEnv, ateWell, hydrated, deskCleared }}
-                streak={streak}
-                sleepLog={sleepLog}
-                impulseBrakeLog={impulseBrakeLog}
-              />
-              </PlusLockedPanel>
-            </Panel>
-            </div>
 
             <div ref={notificationsSectionRef} style={tabStyle("perfil")}>
             <Panel C={C}

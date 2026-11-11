@@ -1,5 +1,5 @@
-import React from "react";
-import { Printer } from "lucide-react";
+import React, { useState } from "react";
+import { Printer, ChevronDown } from "lucide-react";
 import { buildClinicalReport, CLINICAL_REPORT_DAYS } from "./clinicalReport";
 
 const DATE_FMT = { day: "2-digit", month: "2-digit", year: "numeric" };
@@ -32,6 +32,10 @@ export default function ClinicalReportPanel({
   sleepLog,
   impulseBrakeLog,
 }) {
+  // 11 nov 2026: el detalle viene cerrado — en pantalla ocupaba una
+  // columna entera de Progreso. Al imprimir siempre sale completo
+  // ([data-print-show] en la hoja de estilo de impresión).
+  const [open, setOpen] = useState(false);
   const report = buildClinicalReport({
     moodLog,
     energyLog,
@@ -64,6 +68,7 @@ export default function ClinicalReportPanel({
           #senda-clinical-report { position: absolute; left: 0; top: 0; width: 100%; }
           #senda-clinical-report [data-no-print] { display: none !important; }
           #senda-clinical-report [data-print-only] { display: block !important; }
+          #senda-clinical-report [data-print-show] { display: block !important; }
         }
       `}</style>
 
@@ -74,32 +79,54 @@ export default function ClinicalReportPanel({
         </p>
       </div>
 
+      <div data-no-print style={{ display: "flex", gap: "8px", flexWrap: "wrap" }}>
+        <button
+          type="button"
+          onClick={() => setOpen((v) => !v)}
+          aria-expanded={open}
+          style={{
+            display: "flex",
+            alignItems: "center",
+            gap: "6px",
+            background: C.surfaceAlt,
+            color: C.text,
+            border: `1px solid ${C.border}`,
+            borderRadius: "12px",
+            padding: "10px 14px",
+            fontSize: "13px",
+            fontWeight: 600,
+            cursor: "pointer",
+          }}
+        >
+          <ChevronDown size={16} style={{ transform: open ? "rotate(180deg)" : "none", transition: "transform 0.2s" }} />
+          {open ? t.clinicalReport.hideDetails : t.clinicalReport.showDetails}
+        </button>
+        <button
+          onClick={() => {
+            if (typeof window !== "undefined" && window.print) window.print();
+          }}
+          style={{
+            display: "flex",
+            alignItems: "center",
+            gap: "8px",
+            background: C.lavender,
+            color: C.lavenderText,
+            border: "none",
+            borderRadius: "12px",
+            padding: "10px 16px",
+            fontSize: "13px",
+            fontWeight: 600,
+            cursor: "pointer",
+          }}
+        >
+          <Printer size={16} /> {t.clinicalReport.printButton}
+        </button>
+      </div>
+
+      <div data-print-show style={{ display: open ? "block" : "none", marginTop: "18px" }}>
       <p style={{ fontSize: "12px", color: C.textMuted, margin: "0 0 16px", lineHeight: 1.6 }}>
         {t.clinicalReport.intro(CLINICAL_REPORT_DAYS)}
       </p>
-
-      <button
-        data-no-print
-        onClick={() => {
-          if (typeof window !== "undefined" && window.print) window.print();
-        }}
-        style={{
-          display: "flex",
-          alignItems: "center",
-          gap: "8px",
-          background: C.lavender,
-          color: C.lavenderText,
-          border: "none",
-          borderRadius: "12px",
-          padding: "10px 16px",
-          fontSize: "13px",
-          fontWeight: 600,
-          cursor: "pointer",
-          marginBottom: "20px",
-        }}
-      >
-        <Printer size={16} /> {t.clinicalReport.printButton}
-      </button>
 
       <div style={sectionStyle}>
         <p style={labelStyle}>{t.clinicalReport.moodLabel}</p>
@@ -183,6 +210,7 @@ export default function ClinicalReportPanel({
       <p style={{ fontSize: "11px", color: C.textMuted, margin: "4px 0 0" }}>
         {t.clinicalReport.generatedOn(formatDate(report.generatedAt, lang))}
       </p>
+      </div>
     </div>
   );
 }
