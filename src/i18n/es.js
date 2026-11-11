@@ -1050,6 +1050,13 @@ const es = {
   },
 
   tools: {
+    needTitle: "¿Qué necesitas ahora?",
+    allGroups: "Categorías",
+    suggestTitle: "Te puede servir ahora",
+    groupCount: (n) => `${n} ${n === 1 ? "herramienta" : "herramientas"}`,
+    suggestReasons: { moodLow: "Hoy registraste un ánimo bajo. Un minuto solo para ti.", night: "Ya es de noche: un buen momento para preparar tu descanso.", noCheckin: "Todavía no registras cómo te sientes hoy. Toma 10 segundos.", pending: "Tienes pasos pendientes. Elige solo uno y empieza por ahí.", morning: "Buen momento para partir en pasos eso que estás posponiendo.", default: "Un rato de enfoque con descansos programados." },
+    recentTitle: "Las que más usas",
+    groups: { start: "Empezar y organizarme", focus: "Concentrarme", calm: "Calmarme", feel: "Cómo me siento", daily: "Mi día a día" },
     gridLabel: "Herramientas disponibles",
     backButton: "Volver a Herramientas",
   },

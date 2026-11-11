@@ -99,7 +99,7 @@ import { scheduleStepsOnCalendar } from "./calendarSync";
 import { useBodyDouble } from "./bodyDouble";
 import { celebrate } from "./celebrate";
 import { DEFAULT_STREAK, nextStreak, effectiveStreak } from "./streak";
-import { DEFAULT_MOOD_LOG, recordMood } from "./moodLog";
+import { DEFAULT_MOOD_LOG, recordMood, todayEntry as todayMoodEntry } from "./moodLog";
 import {
   DEFAULT_FOCUS_SESSION_LOG,
   logFocusSession,
@@ -3063,7 +3063,30 @@ export default function FocusFlowTDAH({
         {activeTab === "herramientas" && (
           <div style={{ marginBottom: "20px" }}>
             {activeTool === null ? (
-              <ToolsGrid C={C} t={t} accent={personalAccent} items={herramientasItems} onSelect={setActiveTool} />
+              <ToolsGrid
+                C={C}
+                t={t}
+                accent={personalAccent}
+                items={herramientasItems}
+                onSelect={setActiveTool}
+                // "Te puede servir ahora" (11 de noviembre de 2026): UNA
+                // sugerencia según lo que la app ya sabe del día, en este
+                // orden — ánimo bajo registrado hoy → calmarse; de noche →
+                // preparar el descanso; sin check-in → registrar ánimo;
+                // pasos pendientes → elegir solo uno; mañana → desglosar;
+                // si no, un rato de Modo Enfoque.
+                suggestion={(() => {
+                  const now = new Date();
+                  const h = now.getHours();
+                  const moodToday = todayMoodEntry(moodLog, now);
+                  if (moodToday && moodToday.mood <= 2) return { key: "calmBubbles", reason: "moodLow" };
+                  if (h >= 21 || h < 5) return { key: "habits", reason: "night" };
+                  if (!moodToday) return { key: "mood", reason: "noCheckin" };
+                  if (steps.some((st) => !st.done)) return { key: "oneThing", reason: "pending" };
+                  if (h < 13) return { key: "desglosador", reason: "morning" };
+                  return { key: "focusMode", reason: "default" };
+                })()}
+              />
             ) : (
               <button
                 onClick={() => setActiveTool(null)}

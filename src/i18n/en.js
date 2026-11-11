@@ -1014,6 +1014,13 @@ const en = {
   },
 
   tools: {
+    needTitle: "What do you need right now?",
+    allGroups: "Categories",
+    suggestTitle: "This could help right now",
+    groupCount: (n) => `${n} ${n === 1 ? "tool" : "tools"}`,
+    suggestReasons: { moodLow: "You logged a low mood today. One minute just for you.", night: "It's evening: a good time to get ready to rest.", noCheckin: "You haven't logged how you feel today. It takes 10 seconds.", pending: "You have pending steps. Pick just one and start there.", morning: "A good time to break down that thing you keep putting off.", default: "Some focused time with scheduled breaks." },
+    recentTitle: "Your most used",
+    groups: { start: "Get started & organized", focus: "Focus", calm: "Calm down", feel: "How I feel", daily: "My day-to-day" },
     gridLabel: "Available tools",
     backButton: "Back to Tools",
   },
