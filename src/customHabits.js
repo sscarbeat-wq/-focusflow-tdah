@@ -16,9 +16,13 @@ import { todayKey } from "./streak.js";
 
 export const HABIT_DAY_START_HOUR = 4;
 export const MAX_CUSTOM_HABITS = 3;
-export const CUSTOM_HABIT_MAX_LENGTH = 30;
+// 60 letras: con 30 no cabía "Cerrar las puertas por la noche" (lo reportó
+// la doctora al probarlo). En la franja de Inicio el nombre largo se corta
+// con "…" a 2 renglones; en la lista se ve completo.
+export const CUSTOM_HABIT_MAX_LENGTH = 60;
 export const DEFAULT_CUSTOM_HABITS = [];
-export const HABIT_EMOJIS = ["💊", "📖", "🚶", "🧘", "🦷", "🧴", "📝", "🎵", "🌱", "☀️", "🐶", "✨"];
+// El último (✨) es el neutro con el que arranca un hábito nuevo.
+export const HABIT_EMOJIS = ["💊", "📖", "🚶", "🏃", "🧘", "🦷", "🧴", "📝", "📅", "⏰", "🎒", "🔑", "🍳", "☕", "🎵", "🌱", "🌳", "☀️", "🐶", "🔒", "🧹", "🛁", "🍎", "✨"];
 
 export function habitDayKey(now = new Date()) {
   return todayKey(new Date(now.getTime() - HABIT_DAY_START_HOUR * 60 * 60 * 1000));

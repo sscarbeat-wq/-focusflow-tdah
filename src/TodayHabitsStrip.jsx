@@ -82,7 +82,7 @@ export default function TodayHabitsStrip({ C, t, palette, items, deskCleared, on
         color: text,
       }}
     >
-      <div style={{ display: "flex", alignItems: "center", flexWrap: "wrap", gap: side ? "6px 8px" : "4px 8px", marginBottom: shortScreen ? "6px" : side ? "6px" : "2px" }}>
+      <div style={{ display: "flex", alignItems: "center", flexWrap: "wrap", gap: side ? "6px 8px" : "4px 8px", marginBottom: shortScreen ? "6px" : side ? "6px" : isNarrow && items.length > 4 ? "8px" : "2px" }}>
         <span style={{ fontSize: "14px", fontWeight: 800, whiteSpace: "nowrap" }}>{th.title}</span>
         {/* Celular bajito: en lugar del contador va el "＋" (las palomitas
             ya se ven en cada botón) para no gastar otro renglón. */}
@@ -133,7 +133,9 @@ export default function TodayHabitsStrip({ C, t, palette, items, deskCleared, on
           </button>
         )}
       </div>
-      {!shortScreen && (
+      {/* En el teléfono, con hábitos propios (dos filas) se omite este
+          renglón para que la franja siga cabiendo sin bajar la pantalla. */}
+      {!shortScreen && !(isNarrow && items.length > 4) && (
         <p style={{ fontSize: "12px", color: muted, margin: isNarrow ? "0 0 8px" : "0 0 10px", lineHeight: 1.35 }}>{th.subtitle}</p>
       )}
       {infoOpen && <HabitsInfoSheet C={C} t={t} onClose={() => setInfoOpen(false)} />}

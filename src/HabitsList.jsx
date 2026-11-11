@@ -12,7 +12,7 @@ const DEFAULT_EMOJI = HABIT_EMOJIS[HABIT_EMOJIS.length - 1];
 // Los propios traen un lápiz para cambiarles el nombre/emoji o quitarlos;
 // los fijos no se pueden editar. `items` viene armado desde
 // FocusFlowTDAH.jsx (misma lista que la franja de Inicio).
-export default function HabitsList({ C, t, isNarrow, items, canAdd, onAdd, onUpdate, onRemove, openAddSignal = 0 }) {
+export default function HabitsList({ C, t, isNarrow, items, canAdd, onAdd, onUpdate, onRemove, openAddSignal = 0, onFormOpenChange }) {
   const h = t.app.habits;
   // null = nada abierto · "new" = agregando · id = editando ese hábito
   const [editing, setEditing] = useState(null);
@@ -20,6 +20,8 @@ export default function HabitsList({ C, t, isNarrow, items, canAdd, onAdd, onUpd
   const [label, setLabel] = useState("");
   const [infoOpen, setInfoOpen] = useState(false);
   const doneCount = items.filter((it) => it.checked).length;
+  const existing = new Set(items.map((it) => it.label));
+  const suggestions = (h.suggestions || []).filter((sg) => !existing.has(sg.label));
 
   const openNew = () => {
     setEmoji(DEFAULT_EMOJI);
@@ -34,6 +36,13 @@ export default function HabitsList({ C, t, isNarrow, items, canAdd, onAdd, onUpd
   const close = () => setEditing(null);
   // Llegando desde el "＋ Agregar un hábito mío" de Inicio: el formulario
   // ya viene abierto (openAddSignal cambia en cada toque).
+  // Avisa cuando el formulario está abierto: FocusFlowTDAH.jsx esconde
+  // mientras tanto los botones flotantes, que en el teléfono tapaban
+  // "Guardar".
+  useEffect(() => {
+    onFormOpenChange?.(editing !== null);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [editing]);
   useEffect(() => {
     if (openAddSignal && canAdd) openNew();
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -70,6 +79,50 @@ export default function HabitsList({ C, t, isNarrow, items, canAdd, onAdd, onUpd
       <p style={{ fontSize: "14px", fontWeight: 800, color: C.text, margin: "0 0 10px" }}>
         {editing === "new" ? h.addTitle : h.editTitle}
       </p>
+      {/* Ideas para tocar (11 nov 2026): con TDAH es más fácil elegir de
+          una lista que inventar desde cero. La doctora aprobó estas 12. Al
+          tocar una se llenan el nombre y el dibujito (se pueden cambiar
+          antes de guardar). No salen las que ya tiene agregadas. */}
+      {editing === "new" && suggestions.length > 0 && (
+        <div style={{ marginBottom: "12px" }}>
+          <p style={{ fontSize: "12.5px", color: C.textMuted, margin: "0 0 6px" }}>{h.suggestTitle}</p>
+          <div style={{ display: "flex", flexWrap: "wrap", gap: "6px" }}>
+            {suggestions.map((sg) => {
+              const active = label === sg.label;
+              return (
+                <button
+                  key={sg.label}
+                  type="button"
+                  onClick={() => {
+                    setLabel(sg.label);
+                    setEmoji(sg.emoji);
+                  }}
+                  aria-pressed={active}
+                  style={{
+                    display: "flex",
+                    alignItems: "center",
+                    gap: "6px",
+                    minHeight: "36px",
+                    padding: "4px 12px",
+                    borderRadius: "999px",
+                    border: active ? `2px solid ${C.mint}` : `1px solid ${C.border}`,
+                    background: active ? tint(C.mint, 0.2) : "transparent",
+                    color: C.text,
+                    fontSize: "13px",
+                    fontWeight: active ? 700 : 500,
+                    textAlign: "left",
+                    cursor: "pointer",
+                  }}
+                >
+                  <span aria-hidden="true">{sg.emoji}</span>
+                  {sg.label}
+                </button>
+              );
+            })}
+          </div>
+          <p style={{ fontSize: "12.5px", color: C.textMuted, margin: "12px 0 0" }}>{h.orWriteYours}</p>
+        </div>
+      )}
       <input
         type="text"
         value={label}
@@ -80,7 +133,7 @@ export default function HabitsList({ C, t, isNarrow, items, canAdd, onAdd, onUpd
         }}
         placeholder={h.namePlaceholder}
         aria-label={h.nameLabel}
-        autoFocus
+        autoFocus={editing !== "new"}
         style={{
           width: "100%",
           boxSizing: "border-box",
@@ -92,9 +145,13 @@ export default function HabitsList({ C, t, isNarrow, items, canAdd, onAdd, onUpd
           color: C.text,
           fontSize: "16px",
           fontFamily: "inherit",
-          marginBottom: "10px",
+          marginBottom: "4px",
         }}
       />
+      {/* Contador de letras: para que se vea cuánto queda antes del tope. */}
+      <p aria-hidden="true" style={{ fontSize: "11.5px", color: C.textMuted, margin: "0 0 8px", textAlign: "right" }}>
+        {label.length}/{CUSTOM_HABIT_MAX_LENGTH}
+      </p>
       <p style={{ fontSize: "12.5px", color: C.textMuted, margin: "0 0 6px" }}>{h.chooseEmoji}</p>
       <div role="radiogroup" aria-label={h.chooseEmoji} style={{ display: "flex", flexWrap: "wrap", gap: "6px", marginBottom: "12px" }}>
         {HABIT_EMOJIS.map((e) => (

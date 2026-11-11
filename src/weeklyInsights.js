@@ -2,7 +2,7 @@
 // Se construyen 100% a partir de datos que la app ya guarda (ánimo, tarro
 // de logros, racha): no agregan ningún costo ni dependencia nueva.
 import { recentEntries } from "./moodLog";
-import { recentBedtimes, isLateBedtime } from "./sleepLog";
+import { recentBedtimes, isLateBedtime, sleepDurationSummary } from "./sleepLog";
 import { recentFocusSessions } from "./focusSessionLog";
 
 // Resumen del ánimo de los últimos `days` días (por defecto 7), apoyado en
@@ -80,6 +80,8 @@ export function weekSleepPattern(sleepLog, days = 7, now = new Date()) {
     loggedNights: logged.length,
     lateNights,
     isPattern: lateNights >= SLEEP_PATTERN_MIN_LATE_NIGHTS,
+    // Tiempo de sueño aproximado de la semana (noches con hora de despertar).
+    duration: sleepDurationSummary(sleepLog, days, now),
   };
 }
 

@@ -138,7 +138,7 @@ import {
   setQuickNoteReminder,
   reminderDateKeyFromPreset,
 } from "./quickCapture";
-import { DEFAULT_SLEEP_LOG, recordBedtime, todayBedtime } from "./sleepLog";
+import { DEFAULT_SLEEP_LOG, recordBedtime, todayBedtime, sleepDurationMinutes } from "./sleepLog";
 import { DEFAULT_IMPULSE_BRAKE_LOG, recordImpulseBrakeUse } from "./impulseBrakeLog";
 import { DEFAULT_GOOD_MOMENTS, addGoodMoment, removeGoodMoment } from "./goodMoments";
 import ProgressSummary from "./ProgressSummary";
@@ -217,6 +217,9 @@ const DEFAULT_PROGRESS = {
   customHabits: DEFAULT_CUSTOM_HABITS,
   habitsDay: null,
   habitXpGiven: [],
+  // Avisos de hábitos (10 am, 3 pm, 9 pm — ver habitReminders.js). La
+  // persona puede apagar solo estos desde Perfil → Notificaciones.
+  habitReminders: true,
   streak: DEFAULT_STREAK,
   moodLog: DEFAULT_MOOD_LOG,
   energyLog: DEFAULT_ENERGY_LOG,
@@ -776,6 +779,7 @@ export default function FocusFlowTDAH({
     const list = normalizeCustomHabits(saved.customHabits);
     return habitsFresh ? list : resetCustomHabits(list);
   });
+  const [habitReminders, setHabitReminders] = useState(saved.habitReminders !== false);
   const [habitXpGiven, setHabitXpGiven] = useState(() => (habitsFresh && Array.isArray(saved.habitXpGiven) ? saved.habitXpGiven : []));
   // Con la app abierta al cambiar el día (o al volver a ella al día
   // siguiente): se apagan todas las palomitas.
@@ -879,6 +883,7 @@ export default function FocusFlowTDAH({
       customHabits,
       habitsDay,
       habitXpGiven,
+      habitReminders,
       streak,
       moodLog,
       energyLog,
@@ -908,6 +913,7 @@ export default function FocusFlowTDAH({
     customHabits,
     habitsDay,
     habitXpGiven,
+    habitReminders,
     streak,
     moodLog,
     energyLog,
@@ -1045,12 +1051,16 @@ export default function FocusFlowTDAH({
     [grantXp, t]
   );
 
+  // `wake`: hora de despertar (opcional, "" la borra) — ver sleepLog.js.
+  // Los XP se dan solo la primera vez del día; corregir la hora después ya
+  // no vuelve a dar puntos.
   const handleRecordBedtime = useCallback(
-    (time) => {
-      setSleepLog((prev) => recordBedtime(prev, time));
-      grantXp(t.app.xpLabels.bedtimeLogged);
+    (time, wake) => {
+      const firstToday = !todayBedtime(sleepLog);
+      setSleepLog((prev) => recordBedtime(prev, time, new Date(), wake));
+      if (firstToday) grantXp(t.app.xpLabels.bedtimeLogged);
     },
-    [grantXp, t]
+    [grantXp, t, sleepLog]
   );
 
   const handleAddGoodMoment = useCallback(
@@ -1695,6 +1705,7 @@ export default function FocusFlowTDAH({
   // "＋ Agregar un hábito mío" desde la franja de Inicio: abre "Mis hábitos
   // de hoy" con el formulario ya abierto (ver HabitsList.jsx).
   const [habitAddSignal, setHabitAddSignal] = useState(0);
+  const [habitFormOpen, setHabitFormOpen] = useState(false);
   const openAddHabit = () => {
     setHabitAddSignal(Date.now());
     scrollToCompanionSection("habits");
@@ -1739,12 +1750,17 @@ export default function FocusFlowTDAH({
 
   // ---- Hora de dormir ----
   const todayBedtimeEntry = todayBedtime(sleepLog);
-  const [bedtimeInput, setBedtimeInput] = useState("");
+  // Los dos campos arrancan con lo ya guardado hoy (si hay), para poder
+  // corregir una hora sin volver a escribir la otra.
+  const [bedtimeInput, setBedtimeInput] = useState(() => todayBedtimeEntry?.time || "");
+  const [wakeInput, setWakeInput] = useState(() => todayBedtimeEntry?.wake || "");
+  const [sleepSaved, setSleepSaved] = useState(false);
   const saveBedtime = () => {
     if (!bedtimeInput) return;
-    handleRecordBedtime(bedtimeInput);
-    setBedtimeInput("");
+    handleRecordBedtime(bedtimeInput, wakeInput);
+    setSleepSaved(true);
   };
+  const sleepMinutesToday = sleepDurationMinutes(todayBedtimeEntry);
 
   // 27 de octubre de 2026 — mismo pedido de "que no se vea tan plana":
   // el campo de texto ahora tiene una sombra interior sutil (se siente
@@ -4048,7 +4064,7 @@ export default function FocusFlowTDAH({
               title={t.app.panels.notifications.title}
               subtitle={t.app.panels.notifications.subtitle}
             >
-              <NotificationsPanel C={C} t={t} userId={userId} />
+              <NotificationsPanel C={C} t={t} userId={userId} habitReminders={habitReminders} onToggleHabitReminders={() => setHabitReminders((v) => !v)} />
             </Panel>
             </div>
 
@@ -4418,27 +4434,61 @@ export default function FocusFlowTDAH({
                   items={habitItems}
                   canAdd={canAddCustomHabit(customHabits)}
                   openAddSignal={habitAddSignal}
+                  onFormOpenChange={setHabitFormOpen}
                   onAdd={(data) => setCustomHabits((list) => addCustomHabit(list, data))}
                   onUpdate={(id, data) => setCustomHabits((list) => updateCustomHabit(list, id, data))}
                   onRemove={(id) => setCustomHabits((list) => removeCustomHabit(list, id))}
                 />
 
                 <div style={{ borderTop: `1px solid ${C.border}`, margin: "20px 0 16px" }} />
-                <p style={{ fontSize: "14px", fontWeight: 700, color: C.text, margin: "0 0 8px" }}>
-                  🌙 {todayBedtimeEntry ? t.app.habits.bedtimeRegistered(todayBedtimeEntry.time) : t.app.habits.bedtimeQuestion}
-                </p>
-                <div style={{ display: "flex", gap: "8px", flexWrap: "wrap" }}>
-                  <input
-                    type="time"
-                    value={bedtimeInput}
-                    onChange={(e) => setBedtimeInput(e.target.value)}
-                    aria-label={t.app.habits.bedtimeQuestion}
-                    style={{ ...inputStyle, width: "auto" }}
-                  />
-                  <button onClick={saveBedtime} style={btnGhost}>
-                    {todayBedtimeEntry ? t.app.habits.bedtimeUpdate : t.common.save}
+                {/* Sueño de anoche (11 nov 2026): hora de dormir y, si
+                    quiere, hora de despertar — con las dos se calcula el
+                    tiempo de sueño aproximado (ver sleepLog.js). */}
+                <p style={{ fontSize: "15px", fontWeight: 800, color: C.text, margin: "0 0 4px" }}>🌙 {t.app.habits.sleepTitle}</p>
+                <p style={{ fontSize: "12.5px", color: C.textMuted, margin: "0 0 12px", lineHeight: 1.5 }}>{t.app.habits.sleepHint}</p>
+                <div style={{ display: "flex", gap: "12px", flexWrap: "wrap", alignItems: "flex-end" }}>
+                  <label style={{ display: "flex", flexDirection: "column", gap: "4px", fontSize: "12.5px", fontWeight: 700, color: C.text }}>
+                    {t.app.habits.bedtimeLabel}
+                    <input
+                      type="time"
+                      value={bedtimeInput}
+                      onChange={(e) => {
+                        setBedtimeInput(e.target.value);
+                        setSleepSaved(false);
+                      }}
+                      style={{ ...inputStyle, width: "auto", minHeight: "44px", fontSize: "16px" }}
+                    />
+                  </label>
+                  <label style={{ display: "flex", flexDirection: "column", gap: "4px", fontSize: "12.5px", fontWeight: 700, color: C.text }}>
+                    {t.app.habits.wakeLabel}
+                    <input
+                      type="time"
+                      value={wakeInput}
+                      onChange={(e) => {
+                        setWakeInput(e.target.value);
+                        setSleepSaved(false);
+                      }}
+                      style={{ ...inputStyle, width: "auto", minHeight: "44px", fontSize: "16px" }}
+                    />
+                  </label>
+                  <button onClick={saveBedtime} disabled={!bedtimeInput} style={{ ...btnGhost, minHeight: "44px", opacity: bedtimeInput ? 1 : 0.5 }}>
+                    {sleepSaved ? `✓ ${t.app.habits.sleepSaved}` : t.common.save}
                   </button>
                 </div>
+                {todayBedtimeEntry && (
+                  <p style={{ fontSize: "14px", color: C.text, margin: "12px 0 0", lineHeight: 1.5 }}>
+                    {sleepMinutesToday != null ? (
+                      <>
+                        😴 <strong>{t.app.habits.sleepDuration(t.app.habits.formatDuration(sleepMinutesToday))}</strong>{" "}
+                        <span style={{ color: C.textMuted, fontSize: "12.5px" }}>{t.app.habits.sleepApproxNote}</span>
+                      </>
+                    ) : todayBedtimeEntry.wake ? (
+                      <span style={{ color: C.textMuted }}>{t.app.habits.sleepCheckTimes}</span>
+                    ) : (
+                      <span style={{ color: C.textMuted }}>{t.app.habits.bedtimeRegistered(todayBedtimeEntry.time)} {t.app.habits.sleepAddWake}</span>
+                    )}
+                  </p>
+                )}
               </div>
             );
           })()}
@@ -4463,7 +4513,7 @@ export default function FocusFlowTDAH({
           la franja "Mis hábitos de hoy" de abajo; ahí se ocultan (la
           brújula ya lleva a todo). Siguen montados (display:none), así que
           no pierden su estado, y en las demás pestañas se ven igual. */}
-      <div style={{ display: inicioCompass ? "none" : undefined }}>
+      <div style={{ display: inicioCompass || (habitFormOpen && activeTab === "herramientas" && activeTool === "habits") ? "none" : undefined }}>
       <QuickNavMenu
         C={C}
         t={t}

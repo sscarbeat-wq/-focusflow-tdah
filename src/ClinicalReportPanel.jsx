@@ -185,6 +185,14 @@ export default function ClinicalReportPanel({
           {report.sleep.loggedNights === 0
             ? t.clinicalReport.sleepNone
             : t.clinicalReport.sleepRegistered(report.sleep.loggedNights, report.sleep.totalDays, report.sleep.lateNights)}
+          {report.sleep.duration && report.sleep.duration.nights > 0
+            ? t.clinicalReport.sleepDuration(
+                report.sleep.duration.nights,
+                t.app.habits.formatDuration(report.sleep.duration.averageMinutes),
+                t.app.habits.formatDuration(report.sleep.duration.minMinutes),
+                t.app.habits.formatDuration(report.sleep.duration.maxMinutes)
+              )
+            : ""}
         </p>
       </div>
 
