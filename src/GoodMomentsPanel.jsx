@@ -68,10 +68,8 @@ export default function GoodMomentsPanel({ C, t, lang, goodMoments, onAdd, onRem
 
   return (
     <div>
-      <p style={{ fontSize: "12px", color: C.textMuted, margin: "0 0 14px", lineHeight: 1.6 }}>
-        {t.goodMoments.intro}
-      </p>
-
+      {/* 11 nov 2026: se quitó el párrafo de intro — repetía casi igual el
+          subtítulo de la tarjeta. */}
       <textarea
         value={text}
         onChange={(e) => setText(e.target.value)}
@@ -160,12 +158,14 @@ export default function GoodMomentsPanel({ C, t, lang, goodMoments, onAdd, onRem
               alignItems: "center",
               gap: "6px",
               background: "transparent",
-              border: "none",
-              color: C.textMuted,
+              border: `1px solid ${C.border}`,
+              borderRadius: "999px",
+              color: C.text,
               fontSize: "12px",
+              fontWeight: 600,
               cursor: "pointer",
-              padding: 0,
-              marginBottom: "10px",
+              padding: "6px 12px",
+              marginBottom: "12px",
             }}
           >
             <Shuffle size={13} /> {t.goodMoments.revisitRandom}
@@ -178,13 +178,16 @@ export default function GoodMomentsPanel({ C, t, lang, goodMoments, onAdd, onRem
                 alignItems: "flex-start",
                 justifyContent: "space-between",
                 gap: "10px",
-                padding: "8px 0",
+                padding: "10px 0",
                 borderBottom: `1px solid ${C.border}`,
               }}
             >
-              <div>
-                <p style={{ fontSize: "13px", color: C.text, margin: 0, lineHeight: 1.5 }}>{m.text}</p>
+              <div style={{ display: "flex", gap: "10px", minWidth: 0 }}>
+                <span aria-hidden="true" style={{ fontSize: "15px", lineHeight: 1.4 }}>💛</span>
+                <div style={{ minWidth: 0 }}>
+                <p style={{ fontSize: "14px", color: C.text, margin: 0, lineHeight: 1.45 }}>{m.text}</p>
                 <p style={{ fontSize: "11px", color: C.textMuted, margin: "2px 0 0" }}>{formatWhen(m.createdAt, lang)}</p>
+                </div>
               </div>
               <button
                 onClick={() => onRemove(m.id)}
