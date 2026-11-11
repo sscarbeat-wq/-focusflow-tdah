@@ -496,7 +496,15 @@ export default function FocusFlowTDAH({
   // a la paciente "atorada" dentro de una herramienta vieja sin querer.
   const [activeTool, setActiveTool] = useState(null);
   useEffect(() => {
-    if (activeTab !== "herramientas") setActiveTool(null);
+    if (activeTab === "herramientas") {
+      // Si hay una pausa activa guardada, re-abrir automáticamente
+      try {
+        const saved = localStorage.getItem("anro-break-session");
+        if (saved) { setActiveTool("activeBreak"); return; }
+      } catch (_) {}
+    } else {
+      setActiveTool(null);
+    }
   }, [activeTab]);
 
   useEffect(() => {
