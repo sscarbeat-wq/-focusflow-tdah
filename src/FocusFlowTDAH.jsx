@@ -494,15 +494,23 @@ export default function FocusFlowTDAH({
   // en localStorage): es de sesión, se reinicia a la cuadrícula cada vez
   // que se entra de nuevo a Herramientas desde otra pestaña, para no dejar
   // a la paciente "atorada" dentro de una herramienta vieja sin querer.
-  const [activeTool, setActiveTool] = useState(null);
+  const [activeTool, setActiveTool] = useState(() => {
+    // Si al cargar ya hay una pausa activa, empezar con ella abierta
+    try { if (localStorage.getItem("anro-break-session")) return "activeBreak"; } catch (_) {}
+    return null;
+  });
   useEffect(() => {
     if (activeTab === "herramientas") {
-      // Si hay una pausa activa guardada, re-abrir automáticamente
+      // Al volver a Herramientas, si hay pausa guardada → re-abrir
       try {
         const saved = localStorage.getItem("anro-break-session");
         if (saved) { setActiveTool("activeBreak"); return; }
       } catch (_) {}
     } else {
+      // No resetear si hay pausa activa en curso
+      try {
+        if (localStorage.getItem("anro-break-session")) return;
+      } catch (_) {}
       setActiveTool(null);
     }
   }, [activeTab]);

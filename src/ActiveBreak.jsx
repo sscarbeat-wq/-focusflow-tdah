@@ -151,11 +151,10 @@ export default function ActiveBreak({ C, t, lang = "es", autoStart = 0, onComple
     });
   };
 
-  // ---- Restaurar sesión al montar ----
-  const restoredRef = useRef(false);
-  useEffect(() => {
-    if (restoredRef.current) return;
-    restoredRef.current = true;
+  // ---- Restaurar sesión guardada ----
+  // Se dispara al montar Y cada vez que routineKey vuelve a null (por si el
+  // estado de React se perdió pero localStorage aún tiene la sesión).
+  const restoreFromStorage = () => {
     const saved = loadBreak();
     if (!saved) return;
     const r = ROUTINES.find((x) => x.key === saved.routineKey);
@@ -166,7 +165,6 @@ export default function ActiveBreak({ C, t, lang = "es", autoStart = 0, onComple
     totalPausedRef.current = saved.totalPaused || 0;
 
     if (saved.paused) {
-      // Estaba pausada: sumar el tiempo fuera como pausa
       totalPausedRef.current += now - (saved.savedAt || now);
       const rem = saved.pausedRem || 0;
       setRoutineKey(r.key);
@@ -174,21 +172,17 @@ export default function ActiveBreak({ C, t, lang = "es", autoStart = 0, onComple
       setSec(Math.max(1, Math.round(rem)));
       stepStartRef.current = saved.stepStart;
       pauseBeganRef.current = 0;
-      // No auto-play: queda pausada, el usuario le da play
     } else {
-      // Estaba corriendo: calcular en qué paso debería estar
       const elapsedSinceStep = (now - saved.stepStart) / 1000;
       let sIdx = saved.stepIndex;
       let rem = r.stepSec - elapsedSinceStep;
 
-      // Avanzar pasos que ya pasaron
       while (rem <= 0 && sIdx < r.moves.length - 1) {
         sIdx++;
         rem += r.stepSec;
       }
 
       if (rem <= 0) {
-        // La pausa terminó mientras estaba fuera
         clearBreak();
         setRoutineKey(r.key);
         setDone(true);
@@ -201,7 +195,6 @@ export default function ActiveBreak({ C, t, lang = "es", autoStart = 0, onComple
         return;
       }
 
-      // Retomar a medio camino
       const stepElapsed = r.stepSec - rem;
       stepStartRef.current = now - stepElapsed * 1000;
       pauseBeganRef.current = 0;
@@ -211,8 +204,24 @@ export default function ActiveBreak({ C, t, lang = "es", autoStart = 0, onComple
       setRunning(true);
       if (canSpeak && getStoredVoicePref()) sayMove(r, sIdx);
     }
+  };
+
+  // Al montar: restaurar si hay sesión guardada
+  const restoredRef = useRef(false);
+  useEffect(() => {
+    if (restoredRef.current) return;
+    restoredRef.current = true;
+    restoreFromStorage();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  // Red de seguridad: si por alguna razón el estado se reinicia a "picker"
+  // (routineKey === null, no done) pero localStorage tiene una sesión,
+  // restaurarla de nuevo.
+  useEffect(() => {
+    if (routineKey === null && !done) restoreFromStorage();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [routineKey, done]);
 
   const toPicker = () => {
     stopSpeaking();
