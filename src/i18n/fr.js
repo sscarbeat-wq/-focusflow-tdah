@@ -885,6 +885,11 @@ const fr = {
   },
 
   todayStrip: {
+    tabTitle: "Mes habitudes",
+    openAria: "Ouvrir mes habitudes",
+    closeAria: "Fermer mes habitudes",
+    addShort: "Ajouter",
+    openAll: "Tout voir",
     title: "Mes habitudes du jour",
     count: (done, total) => `${done} sur ${total}`,
     desk: "Dégager l'espace",

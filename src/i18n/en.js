@@ -882,6 +882,11 @@ const en = {
   },
 
   todayStrip: {
+    tabTitle: "My habits",
+    openAria: "Open my habits",
+    closeAria: "Close my habits",
+    addShort: "Add",
+    openAll: "See all",
     title: "My habits today",
     count: (done, total) => `${done} of ${total}`,
     desk: "Clear my space",
