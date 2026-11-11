@@ -25,7 +25,7 @@
 
 let sharedCtx = null;
 
-function getSharedAudioContext() {
+export function getSharedAudioContext() {
   if (typeof window === "undefined") return null;
   const AC = window.AudioContext || window.webkitAudioContext;
   if (!AC) return null;

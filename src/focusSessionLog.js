@@ -44,6 +44,45 @@ export function logFocusSession(
   };
 }
 
+// "% de enfoque de hoy" (rediseño "estilo K" de Inicio, 9 de noviembre de
+// 2026) — la doctora pidió un número REAL en el anillo de la mascota, no
+// uno inventado ni reciclado del progreso de racha (ese mide otra cosa: qué
+// tan cerca está la racha actual de subir de etapa, no cuánto se enfocó
+// hoy). Este sí viene directo de las sesiones de Modo Enfoque realmente
+// completadas hoy — mismo principio que el resto de la app ("nunca inventa
+// un pendiente que la app no pueda respaldar con datos reales", ver
+// todayView.js).
+//
+// No existe (todavía) una meta diaria configurable por paciente/doctora en
+// ningún lugar del código — se buscó y no hay `dailyGoal`/`metaDiaria`/
+// `focusGoal`/`goalMinutes` en ninguna parte. Mientras no exista esa
+// pantalla, se usa una meta fija de referencia: 2 sesiones del tamaño por
+// default de Modo Enfoque (WORK_OPTIONS en FocusMode.jsx, default 25 min) =
+// 50 min. No es un número clínico ni una receta de cuánto "debería"
+// enfocarse alguien con TDAH — es solo el punto de referencia para que el
+// % tenga un denominador real y no quede siempre en 0% ni en un número
+// arbitrario. Fácil de encontrar y ajustar después si se agrega una meta
+// configurable de verdad.
+export const DAILY_FOCUS_GOAL_MIN = 50;
+
+// Minutos reales enfocados HOY (suma de `durationMin` de las sesiones ya
+// completadas hoy, nunca negativa).
+export function todayFocusMinutes(log, now = new Date()) {
+  const key = todayKey(now);
+  const entries = (log || {})[key] || [];
+  return entries.reduce((sum, entry) => sum + (entry.durationMin || 0), 0);
+}
+
+// % de hoy contra la meta de referencia — siempre 0 a 100, redondeado al
+// entero más cercano (no tiene sentido mostrar decimales de minutos). Un
+// día sin ninguna sesión completada da 0%, honestamente — nunca se
+// inventa un número de relleno.
+export function todayFocusPercent(log, goalMin = DAILY_FOCUS_GOAL_MIN, now = new Date()) {
+  if (!goalMin || goalMin <= 0) return 0;
+  const minutes = todayFocusMinutes(log, now);
+  return Math.max(0, Math.min(100, Math.round((minutes / goalMin) * 100)));
+}
+
 // Últimos `days` días (el más antiguo primero, hoy al final), con
 // entries:[] en los días sin ninguna sesión — mismo patrón que
 // recentBedtimes()/recentEntries(), pensado para alimentar

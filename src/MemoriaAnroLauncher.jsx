@@ -28,7 +28,10 @@ import { useDraggableBubble } from "./useDraggableBubble";
 // QuickNavMenu ya ocupa la derecha) sigue siendo también la posición
 // inicial por defecto una vez montado, hasta que se arrastre por primera
 // vez.
-const BUBBLE_SIZE = { w: 52, h: 52 };
+// 10 de noviembre de 2026 ("las burbujas de acceso rápido también más
+// grandes"): 52→64px, igual que las otras 2 burbujas (BreathingBubble,
+// QuickNavMenu) — mismo tamaño entre las 3 a propósito.
+const BUBBLE_SIZE = { w: 64, h: 64 };
 
 export default function MemoriaAnroLauncher({
   C,
@@ -204,7 +207,7 @@ export default function MemoriaAnroLauncher({
           zIndex: 60,
         }}
       >
-        {open ? <X size={22} /> : <Brain size={22} />}
+        {open ? <X size={26} /> : <Brain size={26} />}
       </button>
     </>
   );

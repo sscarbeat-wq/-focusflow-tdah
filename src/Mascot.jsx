@@ -9,7 +9,12 @@ import {
   getStoredResetVariant,
   storeResetVariant,
   ACCESSORY_EMOJI,
+  isImageSpecies,
 } from "./mascotLogic";
+import { MascotArt, MascotSprite } from "./MascotSprite";
+import CelebrationBurst from "./CelebrationBurst";
+import { tapFeedback } from "./celebrate";
+import { playAnimalSound } from "./animalSounds";
 import {
   playLevelUpSound,
   playHatchSound,
@@ -105,10 +110,83 @@ import {
 const RING_SIZE = 112;
 const RING_RADIUS = 46;
 const RING_STROKE = 8;
-const RING_CIRCUMFERENCE = 2 * Math.PI * RING_RADIUS;
 const EGG_EMOJI = "🥚";
 
-export default function Mascot({ streak, C, t, accent, species, focusStatus = "idle", accessory = "none" }) {
+// Variante "hero" (9 de noviembre de 2026 — rediseño "estilo K" de Inicio):
+// la mascota pasa de vivir en su propia tarjeta rectangular a vivir DENTRO
+// del círculo central de QuickAccessCompass.jsx, como una sola pieza visual
+// con la brújula de accesos rápidos ("se ven dos mascotas" era justamente
+// el problema que reportó la doctora con el diseño anterior — ahora solo
+// existe un <Mascot>, nunca dos). Ningún hook/efecto de abajo cambia entre
+// variantes — sonido, festejo, eclosión, gesto de distracción son
+// exactamente la misma lógica; solo cambia qué JSX se dibuja al final.
+// En esta variante el anillo deja de mostrar el avance de racha (fraction,
+// más abajo) y pasa a mostrar el nuevo `focusPercent` real (ver
+// todayFocusPercent() en focusSessionLog.js) — es el número que pidió la
+// doctora ("un % real de enfoque de hoy"), no una reutilización del
+// progreso de racha, que mide otra cosa.
+// Valores "hero" de siempre, pensados para el teléfono más angosto que
+// soporta la app (verificado con Playwright a 320px, junto con
+// QuickAccessCompass.jsx: CENTER_SIZE/BUTTON_SIZE/ORBIT_ANCHORS ahí
+// dependen de que el anillo real mida ESTO por default). Quedan como
+// piso/default — ver la nota de la sexta corrección más abajo para cómo
+// se agranda en pantallas anchas sin tocar este piso.
+const HERO_RING_SIZE = 150;
+const HERO_RING_RADIUS = 62;
+const HERO_RING_STROKE = 10;
+const HERO_EMOJI_SIZE = 40;
+
+// 9 de noviembre de 2026, sexta corrección de fidelidad: con el fondo de
+// color ahora ocupando casi toda la pantalla (ver la nota de "cubre toda
+// la app" en FocusFlowTDAH.jsx), en pantallas anchas la mascota y la
+// brújula se veían chicas y perdidas en medio de tanto espacio — la
+// doctora pidió agrandar el animal y los círculos de acceso. PERO: en el
+// teléfono más angosto que soporta la app (320px) no hay lugar físico
+// para agrandar el anillo Y los 6 accesos a la vez sin que empiecen a
+// pisarse (verificado con Playwright: agrandar ambos ahí rompía el
+// "mantener presionado para fijar"). Por eso el agrandado es SOLO para
+// escritorio/pantallas anchas: QuickAccessCompass.jsx manda
+// `heroRingSize`/etc. más grandes únicamente cuando hay sitio (>=760px,
+// mismo punto de corte que ya usa el resto de la app); en el teléfono
+// estos props vienen undefined y se usan los defaults de arriba, igual
+// que siempre.
+export default function Mascot({
+  streak,
+  C,
+  t,
+  accent,
+  species,
+  focusStatus = "idle",
+  accessory = "none",
+  variant = "card",
+  focusPercent = 0,
+  heroRingSize = HERO_RING_SIZE,
+  heroRingRadius = HERO_RING_RADIUS,
+  heroRingStroke = HERO_RING_STROKE,
+  heroEmojiSize = HERO_EMOJI_SIZE,
+  // Puntos de "foco acumulado" — solo para notar cuándo SUBEN y hacer que
+  // la mascota coma (10 de noviembre de 2026, ver MascotSprite.jsx).
+  xp,
+  // Cómo va el día (10 de noviembre de 2026, "que reaccione a tu día"):
+  // "good" (ya hizo algo hoy) | "quiet" (todavía nada y ya es de día) |
+  // "night" (de noche) | "neutral". Lo calcula FocusFlowTDAH.jsx.
+  dayMood = "neutral",
+  // Explicaciones del centro (10 de noviembre de 2026, "el paciente tiene
+  // que saber para qué es"): minutos de Modo Enfoque de hoy y la meta,
+  // el siguiente premio que se desbloquea con XP ({ remaining, name } o
+  // null si ya tiene todo), y a dónde llevan los botones de cada globito.
+  focusMinutes = 0,
+  focusGoal = 50,
+  nextUnlock = null,
+  onStartFocus,
+  onSeeRewards,
+  // Aviso suave de Plus (10 de noviembre de 2026): solo justo después de
+  // que la mascota crece (un momento feliz), nunca más de una vez por
+  // semana, y nunca si ya tiene Plus.
+  isPlus = true,
+  onRequestUpgrade,
+}) {
+  const isHero = variant === "hero";
   const current = streak?.current || 0;
   const longest = streak?.longest || 0;
   const resolvedSpecies = species || DEFAULT_SPECIES;
@@ -123,11 +201,214 @@ export default function Mascot({ streak, C, t, accent, species, focusStatus = "i
   const hint = t.mascot[stage.hintKey];
   const ringColor = accent || C.lavender;
   const fraction = progressFraction(current, longest);
-  const dashOffset = RING_CIRCUMFERENCE * (1 - fraction);
   const isAquatic = resolvedSpecies === "pez";
+  const hasArt = isImageSpecies(resolvedSpecies);
+
+  // Interacción con la mascota (10 de noviembre de 2026, "quiero que la
+  // app sea interactiva"): tocarla la hace saludar, un doble toque la pone
+  // a jugar, y cada vez que suben los puntos de "foco acumulado" come algo
+  // — así ganar puntos se VE, no solo se cuenta. Ver MascotSprite.jsx.
+  const [tapSignal, setTapSignal] = useState(0);
+  const [playSignal, setPlaySignal] = useState(0);
+  const [eatSignal, setEatSignal] = useState(0);
+  const lastTapRef = useRef(0);
+  const handlePet = () => {
+    tapFeedback("tap");
+    const now = Date.now();
+    // Cada animal tiene su sonidito (animalSounds.js): "hola" al tocar,
+    // más agudo y juguetón con doble toque. Respeta el botón de silencio.
+    if (now - lastTapRef.current < 450) {
+      setPlaySignal((n) => n + 1);
+      lastTapRef.current = 0;
+      if (soundOnRef.current) playAnimalSound(resolvedSpecies, "play");
+    } else {
+      setTapSignal((n) => n + 1);
+      lastTapRef.current = now;
+      if (soundOnRef.current) playAnimalSound(resolvedSpecies, "greet");
+    }
+  };
+  // Celebraciones (10 de noviembre de 2026): al cargar la app los puntos y
+  // la racha llegan de Supabase un momento DESPUÉS de montar (de 0 a lo
+  // guardado) — eso no es un logro nuevo. Durante los primeros segundos
+  // no se festeja nada.
+  const mountedAtRef = useRef(Date.now());
+  const settled = () => Date.now() - mountedAtRef.current > 3500;
+  const [smallBurst, setSmallBurst] = useState(0);
+  const [bigBurst, setBigBurst] = useState(0);
+  // Casi todos los puntos se ganan FUERA de Inicio (en Herramientas,
+  // Agenda...), donde la brújula está oculta (display:none, sin
+  // desmontarse). Festejar ahí sería festejar sin que nadie lo vea: los
+  // festejos se guardan y se disparan en cuanto la paciente vuelve a ver
+  // a su mascota.
+  const heroRef = useRef(null);
+  const pendingRef = useRef({ eat: false, small: false, big: false, play: false, evolution: null });
+  const pollRef = useRef(null);
+  const isShown = () => !heroRef.current || heroRef.current.offsetParent !== null;
+  const evolutionTimeoutRef = useRef(null);
+  const flushPending = () => {
+    const p = pendingRef.current;
+    pendingRef.current = { eat: false, small: false, big: false, play: false, evolution: null };
+    if (p.evolution) {
+      setEvolution(p.evolution);
+      maybeShowPlusHint();
+      if (soundOnRef.current) playAnimalSound(resolvedSpecies, "evolve");
+      if (evolutionTimeoutRef.current) clearTimeout(evolutionTimeoutRef.current);
+      evolutionTimeoutRef.current = setTimeout(() => setEvolution(null), 2600);
+    }
+    if (p.big || p.evolution) setBigBurst((n) => n + 1);
+    else if (p.small) setSmallBurst((n) => n + 1);
+    if (p.play) {
+      setPlaySignal((n) => n + 1);
+      if (soundOnRef.current) playAnimalSound(resolvedSpecies, "play");
+    } else if (p.eat) {
+      setEatSignal((n) => n + 1);
+      if (soundOnRef.current) playAnimalSound(resolvedSpecies, "eat");
+    }
+  };
+  const queueCelebration = (changes) => {
+    const p = pendingRef.current;
+    if (changes.evolution) {
+      p.evolution = { from: p.evolution ? p.evolution.from : changes.evolution.from, to: changes.evolution.to };
+    }
+    ["eat", "small", "big", "play"].forEach((k) => {
+      if (changes[k]) p[k] = true;
+    });
+    if (isShown()) {
+      flushPending();
+      return;
+    }
+    if (pollRef.current) return;
+    pollRef.current = setInterval(() => {
+      if (isShown()) {
+        clearInterval(pollRef.current);
+        pollRef.current = null;
+        // Un respiro para que la pantalla ya esté pintada antes del festejo.
+        setTimeout(flushPending, 350);
+      }
+    }, 600);
+  };
+  useEffect(
+    () => () => {
+      if (pollRef.current) clearInterval(pollRef.current);
+      if (evolutionTimeoutRef.current) clearTimeout(evolutionTimeoutRef.current);
+    },
+    []
+  );
+
+  const prevXpRef = useRef(xp);
+  useEffect(() => {
+    if (typeof xp === "number" && typeof prevXpRef.current === "number" && xp > prevXpRef.current) {
+      if (settled() && isHero) queueCelebration({ eat: true, small: true });
+      else setEatSignal((n) => n + 1);
+    }
+    prevXpRef.current = xp;
+  }, [xp]); // eslint-disable-line react-hooks/exhaustive-deps
+  // Subió la racha del día (la primera acción de hoy): festejo grande y la
+  // mascota se pone a jugar.
+  const prevCurrentRef = useRef(current);
+  useEffect(() => {
+    if (current > prevCurrentRef.current && settled() && isHero) {
+      queueCelebration({ big: true, play: true });
+    }
+    prevCurrentRef.current = current;
+  }, [current]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Globito de la mascota según cómo va el día — corto, amable, nunca un
+  // regaño; se va solo. "quiet": cada ~50s rota entre 3 frases suaves.
+  // "good"/"night": una sola vez, un rato después de entrar.
+  const [nudge, setNudge] = useState(null);
+  const [plusHint, setPlusHint] = useState(false);
+  const plusHintTimers = useRef([]);
+  const maybeShowPlusHint = () => {
+    if (isPlus || !onRequestUpgrade || !t.mascot.plusHint) return;
+    const KEY = "anro-plus-hint-at";
+    const WEEK = 7 * 24 * 60 * 60 * 1000;
+    try {
+      const last = Number(window.localStorage.getItem(KEY) || 0);
+      if (Date.now() - last < WEEK) return;
+      window.localStorage.setItem(KEY, String(Date.now()));
+    } catch (e) {
+      /* sin localStorage: se muestra igual, una vez por sesión basta */
+    }
+    // Después de la animación de "¡Creció!", no encima de ella.
+    plusHintTimers.current.push(
+      setTimeout(() => {
+        setPlusHint(true);
+        plusHintTimers.current.push(setTimeout(() => setPlusHint(false), 9000));
+      }, 2800)
+    );
+  };
+  useEffect(() => () => plusHintTimers.current.forEach(clearTimeout), []);
+  // Globito de explicación abierto: "focus" | "xp" | null.
+  const [infoOpen, setInfoOpen] = useState(null);
+  useEffect(() => {
+    if (!infoOpen) return undefined;
+    // Se cierra al tocar en cualquier otra parte (sin un fondo a pantalla
+    // completa: dentro de la brújula, `position: fixed` quedaría atrapado
+    // en el círculo por su transform).
+    const onDown = (e) => {
+      if (e.target.closest && (e.target.closest("[data-anro-info-card]") || e.target.closest("[data-anro-info]"))) return;
+      setInfoOpen(null);
+    };
+    const onKey = (e) => {
+      if (e.key === "Escape") setInfoOpen(null);
+    };
+    document.addEventListener("pointerdown", onDown);
+    document.addEventListener("keydown", onKey);
+    return () => {
+      document.removeEventListener("pointerdown", onDown);
+      document.removeEventListener("keydown", onKey);
+    };
+  }, [infoOpen]);
+  useEffect(() => {
+    if (!isHero) return undefined;
+    const timers = [];
+    const show = (text, ms) => {
+      setNudge(text);
+      timers.push(setTimeout(() => setNudge(null), ms));
+    };
+    if (dayMood === "quiet") {
+      const list = t.mascot.dayNudges || [];
+      let i = 0;
+      const cycle = () => {
+        if (!list.length) return;
+        show(list[i % list.length], 7000);
+        i += 1;
+        timers.push(setTimeout(cycle, 50000));
+      };
+      timers.push(setTimeout(cycle, 5000));
+    } else if (dayMood === "good" && t.mascot.goodNudge) {
+      timers.push(setTimeout(() => show(t.mascot.goodNudge, 5000), 4000));
+    } else if (dayMood === "night" && t.mascot.nightNudge) {
+      timers.push(setTimeout(() => show(t.mascot.nightNudge, 6000), 4000));
+    }
+    return () => {
+      timers.forEach(clearTimeout);
+      setNudge(null);
+    };
+  }, [dayMood, isHero, t]);
+
+  const ringSize = isHero ? heroRingSize : RING_SIZE;
+  const ringRadius = isHero ? heroRingRadius : RING_RADIUS;
+  const ringStroke = isHero ? heroRingStroke : RING_STROKE;
+  const ringCircumference = 2 * Math.PI * ringRadius;
+  const emojiFontSize = isHero ? heroEmojiSize : 56;
+  // Qué tanto más grande que el piso de siempre (150px) vino el anillo
+  // "hero" — en escritorio QuickAccessCompass.jsx manda un heroRingSize
+  // más grande (ver nota arriba), y el botón de silenciar + el texto del
+  // % necesitan crecer EN PROPORCIÓN para seguir viéndose bien pegados al
+  // anillo, en vez de quedar chicos y perdidos (o, al revés, más grandes
+  // de lo necesario) frente a un anillo que cambia de tamaño.
+  const heroScale = isHero ? heroRingSize / HERO_RING_SIZE : 1;
+  // Hero: el anillo muestra el % real de enfoque de hoy, no el avance de
+  // racha — son dos cosas distintas (ver comentario arriba de HERO_RING_SIZE).
+  const ringFraction = isHero ? Math.max(0, Math.min(1, (focusPercent || 0) / 100)) : fraction;
+  const dashOffset = ringCircumference * (1 - ringFraction);
 
   // Sonidos (gratis, preferencia de dispositivo) — ver mascotSounds.js.
   const [soundOn, setSoundOn] = useState(() => getStoredMascotSoundPref());
+  const soundOnRef = useRef(soundOn);
+  soundOnRef.current = soundOn;
 
   // Los navegadores no deja sonar nada hasta una interacción real de la
   // persona; este listener "destraba" el audio en cuanto toque/haga click/
@@ -161,11 +442,20 @@ export default function Mascot({ streak, C, t, accent, species, focusStatus = "i
   const isReset = current === 0 && longest > 0;
   const [celebrate, setCelebrate] = useState(false);
   const [hatching, setHatching] = useState(false);
+  // Evolución (10 de noviembre de 2026): cuando la mascota cambia de etapa
+  // de verdad (no al cargar), se ve el cambio — destello, la de antes se
+  // encoge, la nueva aparece creciendo — con confeti y "¡Creció!".
+  const [evolution, setEvolution] = useState(null); // { from, to }
 
   useEffect(() => {
     if (prevEmojiRef.current !== stage.emoji) {
       const wasEgg = prevEmojiRef.current === EGG_EMOJI;
+      const fromVisual = prevEmojiRef.current;
       prevEmojiRef.current = stage.emoji;
+      if (!isReset && isHero && settled()) {
+        queueCelebration({ evolution: { from: fromVisual, to: stage.emoji } });
+        return undefined;
+      }
       if (!isReset) {
         if (wasEgg) {
           setHatching(true);
@@ -219,24 +509,399 @@ export default function Mascot({ streak, C, t, accent, species, focusStatus = "i
 
   const showFocusPill = focusStatus === "focusing" || focusStatus === "distracted";
 
-  return (
+  // Píldoras reutilizadas tal cual entre las dos variantes (mismos datos,
+  // solo cambia el contenedor que las envuelve más abajo) — un poco más
+  // chicas en "hero" porque ahí viven centradas bajo un círculo angosto,
+  // no a lo ancho de una tarjeta.
+  const streakPill = (
     <div
       style={{
         position: "relative",
-        overflow: "hidden",
-        background: `linear-gradient(135deg, ${C.surface}, ${C.surfaceAlt})`,
-        borderRadius: "24px",
-        padding: "20px 22px",
-        marginBottom: "20px",
         display: "flex",
         alignItems: "center",
-        flexWrap: "wrap",
-        gap: "18px",
-        boxShadow:
-          "0 2px 4px rgba(0,0,0,0.08), 0 16px 32px rgba(0,0,0,0.16), inset 0 1px 0 rgba(255,255,255,0.06)",
+        gap: "6px",
+        background: tint(C.amber, 0.16),
+        borderRadius: "999px",
+        padding: isHero ? "6px 12px" : "8px 14px",
+        flexShrink: 0,
+        boxShadow: `0 3px 8px ${tint(C.amber, 0.25)}`,
       }}
     >
-      <style>{`
+      <Flame size={isHero ? 14 : 16} color={C.amber} />
+      <span style={{ fontSize: isHero ? "13px" : "15px", fontWeight: 700, color: C.text }}>{current}</span>
+      <span style={{ fontSize: "11px", color: C.textMuted }}>{t.mascot.dayWord(current)}</span>
+    </div>
+  );
+  const trophyPill = longest > 0 && (
+    <div
+      title={t.mascot.bestStreakTitle}
+      style={{
+        position: "relative",
+        display: "flex",
+        alignItems: "center",
+        gap: "6px",
+        background: tint(ringColor, 0.16),
+        borderRadius: "999px",
+        padding: isHero ? "6px 12px" : "8px 14px",
+        flexShrink: 0,
+        boxShadow: `0 3px 8px ${tint(ringColor, 0.25)}`,
+      }}
+    >
+      <Trophy size={isHero ? 14 : 16} color={ringColor} />
+      <span style={{ fontSize: isHero ? "13px" : "15px", fontWeight: 700, color: C.text }}>{longest}</span>
+      <span style={{ fontSize: "11px", color: C.textMuted }}>{t.mascot.bestStreakLabel}</span>
+    </div>
+  );
+  const focusPill = showFocusPill && (
+    <div
+      style={{
+        position: "relative",
+        display: "flex",
+        alignItems: "center",
+        gap: "6px",
+        background: tint(ringColor, 0.16),
+        borderRadius: "999px",
+        padding: isHero ? "6px 12px" : "8px 14px",
+        flexShrink: 0,
+        boxShadow: `0 3px 8px ${tint(ringColor, 0.25)}`,
+        transition: "background 0.3s ease",
+      }}
+    >
+      <span aria-hidden="true" style={{ fontSize: "15px", lineHeight: 1 }}>
+        {distracted ? "👀" : "🎯"}
+      </span>
+      <span style={{ fontSize: "12px", fontWeight: 700, color: C.text }}>
+        {distracted ? t.mascot.focusDistractedLabel : t.mascot.focusingLabel}
+      </span>
+    </div>
+  );
+
+  // El círculo del anillo + emoji + accesorio + sombra de piso es idéntico
+  // entre variantes salvo tamaño (ringSize/ringRadius/etc. ya resueltos
+  // arriba) y qué va dentro del centro (solo el emoji en "card"; emoji +
+  // "XX% ENFOQUE HOY" en "hero", que es el número real que pidió la
+  // doctora en vez de inventar uno).
+  const ringBlock = (
+    <div
+      style={{
+        position: "relative",
+        width: `${ringSize}px`,
+        height: `${ringSize + 10}px`,
+        flexShrink: 0,
+      }}
+    >
+      {isHero && (
+        <button
+          type="button"
+          onClick={toggleSound}
+          aria-label={soundOn ? t.mascot.muteSoundLabel : t.mascot.unmuteSoundLabel}
+          title={soundOn ? t.mascot.muteSoundLabel : t.mascot.unmuteSoundLabel}
+          style={{
+            // 9 de noviembre de 2026: un poco más chico y más adentro
+            // (antes -6px/26px) para que, con los 6 accesos de la
+            // brújula (QuickAccessCompass.jsx), el de arriba-derecha no
+            // quede pisando este botón — ver la nota junto a
+            // ORBIT_ANCHORS ahí. Sexta corrección: escalado con
+            // `heroScale` (1 en el teléfono, más en escritorio) para
+            // seguir viéndose proporcionado sea cual sea el tamaño real
+            // del anillo.
+            // Décima corrección (10 de noviembre de 2026): ahora los 6
+            // accesos pasan por TODOS los ángulos al girar en órbita, así
+            // que este botón ya no puede asomarse fuera del círculo blanco
+            // de la mascota (en la esquina de la caja del anillo quedaba
+            // afuera, justo en el camino de los accesos). Va 18px hacia
+            // adentro — montado sobre el anillo, dentro del círculo a
+            // cualquier tamaño (√2·(75−18−11)+11 ≈ 76 < 80) — y ABAJO a la
+            // derecha en vez de arriba: las etiquetas de los accesos
+            // cuelgan hacia abajo, así que la de un acceso que pasa por
+            // arriba llegaba a taparlo (verificado con Playwright: ~1/5 del
+            // tiempo); abajo, ninguna etiqueta llega nunca.
+            // Ajuste del mismo día: en diagonal exacta (las "4:30") rozaba
+            // el texto "ENFOQUE HOY" ya agrandado; ahora va sobre el anillo
+            // a las "4:00" (120° desde arriba), a la derecha del texto.
+            position: "absolute",
+            top: `${ringSize / 2 + 65 * heroScale * 0.5 - 11 * heroScale}px`,
+            right: `${ringSize / 2 - 65 * heroScale * 0.866 - 11 * heroScale}px`,
+            zIndex: 1,
+            background: C.surface,
+            border: `1px solid ${C.border}`,
+            borderRadius: "50%",
+            color: C.textMuted,
+            cursor: "pointer",
+            width: `${22 * heroScale}px`,
+            height: `${22 * heroScale}px`,
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            opacity: 0.85,
+            boxShadow: "0 2px 6px rgba(0,0,0,0.12)",
+          }}
+        >
+          {soundOn ? <Volume2 size={13 * heroScale} /> : <VolumeX size={13 * heroScale} />}
+        </button>
+      )}
+      <div
+        className="anro-mascot-glow"
+        aria-hidden="true"
+        style={{
+          position: "absolute",
+          top: 0,
+          left: 0,
+          width: `${ringSize}px`,
+          height: `${ringSize}px`,
+          borderRadius: "50%",
+          background: `radial-gradient(circle, ${tint(ringColor, 0.35)} 0%, transparent 70%)`,
+        }}
+      />
+      <svg
+        width={ringSize}
+        height={ringSize}
+        viewBox={`0 0 ${ringSize} ${ringSize}`}
+        style={{ position: "absolute", top: 0, left: 0, transform: "rotate(-90deg)" }}
+        aria-hidden="true"
+      >
+        <circle
+          cx={ringSize / 2}
+          cy={ringSize / 2}
+          r={ringRadius}
+          fill="none"
+          stroke={C.surfaceAlt}
+          strokeWidth={ringStroke}
+        />
+        <circle
+          cx={ringSize / 2}
+          cy={ringSize / 2}
+          r={ringRadius}
+          fill="none"
+          stroke={ringColor}
+          strokeWidth={ringStroke}
+          strokeLinecap="round"
+          strokeDasharray={ringCircumference}
+          strokeDashoffset={dashOffset}
+          style={{ transition: "stroke-dashoffset 0.6s ease" }}
+        />
+      </svg>
+      <div
+        style={{
+          position: "absolute",
+          top: 0,
+          left: 0,
+          width: `${ringSize}px`,
+          height: `${ringSize}px`,
+          display: "flex",
+          flexDirection: isHero ? "column" : "row",
+          alignItems: "center",
+          justifyContent: "center",
+          fontSize: `${emojiFontSize}px`,
+          lineHeight: 1,
+        }}
+        aria-hidden="true"
+      >
+        <span
+          className={`${hasArt ? "anro-mascot-art" : "anro-mascot-emoji"}${isAquatic ? " anro-mascot-emoji-aquatic" : ""}${
+            celebrate ? " anro-mascot-celebrate" : ""
+          }${hatching ? " anro-mascot-hatch" : ""}${distracted ? " anro-mascot-distracted-anim" : ""}`}
+        >
+          {isHero ? (
+            // Ilustración: la caja mide ~1.9× el tamaño del emoji de
+            // siempre — la imagen trae su propio contorno blanco y ocupa
+            // menos "peso" visual que un emoji del mismo tamaño.
+            <MascotSprite
+              visual={stage.emoji}
+              size={Math.round(emojiFontSize * 1.9)}
+              hidden={!!evolution}
+              dayMood={dayMood}
+              tapSignal={tapSignal}
+              playSignal={playSignal}
+              eatSignal={eatSignal}
+              walking={focusStatus === "focusing"}
+            />
+          ) : hasArt ? (
+            <MascotArt visual={stage.emoji} size={Math.round(emojiFontSize * 1.4)} />
+          ) : (
+            stage.emoji
+          )}
+        </span>
+        {hatching && (
+          <>
+            <span className="anro-mascot-spark anro-mascot-spark-a" aria-hidden="true">
+              ✨
+            </span>
+            <span className="anro-mascot-spark anro-mascot-spark-b" aria-hidden="true">
+              ✨
+            </span>
+          </>
+        )}
+        {isHero && (
+          // Escalado con `heroScale` (sexta corrección) junto con el
+          // anillo — 1 en el teléfono (sin cambios), más grande en
+          // escritorio, para no quedar chico al lado del anillo ahí.
+          // Octava corrección (10 de noviembre de 2026, "las letras más
+          // grandes"): la base subió de 17/7.5 a 20/9 — un empujón extra
+          // de letra encima del escalado de siempre, que entra sin
+          // problema dentro del mismo anillo (no cambia ningún tamaño de
+          // afuera, solo el texto de adentro).
+          <div style={{ marginTop: `${2 * heroScale}px`, lineHeight: 1.15, textAlign: "center" }}>
+            <div style={{ fontSize: `${20 * heroScale}px`, fontWeight: 800, color: C.text }}>
+              {Math.round(focusPercent || 0)}%
+            </div>
+            <div
+              style={{
+                fontSize: `${9 * heroScale}px`,
+                fontWeight: 700,
+                color: C.textMuted,
+                textTransform: "uppercase",
+                letterSpacing: "0.04em",
+              }}
+            >
+              {t.mascot.focusTodayLabel}
+            </div>
+            {/* Los minutos reales detrás del % — "0%" solo no dice nada;
+                "10 de 50 min" sí. */}
+            {t.mascot.focusMinutes && (
+              <div style={{ fontSize: `${8.5 * heroScale}px`, fontWeight: 600, color: C.textMuted, marginTop: `${1 * heroScale}px` }}>
+                {t.mascot.focusMinutes(Math.round(focusMinutes || 0), focusGoal)}
+              </div>
+            )}
+          </div>
+        )}
+      </div>
+      {isHero && (
+        // Zona para tocar a la mascota (saludo / doble toque: jugar). Va
+        // aparte del dibujo porque ese bloque está oculto a lectores de
+        // pantalla; este botón sí se anuncia. Cubre solo la parte de
+        // arriba del círculo (donde está el animal), lejos del botón de
+        // silenciar, que vive abajo a la derecha.
+        <button
+          type="button"
+          onClick={handlePet}
+          aria-label={t.mascot.petLabel}
+          title={t.mascot.petLabel}
+          style={{
+            position: "absolute",
+            top: `${ringSize * 0.14}px`,
+            left: `${ringSize * 0.2}px`,
+            width: `${ringSize * 0.6}px`,
+            height: `${ringSize * 0.52}px`,
+            borderRadius: "50%",
+            background: "transparent",
+            border: "none",
+            padding: 0,
+            cursor: "pointer",
+            WebkitTapHighlightColor: "transparent",
+          }}
+        />
+      )}
+      {isHero && t.mascot.focusInfoTitle && (
+        // Tocar el % (o los minutos) abre la explicación de qué mide.
+        <button
+          type="button"
+          data-anro-info="focus"
+          onClick={() => setInfoOpen((v) => (v === "focus" ? null : "focus"))}
+          aria-label={t.mascot.focusInfoAria}
+          aria-expanded={infoOpen === "focus"}
+          style={{
+            position: "absolute",
+            top: `${ringSize * 0.64}px`,
+            left: `${ringSize * 0.27}px`,
+            width: `${ringSize * 0.46}px`,
+            height: `${ringSize * 0.3}px`,
+            borderRadius: "12px",
+            background: "transparent",
+            border: "none",
+            padding: 0,
+            cursor: "help",
+            WebkitTapHighlightColor: "transparent",
+          }}
+        />
+      )}
+      {isHero && typeof xp === "number" && t.mascot.xpBadge && (
+        // XP junto al % (10 de noviembre de 2026): una pastillita en el
+        // borde de abajo del círculo; al tocarla explica qué son y cuánto
+        // falta para el siguiente premio.
+        <button
+          type="button"
+          data-anro-info="xp"
+          onClick={() => setInfoOpen((v) => (v === "xp" ? null : "xp"))}
+          aria-label={t.mascot.xpBadgeAria(Math.round(xp))}
+          aria-expanded={infoOpen === "xp"}
+          style={{
+            position: "absolute",
+            top: `${ringSize - 4 * heroScale}px`,
+            left: "50%",
+            transform: "translateX(-50%)",
+            zIndex: 3,
+            display: "flex",
+            alignItems: "center",
+            gap: `${4 * heroScale}px`,
+            whiteSpace: "nowrap",
+            padding: `${3 * heroScale}px ${10 * heroScale}px`,
+            borderRadius: "999px",
+            border: "2px solid #fff",
+            background: ringColor,
+            color: "#fff",
+            fontSize: `${11 * heroScale}px`,
+            fontWeight: 800,
+            cursor: "pointer",
+            boxShadow: `0 4px 10px ${tint(ringColor, 0.45)}`,
+          }}
+        >
+          <span aria-hidden="true">★</span>
+          {t.mascot.xpBadge(Math.round(xp))}
+        </button>
+      )}
+      {/* Sombra de "piso" — sensación de que la mascota está apoyada en
+          algo, no flotando en el vacío. */}
+      <div
+        aria-hidden="true"
+        style={{
+          position: "absolute",
+          bottom: "0px",
+          left: "50%",
+          transform: "translateX(-50%)",
+          width: "58%",
+          height: "10px",
+          borderRadius: "50%",
+          background: "radial-gradient(ellipse, rgba(0,0,0,0.28), transparent 72%)",
+          filter: "blur(1px)",
+        }}
+      />
+      {/* Accesorio cosmético desbloqueable por puntos (8 de noviembre de
+          2026, ver ACCESSORY_EMOJI en mascotLogic.js y xpMilestones.js) —
+          una insignia chica encima de la mascota, no un disfraz de verdad
+          (la mascota sigue siendo un solo emoji) para no complicar el
+          dibujo. "none" no renderiza nada. */}
+      {ACCESSORY_EMOJI[accessory] && (
+        <span
+          aria-hidden="true"
+          style={{
+            position: "absolute",
+            top: "-2px",
+            right: "-2px",
+            fontSize: isHero ? "30px" : "26px",
+            lineHeight: 1,
+            filter: "drop-shadow(0 2px 3px rgba(0,0,0,0.25))",
+          }}
+        >
+          {ACCESSORY_EMOJI[accessory]}
+        </span>
+      )}
+    </div>
+  );
+
+  if (isHero) {
+    // 9 de noviembre de 2026 — rediseño "estilo K": sin tarjeta propia, sin
+    // degradado ni sombra de tarjeta — acá SOLO el círculo de anillo+emoji+%
+    // (lo que vive dentro del centro de QuickAccessCompass.jsx). El
+    // label/hint y las píldoras de racha/mejor racha/enfoque que antes
+    // vivían a la derecha de la tarjeta ya NO se pintan desde acá: se
+    // relocalizan debajo de toda la brújula (dial + accesos), donde caben
+    // mejor que apretadas dentro de un círculo — ver QuickAccessCompass.jsx,
+    // que las vuelve a armar con stageFor() (misma función pura que usa
+    // este archivo) para no perder esa información, solo reacomodarla.
+    return (
+      <div ref={heroRef} style={{ position: "relative", display: "flex", alignItems: "center", justifyContent: "center" }}>
+        <style>{`
         @keyframes anroMascotFloat {
           0%, 100% { transform: translateY(0) rotate(0deg); }
           25% { transform: translateY(-3px) rotate(2deg); }
@@ -304,6 +969,22 @@ export default function Mascot({ streak, C, t, accent, species, focusStatus = "i
         .anro-mascot-emoji.anro-mascot-distracted-anim {
           animation: anroMascotDistracted 0.6s ease-in-out;
         }
+        /* Ilustración (MascotSprite.jsx): el balanceo de reposo lo hace el
+           propio sprite (entre sus imágenes), aquí solo la sombra y los
+           mismos festejos de etapa que el emoji. */
+        .anro-mascot-art {
+          display: inline-block;
+          filter: drop-shadow(0 3px 6px rgba(0,0,0,0.16));
+        }
+        .anro-mascot-art.anro-mascot-celebrate {
+          animation: anroMascotLevelUp 0.9s ease-in-out;
+        }
+        .anro-mascot-art.anro-mascot-hatch {
+          animation: anroMascotHatch 1.1s cubic-bezier(0.36, 0.07, 0.19, 0.97);
+        }
+        .anro-mascot-art.anro-mascot-distracted-anim {
+          animation: anroMascotDistracted 0.6s ease-in-out;
+        }
         .anro-mascot-glow {
           animation: anroMascotGlow 2.8s ease-in-out infinite;
         }
@@ -327,13 +1008,223 @@ export default function Mascot({ streak, C, t, accent, species, focusStatus = "i
           .anro-mascot-emoji.anro-mascot-celebrate,
           .anro-mascot-emoji.anro-mascot-hatch,
           .anro-mascot-emoji.anro-mascot-distracted-anim,
+          .anro-mascot-art.anro-mascot-celebrate,
+          .anro-mascot-art.anro-mascot-hatch,
+          .anro-mascot-art.anro-mascot-distracted-anim,
           .anro-mascot-glow,
           .anro-mascot-spark-a,
           .anro-mascot-spark-b {
             animation: none !important;
           }
         }
+        @keyframes anroEvoFlash { 0% { opacity: 0; transform: translate(-50%,-50%) scale(.3); } 35% { opacity: .95; transform: translate(-50%,-50%) scale(1); } 100% { opacity: 0; transform: translate(-50%,-50%) scale(1.5); } }
+        @keyframes anroEvoOut { 0% { opacity: 1; transform: translate(-50%,-50%) scale(1); } 20% { transform: translate(-50%,-50%) scale(1.08) rotate(-6deg); } 45% { opacity: 0; transform: translate(-50%,-50%) scale(.2) rotate(8deg); } 100% { opacity: 0; } }
+        @keyframes anroEvoIn { 0%, 40% { opacity: 0; transform: translate(-50%,-50%) scale(.2); } 62% { opacity: 1; transform: translate(-50%,-50%) scale(1.25); } 80% { transform: translate(-50%,-50%) scale(.94); } 100% { opacity: 1; transform: translate(-50%,-50%) scale(1); } }
+        @keyframes anroEvoTag { 0%, 50% { opacity: 0; transform: translate(-50%, 6px) scale(.8); } 65% { opacity: 1; transform: translate(-50%, 0) scale(1.08); } 90% { opacity: 1; } 100% { opacity: 0; transform: translate(-50%, -6px); } }
+        @keyframes anroNudgeIn { 0% { opacity: 0; transform: translate(-50%, calc(-100% + 8px)) scale(.9); } 100% { opacity: 1; transform: translate(-50%, -100%) scale(1); } }
+        @media (prefers-reduced-motion: reduce) {
+          .anro-evo-flash, .anro-evo-out, .anro-evo-in, .anro-evo-tag, .anro-nudge { animation-duration: 0.01s !important; }
+        }
       `}</style>
+        {ringBlock}
+        <CelebrationBurst signal={smallBurst} size="small" />
+        <CelebrationBurst signal={bigBurst} size="big" />
+        {evolution && (
+          // Evolución: la de antes se encoge y la nueva aparece creciendo,
+          // con un destello del color de la paciente detrás.
+          <span aria-hidden="true" style={{ position: "absolute", inset: 0, pointerEvents: "none", zIndex: 5 }}>
+            <span
+              className="anro-evo-flash"
+              style={{
+                position: "absolute",
+                left: "50%",
+                top: "40%",
+                width: `${ringSize * 0.8}px`,
+                height: `${ringSize * 0.8}px`,
+                borderRadius: "50%",
+                background: `radial-gradient(circle, #FFFFFF 0%, ${tint(ringColor, 0.55)} 45%, transparent 72%)`,
+                animation: "anroEvoFlash 1.6s ease-out forwards",
+              }}
+            />
+            <span className="anro-evo-out" style={{ position: "absolute", left: "50%", top: "40%", animation: "anroEvoOut 2.4s ease-in-out forwards" }}>
+              <MascotArt visual={evolution.from} size={Math.round(emojiFontSize * 1.9)} />
+            </span>
+            <span className="anro-evo-in" style={{ position: "absolute", left: "50%", top: "40%", animation: "anroEvoIn 2.4s ease-out forwards" }}>
+              <MascotArt visual={evolution.to} size={Math.round(emojiFontSize * 1.9)} />
+            </span>
+            <span
+              className="anro-evo-tag"
+              style={{
+                position: "absolute",
+                left: "50%",
+                top: "-6px",
+                whiteSpace: "nowrap",
+                background: ringColor,
+                color: "#fff",
+                fontWeight: 800,
+                fontSize: `${13 * heroScale}px`,
+                padding: `${4 * heroScale}px ${12 * heroScale}px`,
+                borderRadius: "999px",
+                boxShadow: "0 4px 12px rgba(0,0,0,0.2)",
+                animation: "anroEvoTag 2.6s ease-out forwards",
+              }}
+            >
+              {t.mascot.evolvedLabel}
+            </span>
+          </span>
+        )}
+        {plusHint && !evolution && (
+          <button
+            type="button"
+            onClick={() => {
+              setPlusHint(false);
+              onRequestUpgrade();
+            }}
+            aria-label={t.mascot.plusHintAria}
+            style={{
+              position: "absolute",
+              left: "50%",
+              top: `${-4 * heroScale}px`,
+              transform: "translate(-50%, -100%)",
+              zIndex: 8,
+              width: "max-content",
+              maxWidth: `${210 * Math.min(heroScale, 1.25)}px`,
+              background: C.surface,
+              color: C.text,
+              border: `1.5px solid ${tint(C.amber, 0.7)}`,
+              borderRadius: "14px",
+              padding: `${7 * Math.min(heroScale, 1.25)}px ${12 * Math.min(heroScale, 1.25)}px`,
+              fontSize: `${12.5 * Math.min(heroScale, 1.25)}px`,
+              fontWeight: 700,
+              lineHeight: 1.3,
+              textAlign: "center",
+              boxShadow: "0 6px 16px rgba(0,0,0,0.15)",
+              cursor: "pointer",
+              animation: "anroNudgeIn 0.35s ease-out",
+            }}
+          >
+            <span aria-hidden="true">✨ </span>
+            {t.mascot.plusHint}
+            <span style={{ display: "block", marginTop: "4px", color: C.amber, fontSize: "0.9em" }}>{t.mascot.plusHintAria} →</span>
+          </button>
+        )}
+        {nudge && !evolution && !plusHint && (
+          <span
+            role="status"
+            className="anro-nudge"
+            style={{
+              position: "absolute",
+              left: "50%",
+              top: `${-4 * heroScale}px`,
+              transform: "translate(-50%, -100%)",
+              zIndex: 7,
+              width: "max-content",
+              maxWidth: `${200 * Math.min(heroScale, 1.25)}px`,
+              background: C.surface,
+              color: C.text,
+              border: `1.5px solid ${tint(ringColor, 0.5)}`,
+              borderRadius: "14px",
+              padding: `${6 * Math.min(heroScale, 1.25)}px ${11 * Math.min(heroScale, 1.25)}px`,
+              fontSize: `${13 * Math.min(heroScale, 1.25)}px`,
+              fontWeight: 700,
+              lineHeight: 1.3,
+              textAlign: "center",
+              boxShadow: "0 6px 16px rgba(0,0,0,0.15)",
+              pointerEvents: "none",
+              animation: "anroNudgeIn 0.35s ease-out",
+            }}
+          >
+            {nudge}
+          </span>
+        )}
+        {infoOpen && (
+          <div
+            role="dialog"
+            aria-label={infoOpen === "focus" ? t.mascot.focusInfoTitle : t.app.xpInfoLabel}
+            data-anro-info-card="true"
+            style={{
+              position: "absolute",
+              top: `${ringSize + 26 * Math.min(heroScale, 1.25)}px`,
+              left: "50%",
+              transform: "translateX(-50%)",
+              zIndex: 30,
+              width: `${250 * Math.min(heroScale, 1.2)}px`,
+              maxWidth: "86vw",
+              background: C.surface,
+              color: C.text,
+              border: `1px solid ${C.border}`,
+              borderRadius: "16px",
+              padding: "14px 16px",
+              boxShadow: "0 10px 28px rgba(0,0,0,0.22)",
+              textAlign: "left",
+            }}
+          >
+            <strong style={{ display: "block", fontSize: "14px", marginBottom: "6px" }}>
+              {infoOpen === "focus" ? t.mascot.focusInfoTitle : t.app.xpInfoLabel}
+            </strong>
+            <p style={{ margin: "0 0 10px", fontSize: "13px", lineHeight: 1.5, color: C.textMuted }}>
+              {infoOpen === "focus"
+                ? t.mascot.focusInfoBody(Math.round(focusMinutes || 0), focusGoal)
+                : t.app.xpInfoBody}
+            </p>
+            {infoOpen === "xp" && (
+              <p style={{ margin: "0 0 10px", fontSize: "13px", fontWeight: 700, color: C.text }}>
+                {nextUnlock ? t.mascot.xpNext(nextUnlock.remaining, nextUnlock.name) : t.mascot.xpAllUnlocked}
+              </p>
+            )}
+            {((infoOpen === "focus" && onStartFocus) || (infoOpen === "xp" && onSeeRewards)) && (
+              <button
+                type="button"
+                onClick={() => {
+                  const wasFocus = infoOpen === "focus";
+                  setInfoOpen(null);
+                  if (wasFocus) onStartFocus();
+                  else onSeeRewards(nextUnlock?.kind);
+                }}
+                style={{
+                  width: "100%",
+                  minHeight: "40px",
+                  border: "none",
+                  borderRadius: "12px",
+                  background: ringColor,
+                  color: "#fff",
+                  fontWeight: 700,
+                  fontSize: "13px",
+                  cursor: "pointer",
+                }}
+              >
+                {infoOpen === "focus" ? t.mascot.focusInfoButton : t.mascot.xpInfoButton}
+              </button>
+            )}
+          </div>
+        )}
+      </div>
+    );
+  }
+
+  // Variante "card" — sin cambios de comportamiento ni de tamaño respecto
+  // a como vivía antes del rediseño "estilo K" (sigue siendo la misma
+  // tarjeta ancha con gradiente, usada hoy solo por el recorrido de
+  // bienvenida si llegara a necesitarse de nuevo fuera de Inicio); ahora
+  // reutiliza los mismos bloques `ringBlock`/`streakPill`/`trophyPill`/
+  // `focusPill` que la variante "hero" en vez de repetir el JSX.
+  return (
+    <div
+      style={{
+        position: "relative",
+        overflow: "hidden",
+        background: `linear-gradient(135deg, ${C.surface}, ${C.surfaceAlt})`,
+        borderRadius: "24px",
+        padding: "20px 22px",
+        marginBottom: "20px",
+        display: "flex",
+        alignItems: "center",
+        flexWrap: "wrap",
+        gap: "18px",
+        boxShadow:
+          "0 2px 4px rgba(0,0,0,0.08), 0 16px 32px rgba(0,0,0,0.16), inset 0 1px 0 rgba(255,255,255,0.06)",
+      }}
+    >
       <button
         type="button"
         onClick={toggleSound}
@@ -371,189 +1262,14 @@ export default function Mascot({ streak, C, t, accent, species, focusStatus = "i
           pointerEvents: "none",
         }}
       />
-      <div
-        style={{
-          position: "relative",
-          width: `${RING_SIZE}px`,
-          height: `${RING_SIZE + 10}px`,
-          flexShrink: 0,
-        }}
-      >
-        <div
-          className="anro-mascot-glow"
-          aria-hidden="true"
-          style={{
-            position: "absolute",
-            top: 0,
-            left: 0,
-            width: `${RING_SIZE}px`,
-            height: `${RING_SIZE}px`,
-            borderRadius: "50%",
-            background: `radial-gradient(circle, ${tint(ringColor, 0.35)} 0%, transparent 70%)`,
-          }}
-        />
-        <svg
-          width={RING_SIZE}
-          height={RING_SIZE}
-          viewBox={`0 0 ${RING_SIZE} ${RING_SIZE}`}
-          style={{ position: "absolute", top: 0, left: 0, transform: "rotate(-90deg)" }}
-          aria-hidden="true"
-        >
-          <circle
-            cx={RING_SIZE / 2}
-            cy={RING_SIZE / 2}
-            r={RING_RADIUS}
-            fill="none"
-            stroke={C.surfaceAlt}
-            strokeWidth={RING_STROKE}
-          />
-          <circle
-            cx={RING_SIZE / 2}
-            cy={RING_SIZE / 2}
-            r={RING_RADIUS}
-            fill="none"
-            stroke={ringColor}
-            strokeWidth={RING_STROKE}
-            strokeLinecap="round"
-            strokeDasharray={RING_CIRCUMFERENCE}
-            strokeDashoffset={dashOffset}
-            style={{ transition: "stroke-dashoffset 0.6s ease" }}
-          />
-        </svg>
-        <div
-          style={{
-            position: "absolute",
-            top: 0,
-            left: 0,
-            width: `${RING_SIZE}px`,
-            height: `${RING_SIZE}px`,
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-            fontSize: "56px",
-            lineHeight: 1,
-          }}
-          aria-hidden="true"
-        >
-          <span
-            className={`anro-mascot-emoji${isAquatic ? " anro-mascot-emoji-aquatic" : ""}${
-              celebrate ? " anro-mascot-celebrate" : ""
-            }${hatching ? " anro-mascot-hatch" : ""}${distracted ? " anro-mascot-distracted-anim" : ""}`}
-          >
-            {stage.emoji}
-          </span>
-          {hatching && (
-            <>
-              <span className="anro-mascot-spark anro-mascot-spark-a" aria-hidden="true">
-                ✨
-              </span>
-              <span className="anro-mascot-spark anro-mascot-spark-b" aria-hidden="true">
-                ✨
-              </span>
-            </>
-          )}
-        </div>
-        {/* Sombra de "piso" — sensación de que la mascota está apoyada en
-            algo, no flotando en el vacío. */}
-        <div
-          aria-hidden="true"
-          style={{
-            position: "absolute",
-            bottom: "0px",
-            left: "50%",
-            transform: "translateX(-50%)",
-            width: "58%",
-            height: "10px",
-            borderRadius: "50%",
-            background: "radial-gradient(ellipse, rgba(0,0,0,0.28), transparent 72%)",
-            filter: "blur(1px)",
-          }}
-        />
-        {/* Accesorio cosmético desbloqueable por puntos (8 de noviembre de
-            2026, ver ACCESSORY_EMOJI en mascotLogic.js y xpMilestones.js) —
-            una insignia chica encima de la mascota, no un disfraz de verdad
-            (la mascota sigue siendo un solo emoji) para no complicar el
-            dibujo. "none" no renderiza nada. */}
-        {ACCESSORY_EMOJI[accessory] && (
-          <span
-            aria-hidden="true"
-            style={{
-              position: "absolute",
-              top: "-2px",
-              right: "-2px",
-              fontSize: "26px",
-              lineHeight: 1,
-              filter: "drop-shadow(0 2px 3px rgba(0,0,0,0.25))",
-            }}
-          >
-            {ACCESSORY_EMOJI[accessory]}
-          </span>
-        )}
-      </div>
+      {ringBlock}
       <div style={{ position: "relative", flex: 1, minWidth: 0 }}>
         <div style={{ fontSize: "15px", fontWeight: 700, color: C.text }}>{label}</div>
         <div style={{ fontSize: "13px", color: C.textMuted, marginTop: "2px" }}>{hint}</div>
       </div>
-      <div
-        style={{
-          position: "relative",
-          display: "flex",
-          alignItems: "center",
-          gap: "6px",
-          background: tint(C.amber, 0.16),
-          borderRadius: "999px",
-          padding: "8px 14px",
-          flexShrink: 0,
-          boxShadow: `0 3px 8px ${tint(C.amber, 0.25)}`,
-        }}
-      >
-        <Flame size={16} color={C.amber} />
-        <span style={{ fontSize: "15px", fontWeight: 700, color: C.text }}>{current}</span>
-        <span style={{ fontSize: "11px", color: C.textMuted }}>{t.mascot.dayWord(current)}</span>
-      </div>
-      {longest > 0 && (
-        <div
-          title={t.mascot.bestStreakTitle}
-          style={{
-            position: "relative",
-            display: "flex",
-            alignItems: "center",
-            gap: "6px",
-            background: tint(ringColor, 0.16),
-            borderRadius: "999px",
-            padding: "8px 14px",
-            flexShrink: 0,
-            boxShadow: `0 3px 8px ${tint(ringColor, 0.25)}`,
-          }}
-        >
-          <Trophy size={16} color={ringColor} />
-          <span style={{ fontSize: "15px", fontWeight: 700, color: C.text }}>{longest}</span>
-          <span style={{ fontSize: "11px", color: C.textMuted }}>{t.mascot.bestStreakLabel}</span>
-        </div>
-      )}
-      {showFocusPill && (
-        <div
-          style={{
-            position: "relative",
-            display: "flex",
-            alignItems: "center",
-            gap: "6px",
-            background: tint(ringColor, 0.16),
-            borderRadius: "999px",
-            padding: "8px 14px",
-            flexShrink: 0,
-            boxShadow: `0 3px 8px ${tint(ringColor, 0.25)}`,
-            transition: "background 0.3s ease",
-          }}
-        >
-          <span aria-hidden="true" style={{ fontSize: "15px", lineHeight: 1 }}>
-            {distracted ? "👀" : "🎯"}
-          </span>
-          <span style={{ fontSize: "12px", fontWeight: 700, color: C.text }}>
-            {distracted ? t.mascot.focusDistractedLabel : t.mascot.focusingLabel}
-          </span>
-        </div>
-      )}
+      {streakPill}
+      {trophyPill}
+      {focusPill}
     </div>
   );
 }

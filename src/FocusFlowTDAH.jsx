@@ -30,6 +30,7 @@ import {
   VolumeX,
   BookOpen,
   HeartHandshake,
+  MessageCircle,
   MessageSquare,
   ListChecks,
   Pill,
@@ -51,18 +52,22 @@ import {
   Network,
   Info,
   X,
+  Wrench,
+  Flame,
+  Globe,
 } from "lucide-react";
 
 import LanguageSwitcher from "./LanguageSwitcher";
+import CalmBubbles from "./CalmBubbles";
+import ReorderHandle from "./ReorderHandle";
 import AppTabBar from "./AppTabBar";
-import QuickAccessGrid from "./QuickAccessGrid";
+import QuickAccessCompass from "./QuickAccessCompass";
 import ToolsGrid from "./ToolsGrid";
 import OnboardingTour from "./OnboardingTour";
 import InstallBanner from "./InstallBanner";
 import PostDiagnosisCard from "./PostDiagnosisCard";
 import ScienceCapsulePanel from "./ScienceCapsulePanel";
 import MindfulnessPanel from "./MindfulnessPanel";
-import Mascot from "./Mascot";
 import FocusMode from "./FocusMode";
 import OneThingPanel from "./OneThingPanel";
 import KanbanBoard from "./KanbanBoard";
@@ -95,7 +100,13 @@ import { useBodyDouble } from "./bodyDouble";
 import { celebrate } from "./celebrate";
 import { DEFAULT_STREAK, nextStreak, effectiveStreak } from "./streak";
 import { DEFAULT_MOOD_LOG, recordMood } from "./moodLog";
-import { DEFAULT_FOCUS_SESSION_LOG, logFocusSession } from "./focusSessionLog";
+import {
+  DEFAULT_FOCUS_SESSION_LOG,
+  logFocusSession,
+  todayFocusPercent,
+  todayFocusMinutes,
+  DAILY_FOCUS_GOAL_MIN,
+} from "./focusSessionLog";
 import { DEFAULT_ENERGY_LOG, recordEnergy } from "./energyLog";
 import {
   DEFAULT_MEDICATIONS,
@@ -150,17 +161,31 @@ import {
   removeScheduleBlock,
   updateScheduleBlock,
   moveScheduleBlock,
+  scheduleBlocksForDay,
+  formatMinutesAsTime,
 } from "./scheduleBlocks";
 import ScheduleAgendaPanel from "./ScheduleAgendaPanel";
-import { tint, ACCENT_OPTIONS, UNLOCKABLE_ACCENT_OPTIONS } from "./theme";
+import { buildTodayItems } from "./todayView";
+import { timeOfDayPeriod, timeOfDayPalette, timeOfDayBackground } from "./timeOfDayPalette";
+import HomeHeader from "./HomeHeader";
+import { tint, ACCENT_OPTIONS, UNLOCKABLE_ACCENT_OPTIONS, PLUS_ACCENTS, planetColorsFor, SOLAR_PLANETS } from "./theme";
+import { PlusUpsellBadge as PlusMark } from "./PlusUpsellCard";
+import { PLUS_THEMES } from "./plusThemes";
 import {
-  SPECIES_OPTIONS,
   matureEmoji,
   DEFAULT_SPECIES,
+  isUnlockableSpecies,
+  isPlusSpecies,
   ACCESSORY_OPTIONS,
   ACCESSORY_EMOJI,
   DEFAULT_ACCESSORY,
+  PLUS_ACCESSORIES,
+  getStoredCompassSelection,
+  storeCompassSelection,
 } from "./mascotLogic";
+import CompassEditSheet from "./CompassEditSheet";
+import SpeciesPickerSheet from "./SpeciesPickerSheet";
+import { MascotArt } from "./MascotSprite";
 import { XP_MILESTONES, isUnlocked, justCrossedMilestones } from "./xpMilestones";
 
 const DEFAULT_PROGRESS = {
@@ -338,7 +363,17 @@ export default function FocusFlowTDAH({
   const [accentPickerOpen, setAccentPickerOpen] = useState(false);
   const [speciesPickerOpen, setSpeciesPickerOpen] = useState(false);
   const [accessoryPickerOpen, setAccessoryPickerOpen] = useState(false);
-  const [isNarrow, setIsNarrow] = useState(false);
+  // "✏️ Editar" de la brújula de Inicio (ver COMPASS_POOL más abajo) —
+  // preferencia de dispositivo, mismo patrón que especie/accesorio/fijado.
+  const [compassEditOpen, setCompassEditOpen] = useState(false);
+  const [compassKeys, setCompassKeys] = useState(() => getStoredCompassSelection());
+  // Se calcula YA en el primer render (antes empezaba en `false` y se
+  // corregía en un useEffect): las 3 burbujas flotantes calculan su
+  // posición inicial al montarse, y como los efectos de los hijos corren
+  // ANTES que los del padre, en el teléfono la veían todavía en `false` —
+  // con bottomOffset 0 — y nacían encimadas sobre la barra de pestañas de
+  // abajo (tapando "Inicio" y "Perfil"). Verificado con Playwright a 390px.
+  const [isNarrow, setIsNarrow] = useState(() => typeof window !== "undefined" && window.innerWidth < 760);
   useEffect(() => {
     const check = () => setIsNarrow(window.innerWidth < 760);
     check();
@@ -347,6 +382,7 @@ export default function FocusFlowTDAH({
   }, []);
 
   const breathingSectionRef = useRef(null);
+  const calmBubblesSectionRef = useRef(null);
   const stopThinkSectionRef = useRef(null);
   const desglosadorSectionRef = useRef(null);
   const mindMapSectionRef = useRef(null);
@@ -386,6 +422,15 @@ export default function FocusFlowTDAH({
   // (igual que el tema claro/oscuro o "senda-celebrate"), así que vive en
   // localStorage y no en el progreso guardado en Supabase — y así quien
   // vuelve a abrir la app sigue en la pestaña donde se quedó.
+  // 10 de noviembre de 2026 ("lo primero que quiero que aparezca es el
+  // animal y el círculo... no quiero nada más... no los quiero así en
+  // lista larga, quiero que la app sea interactiva"): Inicio ya no es una
+  // página larga. Por defecto muestra SOLO la brújula ("compass"); el panel
+  // "Hoy" con la lista de pendientes es ahora una página aparte dentro de
+  // Inicio ("hoy"), a la que se llega tocando "Próximo paso" en la brújula
+  // (o desde "Ir a..."), con un botón para volver — mismo patrón que ya
+  // usan las herramientas (cuadrícula → herramienta → volver).
+  const [inicioView, setInicioView] = useState("compass");
   const [activeTab, setActiveTab] = useState(() => {
     try {
       return window.localStorage.getItem("anro-active-tab") || "inicio";
@@ -439,6 +484,7 @@ export default function FocusFlowTDAH({
     mindMap: mindMapSectionRef,
     oneThing: oneThingSectionRef,
     burbuja: breathingSectionRef,
+    calmBubbles: calmBubblesSectionRef,
     auditor: auditorSectionRef,
     freno: stopThinkSectionRef,
     reestructuracion: reestructuracionSectionRef,
@@ -486,6 +532,7 @@ export default function FocusFlowTDAH({
     habits: "herramientas",
     freno: "herramientas",
     burbuja: "herramientas",
+    calmBubbles: "herramientas",
     mindfulness: "herramientas",
     reestructuracion: "herramientas",
     messageTone: "herramientas",
@@ -515,10 +562,19 @@ export default function FocusFlowTDAH({
   // (menú "Ir a...", atajos, etc.) no pasa `opts` y sigue con scroll
   // animado como siempre.
   const scrollToCompanionSection = (key, opts = {}) => {
+    // "home": la brújula de Inicio (no es una sección con ref; la usa el
+    // recorrido de bienvenida para regresar a la mascota).
+    if (key === "home") {
+      setInicioView("compass");
+      setActiveTab("inicio");
+      requestAnimationFrame(() => window.scrollTo({ top: 0, behavior: "auto" }));
+      return;
+    }
     const ref = companionSectionRefs[key];
     if (!ref) return;
     const targetTab = SECTION_TABS[key] || "inicio";
     if (targetTab === "herramientas") setActiveTool(key);
+    if (targetTab === "inicio") setInicioView("hoy");
     if (targetTab !== activeTab) setActiveTab(targetTab);
     const behavior = opts.instant ? "auto" : "smooth";
     requestAnimationFrame(() => {
@@ -529,10 +585,28 @@ export default function FocusFlowTDAH({
   // ver la nota de arriba sobre por qué no se desmonta: ningún temporizador
   // ni estado interno de un panel se pierde al cambiar de pestaña.
   const tabStyle = (tab) => ({ display: activeTab === tab ? undefined : "none" });
+  // En escritorio, estando en Inicio, la barra de pestañas va dentro de la
+  // brújula (abajo) para que lo primero de la pantalla sea la mascota y el
+  // círculo sin esconder la navegación — ver la nota junto a <AppTabBar>.
+  const inicioCompass = activeTab === "inicio" && inicioView === "compass";
+  const tabBarInHero = inicioCompass && !isNarrow;
+  // Tocar la pestaña "Inicio" siempre regresa a la brújula (aunque se
+  // estuviera viendo la página "Hoy").
+  const goToTab = (tab) => {
+    if (tab === "inicio") setInicioView("compass");
+    setActiveTab(tab);
+  };
   // Igual que tabStyle, pero para las 20 herramientas dentro de la pestaña
   // Herramientas: solo se ve la que está "abierta" (activeTool === key), y
   // solo cuando además esa pestaña es la activa.
-  const toolStyle = (key) => ({ display: activeTab === "herramientas" && activeTool === key ? undefined : "none" });
+  // `gridColumn: "1 / -1"`: dentro de la cuadrícula de 2 columnas de más
+  // abajo, la herramienta abierta usa todo el ancho (solo se ve una a la
+  // vez, así que no tiene con quién compartir la fila). Fuera de una
+  // cuadrícula esta propiedad no hace nada.
+  const toolStyle = (key) => ({
+    display: activeTab === "herramientas" && activeTool === key ? undefined : "none",
+    gridColumn: "1 / -1",
+  });
 
   // Lista completa y en orden de las secciones de la página, para el menú
   // flotante "Ir a..." (Módulo 1). Reutiliza los mismos íconos que ya
@@ -564,20 +638,38 @@ export default function FocusFlowTDAH({
     { key: "payments", icon: <CreditCard size={18} />, label: t.app.panels.payments.title },
     { key: "freno", icon: <Hand size={18} />, label: t.app.panels.stopThink.title },
     { key: "burbuja", icon: <Wind size={18} />, label: t.app.panels.breathing.title },
+    { key: "calmBubbles", icon: <Sparkles size={18} />, label: t.app.panels.calmBubbles.title },
     { key: "mindfulness", icon: <Flower2 size={18} />, label: t.app.panels.mindfulness.title },
     { key: "reestructuracion", icon: <Brain size={18} />, label: t.app.panels.reframe.title },
     { key: "messageTone", icon: <MessageSquare size={18} />, label: t.app.panels.messageTone.title },
     { key: "habits", icon: <Moon size={18} />, label: t.app.panels.habits.title },
   ];
 
-  // Fase 2 (Inicio simplificado): los 4 accesos rápidos que eligió la
-  // doctora (desglosador, compañero de apoyo, freno de impulsividad,
-  // burbuja de enfoque) — se arman filtrando quickNavSections en vez de
-  // declarar íconos/etiquetas nuevos, para que SIEMPRE coincidan con el
-  // ícono y el título real de cada herramienta (si alguno cambia ahí,
-  // cambia aquí solo).
-  const QUICK_ACCESS_KEYS = ["desglosador", "companion", "freno", "burbuja"];
-  const quickAccessItems = QUICK_ACCESS_KEYS.map((key) => quickNavSections.find((s) => s.key === key)).filter(Boolean);
+  // Catálogo completo para "✏️ Editar" (botón del mockup original que
+  // había quedado fuera de la primera entrega, 9 de noviembre de 2026):
+  // la paciente elige hasta 6 de estos para su brújula de Inicio, en vez
+  // de los 6 fijos de siempre. Reutiliza `quickNavSections` (misma lista,
+  // mismos íconos/etiquetas, que el menú flotante "Ir a...") para no
+  // mantener un segundo catálogo de destinos aparte — con 3 agregados
+  // sintéticos al principio que no son secciones individuales sino
+  // atajos: "todayNextStep" (salta al primer pendiente real de HOY, el
+  // mismo que calcula buildTodayItems más abajo — el destino cambia según
+  // el día, pero la paciente solo elige "quiero este atajo" una vez) y
+  // "herramientasRoot"/"agendaRoot" (saltan a la raíz de esas pestañas,
+  // no a una herramienta en particular). No se tocó `quickNavSections` en
+  // sí — ese array lo sigue usando tal cual el menú "Ir a..." y el
+  // filtro de la cuadrícula de Herramientas (SECTION_TABS) más abajo.
+  const COMPASS_POOL = [
+    { key: "todayNextStep", icon: <ListChecks size={18} />, label: t.today.compassNextStep },
+    { key: "herramientasRoot", icon: <Wrench size={18} />, label: t.appTabs.herramientas },
+    { key: "agendaRoot", icon: <CalendarClock size={18} />, label: t.appTabs.agenda },
+    ...quickNavSections,
+  ];
+  const DEFAULT_COMPASS_KEYS = ["companion", "insights", "agendaRoot", "mood", "todayNextStep", "herramientasRoot"];
+
+  // Los 6 accesos de la brújula de Inicio (reemplaza a los 4 anteriores —
+  // ver nota larga del 9 de noviembre de 2026 más abajo, junto a
+  // <QuickAccessCompass>, de dónde sale cada uno).
 
   // Fase 2B (Herramientas como cuadrícula): las 20 tarjetas, en el mismo
   // orden en que ya aparecían como lista — reutiliza quickNavSections
@@ -603,6 +695,7 @@ export default function FocusFlowTDAH({
     habits: t.app.panels.habits.subtitle,
     freno: t.app.panels.stopThink.subtitle,
     burbuja: t.app.panels.breathing.subtitle,
+    calmBubbles: t.app.panels.calmBubbles.subtitle,
     mindfulness: t.app.panels.mindfulness.subtitle,
     reestructuracion: t.app.panels.reframe.subtitle,
     messageTone: t.app.panels.messageTone.subtitle,
@@ -635,6 +728,11 @@ export default function FocusFlowTDAH({
   const [moodLog, setMoodLog] = useState(saved.moodLog);
   const [energyLog, setEnergyLog] = useState(saved.energyLog);
   const [focusSessionLog, setFocusSessionLog] = useState(saved.focusSessionLog);
+  // % real de enfoque de hoy (rediseño "estilo K" de Inicio, 9 de noviembre
+  // de 2026) — alimenta el anillo de la mascota en QuickAccessCompass.jsx.
+  // Cálculo puro y barato (solo suma minutos del día de hoy), se recalcula
+  // en cada render sin necesidad de memorizarlo.
+  const focusPercent = todayFocusPercent(focusSessionLog);
   const [medications, setMedications] = useState(saved.medications);
   const [medicationDoseLog, setMedicationDoseLog] = useState(saved.medicationDoseLog);
   const [payments, setPayments] = useState(saved.payments);
@@ -660,8 +758,34 @@ export default function FocusFlowTDAH({
   // desbloqueada. Los 9 colores libres de siempre (ACCENT_OPTIONS) nunca
   // pasan por este candado.
   const accentLocked =
-    accentKey && UNLOCKABLE_ACCENT_OPTIONS.includes(accentKey) && !isUnlocked(accentKey, "accent", xp);
+    accentKey &&
+    UNLOCKABLE_ACCENT_OPTIONS.includes(accentKey) &&
+    (PLUS_ACCENTS.includes(accentKey) ? !isPlus : !isUnlocked(accentKey, "accent", xp));
+  // Mismo candado para el accesorio guardado: uno de la Colección Plus sin
+  // Plus, o uno por XP todavía no ganado, no se dibuja.
+  const resolvedAccessory = !accessory
+    ? DEFAULT_ACCESSORY
+    : PLUS_ACCESSORIES.includes(accessory)
+    ? isPlus
+      ? accessory
+      : DEFAULT_ACCESSORY
+    : accessory === DEFAULT_ACCESSORY || isUnlocked(accessory, "accessory", xp)
+    ? accessory
+    : DEFAULT_ACCESSORY;
   const personalAccent = (accentKey && !accentLocked && C[accentKey]) || C.lavender;
+  // Mismo candado para la mascota (10 de noviembre de 2026): un personaje
+  // nuevo guardado en este dispositivo solo se muestra si ya se tienen los
+  // puntos; si no, se usa el de siempre (Ave).
+  const chosenSpecies = species || DEFAULT_SPECIES;
+  // Las de Plus (isPlusSpecies) dependen de la suscripción, no de los XP.
+  // Con Plus, todas las mascotas al instante (las de Plus y también las que
+  // las demás ganan con XP) — decisión de la doctora, 10 de noviembre de 2026.
+  // Todas las mascotas que no son gratis se ganan con XP, igual con o sin
+  // Plus (decisión de la doctora, 10 de noviembre de 2026).
+  const speciesLocked =
+    (isPlusSpecies(chosenSpecies) && !isPlus) ||
+    (isUnlockableSpecies(chosenSpecies) && !isUnlocked(chosenSpecies, "species", xp));
+  const resolvedSpecies = speciesLocked ? DEFAULT_SPECIES : chosenSpecies;
 
   const firstRender = useRef(true);
   useEffect(() => {
@@ -1117,6 +1241,17 @@ export default function FocusFlowTDAH({
       })
     );
   const removeStep = (id) => setSteps((p) => p.filter((s) => s.id !== id));
+  // Acomodar los pasos jalándolos (10 de noviembre de 2026) — ver
+  // ReorderHandle.jsx. Mueve el paso `id` al lugar `to` de la lista.
+  const moveStep = (id, to) =>
+    setSteps((p) => {
+      const from = p.findIndex((s) => s.id === id);
+      if (from < 0) return p;
+      const next = [...p];
+      const [item] = next.splice(from, 1);
+      next.splice(Math.max(0, Math.min(next.length, to)), 0, item);
+      return next;
+    });
 
   // Fase 4, función #3 (31 de octubre de 2026 — tablero tipo Kanban,
   // gratis, decisión confirmada con la doctora: "AH GRATIS"): "list" |
@@ -1564,13 +1699,23 @@ export default function FocusFlowTDAH({
         color: C.text,
         fontFamily: "-apple-system, BlinkMacSystemFont, 'Inter', 'Segoe UI', sans-serif",
         minHeight: "100vh",
+        // border-box: sin esto el minHeight de 100vh se sumaba al padding
+        // de arriba/abajo y la página siempre medía un poco más que la
+        // pantalla — en Inicio (que ahora es solo la brújula) eso dejaba
+        // bajar unos píxeles a un espacio vacío.
+        boxSizing: "border-box",
         // Fase 2 (navegación): en móvil AppTabBar queda fija abajo (~60px +
         // el borde de seguridad del notch) y QuickNavMenu se sube encima de
         // ella (ver bottomOffset más abajo) — el padding inferior crece
         // para que el último panel de cada pestaña no quede tapado detrás
         // de ninguna de las dos. En escritorio AppTabBar es una fila normal
         // (no fija), así que el padding se queda como estaba.
-        padding: isNarrow ? "28px 18px 160px" : "28px 18px 70px",
+        // En la brújula de Inicio no hay nada debajo: el padding de abajo
+        // se reduce a lo justo (en teléfono, el alto de la barra fija) para
+        // que la pantalla no se pueda bajar a un espacio vacío.
+        padding: isNarrow
+          ? `28px 18px ${inicioCompass ? 64 : 160}px`
+          : `28px 18px ${inicioCompass ? 0 : 70}px`,
       }}
     >
       {/* Recorrido de bienvenida, solo la primera vez — se renderiza
@@ -1582,12 +1727,355 @@ export default function FocusFlowTDAH({
           menú "Ir a..." y los atajos — no una ruta paralela. */}
       <OnboardingTour C={C} t={t} accent={personalAccent} onNavigate={scrollToCompanionSection} />
       <div style={{ maxWidth: "1000px", margin: "0 auto" }}>
-        <InstallBanner C={C} t={t} />
-        <PostDiagnosisCard C={C} t={t} />
+        {/* id usado por el recorrido de bienvenida (OnboardingTour.jsx) para
+            señalar la mascota con un spotlight — sigue apuntando aquí, solo
+            que ahora envuelve a toda la brújula en vez de a una tarjeta
+            aparte (ver nota del 9 de noviembre más abajo). */}
+        {/* 9 de noviembre de 2026 — reconstrucción fiel al mockup "Opción K"
+            (la doctora señaló, con los mockups originales en mano, que el
+            diseño aprobado era UNA sola pieza circular: mascota + anillo de
+            "% de enfoque de hoy" + accesos rápidos girando alrededor — no
+            una tarjeta de mascota más un adorno de accesos aparte, que fue
+            el problema que reportó como "se ven dos mascotas"). Por eso ya
+            no hay una <Mascot> aparte aquí: vive DENTRO de
+            QuickAccessCompass.jsx (en su centro), que es ahora el único
+            lugar de toda la pantalla donde se dibuja la mascota. El % del
+            anillo es real (todayFocusPercent(focusSessionLog), calculado
+            arriba) — no un número inventado ni el progreso de racha
+            reciclado.
+
+            Segunda corrección, el mismo 9 de noviembre: la doctora reenvió
+            los 3 mockups originales completos y los accesos reales eran 6
+            (no los 4 que se habían reconstruido antes), cada uno saliendo
+            de un dato real distinto:
+              - Próximo paso: el primer pendiente real de buildTodayItems()
+                (el mismo motor que ya usa <TodayPanel>) — si no hay nada
+                pendiente, apunta a la sección "Hoy", que ya sabe mostrar
+                "no tienes nada pendiente" en vez de inventar una tarea.
+              - Herramientas / Agenda: saltan a la raíz de esas pestañas
+                (no a una herramienta en particular).
+              - Compañero / Ánimo: los de siempre (scrollToCompanionSection).
+              - Racha · puntos: streak.current y xp, ambos ya reales y
+                persistidos — salta a Insights (Progreso), donde viven esos
+                mismos números en detalle.
+            El mockup también mostraba "Agenda · 4pm" con una hora fija —
+            aquí se calculó de verdad (el siguiente bloque de la agenda de
+            HOY que todavía no pasó); si no queda ninguno, se muestra solo
+            "Agenda" sin hora inventada. */}
+        {(() => {
+          const now = new Date();
+          const period = timeOfDayPeriod(now);
+          // Tema con diseño de la Colección Plus (galaxia, cielo...): su
+          // fondo y sus colores de texto reemplazan a los automáticos por
+          // hora (10 de noviembre de 2026).
+          const plusTheme = !accentLocked ? PLUS_THEMES[accentKey] : null;
+          const palette = plusTheme
+            ? {
+                ...timeOfDayPalette(now),
+                bg: plusTheme.haloBg,
+                text: plusTheme.text,
+                textMuted: plusTheme.textMuted,
+                circleFilter: undefined,
+                // Pastilla detrás de cada texto (etiquetas de la brújula,
+                // saludo, pie): el color base del tema casi opaco, para que
+                // las letras se lean sobre cualquier dibujo.
+                chipBg: `color-mix(in srgb, ${plusTheme.haloBg} 86%, transparent)`,
+              }
+            : timeOfDayPalette(now);
+          const todayItems = buildTodayItems({
+            steps,
+            moodLog,
+            energyLog,
+            medications,
+            medicationDoseLog,
+            payments,
+            paymentPaidLog,
+            cbtProgram,
+            habits: { screensOff, sleepEnv, ateWell, hydrated, deskCleared },
+            quickNotes,
+            routines,
+            now,
+            t,
+          });
+          const nextStepTarget = todayItems[0]?.sectionRef || "today";
+          // Cómo va el día, para que la mascota reaccione (10 de noviembre
+          // de 2026, "más interactiva"): de noche descansa; si hoy ya ganó
+          // algún punto (cada entrada del frasco guarda la hora en su id)
+          // está contenta; si ya es de día y todavía nada, un globito
+          // amable de vez en cuando. Nunca regaña.
+          const hourNow = now.getHours();
+          const didSomethingToday = jar.some((j) => {
+            const d = new Date(j.id);
+            return d.toDateString() === now.toDateString();
+          });
+          const dayMood =
+            hourNow >= 22 || hourNow < 6 ? "night" : didSomethingToday ? "good" : hourNow >= 10 ? "quiet" : "neutral";
+          const nowMinutes = now.getHours() * 60 + now.getMinutes();
+          const nextBlock = scheduleBlocksForDay(scheduleBlocks, now).find((b) => b.startMin > nowMinutes) || null;
+          const agendaLabel = nextBlock
+            ? `${t.appTabs.agenda} · ${formatMinutesAsTime(nextBlock.startMin)}`
+            : t.appTabs.agenda;
+
+          // `variant`/orden (9 de noviembre de 2026, TERCERA corrección de
+          // fidelidad — la doctora mandó una foto nítida de los 3 mockups
+          // completos y se ve claro que: (a) el orden empieza en "Compañero"
+          // arriba, no en "Próximo paso"; (b) la rueda usa UN SOLO color
+          // (el acento) en los 6, nunca el acento2 — acento2 es solo para el
+          // aviso de "próxima actividad" arriba del saludo. Solo 2 de los 6
+          // llevan relleno sólido y los otros 4 van con aro blanco + borde
+          // de color — ANTES eso dependía de CUÁL acceso era (Próximo paso/
+          // Herramientas siempre sólidos); ahora que los 6 son editables
+          // (ver COMPASS_POOL/compassKeys más arriba), el relleno sólido se
+          // decide por POSICIÓN en la rueda (índices 4 y 5 — abajo-izquierda
+          // y arriba-izquierda en ORBIT_ANCHORS de QuickAccessCompass.jsx,
+          // que son los del mockup con relleno sólido), no por identidad del
+          // acceso — así cualquier combinación que elija la paciente
+          // mantiene el mismo patrón visual 2 sólidos / 4 aro.
+          //
+          // `effectiveKeys`: lo elegido por la paciente (compassKeys,
+          // guardado en localStorage por CompassEditSheet) o los 6 de
+          // siempre si todavía no eligió nada. Cada key se resuelve contra
+          // COMPASS_POOL para ícono/etiqueta — con 2 excepciones que
+          // necesitan un dato que cambia en vivo y no puede vivir en el
+          // catálogo estático: "todayNextStep" (apunta al primer pendiente
+          // REAL de hoy, calculado arriba con buildTodayItems — ver nota
+          // larga más abajo de dónde sale) e "insights" (muestra la racha y
+          // los puntos reales de hoy en vez de la etiqueta genérica
+          // "Progreso" del catálogo).
+          const effectiveKeys = compassKeys || DEFAULT_COMPASS_KEYS;
+          const compassItems = effectiveKeys.map((key, i) => {
+            const variant = i >= 4 ? "accent-solid" : "accent-outline";
+            if (key === "todayNextStep") {
+              // key propia ("todayNextStep") en vez de `nextStepTarget`
+              // (10 de noviembre de 2026): el próximo paso puede ser
+              // justamente "mood" o "insights", y entonces 2 accesos de la
+              // brújula tenían la MISMA key — React mezclaba los 2 y uno se
+              // quedaba atorado en el centro, encima de la mascota. El
+              // destino real se resuelve al tocarlo (handleCompassSelect).
+              return { key: "todayNextStep", icon: <ListChecks size={18} />, label: t.today.compassNextStep, variant };
+            }
+            if (key === "insights") {
+              return {
+                key: "insights",
+                icon: <Flame size={18} />,
+                // Redondeado (10 de noviembre de 2026): los puntos se suman de a
+                // 0.85, así que `xp` puede traer decimales ("41.65 pts") — en
+                // un acceso tan chico de la brújula se lee mejor el entero; el
+                // valor exacto con 2 decimales se sigue viendo en el panel de
+                // puntos de siempre.
+                label: `${streak.current} ${t.mascot.dayWord(streak.current)} · ${Math.round(xp)} ${t.today.pointsAbbrev}`,
+                variant,
+              };
+            }
+            if (key === "agendaRoot") {
+              return { key: "agendaRoot", icon: <CalendarClock size={18} />, label: agendaLabel, variant };
+            }
+            // "companion"/"mood": corregido el mismo día — al agregar el
+            // catálogo editable se me había olvidado que estos 2 YA tenían
+            // una presentación más corta y específica para la brújula
+            // (ver tercera corrección de fidelidad más arriba: ícono de
+            // burbuja de chat para Compañero, etiqueta corta "Ánimo") que
+            // NO es la misma que su título genérico en `quickNavSections`
+            // ("Compañero de apoyo" con ícono de manos, "Registro de
+            // ánimo") — sin este caso especial, elegirlos desde "Editar"
+            // los mostraba con el ícono/etiqueta larga del panel en vez de
+            // la versión corta pensada para la brújula.
+            if (key === "companion") {
+              return { key: "companion", icon: <MessageCircle size={18} />, label: t.today.compassCompanionLabel, variant };
+            }
+            if (key === "mood") {
+              return { key: "mood", icon: <Smile size={18} />, label: t.today.compassMoodLabel, variant };
+            }
+            const poolItem = COMPASS_POOL.find((p) => p.key === key);
+            if (!poolItem) return null; // clave guardada que ya no existe (ej. sección renombrada) — se omite en vez de romper
+            return { ...poolItem, variant };
+          }).filter(Boolean);
+
+          const handleCompassSelect = (key) => {
+            if (key === "todayNextStep") {
+              scrollToCompanionSection(nextStepTarget);
+              return;
+            }
+            if (key === "herramientasRoot") {
+              setActiveTool(null);
+              if (activeTab !== "herramientas") setActiveTab("herramientas");
+              return;
+            }
+            if (key === "agendaRoot") {
+              if (activeTab !== "agenda") setActiveTab("agenda");
+              return;
+            }
+            scrollToCompanionSection(key);
+          };
+
+          return (
+            <div
+              style={{
+                background: plusTheme ? plusTheme.background : timeOfDayBackground(period),
+                // 9 de noviembre de 2026, QUINTA corrección de fidelidad —
+                // la cuarta corrección solo sangraba hasta el borde de la
+                // columna de 1000px en escritorio (seguía habiendo un
+                // margen gris a los lados en pantallas anchas, y se quedaba
+                // corta de alto); la doctora pidió explícitamente que en
+                // escritorio también se vea "en grande". Ahora sangra hasta
+                // el borde REAL de la ventana en cualquier ancho —no solo
+                // el de la columna de 1000px— con el truco estándar de
+                // "romper" un contenedor centrado (`100vw` + margen
+                // izquierdo `calc(50% - 50vw)`): no depende de cuánto
+                // padding tenga el contenedor por fuera, a diferencia de
+                // los márgenes negativos de -18px que eran la versión
+                // anterior. Alto: ya no se exceptúa escritorio, el mismo
+                // calc(100vh - 64px) aplica siempre (los 64px son el alto
+                // fijo de AppTabBar en móvil nomás — en escritorio esos
+                // 64px de más no importan, sigue viéndose a pantalla
+                // completa igual).
+                marginLeft: "calc(50% - 50vw)",
+                marginRight: "calc(50% - 50vw)",
+                width: "100vw",
+                borderRadius: "0px",
+                marginBottom: 0,
+                // -28px: cancela el padding superior de toda la página para
+                // que la brújula quede pegada al borde de arriba de la
+                // pantalla, sin franja antes.
+                marginTop: "-28px",
+                overflow: "hidden",
+                // Teléfono: toda la pantalla menos la barra de pestañas fija
+                // de abajo (64px). Escritorio: toda la pantalla (la barra va
+                // adentro, ver tabBarInHero).
+                minHeight: isNarrow ? "calc(100vh - 64px)" : "100vh",
+                // Solo en Inicio (ver la nota junto a <AppTabBar> arriba).
+                // display:none en vez de no montarla: igual que el resto de
+                // las pestañas, así nada se reinicia al ir y volver.
+                display: inicioCompass ? "flex" : "none",
+                flexDirection: "column",
+              }}
+            >
+              <HomeHeader
+                C={C}
+                t={t}
+                palette={palette}
+                period={period}
+                nextBlock={nextBlock}
+                nowMinutes={nowMinutes}
+                onEditClick={() => setCompassEditOpen(true)}
+              />
+              {compassEditOpen && (
+                <CompassEditSheet
+                  C={C}
+                  t={t}
+                  accent={personalAccent}
+                  pool={COMPASS_POOL}
+                  selectedKeys={effectiveKeys}
+                  defaultKeys={DEFAULT_COMPASS_KEYS}
+                  onClose={() => setCompassEditOpen(false)}
+                  onSave={(keys) => {
+                    setCompassKeys(keys);
+                    storeCompassSelection(keys);
+                    setCompassEditOpen(false);
+                  }}
+                />
+              )}
+              {/* `flex: 1` + `justifyContent: "center"` (igual, cuarta
+                  corrección): con el fondo ahora ocupando toda la
+                  pantalla, la brújula se centra sola en el espacio que
+                  sobra debajo del saludo — igual que en el mockup, en vez
+                  de quedar pegada arriba con un hueco vacío abajo. */}
+              <div style={{ flex: 1, display: "flex", flexDirection: "column", justifyContent: "center" }}>
+                <div id="anro-tour-mascot" style={{ marginTop: "8px", paddingBottom: "20px" }}>
+                <QuickAccessCompass
+                  C={C}
+                  t={t}
+                  // 9 de noviembre de 2026 — tercera pasada: se había
+                  // probado acá con el acento/acento2 de la PALETA
+                  // automática por hora (para calcar el color fijo del
+                  // mockup en las 3 franjas horarias), pero la doctora
+                  // confirmó explícitamente que el color PERSONAL de la
+                  // paciente (el mismo que ya manda en todo el resto de
+                  // la app — botones, resaltados, el aro de la mascota en
+                  // cualquier otro lugar) también debe mandar ACÁ adentro,
+                  // sin excepción. Por eso vuelve a ser `personalAccent`
+                  // (no `palette.accent`): el dial punteado, los 6 íconos
+                  // y el anillo de "% de enfoque" se ven ahora del color
+                  // que cada paciente eligió para sí misma, distinto entre
+                  // pacientes — ya no un azul-verdoso fijo igual para
+                  // todas. Lo que SÍ sigue siendo automático por hora (y
+                  // no se tocó) es el FONDO con degradado y el color del
+                  // texto (`palette` más abajo) — esa es la única parte
+                  // de este rediseño que depende de la hora del día.
+                  accent={personalAccent}
+                  accent2={personalAccent}
+                  items={compassItems}
+                  onSelect={handleCompassSelect}
+                  streak={streak}
+                  species={resolvedSpecies}
+                  focusStatus={focusStatus}
+                  accessory={resolvedAccessory}
+                  focusPercent={focusPercent}
+                  palette={palette}
+                  xp={xp}
+                  dayMood={dayMood}
+                  // Planetas en tonos del color que eligió la paciente (o de
+                  // colores, si eligió "Sistema solar") — 10 de noviembre de 2026.
+                  planetColors={planetColorsFor(accentLocked ? null : accentKey, personalAccent)}
+                  // Explicaciones del centro (10 de noviembre de 2026): qué
+                  // mide el %, qué son los XP y cuánto falta para el
+                  // siguiente premio.
+                  focusMinutes={todayFocusMinutes(focusSessionLog)}
+                  focusGoal={DAILY_FOCUS_GOAL_MIN}
+                  nextUnlock={(() => {
+                    const next = [...XP_MILESTONES]
+                      .sort((a, b) => a.xp - b.xp)
+                      .find((m) => m.xp > xp);
+                    if (!next) return null;
+                    const names =
+                      next.kind === "species"
+                        ? t.app.speciesPicker.names
+                        : next.kind === "accent"
+                        ? t.app.accentPicker.names
+                        : t.app.accessoryPicker.names;
+                    return { remaining: Math.max(1, Math.ceil(next.xp - xp)), name: names[next.key] || next.key, kind: next.kind };
+                  })()}
+                  onStartFocus={() => scrollToCompanionSection("focusMode")}
+                  isPlus={isPlus}
+                  onRequestUpgrade={onRequestUpgrade}
+                  // Lleva a Perfil con abierto justo el selector del
+                  // siguiente premio (mascota, color o accesorio).
+                  onSeeRewards={(kind) => {
+                    goToTab("perfil");
+                    if (kind === "accent") setAccentPickerOpen(true);
+                    else if (kind === "accessory") setAccessoryPickerOpen(true);
+                    else setSpeciesPickerOpen(true);
+                    requestAnimationFrame(() => window.scrollTo({ top: 0, behavior: "auto" }));
+                  }}
+                  onReorder={(keys) => {
+                    setCompassKeys(keys);
+                    storeCompassSelection(keys);
+                  }}
+                />
+                </div>
+              </div>
+              {tabBarInHero && (
+                <div style={{ maxWidth: "1000px", width: "100%", margin: "0 auto", padding: "0 18px", boxSizing: "border-box" }}>
+                  <AppTabBar C={C} t={t} accent={personalAccent} activeTab={activeTab} onChange={goToTab} isNarrow={isNarrow} />
+                </div>
+              )}
+            </div>
+          );
+        })()}
+
+        {/* Aviso de instalación y guía de diagnóstico reciente: antes
+            salían arriba de todo en todas las pestañas; ahora viven en
+            Perfil, para que Inicio sea solo la brújula. */}
+        <div style={tabStyle("perfil")}>
+          <InstallBanner C={C} t={t} />
+          <PostDiagnosisCard C={C} t={t} />
+        </div>
         {/* Header */}
         <header
           style={{
-            display: "flex",
+            // Oculto en Inicio (brújula y página "Hoy"): ahí la pantalla
+            // es solo la mascota. En las otras 4 pestañas sigue igual.
+            display: activeTab === "inicio" ? "none" : "flex",
             justifyContent: "space-between",
             alignItems: "flex-start",
             flexWrap: "wrap",
@@ -1614,16 +2102,18 @@ export default function FocusFlowTDAH({
               />
               <h1 style={{ fontSize: "24px", fontWeight: 700, margin: 0 }}>{t.common.appName}</h1>
             </div>
-            {/* 50px = 40px del logo + 10px del espacio entre el logo y el
-                título (mismo gap del contenedor de arriba) — para que el
-                subtítulo quede alineado justo debajo del texto del título,
-                no del logo. */}
-            <p style={{ fontSize: "13px", color: C.textMuted, margin: "6px 0 0 50px" }}>
-              {userEmail ? t.app.sessionOf(userEmail) : t.app.noEmailSubtitle}
-            </p>
           </div>
-          <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
-            {onChangeLanguage && <LanguageSwitcher C={C} lang={lang} onChange={onChangeLanguage} t={t} height="40px" />}
+          {/* flexWrap (10 de noviembre de 2026): en el teléfono esta fila
+              (idiomas + puntos + 5 botones) medía ~550px y empujaba toda
+              la página hacia los lados (scroll horizontal de ~180px a
+              390px de ancho, verificado con Playwright). Ahora baja a un
+              segundo renglón cuando no cabe. */}
+          <div style={{ display: "flex", alignItems: "center", gap: "10px", flexWrap: "wrap", maxWidth: "100%" }}>
+            {/* 10 de noviembre de 2026 ("¿podrías acomodar de otra manera
+                esto?"): la fila de 9 botones sueltos (idioma, sonido, tema,
+                color, mascota, accesorio, suscripción, salir) se movió a la
+                tarjeta "Personaliza tu ANRO" de Perfil, con etiquetas en vez
+                de puros íconos. Aquí arriba solo quedan los puntos. */}
             <div
               id="anro-tour-xp"
               style={{
@@ -1639,7 +2129,7 @@ export default function FocusFlowTDAH({
             >
               <Sparkles size={18} color={C.amber} />
               <div>
-                <div style={{ fontSize: "16px", fontWeight: 600, lineHeight: 1.1 }}>{xp.toFixed(2)} {t.app.xpUnit}</div>
+                <div style={{ fontSize: "16px", fontWeight: 600, lineHeight: 1.1 }}>{Math.round(xp)} {t.app.xpUnit}</div>
                 <div style={{ fontSize: "11px", color: C.textMuted, display: "flex", alignItems: "center", gap: "3px" }}>
                   {t.app.xpCaption}
                   {/* 8 de noviembre de 2026: ícono de información permanente
@@ -1747,429 +2237,6 @@ export default function FocusFlowTDAH({
                 </div>
               )}
             </div>
-            <button
-              onClick={toggleCelebrate}
-              aria-label={celebrateOn ? t.app.muteOn : t.app.muteOff}
-              title={celebrateOn ? t.app.muteOn : t.app.muteOff}
-              style={{
-                position: "relative",
-                background: "transparent",
-                border: `1px solid ${C.border}`,
-                borderRadius: "12px",
-                width: "40px",
-                height: "40px",
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center",
-                color: C.textMuted,
-                cursor: "pointer",
-              }}
-            >
-              {celebrateOn ? <Volume2 size={16} /> : <VolumeX size={16} />}
-              {celebrateMsg && (
-                <div
-                  style={{
-                    position: "absolute",
-                    top: "-32px",
-                    right: 0,
-                    background: C.mintDark,
-                    color: C.mintText,
-                    fontSize: "12px",
-                    padding: "5px 10px",
-                    borderRadius: "12px",
-                    whiteSpace: "nowrap",
-                  }}
-                >
-                  {celebrateMsg}
-                </div>
-              )}
-            </button>
-            {onToggleTheme && (
-              <button
-                onClick={onToggleTheme}
-                aria-label={theme === "light" ? t.common.toDarkMode : t.common.toLightMode}
-                title={theme === "light" ? t.common.toDarkMode : t.common.toLightMode}
-                style={{
-                  background: "transparent",
-                  border: `1px solid ${C.border}`,
-                  borderRadius: "12px",
-                  width: "40px",
-                  height: "40px",
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "center",
-                  color: C.textMuted,
-                  cursor: "pointer",
-                }}
-              >
-                {theme === "light" ? <Moon size={16} /> : <Sun size={16} />}
-              </button>
-            )}
-            {onChangeAccent && (
-              <div style={{ position: "relative" }}>
-                <button
-                  onClick={() => setAccentPickerOpen((prev) => !prev)}
-                  aria-label={t.app.accentPicker.label}
-                  title={t.app.accentPicker.label}
-                  style={{
-                    background: "transparent",
-                    border: `1px solid ${C.border}`,
-                    borderRadius: "12px",
-                    width: "40px",
-                    height: "40px",
-                    display: "flex",
-                    alignItems: "center",
-                    justifyContent: "center",
-                    cursor: "pointer",
-                  }}
-                >
-                  <span
-                    style={{
-                      width: "18px",
-                      height: "18px",
-                      borderRadius: "50%",
-                      background: personalAccent,
-                      boxShadow: `0 0 0 1px ${C.border}`,
-                      display: "block",
-                    }}
-                    aria-hidden="true"
-                  />
-                </button>
-                {accentPickerOpen && (
-                  <div
-                    style={{
-                      position: "absolute",
-                      top: "48px",
-                      right: 0,
-                      background: C.surface,
-                      border: `1px solid ${C.border}`,
-                      borderRadius: "16px",
-                      padding: "12px",
-                      boxShadow: "0 8px 20px rgba(0,0,0,0.18)",
-                      zIndex: 10,
-                      width: "176px",
-                    }}
-                  >
-                    <div style={{ fontSize: "12px", color: C.textMuted, marginBottom: "10px" }}>
-                      {t.app.accentPicker.prompt}
-                    </div>
-                    <div style={{ display: "flex", flexWrap: "wrap", gap: "10px" }}>
-                      {ACCENT_OPTIONS.map((key) => (
-                        <button
-                          key={key}
-                          onClick={() => {
-                            onChangeAccent(key);
-                            setAccentPickerOpen(false);
-                          }}
-                          aria-label={t.app.accentPicker.names[key]}
-                          title={t.app.accentPicker.names[key]}
-                          style={{
-                            width: "32px",
-                            height: "32px",
-                            borderRadius: "50%",
-                            background: C[key],
-                            // Borde delgado siempre visible (no solo cuando está
-                            // seleccionado) — 27 de octubre de 2026, necesario
-                            // desde que se agregaron blanco y negro: un círculo
-                            // blanco sin borde se pierde contra este popover
-                            // (C.surface, casi blanco en modo claro), y uno negro
-                            // se perdería igual contra un fondo oscuro.
-                            boxShadow: key === accentKey ? `0 0 0 3px ${C.text}` : `0 0 0 1px ${C.border}`,
-                            border: "none",
-                            cursor: "pointer",
-                            padding: 0,
-                          }}
-                        />
-                      ))}
-                      {/* Colores con candado por puntos (8 de noviembre de
-                          2026, ver UNLOCKABLE_ACCENT_OPTIONS en theme.js) —
-                          se muestran siempre, incluso bloqueados, para que
-                          la paciente sepa que existen y cuánto le falta;
-                          nunca se puede tocar uno todavía bloqueado. */}
-                      {UNLOCKABLE_ACCENT_OPTIONS.map((key) => {
-                        const unlocked = isUnlocked(key, "accent", xp);
-                        const milestone = XP_MILESTONES.find((m) => m.kind === "accent" && m.key === key);
-                        const remaining =
-                          !unlocked && milestone ? Math.max(0, Math.round((milestone.xp - xp) * 100) / 100) : null;
-                        const lockedLabel =
-                          remaining != null
-                            ? `${t.app.rewardsLockedShort(t.app.accentPicker.names[key])} — ${t.app.rewardsRemaining(remaining)}`
-                            : t.app.rewardsLockedShort(t.app.accentPicker.names[key]);
-                        return (
-                          <button
-                            key={key}
-                            onClick={() => {
-                              if (!unlocked) return;
-                              onChangeAccent(key);
-                              setAccentPickerOpen(false);
-                            }}
-                            disabled={!unlocked}
-                            aria-label={unlocked ? t.app.accentPicker.names[key] : lockedLabel}
-                            title={unlocked ? t.app.accentPicker.names[key] : lockedLabel}
-                            style={{
-                              position: "relative",
-                              width: "32px",
-                              height: "32px",
-                              borderRadius: "50%",
-                              background: C[key],
-                              opacity: unlocked ? 1 : 0.35,
-                              boxShadow: key === accentKey ? `0 0 0 3px ${C.text}` : `0 0 0 1px ${C.border}`,
-                              border: "none",
-                              cursor: unlocked ? "pointer" : "not-allowed",
-                              padding: 0,
-                              display: "flex",
-                              alignItems: "center",
-                              justifyContent: "center",
-                            }}
-                          >
-                            {!unlocked && <Lock size={12} color={C.text} />}
-                          </button>
-                        );
-                      })}
-                    </div>
-                  </div>
-                )}
-              </div>
-            )}
-            {onChangeSpecies && (
-              <div style={{ position: "relative" }}>
-                <button
-                  onClick={() => setSpeciesPickerOpen((prev) => !prev)}
-                  aria-label={t.app.speciesPicker.label}
-                  title={t.app.speciesPicker.label}
-                  style={{
-                    background: "transparent",
-                    border: `1px solid ${C.border}`,
-                    borderRadius: "12px",
-                    width: "40px",
-                    height: "40px",
-                    display: "flex",
-                    alignItems: "center",
-                    justifyContent: "center",
-                    cursor: "pointer",
-                    fontSize: "20px",
-                  }}
-                >
-                  <span aria-hidden="true" style={{ filter: "drop-shadow(0 1px 2px rgba(0,0,0,0.18))" }}>
-                    {matureEmoji(species || DEFAULT_SPECIES)}
-                  </span>
-                </button>
-                {speciesPickerOpen && (
-                  <div
-                    style={{
-                      position: "absolute",
-                      top: "48px",
-                      right: 0,
-                      background: C.surface,
-                      border: `1px solid ${C.border}`,
-                      borderRadius: "16px",
-                      padding: "14px",
-                      boxShadow: "0 8px 20px rgba(0,0,0,0.18)",
-                      zIndex: 10,
-                      width: "236px",
-                    }}
-                  >
-                    <div style={{ fontSize: "12px", color: C.textMuted, marginBottom: "10px" }}>
-                      {t.app.speciesPicker.prompt}
-                    </div>
-                    <div style={{ display: "flex", flexWrap: "wrap", gap: "8px" }}>
-                      {SPECIES_OPTIONS.map((key) => {
-                        const selected = key === (species || DEFAULT_SPECIES);
-                        return (
-                          <button
-                            key={key}
-                            onClick={() => {
-                              onChangeSpecies(key);
-                              setSpeciesPickerOpen(false);
-                            }}
-                            style={{
-                              display: "flex",
-                              flexDirection: "column",
-                              alignItems: "center",
-                              gap: "6px",
-                              width: "64px",
-                              padding: "10px 4px 8px",
-                              borderRadius: "14px",
-                              background: selected ? tint(personalAccent, 0.18) : tint(C.textMuted, 0.06),
-                              border: selected ? `2px solid ${personalAccent}` : "2px solid transparent",
-                              cursor: "pointer",
-                            }}
-                          >
-                            <span
-                              aria-hidden="true"
-                              style={{
-                                width: "40px",
-                                height: "40px",
-                                borderRadius: "50%",
-                                background: C.surfaceAlt,
-                                display: "flex",
-                                alignItems: "center",
-                                justifyContent: "center",
-                                fontSize: "24px",
-                                filter: "drop-shadow(0 1px 2px rgba(0,0,0,0.18))",
-                              }}
-                            >
-                              {matureEmoji(key)}
-                            </span>
-                            <span style={{ fontSize: "10px", color: C.textMuted, textAlign: "center" }}>
-                              {t.app.speciesPicker.names[key]}
-                            </span>
-                          </button>
-                        );
-                      })}
-                    </div>
-                  </div>
-                )}
-              </div>
-            )}
-            {onChangeAccessory && (
-              <div style={{ position: "relative" }}>
-                <button
-                  onClick={() => setAccessoryPickerOpen((prev) => !prev)}
-                  aria-label={t.app.accessoryPicker.label}
-                  title={t.app.accessoryPicker.label}
-                  style={{
-                    background: "transparent",
-                    border: `1px solid ${C.border}`,
-                    borderRadius: "12px",
-                    width: "40px",
-                    height: "40px",
-                    display: "flex",
-                    alignItems: "center",
-                    justifyContent: "center",
-                    cursor: "pointer",
-                    fontSize: "18px",
-                  }}
-                >
-                  {ACCESSORY_EMOJI[accessory] ? (
-                    <span aria-hidden="true">{ACCESSORY_EMOJI[accessory]}</span>
-                  ) : (
-                    <Sparkles size={16} color={C.textMuted} />
-                  )}
-                </button>
-                {accessoryPickerOpen && (
-                  <div
-                    style={{
-                      position: "absolute",
-                      top: "48px",
-                      right: 0,
-                      background: C.surface,
-                      border: `1px solid ${C.border}`,
-                      borderRadius: "16px",
-                      padding: "14px",
-                      boxShadow: "0 8px 20px rgba(0,0,0,0.18)",
-                      zIndex: 10,
-                      width: "236px",
-                    }}
-                  >
-                    <div style={{ fontSize: "12px", color: C.textMuted, marginBottom: "10px" }}>
-                      {t.app.accessoryPicker.prompt}
-                    </div>
-                    <div style={{ display: "flex", flexWrap: "wrap", gap: "8px" }}>
-                      {ACCESSORY_OPTIONS.map((key) => {
-                        const selected = key === (accessory || DEFAULT_ACCESSORY);
-                        const unlocked = key === "none" || isUnlocked(key, "accessory", xp);
-                        // Puntos que faltan para ESTE accesorio en particular
-                        // (no "el siguiente hito cualquiera", que podría ser
-                        // un color de acento y confundir la cifra mostrada).
-                        const milestone = XP_MILESTONES.find((m) => m.kind === "accessory" && m.key === key);
-                        const remaining = !unlocked && milestone ? Math.max(0, Math.round((milestone.xp - xp) * 100) / 100) : null;
-                        return (
-                          <button
-                            key={key}
-                            onClick={() => {
-                              if (!unlocked) return;
-                              onChangeAccessory(key);
-                              setAccessoryPickerOpen(false);
-                            }}
-                            disabled={!unlocked}
-                            style={{
-                              display: "flex",
-                              flexDirection: "column",
-                              alignItems: "center",
-                              gap: "6px",
-                              width: "64px",
-                              padding: "10px 4px 8px",
-                              borderRadius: "14px",
-                              background: selected ? tint(personalAccent, 0.18) : tint(C.textMuted, 0.06),
-                              border: selected ? `2px solid ${personalAccent}` : "2px solid transparent",
-                              cursor: unlocked ? "pointer" : "not-allowed",
-                              opacity: unlocked ? 1 : 0.55,
-                            }}
-                          >
-                            <span
-                              aria-hidden="true"
-                              style={{
-                                width: "40px",
-                                height: "40px",
-                                borderRadius: "50%",
-                                background: C.surfaceAlt,
-                                display: "flex",
-                                alignItems: "center",
-                                justifyContent: "center",
-                                fontSize: "20px",
-                                filter: "drop-shadow(0 1px 2px rgba(0,0,0,0.18))",
-                              }}
-                            >
-                              {unlocked ? (
-                                ACCESSORY_EMOJI[key] || <Sparkles size={18} color={C.textMuted} />
-                              ) : (
-                                <Lock size={16} color={C.textMuted} />
-                              )}
-                            </span>
-                            <span style={{ fontSize: "10px", color: C.textMuted, textAlign: "center" }}>
-                              {t.app.accessoryPicker.names[key]}
-                            </span>
-                            {!unlocked && remaining != null && (
-                              <span style={{ fontSize: "9px", color: C.textMuted, textAlign: "center" }}>
-                                {t.app.rewardsRemaining(remaining)}
-                              </span>
-                            )}
-                          </button>
-                        );
-                      })}
-                    </div>
-                  </div>
-                )}
-              </div>
-            )}
-            {onManageSubscription && (
-              <button
-                onClick={onManageSubscription}
-                style={{
-                  background: "transparent",
-                  border: `1px solid ${C.border}`,
-                  borderRadius: "12px",
-                  padding: "0 14px",
-                  height: "40px",
-                  color: C.textMuted,
-                  cursor: "pointer",
-                  fontSize: "12px",
-                }}
-              >
-                {t.app.mySubscription}
-              </button>
-            )}
-            {onSignOut && (
-              <button
-                onClick={onSignOut}
-                aria-label={t.common.signOut}
-                style={{
-                  background: "transparent",
-                  border: `1px solid ${C.border}`,
-                  borderRadius: "12px",
-                  width: "40px",
-                  height: "40px",
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "center",
-                  color: C.textMuted,
-                  cursor: "pointer",
-                }}
-              >
-                <LogOut size={16} />
-              </button>
-            )}
           </div>
         </header>
 
@@ -2188,20 +2255,503 @@ export default function FocusFlowTDAH({
           </p>
         )}
 
-        {/* id usado por el recorrido de bienvenida (OnboardingTour.jsx) para
-            señalar la mascota con un spotlight — un div envolvente en vez
-            de un prop en Mascot.jsx, para no tocar su firma de props. */}
-        <div id="anro-tour-mascot">
-          <Mascot
-            streak={streak}
-            C={C}
-            t={t}
-            accent={personalAccent}
-            species={species}
-            focusStatus={focusStatus}
-            accessory={accessory}
-          />
-        </div>
+        {/* Personaliza tu ANRO (10 de noviembre de 2026) — lo que antes eran
+            9 botones de puro ícono en el encabezado, ahora como mosaicos con
+            nombre y valor actual ("Mascota · Gato", "Tema · Claro"), solo en
+            Perfil. Color y accesorio se eligen en un panel que se abre
+            debajo de los mosaicos (no un globito flotante que en el
+            teléfono se salía de la pantalla). */}
+        {activeTab === "perfil" && (() => {
+          const st = t.app.settingsCard;
+          const tileStyle = (active) => ({
+            display: "flex",
+            alignItems: "center",
+            gap: "12px",
+            width: "100%",
+            minHeight: "64px",
+            padding: "10px 14px",
+            borderRadius: "16px",
+            border: active ? `2px solid ${personalAccent}` : `1px solid ${C.border}`,
+            background: active ? tint(personalAccent, 0.1) : C.surfaceAlt,
+            color: C.text,
+            cursor: "pointer",
+            textAlign: "left",
+            position: "relative",
+            boxSizing: "border-box",
+          });
+          const tileIcon = {
+            width: "40px",
+            height: "40px",
+            borderRadius: "12px",
+            background: C.surface,
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            flexShrink: 0,
+            color: C.textMuted,
+          };
+          const tileText = (label, value) => (
+            <span style={{ display: "flex", flexDirection: "column", minWidth: 0 }}>
+              <span style={{ fontSize: "12px", color: C.textMuted, fontWeight: 600 }}>{label}</span>
+              <span style={{ fontSize: "14px", fontWeight: 700, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{value}</span>
+            </span>
+          );
+          const panelStyle = {
+            marginTop: "12px",
+            padding: "14px",
+            borderRadius: "16px",
+            border: `1px solid ${C.border}`,
+            background: C.surfaceAlt,
+          };
+          return (
+            <section
+              aria-label={st.title}
+              style={{
+                background: C.surface,
+                border: `1px solid ${C.border}`,
+                borderRadius: "20px",
+                padding: "18px",
+                marginBottom: "20px",
+              }}
+            >
+              <h2 style={{ fontSize: "17px", fontWeight: 700, margin: "0 0 14px" }}>{st.title}</h2>
+              <div
+                style={{
+                  display: "grid",
+                  // 2 columnas en el teléfono, 3 en pantallas anchas.
+                  gridTemplateColumns: isNarrow ? "repeat(2, minmax(0, 1fr))" : "repeat(3, minmax(0, 1fr))",
+                  gap: "10px",
+                }}
+              >
+                {onChangeSpecies && (
+                  <button type="button" onClick={() => setSpeciesPickerOpen(true)} style={tileStyle(false)}>
+                    <span aria-hidden="true" style={tileIcon}>
+                      <MascotArt visual={matureEmoji(resolvedSpecies)} size={34} />
+                    </span>
+                    {tileText(st.mascot, t.app.speciesPicker.names[resolvedSpecies] || resolvedSpecies)}
+                  </button>
+                )}
+                {onChangeAccent && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setAccessoryPickerOpen(false);
+                      setAccentPickerOpen((prev) => !prev);
+                    }}
+                    aria-expanded={accentPickerOpen}
+                    style={tileStyle(accentPickerOpen)}
+                  >
+                    <span aria-hidden="true" style={tileIcon}>
+                      <span
+                        style={{
+                          width: "22px",
+                          height: "22px",
+                          borderRadius: "50%",
+                          background:
+                            accentKey === "solar"
+                              ? `conic-gradient(${[...SOLAR_PLANETS, SOLAR_PLANETS[0]].join(", ")})`
+                              : !accentLocked && PLUS_THEMES[accentKey]
+                              ? PLUS_THEMES[accentKey].background
+                              : personalAccent,
+                          boxShadow: `0 0 0 1px ${C.border}`,
+                          display: "block",
+                        }}
+                      />
+                    </span>
+                    {tileText(st.color, t.app.accentPicker.names[accentLocked ? "lavender" : accentKey] || t.app.accentPicker.names.lavender)}
+                  </button>
+                )}
+                {onChangeAccessory && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setAccentPickerOpen(false);
+                      setAccessoryPickerOpen((prev) => !prev);
+                    }}
+                    aria-expanded={accessoryPickerOpen}
+                    style={tileStyle(accessoryPickerOpen)}
+                  >
+                    <span aria-hidden="true" style={{ ...tileIcon, fontSize: "20px" }}>
+                      {ACCESSORY_EMOJI[resolvedAccessory] ? ACCESSORY_EMOJI[resolvedAccessory] : <Sparkles size={18} />}
+                    </span>
+                    {tileText(st.accessory, t.app.accessoryPicker.names[resolvedAccessory])}
+                  </button>
+                )}
+                {onToggleTheme && (
+                  <button type="button" onClick={onToggleTheme} style={tileStyle(false)} aria-label={theme === "light" ? t.common.toDarkMode : t.common.toLightMode}>
+                    <span aria-hidden="true" style={tileIcon}>
+                      {theme === "light" ? <Sun size={18} /> : <Moon size={18} />}
+                    </span>
+                    {tileText(st.theme, theme === "light" ? st.themeLight : st.themeDark)}
+                  </button>
+                )}
+                <button type="button" onClick={toggleCelebrate} style={tileStyle(false)} aria-label={celebrateOn ? t.app.muteOn : t.app.muteOff}>
+                  <span aria-hidden="true" style={tileIcon}>
+                    {celebrateOn ? <Volume2 size={18} /> : <VolumeX size={18} />}
+                  </span>
+                  {tileText(st.sound, celebrateOn ? st.soundOn : st.soundOff)}
+              {celebrateMsg && (
+                  <div
+                    style={{
+                      position: "absolute",
+                      top: "-32px",
+                      right: 0,
+                      background: C.mintDark,
+                      color: C.mintText,
+                      fontSize: "12px",
+                      padding: "5px 10px",
+                      borderRadius: "12px",
+                      whiteSpace: "nowrap",
+                    }}
+                  >
+                    {celebrateMsg}
+                  </div>
+                )}
+                </button>
+                {onChangeLanguage && (
+                  <div style={{ ...tileStyle(false), cursor: "default" }}>
+                    {!isNarrow && (
+                      <span aria-hidden="true" style={tileIcon}>
+                        <Globe size={18} />
+                      </span>
+                    )}
+                    <span style={{ display: "flex", flexDirection: "column", gap: "4px", minWidth: 0, flex: 1 }}>
+                      <span style={{ fontSize: "12px", color: C.textMuted, fontWeight: 600 }}>{st.language}</span>
+                      <LanguageSwitcher C={C} lang={lang} onChange={onChangeLanguage} t={t} height="34px" />
+                    </span>
+                  </div>
+                )}
+              </div>
+
+              {accentPickerOpen && (
+                <div style={panelStyle}>
+                  <div style={{ fontSize: "12px", color: C.textMuted, marginBottom: "10px" }}>{t.app.accentPicker.prompt}</div>
+                    <div style={{ display: "flex", flexWrap: "wrap", gap: "10px" }}>
+                      {ACCENT_OPTIONS.map((key) => (
+                        <button
+                          key={key}
+                          onClick={() => {
+                            onChangeAccent(key);
+                            setAccentPickerOpen(false);
+                          }}
+                          aria-label={t.app.accentPicker.names[key]}
+                          title={t.app.accentPicker.names[key]}
+                          style={{
+                            width: "32px",
+                            height: "32px",
+                            borderRadius: "50%",
+                            background:
+                              key === "solar" ? `conic-gradient(${[...SOLAR_PLANETS, SOLAR_PLANETS[0]].join(", ")})` : C[key],
+                            // Borde delgado siempre visible (no solo cuando está
+                            // seleccionado) — 27 de octubre de 2026, necesario
+                            // desde que se agregaron blanco y negro: un círculo
+                            // blanco sin borde se pierde contra este popover
+                            // (C.surface, casi blanco en modo claro), y uno negro
+                            // se perdería igual contra un fondo oscuro.
+                            boxShadow: key === accentKey ? `0 0 0 3px ${C.text}` : `0 0 0 1px ${C.border}`,
+                            border: "none",
+                            cursor: "pointer",
+                            padding: 0,
+                          }}
+                        />
+                      ))}
+                      {/* Colores con candado por puntos (8 de noviembre de
+                          2026, ver UNLOCKABLE_ACCENT_OPTIONS en theme.js) —
+                          se muestran siempre, incluso bloqueados, para que
+                          la paciente sepa que existen y cuánto le falta;
+                          nunca se puede tocar uno todavía bloqueado. */}
+                      {UNLOCKABLE_ACCENT_OPTIONS.filter((key) => !PLUS_ACCENTS.includes(key)).map((key) => {
+                        const plusOnly = PLUS_ACCENTS.includes(key);
+                        const unlocked = plusOnly ? isPlus : isUnlocked(key, "accent", xp);
+                        const milestone = XP_MILESTONES.find((m) => m.kind === "accent" && m.key === key);
+                        const remaining =
+                          !unlocked && milestone ? Math.max(1, Math.ceil(milestone.xp - xp)) : null;
+                        const lockedLabel = plusOnly
+                          ? `${t.app.accentPicker.names[key]} — ${t.upsell.badge}`
+                          : remaining != null
+                            ? `${t.app.rewardsLockedShort(t.app.accentPicker.names[key])} — ${t.app.rewardsRemaining(remaining)}`
+                            : t.app.rewardsLockedShort(t.app.accentPicker.names[key]);
+                        return (
+                          <button
+                            key={key}
+                            onClick={() => {
+                              if (!unlocked) {
+                                // Colección Plus sin Plus: lleva a los planes.
+                                if (plusOnly && onRequestUpgrade) onRequestUpgrade();
+                                return;
+                              }
+                              onChangeAccent(key);
+                              setAccentPickerOpen(false);
+                            }}
+                            disabled={!unlocked && !plusOnly}
+                            aria-label={unlocked ? t.app.accentPicker.names[key] : lockedLabel}
+                            title={unlocked ? t.app.accentPicker.names[key] : lockedLabel}
+                            style={{
+                              position: "relative",
+                              width: "32px",
+                              height: "32px",
+                              borderRadius: "50%",
+                              background: C[key],
+                              opacity: unlocked ? 1 : plusOnly ? 0.6 : 0.35,
+                              boxShadow: key === accentKey ? `0 0 0 3px ${C.text}` : `0 0 0 1px ${C.border}`,
+                              border: "none",
+                              cursor: unlocked || plusOnly ? "pointer" : "not-allowed",
+                              padding: 0,
+                              display: "flex",
+                              alignItems: "center",
+                              justifyContent: "center",
+                            }}
+                          >
+                            {!unlocked && (plusOnly ? <Sparkles size={13} color="#fff" /> : <Lock size={12} color={C.text} />)}
+                          </button>
+                        );
+                      })}
+                    </div>
+                  {/* Colección Plus con diseño (galaxia, cielo, aurora...) —
+                      muestras grandes con su dibujo, porque un circulito no
+                      deja ver las estrellas ni las nubes. Cambian también el
+                      fondo de Inicio. Sin Plus, tocar una lleva a los planes. */}
+                  <div style={{ marginTop: "16px", display: "flex", alignItems: "center", gap: "8px", flexWrap: "wrap" }}>
+                    <strong style={{ fontSize: "13px" }}>{t.app.accentPicker.plusTitle}</strong>
+                    <PlusMark C={C} t={t} />
+                  </div>
+                  <p style={{ margin: "4px 0 10px", fontSize: "12px", color: C.textMuted }}>{t.app.accentPicker.plusHint}</p>
+                  <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(84px, 1fr))", gap: "10px" }}>
+                    {PLUS_ACCENTS.map((key) => {
+                      const selected = key === accentKey && !accentLocked;
+                      return (
+                        <button
+                          key={key}
+                          type="button"
+                          onClick={() => {
+                            if (!isPlus) {
+                              if (onRequestUpgrade) onRequestUpgrade();
+                              return;
+                            }
+                            onChangeAccent(key);
+                            setAccentPickerOpen(false);
+                          }}
+                          aria-label={isPlus ? t.app.accentPicker.names[key] : `${t.app.accentPicker.names[key]} — ${t.upsell.badge}`}
+                          aria-pressed={selected}
+                          style={{
+                            display: "flex",
+                            flexDirection: "column",
+                            alignItems: "center",
+                            gap: "6px",
+                            padding: 0,
+                            background: "transparent",
+                            border: "none",
+                            cursor: "pointer",
+                            color: C.text,
+                          }}
+                        >
+                          <span
+                            aria-hidden="true"
+                            style={{
+                              position: "relative",
+                              width: "100%",
+                              aspectRatio: "1 / 1",
+                              borderRadius: "16px",
+                              background: PLUS_THEMES[key].background,
+                              boxShadow: selected ? `0 0 0 3px ${C.text}` : `0 0 0 1px ${C.border}`,
+                              display: "flex",
+                              alignItems: "center",
+                              justifyContent: "center",
+                            }}
+                          >
+                            {/* Un planetita con los colores del tema encima del fondo */}
+                            <span
+                              style={{
+                                width: "34%",
+                                aspectRatio: "1 / 1",
+                                borderRadius: "50%",
+                                background: `radial-gradient(circle at 32% 26%, rgba(255,255,255,0.75) 0%, rgba(255,255,255,0) 42%), ${PLUS_THEMES[key].planets[0]}`,
+                                boxShadow: "0 3px 8px rgba(0,0,0,0.3)",
+                              }}
+                            />
+                            {!isPlus && (
+                              <span
+                                style={{
+                                  position: "absolute",
+                                  top: "6px",
+                                  right: "6px",
+                                  width: "20px",
+                                  height: "20px",
+                                  borderRadius: "50%",
+                                  background: "rgba(0,0,0,0.45)",
+                                  display: "flex",
+                                  alignItems: "center",
+                                  justifyContent: "center",
+                                }}
+                              >
+                                <Lock size={11} color="#fff" />
+                              </span>
+                            )}
+                          </span>
+                          <span style={{ fontSize: "11px", fontWeight: 600, textAlign: "center", lineHeight: 1.2 }}>
+                            {t.app.accentPicker.names[key]}
+                          </span>
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
+              {accessoryPickerOpen && (
+                <div style={panelStyle}>
+                  <div style={{ fontSize: "12px", color: C.textMuted, marginBottom: "10px" }}>{t.app.accessoryPicker.prompt}</div>
+                    <div style={{ display: "flex", flexWrap: "wrap", gap: "8px" }}>
+                      {ACCESSORY_OPTIONS.map((key) => {
+                        const selected = key === resolvedAccessory;
+                        const plusOnly = PLUS_ACCESSORIES.includes(key);
+                        const unlocked = key === "none" || (plusOnly ? isPlus : isUnlocked(key, "accessory", xp));
+                        // Puntos que faltan para ESTE accesorio en particular
+                        // (no "el siguiente hito cualquiera", que podría ser
+                        // un color de acento y confundir la cifra mostrada).
+                        const milestone = XP_MILESTONES.find((m) => m.kind === "accessory" && m.key === key);
+                        const remaining = !unlocked && milestone ? Math.max(1, Math.ceil(milestone.xp - xp)) : null;
+                        return (
+                          <button
+                            key={key}
+                            onClick={() => {
+                              if (!unlocked) {
+                                if (plusOnly && onRequestUpgrade) onRequestUpgrade();
+                                return;
+                              }
+                              onChangeAccessory(key);
+                              setAccessoryPickerOpen(false);
+                            }}
+                            disabled={!unlocked && !plusOnly}
+                            style={{
+                              display: "flex",
+                              flexDirection: "column",
+                              alignItems: "center",
+                              gap: "6px",
+                              width: "64px",
+                              padding: "10px 4px 8px",
+                              borderRadius: "14px",
+                              background: selected ? tint(personalAccent, 0.18) : tint(C.textMuted, 0.06),
+                              border: selected ? `2px solid ${personalAccent}` : "2px solid transparent",
+                              cursor: unlocked || plusOnly ? "pointer" : "not-allowed",
+                              opacity: unlocked ? 1 : plusOnly ? 0.75 : 0.55,
+                            }}
+                          >
+                            <span
+                              aria-hidden="true"
+                              style={{
+                                width: "40px",
+                                height: "40px",
+                                borderRadius: "50%",
+                                background: C.surfaceAlt,
+                                display: "flex",
+                                alignItems: "center",
+                                justifyContent: "center",
+                                fontSize: "20px",
+                                filter: "drop-shadow(0 1px 2px rgba(0,0,0,0.18))",
+                              }}
+                            >
+                              {unlocked || plusOnly ? (
+                                ACCESSORY_EMOJI[key] || <Sparkles size={18} color={C.textMuted} />
+                              ) : (
+                                <Lock size={16} color={C.textMuted} />
+                              )}
+                            </span>
+                            <span style={{ fontSize: "10px", color: C.textMuted, textAlign: "center" }}>
+                              {t.app.accessoryPicker.names[key]}
+                            </span>
+                            {plusOnly ? (
+                              <PlusMark C={C} t={t} />
+                            ) : (
+                              !unlocked &&
+                              remaining != null && (
+                                <span style={{ fontSize: "9px", color: C.textMuted, textAlign: "center" }}>
+                                  {t.app.rewardsRemaining(remaining)}
+                                </span>
+                              )
+                            )}
+                          </button>
+                        );
+                      })}
+                    </div>
+                </div>
+              )}
+                {speciesPickerOpen && (
+                  <SpeciesPickerSheet
+                    C={C}
+                    t={t}
+                    accent={personalAccent}
+                    xp={xp}
+                    selected={resolvedSpecies}
+                    isPlus={isPlus}
+                    onRequestUpgrade={onRequestUpgrade}
+                    onSelect={onChangeSpecies}
+                    onClose={() => setSpeciesPickerOpen(false)}
+                  />
+                )}
+
+              <div
+                style={{
+                  marginTop: "16px",
+                  paddingTop: "14px",
+                  borderTop: `1px solid ${C.border}`,
+                  display: "flex",
+                  flexWrap: "wrap",
+                  alignItems: "center",
+                  justifyContent: "space-between",
+                  gap: "10px",
+                }}
+              >
+                <span style={{ fontSize: "13px", color: C.textMuted, minWidth: 0, overflowWrap: "anywhere" }}>
+                  {userEmail ? t.app.sessionOf(userEmail) : t.app.noEmailSubtitle}
+                </span>
+                <div style={{ display: "flex", gap: "8px", flexWrap: "wrap" }}>
+                  {onManageSubscription && (
+                    <button
+                      type="button"
+                      onClick={onManageSubscription}
+                      style={{
+                        minHeight: "40px",
+                        padding: "0 16px",
+                        borderRadius: "12px",
+                        border: `1px solid ${C.border}`,
+                        background: "transparent",
+                        color: C.text,
+                        fontSize: "13px",
+                        fontWeight: 600,
+                        cursor: "pointer",
+                      }}
+                    >
+                      {t.app.mySubscription}
+                    </button>
+                  )}
+                  {onSignOut && (
+                    <button
+                      type="button"
+                      onClick={onSignOut}
+                      style={{
+                        minHeight: "40px",
+                        padding: "0 16px",
+                        borderRadius: "12px",
+                        border: `1px solid ${C.border}`,
+                        background: "transparent",
+                        color: C.textMuted,
+                        fontSize: "13px",
+                        fontWeight: 600,
+                        cursor: "pointer",
+                        display: "flex",
+                        alignItems: "center",
+                        gap: "6px",
+                      }}
+                    >
+                      <LogOut size={15} /> {t.common.signOut}
+                    </button>
+                  )}
+                </div>
+              </div>
+            </section>
+          );
+        })()}
+
 
         {/* Modal de celebración al cruzar un hito de puntos (8 de noviembre
             de 2026, ver XP_MILESTONES en xpMilestones.js) — independiente
@@ -2252,7 +2802,9 @@ export default function FocusFlowTDAH({
                   margin: "0 auto 16px",
                 }}
               >
-                {activeUnlock.kind === "accessory" ? (
+                {activeUnlock.kind === "species" ? (
+                  <MascotArt visual={matureEmoji(activeUnlock.key)} size={56} />
+                ) : activeUnlock.kind === "accessory" ? (
                   ACCESSORY_EMOJI[activeUnlock.key] || <Sparkles size={32} color={personalAccent} />
                 ) : (
                   <span
@@ -2271,7 +2823,9 @@ export default function FocusFlowTDAH({
                 {t.app.unlockModal.title}
               </strong>
               <p style={{ fontSize: "13px", color: C.textMuted, lineHeight: 1.6, margin: "0 0 20px" }}>
-                {activeUnlock.kind === "accessory"
+                {activeUnlock.kind === "species"
+                  ? t.app.unlockModal.speciesBody(t.app.speciesPicker.names[activeUnlock.key])
+                  : activeUnlock.kind === "accessory"
                   ? t.app.unlockModal.accessoryBody(t.app.accessoryPicker.names[activeUnlock.key])
                   : t.app.unlockModal.accentBody(t.app.accentPicker.names[activeUnlock.key])}
               </p>
@@ -2314,9 +2868,26 @@ export default function FocusFlowTDAH({
             por la app — fija abajo en móvil, fila arriba en tablet/
             escritorio (ver AppTabBar.jsx, que decide cuál según isNarrow).
             Cuando es fija abajo, su posición en el JSX no importa para el
-            layout (position:fixed), pero aquí mismo es donde aparece
-            inline cuando NO es fija — justo debajo de la mascota. */}
-        <AppTabBar C={C} t={t} accent={personalAccent} activeTab={activeTab} onChange={setActiveTab} isNarrow={isNarrow} />
+            layout (position:fixed).
+            10 de noviembre de 2026 ("no me gusta que las herramientas se
+            vean abajo"): antes iba DEBAJO de la brújula de Inicio, y la
+            brújula se veía en las 5 pestañas. Desde que la brújula ocupa
+            casi toda la pantalla, en escritorio eso dejaba la barra de
+            pestañas y el contenido de Agenda/Herramientas/Progreso/Perfil
+            una pantalla entera más abajo — había que bajar cada vez para
+            llegar. Ahora la brújula solo se ve en Inicio (ver `display` en
+            su contenedor).
+            Mismo día, después ("lo primero que quiero que aparezca en la
+            pantalla es el animal y el círculo"): en Inicio la brújula pasó
+            a ser lo PRIMERO de la página, antes del aviso de instalación,
+            la tarjeta de diagnóstico y el encabezado. Para no esconder la
+            navegación en escritorio, ahí la barra de pestañas se dibuja
+            DENTRO de la brújula, abajo (`tabBarInHero`); en las demás
+            pestañas sigue aquí, arriba del contenido. En el teléfono la
+            barra siempre está fija abajo, así que no cambia nada. */}
+        {!tabBarInHero && (
+          <AppTabBar C={C} t={t} accent={personalAccent} activeTab={activeTab} onChange={goToTab} isNarrow={isNarrow} />
+        )}
 
         {/* role="tabpanel" sobre TODA la región de paneles (no solo los de
             la pestaña activa): como cada sección que no es de la pestaña
@@ -2333,7 +2904,33 @@ export default function FocusFlowTDAH({
             funcionar como una verdadera pantalla de inicio. Ahora es lo
             primero que se ve al abrir la app, y ya conoce las Rutinas
             (Módulo 5) además de todo lo que ya cubría. */}
-        <div ref={todaySectionRef} style={tabStyle("inicio")}>
+        {activeTab === "inicio" && inicioView === "hoy" && (
+          <div style={{ marginBottom: "20px" }}>
+            <button
+              onClick={() => {
+                setInicioView("compass");
+                window.scrollTo({ top: 0, behavior: "auto" });
+              }}
+              style={{
+                display: "flex",
+                alignItems: "center",
+                gap: "8px",
+                minHeight: "40px",
+                padding: "8px 14px",
+                background: "transparent",
+                border: `1px solid ${C.border}`,
+                borderRadius: "12px",
+                color: C.text,
+                fontSize: "13px",
+                fontWeight: 600,
+                cursor: "pointer",
+              }}
+            >
+              <ArrowLeft size={16} /> {t.today.backToHome}
+            </button>
+          </div>
+        )}
+        <div ref={todaySectionRef} style={{ display: activeTab === "inicio" && inicioView === "hoy" ? undefined : "none" }}>
           <Panel C={C}
             accent={personalAccent}
             icon={<ListChecks size={22} />}
@@ -2357,9 +2954,6 @@ export default function FocusFlowTDAH({
               routines={routines}
               onNavigate={scrollToCompanionSection}
             />
-            <div style={{ marginTop: "18px" }}>
-              <QuickAccessGrid C={C} t={t} accent={personalAccent} items={quickAccessItems} onSelect={scrollToCompanionSection} />
-            </div>
           </Panel>
         </div>
 
@@ -2369,10 +2963,14 @@ export default function FocusFlowTDAH({
             paneles, pero no a estos dos bloques, que no son <Panel>).
             Corregido aquí: ambos quedan en Inicio, junto a "Hoy", que es de
             donde siempre fueron vecinos. */}
-        <div style={tabStyle("inicio")}>
+        {/* 10 de noviembre de 2026: con Inicio convertido en solo la
+            brújula, el frasco de recompensas pasa a Progreso (es progreso) y
+            el aviso de "no reemplaza a tu médico" a Perfil. */}
+        <div>
         {/* Dopamine jar */}
         <div
           style={{
+            ...tabStyle("progreso"),
             background: C.surface,
             border: `1px solid ${C.border}`,
             borderRadius: "12px",
@@ -2411,6 +3009,7 @@ export default function FocusFlowTDAH({
 
         <div
           style={{
+            ...tabStyle("perfil"),
             background: C.surfaceAlt,
             borderRadius: "12px",
             padding: "12px 16px",
@@ -2564,8 +3163,26 @@ export default function FocusFlowTDAH({
           </Panel>
         </div>
 
-        <div style={{ display: "grid", gridTemplateColumns: isNarrow ? "1fr" : "1fr 1fr", gap: "0 20px" }}>
-          <div>
+        {/* 10 de noviembre de 2026 — "no me gusta que las herramientas se
+            vean abajo": antes este bloque tenía DOS columnas fijas, cada
+            una con su propia lista de secciones. Las 3 de Progreso y las 2
+            de Perfil estaban todas en la columna izquierda, y la derecha
+            solo tenía herramientas (que en Progreso/Perfil están ocultas),
+            así que en esas pestañas todo quedaba apilado en media pantalla
+            con la otra mitad vacía. Ahora cada sección es hija directa de
+            la cuadrícula: las ocultas (display:none) no ocupan lugar, y
+            las que sí se ven en la pestaña activa se acomodan solas lado a
+            lado, de 2 en 2. Una herramienta abierta usa el ancho completo
+            (ver toolStyle), igual que Captura rápida, Rutinas y Compañero,
+            que ya estaban afuera de esta cuadrícula a todo lo ancho. */}
+        <div
+          style={{
+            display: "grid",
+            gridTemplateColumns: isNarrow ? "minmax(0, 1fr)" : "minmax(0, 1fr) minmax(0, 1fr)",
+            gap: "0 20px",
+            alignItems: "start",
+          }}
+        >
             <div ref={mindMapSectionRef} style={toolStyle("mindMap")}>
             <Panel C={C}
               accent={C.lavender}
@@ -2842,9 +3459,21 @@ export default function FocusFlowTDAH({
                                   margin: "0 -6px",
                                   borderBottom: `1px solid ${C.border}`,
                                   borderRadius: chosenStep?.id === s.id ? "6px" : 0,
-                                  background: chosenStep?.id === s.id ? C.surfaceAlt : "transparent",
+                                  // Fondo sólido (no transparente) para que la fila
+                                  // se vea bien mientras se arrastra encima de las
+                                  // demás (ver ReorderHandle.jsx).
+                                  background: chosenStep?.id === s.id ? C.surfaceAlt : C.surface,
                                 }}
                               >
+                                {!oneStepMode && steps.length > 1 && (
+                                  <ReorderHandle
+                                    index={originalIndex}
+                                    count={steps.length}
+                                    onMove={(to) => moveStep(s.id, to)}
+                                    label={t.app.dismantler.dragStepAria(s.text)}
+                                    color={C.textMuted}
+                                  />
+                                )}
                                 <span
                                   onClick={() => toggleStep(s.id)}
                                   style={{
@@ -2902,6 +3531,9 @@ export default function FocusFlowTDAH({
                             );
                           })}
                         </ol>
+                        {!oneStepMode && steps.length > 1 && (
+                          <p style={{ fontSize: "12px", color: C.textMuted, margin: "8px 0 0" }}>{t.app.dismantler.dragStepHint}</p>
+                        )}
                         {hiddenPendingCount > 0 && (
                           <p style={{ fontSize: "12px", color: C.textMuted, margin: "8px 0 0" }}>
                             {t.app.dismantler.morePendingSteps(hiddenPendingCount)}
@@ -3118,7 +3750,11 @@ export default function FocusFlowTDAH({
             </Panel>
             </div>
 
-            <ScienceCapsulePanel C={C} t={t} />
+            {/* Dato del día: antes salía en las 5 pestañas; ahora solo en
+                Progreso (Inicio es solo la brújula). */}
+            <div style={tabStyle("progreso")}>
+              <ScienceCapsulePanel C={C} t={t} />
+            </div>
 
             <div ref={insightsSectionRef} style={tabStyle("progreso")}>
             <Panel C={C}
@@ -3210,9 +3846,6 @@ export default function FocusFlowTDAH({
               />
             </Panel>
             </div>
-          </div>
-
-          <div>
             <div ref={energySectionRef} style={toolStyle("energy")}>
             <Panel C={C}
               accent={C.mint}
@@ -3361,6 +3994,18 @@ export default function FocusFlowTDAH({
             </Panel>
             </div>
 
+            {/* Mini juego de calma (10 de noviembre de 2026) — ver CalmBubbles.jsx. */}
+            <div ref={calmBubblesSectionRef} style={toolStyle("calmBubbles")}>
+            <Panel C={C}
+              accent={C.sky}
+              icon={<Sparkles size={22} />}
+              title={t.app.panels.calmBubbles.title}
+              subtitle={t.app.panels.calmBubbles.subtitle}
+            >
+              <CalmBubbles C={C} t={t} accent={personalAccent} onComplete={() => grantXp(t.app.xpLabels.calmBubblesCompleted)} />
+            </Panel>
+            </div>
+
             <div ref={breathingSectionRef} style={toolStyle("burbuja")}>
             <Panel C={C}
               accent={C.mint}
@@ -3499,7 +4144,6 @@ export default function FocusFlowTDAH({
               </PlusLockedPanel>
             </Panel>
             </div>
-          </div>
         </div>
 
         <div ref={habitsSectionRef} style={toolStyle("habits")}>
@@ -3579,7 +4223,7 @@ export default function FocusFlowTDAH({
         </div>
         </div>
 
-        <p style={{ fontSize: "12px", color: C.textMuted, textAlign: "center", lineHeight: 1.6, marginTop: "8px" }}>
+        <p style={{ display: inicioCompass ? "none" : undefined, fontSize: "12px", color: C.textMuted, textAlign: "center", lineHeight: 1.6, marginTop: "8px" }}>
           {t.app.footerNote}
         </p>
       </div>

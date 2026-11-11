@@ -16,15 +16,72 @@
 // theme.js). Es una capa nueva que se suma encima, sin restringir lo que
 // ya existía.
 //
+// 10 de noviembre de 2026 — mascotas nuevas con ilustración real: tercer
+// tipo de recompensa, "species" (ver IMAGE_SPECIES en mascotLogic.js),
+// intercalado con los accesorios y colores que ya existían para que la
+// recompensa nunca sea siempre del mismo tipo. Los 6 personajes de siempre
+// siguen gratis. Los primeros llegan rápido (5, 15, 35 puntos) para que
+// la paciente vea pronto que sumar puntos sí desbloquea algo; los más
+// "imponentes" (tigre, león, águila) quedan al final. Son solo datos: se
+// pueden ajustar sin tocar ninguna lógica. Debe quedar en orden
+// ascendente (nextMilestone lo asume).
+//
 // Lógica pura (sin DOM ni React) para poder probarla con Node, mismo
 // patrón que mascotLogic.js.
+// 10 de noviembre de 2026 ("¿podrías poner más premios?" y luego "¿puedes
+// poner más accesorios?"): de 18 premios a 36
+// premios — 11 accesorios nuevos y 4 colores nuevos intercalados entre las
+// mascotas, para que entre un premio y el siguiente nunca haya un hueco
+// largo (al principio cada 5–10 XP; después cada 25–100), y una meta
+// final de 1000 XP (trofeo) para quien lleve meses usando la app.
+// Mismo día: se probó que las 9 mascotas después del Koala fueran solo de
+// Plus, y la doctora decidió regresarlas a premios por XP para todas.
 export const XP_MILESTONES = [
+  { xp: 5, kind: "species", key: "panda" },
   { xp: 10, kind: "accessory", key: "sparkle" },
+  { xp: 15, kind: "species", key: "zorro" },
+  { xp: 20, kind: "accessory", key: "bow" },
   { xp: 25, kind: "accent", key: "gold" },
+  { xp: 30, kind: "species", key: "pez" },
+  { xp: 35, kind: "species", key: "koala" },
+  { xp: 40, kind: "accessory", key: "glasses" },
+  { xp: 45, kind: "species", key: "dragon" },
   { xp: 50, kind: "accessory", key: "crown" },
+  { xp: 55, kind: "accessory", key: "balloon" },
+  { xp: 60, kind: "accessory", key: "flower" },
+  { xp: 65, kind: "species", key: "pulpo" },
+  { xp: 75, kind: "accessory", key: "clover" },
+  { xp: 80, kind: "species", key: "ajolote" },
+  { xp: 90, kind: "accessory", key: "cap" },
   { xp: 100, kind: "accent", key: "jade" },
+  { xp: 115, kind: "accent", key: "ocean" },
+  { xp: 125, kind: "species", key: "buho" },
+  { xp: 130, kind: "accessory", key: "music" },
+  { xp: 150, kind: "species", key: "tortuga" },
+  { xp: 160, kind: "accessory", key: "sunflower" },
+  { xp: 175, kind: "accessory", key: "headphones" },
   { xp: 200, kind: "accessory", key: "scarf" },
+  { xp: 225, kind: "accent", key: "violet" },
+  { xp: 240, kind: "accessory", key: "backpack" },
+  { xp: 250, kind: "species", key: "dinosaurio" },
+  { xp: 275, kind: "accessory", key: "star" },
+  { xp: 300, kind: "species", key: "mariposa" },
+  { xp: 320, kind: "accessory", key: "lollipop" },
+  { xp: 350, kind: "accessory", key: "rainbow" },
   { xp: 400, kind: "accent", key: "ruby" },
+  { xp: 450, kind: "accessory", key: "medal" },
+  { xp: 500, kind: "species", key: "tigre" },
+  { xp: 520, kind: "accessory", key: "kite" },
+  { xp: 550, kind: "accent", key: "sunset" },
+  { xp: 600, kind: "species", key: "leon" },
+  { xp: 620, kind: "accessory", key: "art" },
+  { xp: 650, kind: "accessory", key: "ball" },
+  { xp: 700, kind: "accessory", key: "wand" },
+  { xp: 750, kind: "species", key: "aguila" },
+  { xp: 800, kind: "accessory", key: "cupcake" },
+  { xp: 850, kind: "accent", key: "forest" },
+  { xp: 900, kind: "accessory", key: "gem" },
+  { xp: 1000, kind: "accessory", key: "trophy" },
 ];
 
 // Todos los hitos ya alcanzados con este total de XP (orden ascendente,

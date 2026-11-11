@@ -23,7 +23,10 @@ import { computeAnchoredPanelPosition } from "./draggableBubblePure";
 // progreso clínico) en vez de un right/bottom fijo. Mientras `pos` es
 // `null` (justo antes de montar) se usa el mismo lugar de siempre como
 // resguardo, para no mostrar nada "saltando" al cargar.
-const BUBBLE_SIZE = { w: 52, h: 52 };
+// 10 de noviembre de 2026 ("las burbujas de acceso rápido también más
+// grandes"): 52→64px, igual que las otras 2 burbujas (MemoriaAnroLauncher,
+// BreathingBubbleLauncher) — mismo tamaño entre las 3 a propósito.
+const BUBBLE_SIZE = { w: 64, h: 64 };
 
 export default function QuickNavMenu({ C, t, accent, sections, onNavigate, bottomOffset = 0 }) {
   const [open, setOpen] = useState(false);
@@ -192,7 +195,7 @@ export default function QuickNavMenu({ C, t, accent, sections, onNavigate, botto
           zIndex: 60,
         }}
       >
-        {open ? <X size={22} /> : <Compass size={22} />}
+        {open ? <X size={26} /> : <Compass size={26} />}
       </button>
     </>
   );

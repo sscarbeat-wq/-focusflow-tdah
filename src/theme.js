@@ -1,3 +1,4 @@
+import { PLUS_THEMES, PLUS_THEME_KEYS } from "./plusThemes";
 // Paletas de color para ANRO TDAH — modo oscuro (el original) y modo claro.
 // Tienen exactamente las mismas claves para que cualquier componente que
 // reciba `C` como prop funcione igual sin importar cuál esté activo.
@@ -52,6 +53,17 @@ export const DARK_THEME = {
   gold: "#E8C94A",
   jade: "#3FB08C",
   ruby: "#E0515F",
+  // "Sistema solar" (10 de noviembre de 2026): la brújula con cada planeta
+  // de un color distinto. Para el resto de la app (botones, resaltados)
+  // usa este violeta.
+  solar: "#A58BEA",
+  solarDark: "#7A5BD6",
+  solarText: "#1A1033",
+  // Más colores desbloqueables (10 de noviembre de 2026).
+  ocean: "#64A8F0",
+  violet: "#B794F4",
+  sunset: "#F59A6B",
+  forest: "#6CC070",
 };
 
 export const LIGHT_THEME = {
@@ -86,6 +98,13 @@ export const LIGHT_THEME = {
   gold: "#9C7F0C",
   jade: "#1F7A5C",
   ruby: "#A9222F",
+  solar: "#6E45D8",
+  solarDark: "#5631B8",
+  solarText: "#FFFFFF",
+  ocean: "#1565C0",
+  violet: "#7B3FBF",
+  sunset: "#D9531E",
+  forest: "#2E7D32",
 };
 
 export const THEME_STORAGE_KEY = "senda-theme";
@@ -139,7 +158,53 @@ export function storeTheme(theme) {
 // temas): "white" es un blanco casi puro en modo oscuro pero un gris perla
 // en modo claro, y "black" es lo opuesto — así siempre se alcanza a ver
 // contra el fondo, sea cual sea el tema activo.
-export const ACCENT_OPTIONS = ["lavender", "mint", "coral", "rose", "amber", "sky", "gray", "white", "black"];
+export const ACCENT_OPTIONS = ["lavender", "mint", "coral", "rose", "amber", "sky", "gray", "white", "black", "solar"];
+
+// Colores de los 6 planetas de la brújula de Inicio (10 de noviembre de
+// 2026, "se ven mal los colores"). La regla de siempre se mantiene: la
+// brújula usa el color que eligió la paciente. Lo que cambia es CÓMO: en
+// vez de 2 círculos rellenos y 4 blancos con borde (con los colores
+// pastel se veían deslavados, casi grises), los 6 son planetas rellenos
+// en tonos distintos de SU color — más claro, más oscuro — para que se
+// vean con volumen y se distingan entre sí. Si eligió "Sistema solar",
+// cada planeta es de un color diferente.
+export const SOLAR_PLANETS = ["#FF6B57", "#F5A524", "#1FAF7A", "#2E90FA", "#9B5CF6", "#EC4899"];
+
+function hexToRgb(hex) {
+  const h = String(hex || "").replace("#", "");
+  if (!/^[0-9a-fA-F]{6}$/.test(h)) return null;
+  return [0, 2, 4].map((i) => parseInt(h.slice(i, i + 2), 16));
+}
+function rgbToHex(rgb) {
+  return `#${rgb.map((v) => Math.max(0, Math.min(255, Math.round(v))).toString(16).padStart(2, "0")).join("")}`;
+}
+// amount < 0 oscurece (mezcla con un azul muy oscuro), > 0 aclara (con blanco).
+export function shadeColor(hex, amount) {
+  const rgb = hexToRgb(hex);
+  if (!rgb) return hex;
+  const target = amount < 0 ? [20, 22, 40] : [255, 255, 255];
+  const a = Math.abs(amount);
+  return rgbToHex(rgb.map((v, i) => v + (target[i] - v) * a));
+}
+// Luminancia relativa (0 = negro, 1 = blanco) — para decidir si el ícono
+// encima del planeta va blanco u oscuro.
+export function luminance(hex) {
+  const rgb = hexToRgb(hex);
+  if (!rgb) return 0.5;
+  const [r, g, b] = rgb.map((v) => {
+    const c = v / 255;
+    return c <= 0.03928 ? c / 12.92 : ((c + 0.055) / 1.055) ** 2.4;
+  });
+  return 0.2126 * r + 0.7152 * g + 0.0722 * b;
+}
+export function planetColorsFor(accentKey, accentHex) {
+  if (accentKey === "solar") return SOLAR_PLANETS;
+  if (PLUS_THEMES[accentKey]) return PLUS_THEMES[accentKey].planets;
+  // Base un poco más profunda que el acento (los pastel se veían grises)
+  // y 6 tonos alrededor de ella.
+  const base = luminance(accentHex) > 0.3 ? shadeColor(accentHex, -0.3) : accentHex;
+  return [-0.05, 0.18, -0.25, 0.08, -0.15, 0.28].map((amt) => shadeColor(base, amt));
+}
 export const DEFAULT_ACCENT = "lavender";
 export const ACCENT_STORAGE_KEY = "anro-accent";
 
@@ -151,7 +216,16 @@ export const ACCENT_STORAGE_KEY = "anro-accent";
 // xpMilestones.js (kind: "accent"). No reemplazan ni restringen
 // ACCENT_OPTIONS; se muestran como opciones adicionales en el mismo
 // selector, bloqueadas hasta desbloquearse.
-export const UNLOCKABLE_ACCENT_OPTIONS = ["gold", "jade", "ruby"];
+// Colección Plus (10 de noviembre de 2026): temas con diseño (galaxia,
+// cielo, aurora...) que no se ganan con XP — vienen con ANRO Plus. Ver
+// plusThemes.js. Su color para botones se agrega a DARK_THEME/LIGHT_THEME
+// abajo, para que C[llave] funcione igual que con cualquier acento.
+export const PLUS_ACCENTS = PLUS_THEME_KEYS;
+export const UNLOCKABLE_ACCENT_OPTIONS = ["gold", "jade", "ocean", "violet", "ruby", "sunset", "forest", ...PLUS_ACCENTS];
+PLUS_THEME_KEYS.forEach((key) => {
+  DARK_THEME[key] = PLUS_THEMES[key].accentDark;
+  LIGHT_THEME[key] = PLUS_THEMES[key].accentLight;
+});
 
 // Nota: esto valida que la llave exista en la paleta (libre o
 // desbloqueable), NO que ya esté desbloqueada con los puntos actuales —

@@ -45,8 +45,13 @@ const STEP_META = [
   { kind: "modal" },
   { kind: "modal" },
   { kind: "modal" },
-  { kind: "spotlight", targetId: "anro-tour-mascot" },
-  { kind: "spotlight", targetId: "anro-tour-xp" },
+  // 10 de noviembre de 2026: Inicio ahora es SOLO la brújula (sin el
+  // encabezado, que es donde vive el contador de "foco acumulado"). Por eso
+  // el paso del contador lleva a Perfil, donde el encabezado sí se ve, y
+  // el paso de la mascota regresa a la brújula ("home") — así "Atrás"
+  // también funciona.
+  { kind: "spotlight", targetId: "anro-tour-mascot", navigate: "home" },
+  { kind: "spotlight", targetId: "anro-tour-xp", navigate: "notifications" },
   { kind: "spotlight", targetId: "anro-tour-memoria-anro" },
   // "focusMode" es la misma llave que ya usa scrollToCompanionSection en
   // FocusFlowTDAH.jsx — con esto el recorrido reutiliza la navegación que
@@ -152,6 +157,20 @@ export default function OnboardingTour({ C, t, accent, onNavigate }) {
       if (framesLeft > 0) {
         raf = requestAnimationFrame(() => tick(framesLeft - 1));
         return;
+      }
+      // 10 de noviembre de 2026: desde que la brújula de Inicio ocupa la
+      // primera pantalla completa, algunos elementos que señala el
+      // recorrido (ej. los puntos de "foco acumulado" del encabezado)
+      // quedan más abajo, fuera de la vista — sin esto el recuadro de luz
+      // se dibujaba fuera de la pantalla. Si el elemento no se ve completo,
+      // se trae al centro antes de medir (el listener de scroll de abajo
+      // vuelve a medir solo).
+      const target = document.getElementById(meta.targetId);
+      if (target) {
+        const r = target.getBoundingClientRect();
+        if (r.top < 0 || r.bottom > window.innerHeight) {
+          target.scrollIntoView({ block: "center", behavior: "auto" });
+        }
       }
       measure();
     };

@@ -45,18 +45,173 @@ export const SPECIES_EMOJI = {
   pez: ["🥚", "🐟", "🐠", "🐡", "🦈", "🐋✨"],
 };
 
-export const SPECIES_OPTIONS = Object.keys(SPECIES_EMOJI);
+// 10 de noviembre de 2026 — mascotas nuevas con ilustración real.
+// La doctora generó en Gemini 12 personajes nuevos con estilo de
+// "sticker" y varias poses por etapa (en reposo, segundo paso para
+// caminar, dormido/ojos cerrados, comiendo, jugando) — ver los prototipos
+// "<animal>-movimiento-real.html". Cada personaje es UNA sola imagen
+// /public/mascots/<animal>.webp (~170 KB) con todas sus poses en
+// cuadrícula — 4 filas (etapas) × 5 columnas (en reposo, segundo paso,
+// dormida, comiendo, jugando), cada cuadro de 256×256 con el dibujo pegado
+// abajo y centrado. Una sola imagen por animal en vez de 204 sueltas: se
+// descarga una vez, cambiar de pose nunca parpadea, y se suben 12 archivos
+// a GitHub en vez de 204 (la subida web acepta máx. 100 a la vez).
+//
+// Las ilustraciones vienen en 4 etapas ("Recién nacida", "Pequeña",
+// "Juvenil", "Adulta"), pero la racha sigue usando las mismas 6 etapas
+// internas de siempre (textos clínicos ya aprobados, sin tocar) — se
+// agrupan así: 0 días → recién nacida; 1–6 días → pequeña; 7–29 días →
+// juvenil; 30+ días → adulta (ver STAGE_GROUP_BY_INDEX).
+//
+// Desbloqueo: decisión ya aprobada por la doctora en la propuesta de
+// expansión de mascotas — los 6 de siempre siguen gratis; los nuevos se
+// desbloquean con puntos de "foco acumulado" (nunca con la racha, para que
+// perder una racha jamás quite un personaje). Los puntos de cada uno viven
+// en xpMilestones.js.
+//
+// El conejo todavía no entra: sus imágenes tienen otro estilo (acuarela,
+// no sticker) y le faltan las poses de comer y jugar.
+export const IMAGE_SPECIES = [
+  "panda",
+  "zorro",
+  "koala",
+  "pulpo",
+  "ajolote",
+  "buho",
+  "tortuga",
+  "dinosaurio",
+  "mariposa",
+  "tigre",
+  "leon",
+  "aguila",
+];
+const IMAGE_SPECIES_SET = new Set(IMAGE_SPECIES);
+
+// Los 6 de siempre también ya tienen ilustración (10 de noviembre de 2026,
+// "se ven feas, hazlas como las otras"): se generaron en Gemini con el
+// mismo estilo de sticker y las mismas 5 poses, y viven igual en
+// /public/mascots/<especie>.webp. Siguen GRATIS — solo cambia cómo se
+// dibujan, no el desbloqueo. SPECIES_EMOJI se queda como respaldo (y como
+// referencia de qué es cada etapa). Las que todavía no tienen su imagen
+// (Dragón, Perro, Pez) siguen con emoji hasta que se agreguen aquí.
+const ILLUSTRATED_FREE_SPECIES = ["ave", "gato", "planta"];
+const ART_SPECIES_SET = new Set([...IMAGE_SPECIES, ...ILLUSTRATED_FREE_SPECIES]);
+
+// Gratis desde el inicio (10 de noviembre de 2026, decisión de la doctora):
+// solo Ave, Gato, Perro y Planta. Dragón y Pez pasaron a ser premios por
+// XP, junto con Panda, Zorro y Koala (ver XP_MILESTONES). El resto, Plus.
+export const FREE_SPECIES_OPTIONS = ["ave", "gato", "perro", "planta"];
+const XP_SPECIES = [
+  "panda",
+  "zorro",
+  "pez",
+  "koala",
+  "dragon",
+  "pulpo",
+  "ajolote",
+  "buho",
+  "tortuga",
+  "dinosaurio",
+  "mariposa",
+  "tigre",
+  "leon",
+  "aguila",
+];
+const XP_SPECIES_SET = new Set(XP_SPECIES);
+// Orden del selector: las gratis, luego los premios por XP (en el orden en
+// que se desbloquean), luego las de Plus.
+export const SPECIES_OPTIONS = [
+  ...FREE_SPECIES_OPTIONS,
+  ...XP_SPECIES,
+  ...IMAGE_SPECIES.filter((s) => !XP_SPECIES_SET.has(s)),
+];
 export const DEFAULT_SPECIES = "ave";
+
+// ¿Se dibuja con ilustración (imagen) en vez de emoji?
+export function isImageSpecies(species) {
+  return ART_SPECIES_SET.has(species);
+}
+
+// Mascotas de ANRO Plus (10 de noviembre de 2026, decisión de la doctora:
+// "a partir del koala los demás animales son de suscripción Plus"). Con
+// Plus se pueden usar todas al instante, sin juntar XP; sin Plus se ven con
+// candado y la etiqueta "Plus". Panda, Zorro y Koala siguen siendo premios
+// por XP para todas.
+// Mismo día, más tarde: la doctora decidió regresar al esquema anterior —
+// TODAS las mascotas que no son gratis se ganan con XP, igual para todas
+// (con o sin Plus). La lista queda vacía; se conserva por si algún día
+// vuelve a haber mascotas exclusivas de Plus.
+export const PLUS_SPECIES = [];
+const PLUS_SPECIES_SET = new Set(PLUS_SPECIES);
+export function isPlusSpecies(species) {
+  return PLUS_SPECIES_SET.has(species);
+}
+
+// ¿Es de las que se desbloquean con puntos? (los 6 de siempre nunca; las
+// de Plus tampoco — esas dependen de la suscripción, ver isPlusSpecies).
+export function isUnlockableSpecies(species) {
+  return XP_SPECIES_SET.has(species);
+}
+
+// 6 etapas internas → 4 grupos de ilustración.
+export const STAGE_GROUP_KEYS = ["reciennacida", "pequena", "juvenil", "adulta"];
+const STAGE_GROUP_BY_INDEX = ["reciennacida", "pequena", "pequena", "juvenil", "juvenil", "adulta"];
+export function stageGroupFor(stageIndex) {
+  return STAGE_GROUP_BY_INDEX[stageIndex] || "reciennacida";
+}
+
+// Poses disponibles por grupo — la recién nacida solo tiene "en reposo" y
+// "dormida" (no camina, no come, no juega todavía).
+export function posesFor(group) {
+  return group === "reciennacida" ? ["a", "sleep"] : ["a", "b", "sleep", "eat", "play"];
+}
+
+const SHEET_POSES = ["a", "b", "sleep", "eat", "play"];
+export const SHEET_COLUMNS = SHEET_POSES.length;
+export const SHEET_ROWS = STAGE_GROUP_KEYS.length;
+
+// Las imágenes viven sueltas en /public (no en /public/mascots): así
+// quedaron al subirlas por la web de GitHub, y moverlas ahí uno por uno no
+// se puede. /public/<especie>.webp se sirve como /<especie>.webp.
+export function mascotSheetPath(species) {
+  return `/${species}.webp`;
+}
+
+// Fila/columna del cuadro de una etapa+pose dentro de la imagen del
+// personaje (una pose que esa etapa no tiene cae en "en reposo").
+export function mascotFrame(group, pose = "a") {
+  const safePose = posesFor(group).includes(pose) ? pose : "a";
+  return { row: Math.max(0, STAGE_GROUP_KEYS.indexOf(group)), col: SHEET_POSES.indexOf(safePose) };
+}
+
+// Igual que con los emoji, lo que viaja por el resto del código (stage.emoji,
+// matureEmoji) sigue siendo un STRING — "img:<especie>:<grupo>" — para que
+// las comparaciones por valor que ya existían (p. ej. Mascot.jsx detecta un
+// cambio de etapa comparando ese valor con el anterior) sigan funcionando
+// igual. Ver MascotSprite.jsx para cómo se dibuja.
+const IMAGE_PREFIX = "img:";
+export function imageVisualKey(species, group) {
+  return `${IMAGE_PREFIX}${species}:${group}`;
+}
+export function parseImageVisual(value) {
+  if (typeof value !== "string" || !value.startsWith(IMAGE_PREFIX)) return null;
+  const [species, group] = value.slice(IMAGE_PREFIX.length).split(":");
+  if (!ART_SPECIES_SET.has(species) || !STAGE_GROUP_KEYS.includes(group)) return null;
+  return { species, group };
+}
 
 // El emoji "maduro" de cada especie (última etapa) — se usa en el selector
 // para mostrar de una vez a dónde llega cada personaje, no solo cómo
-// empieza.
+// empieza. Para los personajes con ilustración, es la marca de su imagen
+// adulta.
 export function matureEmoji(species) {
+  if (ART_SPECIES_SET.has(species)) return imageVisualKey(species, "adulta");
   const emojis = SPECIES_EMOJI[species] || SPECIES_EMOJI[DEFAULT_SPECIES];
   return emojis[emojis.length - 1];
 }
 
-function emojiFor(species, stageIndex) {
+export function emojiFor(species, stageIndex) {
+  if (ART_SPECIES_SET.has(species)) return imageVisualKey(species, stageGroupFor(stageIndex));
   const emojis = SPECIES_EMOJI[species] || SPECIES_EMOJI[DEFAULT_SPECIES];
   return emojis[stageIndex];
 }
@@ -153,6 +308,70 @@ export function progressFraction(current, longest) {
 
 export const STAGES = STAGE_META;
 
+// Acceso rápido "fijado arriba" de la brújula de Inicio (rediseño "estilo
+// K", 9 de noviembre de 2026 — ver el footnote del mockup original,
+// "mantén presionado para fijar uno arriba"). Preferencia de dispositivo,
+// mismo patrón que la especie elegida, el sonido de la mascota y la
+// variante de reinicio de racha: se guarda la `key` del acceso (una de
+// `quickAccessItems`, ver FocusFlowTDAH.jsx) y QuickAccessCompass.jsx la
+// saca de la rueda que gira para dejarla fija arriba; null = nada fijado
+// (todos giran, como siempre).
+export const PINNED_ACCESS_STORAGE_KEY = "anro-compass-pinned-access";
+
+export function getStoredPinnedAccess() {
+  if (typeof window === "undefined") return null;
+  try {
+    return window.localStorage.getItem(PINNED_ACCESS_STORAGE_KEY) || null;
+  } catch (err) {
+    return null;
+  }
+}
+
+export function storePinnedAccess(key) {
+  if (typeof window === "undefined") return;
+  try {
+    if (key) window.localStorage.setItem(PINNED_ACCESS_STORAGE_KEY, key);
+    else window.localStorage.removeItem(PINNED_ACCESS_STORAGE_KEY);
+  } catch (err) {
+    // No pasa nada si no se pudo guardar — solo no se recuerda la próxima vez.
+  }
+}
+
+// Selección editable de los 6 accesos de la brújula (9 de noviembre de
+// 2026 — botón "✏️ Editar" del mockup original, que había quedado fuera de
+// la primera entrega). Mismo patrón que lo fijado arriba: preferencia de
+// DISPOSITIVO en localStorage, nunca progreso clínico. Se guarda un array
+// JSON de hasta 6 `key` (de COMPASS_POOL, ver FocusFlowTDAH.jsx); null/
+// ausente/corrupto = usar los 6 por defecto.
+export const COMPASS_SELECTION_STORAGE_KEY = "anro-compass-selection";
+
+export function getStoredCompassSelection() {
+  if (typeof window === "undefined") return null;
+  try {
+    const raw = window.localStorage.getItem(COMPASS_SELECTION_STORAGE_KEY);
+    if (!raw) return null;
+    const parsed = JSON.parse(raw);
+    if (!Array.isArray(parsed) || parsed.length === 0) return null;
+    if (!parsed.every((k) => typeof k === "string")) return null;
+    return parsed.slice(0, 6);
+  } catch (err) {
+    return null;
+  }
+}
+
+export function storeCompassSelection(keys) {
+  if (typeof window === "undefined") return;
+  try {
+    if (Array.isArray(keys) && keys.length > 0) {
+      window.localStorage.setItem(COMPASS_SELECTION_STORAGE_KEY, JSON.stringify(keys.slice(0, 6)));
+    } else {
+      window.localStorage.removeItem(COMPASS_SELECTION_STORAGE_KEY);
+    }
+  } catch (err) {
+    // No pasa nada si no se pudo guardar — solo no se recuerda la próxima vez.
+  }
+}
+
 // --- Especie elegida ---------------------------------------------------
 //
 // Mismo patrón que el tema claro/oscuro y el acento personal (theme.js):
@@ -191,12 +410,44 @@ export function storeSpecies(speciesKey) {
 // necesidad de ningún punto. Se dibuja como una insignia chica encima de la
 // mascota (ver Mascot.jsx) — mismo patrón de preferencia de DISPOSITIVO en
 // localStorage que la especie y el acento personal, nunca progreso clínico.
+// En el orden en que se ganan (así se ven en el selector: lo más cercano
+// primero), y al final la Colección Plus.
 export const ACCESSORY_EMOJI = {
   none: null,
-  sparkle: "✨",
-  crown: "👑",
-  scarf: "🧣",
+  sparkle: "✨", // 10 XP
+  bow: "🎀", // 20
+  glasses: "🕶️", // 40
+  crown: "👑", // 50
+  balloon: "🎈", // 55
+  flower: "🌸", // 60
+  clover: "🍀", // 75
+  cap: "🧢", // 90
+  music: "🎵", // 130
+  sunflower: "🌻", // 160
+  headphones: "🎧", // 175
+  scarf: "🧣", // 200
+  backpack: "🎒", // 250
+  star: "⭐", // 275
+  lollipop: "🍭", // 300
+  rainbow: "🌈", // 350
+  medal: "🏅", // 450
+  kite: "🪁", // 500
+  art: "🎨", // 600
+  ball: "⚽", // 650
+  wand: "🪄", // 700
+  cupcake: "🧁", // 800
+  gem: "💎", // 900
+  trophy: "🏆", // 1000
+  // Colección Plus (10 de noviembre de 2026): solo con ANRO Plus, nunca
+  // por XP — ver PLUS_ACCESSORIES.
+  tophat: "🎩",
+  crystal: "🔮",
+  moon: "🌙",
+  planet: "🪐",
+  comet: "💫",
+  unicorn: "🦄",
 };
+export const PLUS_ACCESSORIES = ["tophat", "crystal", "moon", "planet", "comet", "unicorn"];
 export const ACCESSORY_OPTIONS = Object.keys(ACCESSORY_EMOJI);
 export const DEFAULT_ACCESSORY = "none";
 export const ACCESSORY_STORAGE_KEY = "anro-mascot-accessory";
