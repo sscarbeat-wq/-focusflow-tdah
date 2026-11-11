@@ -21,6 +21,8 @@ import { voiceSupported, getStoredVoicePref, storeVoicePref, speak, stopSpeaking
 //     botón chico por si un movimiento molesta, pero no hace falta tocarlo.
 //   - Los XP se dan al terminar solo si de verdad se hizo al menos la mitad
 //     del tiempo (saltarse todo no cuenta).
+//   - La sesión se guarda en localStorage: si sales de la app y vuelves,
+//     retoma donde iba. La voz sigue en segundo plano.
 // Se ofrece sola al terminar una sesión de Modo enfoque, en "Te puede
 // servir ahora" y en la pestaña de hábitos de Inicio.
 export const ROUTINES = [
@@ -83,6 +85,19 @@ const stage = (color) => `color-mix(in srgb, ${color} 12%, #fff)`;
 
 const routineMinutes = (r) => Math.round((r.stepSec * r.moves.length) / 60);
 
+// ---- Persistencia en localStorage ------------------------------------------------
+// La sesión de pausa no se pierde al salir de la app ni al cambiar de pestaña.
+const BRK = "anro-break-session";
+function saveBreak(d) {
+  try { localStorage.setItem(BRK, JSON.stringify(d)); } catch (e) { /* privado/lleno */ }
+}
+function loadBreak() {
+  try { const r = localStorage.getItem(BRK); return r ? JSON.parse(r) : null; } catch (e) { return null; }
+}
+function clearBreak() {
+  try { localStorage.removeItem(BRK); } catch (e) { /* */ }
+}
+
 export default function ActiveBreak({ C, t, lang = "es", autoStart = 0, onComplete, onActiveChange, isNarrow }) {
   const ab = t.activeBreak;
   const [routineKey, setRoutineKey] = useState(null); // null = eligiendo
@@ -90,9 +105,15 @@ export default function ActiveBreak({ C, t, lang = "es", autoStart = 0, onComple
   const [sec, setSec] = useState(0);
   const [running, setRunning] = useState(false);
   const [done, setDone] = useState(false);
-  const activeSecRef = useRef(0); // segundos realmente transcurridos
   const completedRef = useRef(false);
   const routine = ROUTINES.find((r) => r.key === routineKey) || null;
+
+  // Timestamps para timing preciso (funciona con la pestaña en segundo plano)
+  const breakStartRef = useRef(0);   // cuándo empezó toda la pausa
+  const stepStartRef = useRef(0);    // cuándo empezó el paso actual
+  const totalPausedRef = useRef(0);  // ms en "pausado" acumulado
+  const pauseBeganRef = useRef(0);   // cuándo empezó la pausa actual (0 = corriendo)
+
   // Mientras se hace una pausa, FocusFlowTDAH.jsx esconde los botones
   // flotantes (en el teléfono tapaban "Saltar este" y "Terminar").
   const inProgress = !!routine && !done;
@@ -119,11 +140,86 @@ export default function ActiveBreak({ C, t, lang = "es", autoStart = 0, onComple
   // Al salir de la herramienta (o cerrar la app) la voz se calla.
   useEffect(() => stopSpeaking, []);
 
+  // ---- Persistir en localStorage ----
+  const persist = (rKey, sIdx) => {
+    saveBreak({
+      routineKey: rKey,
+      stepIndex: sIdx,
+      breakStart: breakStartRef.current,
+      stepStart: stepStartRef.current,
+      totalPaused: totalPausedRef.current,
+    });
+  };
+
+  // ---- Restaurar sesión al montar ----
+  const restoredRef = useRef(false);
+  useEffect(() => {
+    if (restoredRef.current) return;
+    restoredRef.current = true;
+    const saved = loadBreak();
+    if (!saved) return;
+    const r = ROUTINES.find((x) => x.key === saved.routineKey);
+    if (!r) { clearBreak(); return; }
+
+    const now = Date.now();
+    breakStartRef.current = saved.breakStart;
+    totalPausedRef.current = saved.totalPaused || 0;
+
+    if (saved.paused) {
+      // Estaba pausada: sumar el tiempo fuera como pausa
+      totalPausedRef.current += now - (saved.savedAt || now);
+      const rem = saved.pausedRem || 0;
+      setRoutineKey(r.key);
+      setStep(saved.stepIndex);
+      setSec(Math.max(1, Math.round(rem)));
+      stepStartRef.current = saved.stepStart;
+      pauseBeganRef.current = 0;
+      // No auto-play: queda pausada, el usuario le da play
+    } else {
+      // Estaba corriendo: calcular en qué paso debería estar
+      const elapsedSinceStep = (now - saved.stepStart) / 1000;
+      let sIdx = saved.stepIndex;
+      let rem = r.stepSec - elapsedSinceStep;
+
+      // Avanzar pasos que ya pasaron
+      while (rem <= 0 && sIdx < r.moves.length - 1) {
+        sIdx++;
+        rem += r.stepSec;
+      }
+
+      if (rem <= 0) {
+        // La pausa terminó mientras estaba fuera
+        clearBreak();
+        setRoutineKey(r.key);
+        setDone(true);
+        const activeSec = (now - saved.breakStart - (saved.totalPaused || 0)) / 1000;
+        const totalSec = r.stepSec * r.moves.length;
+        if (activeSec >= totalSec / 2) {
+          completedRef.current = true;
+          onComplete?.();
+        }
+        return;
+      }
+
+      // Retomar a medio camino
+      const stepElapsed = r.stepSec - rem;
+      stepStartRef.current = now - stepElapsed * 1000;
+      pauseBeganRef.current = 0;
+      setRoutineKey(r.key);
+      setStep(sIdx);
+      setSec(Math.max(1, Math.round(rem)));
+      setRunning(true);
+      if (canSpeak && getStoredVoicePref()) sayMove(r, sIdx);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
   const toPicker = () => {
     stopSpeaking();
     setRunning(false);
     setRoutineKey(null);
     setDone(false);
+    clearBreak();
   };
   // Llegando desde el aviso de Modo enfoque o la pestaña de hábitos: se
   // empieza siempre en la pantalla para elegir.
@@ -132,24 +228,35 @@ export default function ActiveBreak({ C, t, lang = "es", autoStart = 0, onComple
   }, [autoStart]);
 
   const begin = (r) => {
+    const now = Date.now();
     setRoutineKey(r.key);
     setStep(0);
     setSec(r.stepSec);
     setDone(false);
-    activeSecRef.current = 0;
     completedRef.current = false;
+    breakStartRef.current = now;
+    stepStartRef.current = now;
+    totalPausedRef.current = 0;
+    pauseBeganRef.current = 0;
     setRunning(true);
     tapFeedback("pick");
     // Dentro del toque de la persona: así los teléfonos permiten la voz.
     if (voiceOn) sayMove(r, 0);
+    persist(r.key, 0);
   };
 
   const finish = () => {
+    if (pauseBeganRef.current) {
+      totalPausedRef.current += Date.now() - pauseBeganRef.current;
+      pauseBeganRef.current = 0;
+    }
     setRunning(false);
     setDone(true);
+    clearBreak();
     if (voiceOn) speak(`${ab.doneTitle} ${ab.doneText}`, lang);
     const total = routine.stepSec * routine.moves.length;
-    if (!completedRef.current && activeSecRef.current >= total / 2) {
+    const activeSec = (Date.now() - breakStartRef.current - totalPausedRef.current) / 1000;
+    if (!completedRef.current && activeSec >= total / 2) {
       completedRef.current = true;
       onComplete?.();
     }
@@ -161,26 +268,107 @@ export default function ActiveBreak({ C, t, lang = "es", autoStart = 0, onComple
       finish();
       return;
     }
+    const now = Date.now();
     setStep((s) => s + 1);
     setSec(routine.stepSec);
+    stepStartRef.current = now;
     tapFeedback("drop");
     if (voiceOn) sayMove(routine, step + 1);
+    persist(routine.key, step + 1);
   };
 
+  // ---- Timer basado en timestamps (preciso en pestañas de fondo) ----
   useEffect(() => {
-    if (!running) return undefined;
+    if (!running || !routine) return undefined;
     const id = setInterval(() => {
-      activeSecRef.current += 1;
-      setSec((s) => Math.max(0, s - 1));
-    }, 1000);
+      const elapsed = (Date.now() - stepStartRef.current) / 1000;
+      const rem = routine.stepSec - elapsed;
+      setSec(Math.max(0, Math.round(rem)));
+    }, 250);
     return () => clearInterval(id);
-  }, [running]);
+  }, [running, routine]);
 
   // Al llegar a 0:00 pasa SOLA al siguiente movimiento (o termina).
   useEffect(() => {
     if (running && routine && sec === 0) next();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [sec, running]);
+
+  // ---- Visibilitychange: recalcular + re-anunciar al volver a la pestaña ----
+  useEffect(() => {
+    const handler = () => {
+      if (document.visibilityState !== "visible") return;
+      if (!running || !routine) return;
+      const elapsed = (Date.now() - stepStartRef.current) / 1000;
+      const rem = routine.stepSec - elapsed;
+      if (rem <= 0) {
+        setSec(0); // dispara next() vía el efecto de sec===0
+      } else {
+        setSec(Math.round(rem));
+        if (voiceOn) sayMove(routine, step);
+      }
+    };
+    document.addEventListener("visibilitychange", handler);
+    return () => document.removeEventListener("visibilitychange", handler);
+  }, [running, routine, step, voiceOn]);
+
+  // ---- Guardar al salir (pagehide / beforeunload) ----
+  useEffect(() => {
+    const handler = () => {
+      if (!routine || done) return;
+      if (running) {
+        persist(routine.key, step);
+      } else {
+        saveBreak({
+          routineKey: routine.key,
+          stepIndex: step,
+          breakStart: breakStartRef.current,
+          stepStart: stepStartRef.current,
+          totalPaused: totalPausedRef.current,
+          paused: true,
+          pausedRem: sec,
+          savedAt: Date.now(),
+        });
+      }
+    };
+    window.addEventListener("pagehide", handler);
+    window.addEventListener("beforeunload", handler);
+    return () => {
+      window.removeEventListener("pagehide", handler);
+      window.removeEventListener("beforeunload", handler);
+    };
+  }, [routine, step, sec, running, done]);
+
+  // ---- Pausar / Reanudar con persistencia ----
+  const toggleRunning = () => {
+    if (running) {
+      // Pausar
+      stopSpeaking();
+      const rem = Math.max(0, routine.stepSec - (Date.now() - stepStartRef.current) / 1000);
+      pauseBeganRef.current = Date.now();
+      setRunning(false);
+      saveBreak({
+        routineKey: routine.key,
+        stepIndex: step,
+        breakStart: breakStartRef.current,
+        stepStart: stepStartRef.current,
+        totalPaused: totalPausedRef.current,
+        paused: true,
+        pausedRem: rem,
+        savedAt: Date.now(),
+      });
+    } else {
+      // Reanudar
+      if (pauseBeganRef.current) {
+        const pausedMs = Date.now() - pauseBeganRef.current;
+        totalPausedRef.current += pausedMs;
+        stepStartRef.current += pausedMs; // recorrer el inicio del paso
+      }
+      pauseBeganRef.current = 0;
+      setRunning(true);
+      persist(routine.key, step);
+    }
+  };
 
   const btn = (bg, fg, extra) => ({
     minHeight: "46px",
@@ -366,10 +554,7 @@ export default function ActiveBreak({ C, t, lang = "es", autoStart = 0, onComple
       <div style={{ display: "flex", gap: "8px", flexWrap: "wrap", alignItems: "center" }}>
         <button
           type="button"
-          onClick={() => {
-            if (running) stopSpeaking();
-            setRunning((r) => !r);
-          }}
+          onClick={toggleRunning}
           style={btn(running ? C.surfaceAlt : accent, running ? C.text : "#fff", running ? { border: `1px solid ${C.border}` } : null)}
         >
           {running ? ab.pause : ab.resume}
