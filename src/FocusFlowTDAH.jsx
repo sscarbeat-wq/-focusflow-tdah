@@ -142,6 +142,21 @@ import { DEFAULT_SLEEP_LOG, recordBedtime, todayBedtime } from "./sleepLog";
 import { DEFAULT_IMPULSE_BRAKE_LOG, recordImpulseBrakeUse } from "./impulseBrakeLog";
 import { DEFAULT_GOOD_MOMENTS, addGoodMoment, removeGoodMoment } from "./goodMoments";
 import ProgressSummary from "./ProgressSummary";
+import ActiveBreak from "./ActiveBreak";
+import DeskReady from "./DeskReady";
+import TodayHabitsStrip from "./TodayHabitsStrip";
+import HabitsList from "./HabitsList";
+import {
+  DEFAULT_CUSTOM_HABITS,
+  habitDayKey,
+  normalizeCustomHabits,
+  canAddCustomHabit,
+  addCustomHabit,
+  updateCustomHabit,
+  removeCustomHabit,
+  toggleCustomHabit,
+  resetCustomHabits,
+} from "./customHabits";
 import { DEFAULT_ONE_THING, startOneThing, finishOneThing, exitOneThing } from "./oneThing";
 import {
   DEFAULT_ROUTINES,
@@ -197,6 +212,11 @@ const DEFAULT_PROGRESS = {
   ateWell: false,
   hydrated: false,
   deskCleared: false,
+  // 11 nov 2026 — ver customHabits.js: hábitos propios, a qué "día de
+  // hábitos" pertenecen las palomitas y cuáles ya dieron XP ese día.
+  customHabits: DEFAULT_CUSTOM_HABITS,
+  habitsDay: null,
+  habitXpGiven: [],
   streak: DEFAULT_STREAK,
   moodLog: DEFAULT_MOOD_LOG,
   energyLog: DEFAULT_ENERGY_LOG,
@@ -388,6 +408,7 @@ export default function FocusFlowTDAH({
 
   const breathingSectionRef = useRef(null);
   const calmBubblesSectionRef = useRef(null);
+  const activeBreakSectionRef = useRef(null);
   const stopThinkSectionRef = useRef(null);
   const desglosadorSectionRef = useRef(null);
   const mindMapSectionRef = useRef(null);
@@ -490,6 +511,7 @@ export default function FocusFlowTDAH({
     oneThing: oneThingSectionRef,
     burbuja: breathingSectionRef,
     calmBubbles: calmBubblesSectionRef,
+    activeBreak: activeBreakSectionRef,
     auditor: auditorSectionRef,
     freno: stopThinkSectionRef,
     reestructuracion: reestructuracionSectionRef,
@@ -538,6 +560,7 @@ export default function FocusFlowTDAH({
     freno: "herramientas",
     burbuja: "herramientas",
     calmBubbles: "herramientas",
+    activeBreak: "herramientas",
     mindfulness: "herramientas",
     reestructuracion: "herramientas",
     messageTone: "herramientas",
@@ -647,6 +670,7 @@ export default function FocusFlowTDAH({
     { key: "freno", icon: <Hand size={18} />, label: t.app.panels.stopThink.title },
     { key: "burbuja", icon: <Wind size={18} />, label: t.app.panels.breathing.title },
     { key: "calmBubbles", icon: <Sparkles size={18} />, label: t.app.panels.calmBubbles.title },
+    { key: "activeBreak", icon: <Activity size={18} />, label: t.app.panels.activeBreak.title },
     { key: "mindfulness", icon: <Flower2 size={18} />, label: t.app.panels.mindfulness.title },
     { key: "reestructuracion", icon: <Brain size={18} />, label: t.app.panels.reframe.title },
     { key: "messageTone", icon: <MessageSquare size={18} />, label: t.app.panels.messageTone.title },
@@ -704,6 +728,7 @@ export default function FocusFlowTDAH({
     freno: t.app.panels.stopThink.subtitle,
     burbuja: t.app.panels.breathing.subtitle,
     calmBubbles: t.app.panels.calmBubbles.subtitle,
+    activeBreak: t.app.panels.activeBreak.subtitle,
     mindfulness: t.app.panels.mindfulness.subtitle,
     reestructuracion: t.app.panels.reframe.subtitle,
     messageTone: t.app.panels.messageTone.subtitle,
@@ -727,11 +752,43 @@ export default function FocusFlowTDAH({
   // ---- Persisted state ----
   const [xp, setXp] = useState(saved.xp);
   const [jar, setJar] = useState(saved.jar);
-  const [screensOff, setScreensOff] = useState(saved.screensOff);
-  const [sleepEnv, setSleepEnv] = useState(saved.sleepEnv);
-  const [ateWell, setAteWell] = useState(saved.ateWell);
-  const [hydrated, setHydrated] = useState(saved.hydrated);
-  const [deskCleared, setDeskCleared] = useState(saved.deskCleared);
+  // Reinicio diario de hábitos (ver customHabits.js): si lo guardado es de
+  // otro "día de hábitos" —o de antes de que existiera este dato— las
+  // palomitas arrancan apagadas.
+  const habitsFresh = saved.habitsDay === habitDayKey();
+  const [habitsDay, setHabitsDay] = useState(() => habitDayKey());
+  const [screensOff, setScreensOff] = useState(habitsFresh && saved.screensOff);
+  const [sleepEnv, setSleepEnv] = useState(habitsFresh && saved.sleepEnv);
+  const [ateWell, setAteWell] = useState(habitsFresh && saved.ateWell);
+  const [hydrated, setHydrated] = useState(habitsFresh && saved.hydrated);
+  const [deskCleared, setDeskCleared] = useState(habitsFresh && saved.deskCleared);
+  const [customHabits, setCustomHabits] = useState(() => {
+    const list = normalizeCustomHabits(saved.customHabits);
+    return habitsFresh ? list : resetCustomHabits(list);
+  });
+  const [habitXpGiven, setHabitXpGiven] = useState(() => (habitsFresh && Array.isArray(saved.habitXpGiven) ? saved.habitXpGiven : []));
+  // Con la app abierta al cambiar el día (o al volver a ella al día
+  // siguiente): se apagan todas las palomitas.
+  useEffect(() => {
+    const check = () => {
+      const key = habitDayKey();
+      if (key === habitsDay) return;
+      setHabitsDay(key);
+      setScreensOff(false);
+      setSleepEnv(false);
+      setAteWell(false);
+      setHydrated(false);
+      setDeskCleared(false);
+      setCustomHabits((list) => resetCustomHabits(list));
+      setHabitXpGiven([]);
+    };
+    const id = setInterval(check, 60 * 1000);
+    document.addEventListener("visibilitychange", check);
+    return () => {
+      clearInterval(id);
+      document.removeEventListener("visibilitychange", check);
+    };
+  }, [habitsDay]);
   const [streak, setStreak] = useState(() => effectiveStreak(saved.streak));
   const [moodLog, setMoodLog] = useState(saved.moodLog);
   const [energyLog, setEnergyLog] = useState(saved.energyLog);
@@ -809,6 +866,9 @@ export default function FocusFlowTDAH({
       ateWell,
       hydrated,
       deskCleared,
+      customHabits,
+      habitsDay,
+      habitXpGiven,
       streak,
       moodLog,
       energyLog,
@@ -835,6 +895,9 @@ export default function FocusFlowTDAH({
     ateWell,
     hydrated,
     deskCleared,
+    customHabits,
+    habitsDay,
+    habitXpGiven,
     streak,
     moodLog,
     energyLog,
@@ -1613,34 +1676,49 @@ export default function FocusFlowTDAH({
     setRfAlternative("");
   };
 
-  // ---- Movement break (no persiste el conteo entre sesiones) ----
-  const [breakRunning, setBreakRunning] = useState(false);
-  const [breakSec, setBreakSec] = useState(300);
-  const [breakDone, setBreakDone] = useState(false);
-  const breakRef = useRef(null);
+  // ---- Pausa activa: ahora es su propia herramienta (ActiveBreak.jsx).
+  // `activeBreakStart` cambia (Date.now()) cuando se abre desde el aviso de
+  // Modo enfoque, para que arranque sola. `breakPrompt`: el aviso
+  // "¿Te mueves 5 minutos?" que aparece al terminar una sesión de enfoque.
+  const [activeBreakStart, setActiveBreakStart] = useState(0);
+  const [breakPrompt, setBreakPrompt] = useState(false);
 
-  useEffect(() => {
-    if (breakRunning && breakSec > 0) {
-      breakRef.current = setInterval(() => {
-        setBreakSec((s) => {
-          if (s <= 1) {
-            setBreakRunning(false);
-            setBreakDone(true);
-            grantXp(t.app.xpLabels.activeBreakCompleted);
-            return 0;
-          }
-          return s - 1;
-        });
-      }, 1000);
-    }
-    return () => breakRef.current && clearInterval(breakRef.current);
-  }, [breakRunning, grantXp, t]);
-
-  const toggleXp = (setter, current, label) => {
+  // Palomear un hábito. Los XP se dan UNA vez por hábito por día
+  // (`habitXpGiven`): antes, marcar y desmarcar el mismo hábito daba XP
+  // cada vez. `key` identifica al hábito (los propios usan su id).
+  const toggleXp = (setter, current, label, key) => {
     const next = !current;
     setter(next);
-    if (next) grantXp(label);
+    if (next) grantHabitXp(key || label, label);
   };
+  const grantHabitXp = (key, label) => {
+    if (habitXpGiven.includes(key)) return;
+    setHabitXpGiven((prev) => [...prev, key]);
+    grantXp(label);
+  };
+
+  // Los hábitos del día — los mismos en "Mis hábitos de hoy" (Herramientas)
+  // y en la franja de Inicio (TodayHabitsStrip.jsx): los 4 fijos y luego
+  // los que la paciente agregó (máximo 3, ver customHabits.js).
+  const habitItems = [
+    { key: "screensOff", emoji: "📵", short: t.todayStrip.short.screensOff, label: t.app.habits.screensOff, checked: screensOff, onToggle: () => toggleXp(setScreensOff, screensOff, t.app.xpLabels.screensOffLabel, "screensOff") },
+    { key: "sleepEnv", emoji: "🛏️", short: t.todayStrip.short.sleepEnv, label: t.app.habits.sleepEnvReady, checked: sleepEnv, onToggle: () => toggleXp(setSleepEnv, sleepEnv, t.app.xpLabels.sleepEnvLabel, "sleepEnv") },
+    { key: "ateWell", emoji: "🥗", short: t.todayStrip.short.ateWell, label: t.app.habits.ateWell, checked: ateWell, onToggle: () => toggleXp(setAteWell, ateWell, t.app.xpLabels.ateWellLabel, "ateWell") },
+    { key: "hydrated", emoji: "💧", short: t.todayStrip.short.hydrated, label: t.app.habits.hydrated, checked: hydrated, onToggle: () => toggleXp(setHydrated, hydrated, t.app.xpLabels.hydratedLabel, "hydrated") },
+    ...customHabits.map((ch) => ({
+      key: `custom-${ch.id}`,
+      id: ch.id,
+      custom: true,
+      emoji: ch.emoji,
+      short: ch.label,
+      label: ch.label,
+      checked: ch.done,
+      onToggle: () => {
+        setCustomHabits((list) => toggleCustomHabit(list, ch.id));
+        if (!ch.done) grantHabitXp(`custom-${ch.id}`, t.app.xpLabels.customHabitDone(ch.label));
+      },
+    })),
+  ];
 
   // ---- Hora de dormir ----
   const todayBedtimeEntry = todayBedtime(sleepLog);
@@ -1799,7 +1877,7 @@ export default function FocusFlowTDAH({
             payments,
             paymentPaidLog,
             cbtProgram,
-            habits: { screensOff, sleepEnv, ateWell, hydrated, deskCleared },
+            habits: { screensOff, sleepEnv, ateWell, hydrated, deskCleared, custom: customHabits },
             quickNotes,
             routines,
             now,
@@ -2061,6 +2139,19 @@ export default function FocusFlowTDAH({
                   }}
                 />
                 </div>
+              </div>
+              {/* Franja "Hoy" (hábitos + despejar + pausa activa), debajo
+                  de la mascota — ver TodayHabitsStrip.jsx. */}
+              <div style={{ padding: isNarrow ? "0 14px 8px" : "0 18px 18px" }}>
+                <TodayHabitsStrip
+                  t={t}
+                  palette={palette}
+                  items={habitItems}
+                  deskCleared={deskCleared}
+                  isNarrow={isNarrow}
+                  onDesk={() => scrollToCompanionSection("focusMode")}
+                  onBreak={() => scrollToCompanionSection("activeBreak")}
+                />
               </div>
               {tabBarInHero && (
                 <div style={{ maxWidth: "1000px", width: "100%", margin: "0 auto", padding: "0 18px", boxSizing: "border-box" }}>
@@ -2957,7 +3048,7 @@ export default function FocusFlowTDAH({
               payments={payments}
               paymentPaidLog={paymentPaidLog}
               cbtProgram={cbtProgram}
-              habits={{ screensOff, sleepEnv, ateWell, hydrated, deskCleared }}
+              habits={{ screensOff, sleepEnv, ateWell, hydrated, deskCleared, custom: customHabits }}
               quickNotes={quickNotes}
               routines={routines}
               onNavigate={scrollToCompanionSection}
@@ -3060,7 +3151,7 @@ export default function FocusFlowTDAH({
                   moodLog={moodLog}
                   jar={jar}
                   streak={streak}
-                  habits={{ screensOff, sleepEnv, ateWell, hydrated, deskCleared }}
+                  habits={{ screensOff, sleepEnv, ateWell, hydrated, deskCleared, custom: customHabits }}
                   sleepLog={sleepLog}
                   focusSessionLog={focusSessionLog}
                 />
@@ -3094,7 +3185,7 @@ export default function FocusFlowTDAH({
                   energyLog={energyLog}
                   medications={medications}
                   medicationDoseLog={medicationDoseLog}
-                  habits={{ screensOff, sleepEnv, ateWell, hydrated, deskCleared }}
+                  habits={{ screensOff, sleepEnv, ateWell, hydrated, deskCleared, custom: customHabits }}
                   streak={streak}
                   sleepLog={sleepLog}
                   impulseBrakeLog={impulseBrakeLog}
@@ -3177,6 +3268,10 @@ export default function FocusFlowTDAH({
                   const h = now.getHours();
                   const moodToday = todayMoodEntry(moodLog, now);
                   if (moodToday && moodToday.mood <= 2) return { key: "calmBubbles", reason: "moodLow" };
+                  // Acaba de terminar una sesión de enfoque (última hora) →
+                  // moverse un poco.
+                  const lastFocus = Object.values(focusSessionLog || {}).flat().map((e) => Date.parse(e.completedAt)).filter(Boolean).sort().pop();
+                  if (lastFocus && now.getTime() - lastFocus < 60 * 60 * 1000) return { key: "activeBreak", reason: "afterFocus" };
                   if (h >= 21 || h < 5) return { key: "habits", reason: "night" };
                   if (!moodToday) return { key: "mood", reason: "noCheckin" };
                   if (steps.some((st) => !st.done)) return { key: "oneThing", reason: "pending" };
@@ -3810,6 +3905,12 @@ export default function FocusFlowTDAH({
               title={t.app.panels.focusMode.title}
               subtitle={t.app.panels.focusMode.subtitle}
             >
+              <DeskReady
+                C={C}
+                t={t}
+                done={deskCleared}
+                onDone={() => toggleXp(setDeskCleared, deskCleared, t.app.xpLabels.deskClearedLabel, "deskCleared")}
+              />
               <FocusMode
                 C={C}
                 t={t}
@@ -3819,6 +3920,7 @@ export default function FocusFlowTDAH({
                   setFocusSessionLog((prev) => logFocusSession(prev, session));
                   grantXp(t.app.xpLabels.focusSessionCompleted);
                   bodyDouble.setStatus("aqui");
+                  setBreakPrompt(true);
                 }}
                 onSessionStart={(min) => {
                   scheduleStepsOnCalendar(userId, [{ text: t.app.focusSessionEventTitle, min }], { kind: "focus" });
@@ -3827,6 +3929,47 @@ export default function FocusFlowTDAH({
                 onFocusStatusChange={setFocusStatus}
                 storageKey={`anro-focus-session-main-${userId}`}
               />
+              {/* Al terminar una sesión de trabajo empieza el descanso: buen
+                  momento para la pausa activa. Un toque la abre y arranca. */}
+              {breakPrompt && (
+                <div
+                  style={{
+                    display: "flex",
+                    alignItems: "center",
+                    gap: "12px",
+                    flexWrap: "wrap",
+                    marginTop: "16px",
+                    padding: "14px 16px",
+                    borderRadius: "16px",
+                    background: tint(C.amber, 0.14),
+                    border: `1px solid ${tint(C.amber, 0.35)}`,
+                  }}
+                >
+                  <span aria-hidden="true" style={{ fontSize: "28px" }}>🚶</span>
+                  <div style={{ flex: 1, minWidth: "160px" }}>
+                    <p style={{ fontSize: "15px", fontWeight: 800, color: C.text, margin: 0 }}>{t.activeBreak.promptTitle}</p>
+                    <p style={{ fontSize: "13px", color: C.textMuted, margin: "2px 0 0", lineHeight: 1.4 }}>{t.activeBreak.promptText}</p>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setBreakPrompt(false);
+                      setActiveBreakStart(Date.now());
+                      scrollToCompanionSection("activeBreak");
+                    }}
+                    style={btnPrimary(C.amber, C.amberText)}
+                  >
+                    {t.activeBreak.promptButton}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setBreakPrompt(false)}
+                    style={{ background: "transparent", border: "none", color: C.textMuted, fontSize: "13px", cursor: "pointer", padding: "8px" }}
+                  >
+                    {t.activeBreak.promptLater}
+                  </button>
+                </div>
+              )}
             </Panel>
             </div>
 
@@ -4048,6 +4191,17 @@ export default function FocusFlowTDAH({
             </div>
 
             {/* Mini juego de calma (10 de noviembre de 2026) — ver CalmBubbles.jsx. */}
+            <div ref={activeBreakSectionRef} style={toolStyle("activeBreak")}>
+            <Panel C={C}
+              accent={C.amber}
+              icon={<Activity size={22} />}
+              title={t.app.panels.activeBreak.title}
+              subtitle={t.app.panels.activeBreak.subtitle}
+            >
+              <ActiveBreak C={C} t={t} accent={C.amber} autoStart={activeBreakStart} onComplete={() => grantXp(t.app.xpLabels.activeBreakCompleted)} />
+            </Panel>
+            </div>
+
             <div ref={calmBubblesSectionRef} style={toolStyle("calmBubbles")}>
             <Panel C={C}
               accent={C.sky}
@@ -4206,72 +4360,45 @@ export default function FocusFlowTDAH({
           title={t.app.panels.habits.title}
           subtitle={t.app.panels.habits.subtitle}
         >
-          <div style={{ display: "grid", gridTemplateColumns: isNarrow ? "1fr" : "1fr 1fr", gap: "0 24px" }}>
-            <div>
-              <p style={{ fontSize: "12px", color: C.textMuted, margin: "0 0 4px", display: "flex", alignItems: "center", gap: "6px" }}>
-                <Moon size={13} /> {t.app.habits.sleepHygiene}
-              </p>
-              <Toggle C={C} label={t.app.habits.screensOff} checked={screensOff} onChange={(v) => toggleXp(setScreensOff, screensOff, t.app.xpLabels.screensOffLabel)} />
-              <Toggle C={C} label={t.app.habits.sleepEnvReady} checked={sleepEnv} onChange={(v) => toggleXp(setSleepEnv, sleepEnv, t.app.xpLabels.sleepEnvLabel)} />
-              <div style={{ marginTop: "10px" }}>
-                {todayBedtimeEntry ? (
-                  <p style={{ fontSize: "13px", color: C.textMuted, margin: "0 0 6px" }}>
-                    {t.app.habits.bedtimeRegistered(todayBedtimeEntry.time)}
-                  </p>
-                ) : (
-                  <p style={{ fontSize: "13px", color: C.textMuted, margin: "0 0 6px" }}>
-                    {t.app.habits.bedtimeQuestion}
-                  </p>
-                )}
-                <div style={{ display: "flex", gap: "8px" }}>
+          {/* 11 de noviembre de 2026 ("no me gusta nada el diseño"): antes
+              eran 4 bloques en 2 columnas mezclando hábitos, un reloj de
+              pausa activa y el "Fuera de la vista". Ahora es SOLO la lista
+              de hábitos del día, con contador. La pausa activa es su propia
+              herramienta (ActiveBreak.jsx) y el "Fuera de la vista" pasó a
+              Modo enfoque como paso de "Antes de empezar" (DeskReady.jsx). */}
+          {(() => {
+            return (
+              <div>
+                <HabitsList
+                  C={C}
+                  t={t}
+                  isNarrow={isNarrow}
+                  items={habitItems}
+                  canAdd={canAddCustomHabit(customHabits)}
+                  onAdd={(data) => setCustomHabits((list) => addCustomHabit(list, data))}
+                  onUpdate={(id, data) => setCustomHabits((list) => updateCustomHabit(list, id, data))}
+                  onRemove={(id) => setCustomHabits((list) => removeCustomHabit(list, id))}
+                />
+
+                <div style={{ borderTop: `1px solid ${C.border}`, margin: "20px 0 16px" }} />
+                <p style={{ fontSize: "14px", fontWeight: 700, color: C.text, margin: "0 0 8px" }}>
+                  🌙 {todayBedtimeEntry ? t.app.habits.bedtimeRegistered(todayBedtimeEntry.time) : t.app.habits.bedtimeQuestion}
+                </p>
+                <div style={{ display: "flex", gap: "8px", flexWrap: "wrap" }}>
                   <input
                     type="time"
                     value={bedtimeInput}
                     onChange={(e) => setBedtimeInput(e.target.value)}
+                    aria-label={t.app.habits.bedtimeQuestion}
                     style={{ ...inputStyle, width: "auto" }}
                   />
                   <button onClick={saveBedtime} style={btnGhost}>
-                    {t.common.save}
+                    {todayBedtimeEntry ? t.app.habits.bedtimeUpdate : t.common.save}
                   </button>
                 </div>
               </div>
-            </div>
-            <div>
-              <p style={{ fontSize: "12px", color: C.textMuted, margin: "0 0 4px", display: "flex", alignItems: "center", gap: "6px" }}>
-                <Utensils size={13} /> {t.app.habits.nutrition}
-              </p>
-              <Toggle C={C} label={t.app.habits.ateWell} checked={ateWell} onChange={(v) => toggleXp(setAteWell, ateWell, t.app.xpLabels.ateWellLabel)} />
-              <Toggle C={C} label={t.app.habits.hydrated} checked={hydrated} onChange={(v) => toggleXp(setHydrated, hydrated, t.app.xpLabels.hydratedLabel)} />
-            </div>
-            <div style={{ marginTop: "18px" }}>
-              <p style={{ fontSize: "12px", color: C.textMuted, margin: "0 0 8px", display: "flex", alignItems: "center", gap: "6px" }}>
-                <Activity size={13} /> {t.app.habits.movement}
-              </p>
-              {!breakDone ? (
-                <div style={{ display: "flex", alignItems: "center", gap: "14px" }}>
-                  <button
-                    onClick={() => setBreakRunning((r) => !r)}
-                    style={btnPrimary(breakRunning ? C.surfaceAlt : C.amber, breakRunning ? C.text : C.amberText)}
-                  >
-                    {breakRunning ? t.app.habits.pauseButton : t.app.habits.activeBreak}
-                  </button>
-                  <span style={{ fontSize: "18px", fontVariantNumeric: "tabular-nums" }}>{fmt(breakSec)}</span>
-                </div>
-              ) : (
-                <p style={{ fontSize: "14px", color: C.mint, margin: 0 }}>{t.app.habits.breakDone}</p>
-              )}
-            </div>
-            <div style={{ marginTop: "18px" }}>
-              <p style={{ fontSize: "12px", color: C.textMuted, margin: "0 0 4px", display: "flex", alignItems: "center", gap: "6px" }}>
-                <LayoutIcon size={13} /> {t.app.habits.workspace}
-              </p>
-              <Toggle C={C}
-                label={t.app.habits.deskCleared}
-                checked={deskCleared}
-                onChange={(v) => toggleXp(setDeskCleared, deskCleared, t.app.xpLabels.deskClearedLabel)}
-              />
-            </div>
-          </div>
+            );
+          })()}
         </Panel>
         </div>
         </div>
@@ -4289,6 +4416,11 @@ export default function FocusFlowTDAH({
           sigue funcionando exactamente igual que antes de la Fase 2, ahora
           cruzando pestañas cuando hace falta. bottomOffset lo sube por
           encima de AppTabBar cuando esta queda fija abajo (móvil). */}
+      {/* 11 nov 2026: en Inicio (brújula) los 3 botones flotantes tapaban
+          la franja "Mis hábitos de hoy" de abajo; ahí se ocultan (la
+          brújula ya lleva a todo). Siguen montados (display:none), así que
+          no pierden su estado, y en las demás pestañas se ven igual. */}
+      <div style={{ display: inicioCompass ? "none" : undefined }}>
       <QuickNavMenu
         C={C}
         t={t}
@@ -4331,6 +4463,7 @@ export default function FocusFlowTDAH({
   grantXp={grantXp}
   bottomOffset={isNarrow ? 64 : 0}
 />
+      </div>
     </div>
   );
 }

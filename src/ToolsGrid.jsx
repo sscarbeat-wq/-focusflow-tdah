@@ -16,7 +16,7 @@ import { tint } from "./theme";
 
 export const TOOL_GROUPS = [
   { key: "start", emoji: "🧩", color: "#7C5CE0", tools: ["desglosador", "oneThing", "mindMap", "routines", "quickCapture", "auditor"] },
-  { key: "focus", emoji: "🎯", color: "#2E7FD9", tools: ["focusMode", "bodyDouble"] },
+  { key: "focus", emoji: "🎯", color: "#2E7FD9", tools: ["focusMode", "bodyDouble", "activeBreak"] },
   { key: "calm", emoji: "🫧", color: "#1E9E6E", tools: ["burbuja", "calmBubbles", "mindfulness", "freno", "reestructuracion"] },
   { key: "feel", emoji: "💛", color: "#D98A0B", tools: ["mood", "energy", "companion", "cbt"] },
   { key: "daily", emoji: "📋", color: "#D9467F", tools: ["medication", "payments", "habits", "messageTone"] },
@@ -85,7 +85,10 @@ export default function ToolsGrid({ C, t, accent, items, onSelect, suggestion })
             width: "100%",
             minHeight: compact ? "58px" : "110px",
             padding: compact ? "10px 12px" : "14px",
-            background: tint(color, 0.07),
+            // Color translúcido SOBRE un fondo sólido: sin el fondo, en modo
+            // oscuro se transparentaba el degradado de la página y el texto
+            // se perdía.
+            background: `linear-gradient(${tint(color, 0.07)}, ${tint(color, 0.07)}), ${C.surface}`,
             border: `1px solid ${tint(color, 0.22)}`,
             borderRadius: "16px",
             color: C.text,
@@ -155,7 +158,7 @@ export default function ToolsGrid({ C, t, accent, items, onSelect, suggestion })
           padding: "0 14px",
           borderRadius: "999px",
           border: active ? `2px solid ${color}` : `1px solid ${tint(color, 0.35)}`,
-          background: active ? color : tint(color, 0.1),
+          background: active ? color : `linear-gradient(${tint(color, 0.1)}, ${tint(color, 0.1)}), ${C.surface}`,
           color: active ? "#fff" : C.text,
           fontSize: "13px",
           fontWeight: 700,
@@ -190,7 +193,7 @@ export default function ToolsGrid({ C, t, accent, items, onSelect, suggestion })
               padding: "16px",
               borderRadius: "20px",
               border: `2px solid ${tint(sugColor, 0.45)}`,
-              background: `linear-gradient(135deg, ${tint(sugColor, 0.18)} 0%, ${tint(sugColor, 0.06)} 100%)`,
+              background: `linear-gradient(135deg, ${tint(sugColor, 0.18)} 0%, ${tint(sugColor, 0.06)} 100%), ${C.surface}`,
               color: C.text,
               cursor: "pointer",
               textAlign: "left",
@@ -245,7 +248,7 @@ export default function ToolsGrid({ C, t, accent, items, onSelect, suggestion })
                       padding: "16px",
                       borderRadius: "20px",
                       border: `1px solid ${tint(g.color, 0.3)}`,
-                      background: `linear-gradient(160deg, ${tint(g.color, 0.2)} 0%, ${tint(g.color, 0.07)} 100%)`,
+                      background: `linear-gradient(160deg, ${tint(g.color, 0.2)} 0%, ${tint(g.color, 0.07)} 100%), ${C.surface}`,
                       color: C.text,
                       cursor: "pointer",
                       textAlign: "left",
