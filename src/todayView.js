@@ -42,7 +42,7 @@ const DEFAULT_TODAY_T = {
   weeklyInsights: {
     habitLabels: {
       screensOff: "Apagar pantallas a tiempo",
-      sleepEnv: "Preparar el entorno para dormir",
+      sleepEnv: "Preparar el cuarto para dormir",
       ateWell: "Comer algo nutritivo",
       hydrated: "Hidratarte durante el día",
       deskCleared: "Ordenar el escritorio",

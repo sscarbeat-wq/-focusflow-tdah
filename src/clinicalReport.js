@@ -16,7 +16,7 @@
 import { recentEntries } from "./moodLog";
 import { recentEnergyEntries } from "./energyLog";
 import { medicationAdherenceSummary } from "./medicationLog";
-import { recentBedtimes, isLateBedtime } from "./sleepLog";
+import { recentBedtimes, isLateBedtime, sleepDurationSummary } from "./sleepLog";
 import { pendingHabits } from "./weeklyInsights";
 import { weekImpulseBrakeCounts } from "./impulseBrakeLog";
 
@@ -77,6 +77,8 @@ export function buildClinicalReport({
       loggedNights: loggedSleep.length,
       totalDays: days,
       lateNights,
+      // Tiempo de sueño aproximado (solo noches con hora de despertar).
+      duration: sleepDurationSummary(sleepLog, days, now),
     },
     streak: { current: streak?.current ?? 0, longest: streak?.longest ?? 0 },
     pendingHabits: pendingHabits(habits).map((h) => h.label),

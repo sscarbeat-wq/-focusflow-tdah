@@ -128,6 +128,23 @@ export default function WeeklyInsights({ C, t, moodLog, jar, streak, habits, sle
         </div>
       )}
 
+      {/* Tiempo de sueño aproximado: a partir de 2 noches con hora de
+          despertar (con una sola no es un "promedio"). */}
+      {sleep.duration && sleep.duration.nights >= 2 && (
+        <p
+          style={{
+            fontSize: "13px",
+            color: C.text,
+            margin: "16px 0 0",
+            lineHeight: 1.5,
+            borderTop: `1px solid ${C.border}`,
+            paddingTop: "12px",
+          }}
+        >
+          😴 {wi.sleepAverage(t.app.habits.formatDuration(sleep.duration.averageMinutes), sleep.duration.nights)}
+        </p>
+      )}
+
       {sleep.isPattern && (
         <p
           style={{

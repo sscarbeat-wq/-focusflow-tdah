@@ -2,7 +2,7 @@
 // Se construyen 100% a partir de datos que la app ya guarda (ánimo, tarro
 // de logros, racha): no agregan ningún costo ni dependencia nueva.
 import { recentEntries } from "./moodLog";
-import { recentBedtimes, isLateBedtime } from "./sleepLog";
+import { recentBedtimes, isLateBedtime, sleepDurationSummary } from "./sleepLog";
 import { recentFocusSessions } from "./focusSessionLog";
 
 // Resumen del ánimo de los últimos `days` días (por defecto 7), apoyado en
@@ -38,20 +38,29 @@ export function weekAchievements(jar, days = 7, now = new Date()) {
   };
 }
 
-// Hábitos de autocuidado que están APAGADOS ahora mismo. Estos interruptores
-// todavía no se reinician cada día, así que no podemos decir "qué días los
-// cumpliste" — solo mostramos el estado actual como un empujón suave, nunca
-// como una racha semanal que la app no puede respaldar con datos reales.
+// Hábitos de autocuidado que están APAGADOS ahora mismo. Desde el 11 de
+// noviembre de 2026 las palomitas sí se reinician cada día (ver
+// customHabits.js), pero no se guarda historial por día: no podemos decir
+// "qué días los cumpliste" — solo mostramos el estado de hoy como un
+// empujón suave, nunca como una racha semanal que la app no puede
+// respaldar con datos reales.
 export const HABIT_LABELS = [
   { key: "screensOff", label: "Apagar pantallas a tiempo" },
-  { key: "sleepEnv", label: "Preparar el entorno para dormir" },
+  { key: "sleepEnv", label: "Preparar el cuarto para dormir" },
   { key: "ateWell", label: "Comer algo nutritivo" },
   { key: "hydrated", label: "Hidratarte durante el día" },
   { key: "deskCleared", label: "Ordenar el escritorio" },
 ];
 
+// `habits.custom`: los hábitos que la paciente agregó (customHabits.js) —
+// los que no ha palomeado hoy también cuentan como pendientes, con el
+// nombre que ella les puso.
 export function pendingHabits(habits = {}) {
-  return HABIT_LABELS.filter(({ key }) => !habits[key]);
+  const fixed = HABIT_LABELS.filter(({ key }) => !habits[key]);
+  const custom = (Array.isArray(habits.custom) ? habits.custom : [])
+    .filter((h) => h && !h.done)
+    .map((h) => ({ key: `custom-${h.id}`, label: h.label }));
+  return [...fixed, ...custom];
 }
 
 // Patrón de hora de dormir tardía en los últimos `days` días. Esto NUNCA es
@@ -71,6 +80,8 @@ export function weekSleepPattern(sleepLog, days = 7, now = new Date()) {
     loggedNights: logged.length,
     lateNights,
     isPattern: lateNights >= SLEEP_PATTERN_MIN_LATE_NIGHTS,
+    // Tiempo de sueño aproximado de la semana (noches con hora de despertar).
+    duration: sleepDurationSummary(sleepLog, days, now),
   };
 }
 

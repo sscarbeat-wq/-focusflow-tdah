@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { tint } from "./theme";
 
 // Herramientas agrupadas por lo que la paciente necesita (11 de noviembre
@@ -16,7 +16,7 @@ import { tint } from "./theme";
 
 export const TOOL_GROUPS = [
   { key: "start", emoji: "🧩", color: "#7C5CE0", tools: ["desglosador", "oneThing", "mindMap", "routines", "quickCapture", "auditor"] },
-  { key: "focus", emoji: "🎯", color: "#2E7FD9", tools: ["focusMode", "bodyDouble"] },
+  { key: "focus", emoji: "🎯", color: "#2E7FD9", tools: ["focusMode", "bodyDouble", "activeBreak"] },
   { key: "calm", emoji: "🫧", color: "#1E9E6E", tools: ["burbuja", "calmBubbles", "mindfulness", "freno", "reestructuracion"] },
   { key: "feel", emoji: "💛", color: "#D98A0B", tools: ["mood", "energy", "companion", "cbt"] },
   { key: "daily", emoji: "📋", color: "#D9467F", tools: ["medication", "payments", "habits", "messageTone"] },
@@ -45,11 +45,24 @@ function writeJSON(key, value) {
 // el día, ver `suggestion` desde FocusFlowTDAH.jsx), "Las que más usas" y 5
 // tarjetas grandes, una por grupo. Las herramientas de cada grupo se ven al
 // tocar su tarjeta.
-export default function ToolsGrid({ C, t, accent, items, onSelect, suggestion }) {
+export default function ToolsGrid({ C, t, accent, items, onSelect, suggestion, initialGroup, onGroupClear }) {
   const tg = t.tools;
   // El grupo elegido NO se recuerda entre visitas: cada vez que entra a
   // Herramientas empieza en la vista corta (sugerencia + 5 tarjetas).
   const [group, setGroup] = useState(null);
+
+  // Sincronizar desde el padre cuando se navega desde un planeta de la
+  // brújula (12 de noviembre de 2026): al tocar un planeta de categoría
+  // en Inicio, FocusFlowTDAH manda `initialGroup` con la clave del grupo
+  // y cambia a la pestaña Herramientas. Este efecto abre ese grupo
+  // automáticamente y luego limpia la señal para que el botón "← Categorías"
+  // vuelva a funcionar normal sin quedar atorado en el grupo.
+  useEffect(() => {
+    if (initialGroup) {
+      setGroup(initialGroup);
+      onGroupClear?.();
+    }
+  }, [initialGroup]);
   const [recent, setRecent] = useState(() => readJSON(RECENT_KEY, []));
   const byKey = Object.fromEntries(items.map((it) => [it.key, it]));
   const groupOf = (key) => TOOL_GROUPS.find((g) => g.tools.includes(key));
@@ -59,7 +72,7 @@ export default function ToolsGrid({ C, t, accent, items, onSelect, suggestion })
   const leftovers = items.filter((it) => !grouped.has(it.key)).map((it) => it.key);
 
   const open = (key) => {
-    const next = [key, ...recent.filter((k) => k !== key)].slice(0, 4);
+    const next = [key, ...recent.filter((k) => k !== key)].slice(0, 7);
     setRecent(next);
     writeJSON(RECENT_KEY, next);
     onSelect(key);
@@ -85,7 +98,10 @@ export default function ToolsGrid({ C, t, accent, items, onSelect, suggestion })
             width: "100%",
             minHeight: compact ? "58px" : "110px",
             padding: compact ? "10px 12px" : "14px",
-            background: tint(color, 0.07),
+            // Color translúcido SOBRE un fondo sólido: sin el fondo, en modo
+            // oscuro se transparentaba el degradado de la página y el texto
+            // se perdía.
+            background: `linear-gradient(${tint(color, 0.07)}, ${tint(color, 0.07)}), ${C.surface}`,
             border: `1px solid ${tint(color, 0.22)}`,
             borderRadius: "16px",
             color: C.text,
@@ -155,7 +171,7 @@ export default function ToolsGrid({ C, t, accent, items, onSelect, suggestion })
           padding: "0 14px",
           borderRadius: "999px",
           border: active ? `2px solid ${color}` : `1px solid ${tint(color, 0.35)}`,
-          background: active ? color : tint(color, 0.1),
+          background: active ? color : `linear-gradient(${tint(color, 0.1)}, ${tint(color, 0.1)}), ${C.surface}`,
           color: active ? "#fff" : C.text,
           fontSize: "13px",
           fontWeight: 700,
@@ -190,7 +206,7 @@ export default function ToolsGrid({ C, t, accent, items, onSelect, suggestion })
               padding: "16px",
               borderRadius: "20px",
               border: `2px solid ${tint(sugColor, 0.45)}`,
-              background: `linear-gradient(135deg, ${tint(sugColor, 0.18)} 0%, ${tint(sugColor, 0.06)} 100%)`,
+              background: `linear-gradient(135deg, ${tint(sugColor, 0.18)} 0%, ${tint(sugColor, 0.06)} 100%), ${C.surface}`,
               color: C.text,
               cursor: "pointer",
               textAlign: "left",
@@ -245,7 +261,7 @@ export default function ToolsGrid({ C, t, accent, items, onSelect, suggestion })
                       padding: "16px",
                       borderRadius: "20px",
                       border: `1px solid ${tint(g.color, 0.3)}`,
-                      background: `linear-gradient(160deg, ${tint(g.color, 0.2)} 0%, ${tint(g.color, 0.07)} 100%)`,
+                      background: `linear-gradient(160deg, ${tint(g.color, 0.2)} 0%, ${tint(g.color, 0.07)} 100%), ${C.surface}`,
                       color: C.text,
                       cursor: "pointer",
                       textAlign: "left",

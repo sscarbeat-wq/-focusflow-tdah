@@ -21,8 +21,8 @@ import { PlusUpsellBadge } from "./PlusUpsellCard";
 // cuándo el paciente deja esta pestaña mientras una sesión de enfoque está
 // corriendo, y le avisa al volver cuánto tiempo estuvo fuera.
 
-const WORK_OPTIONS = [15, 20, 25, 30, 45];
-const BREAK_OPTIONS = [3, 5, 10, 15];
+const WORK_OPTIONS = [5, 10, 15, 20, 25, 30, 45, 60, 90];
+const BREAK_OPTIONS = [1, 2, 3, 5, 10, 15, 20, 30];
 
 // Fase 4 (sonidos de enfoque, 30 de octubre de 2026) — el ruido blanco
 // original se queda gratis (es lo que ya tenía la app); los otros 3 son la
@@ -609,6 +609,11 @@ export default function FocusMode({
 
   return (
     <div>
+      {!minimal && t.focusMode.introNote && (
+        <p style={{ fontSize: "13px", color: C.text, margin: "0 0 16px", lineHeight: 1.5 }}>
+          {t.focusMode.introNote}
+        </p>
+      )}
       {!minimal && (
         <div style={{ display: "flex", gap: "10px", marginBottom: "16px", flexWrap: "wrap", alignItems: "center" }}>
           <label style={{ fontSize: "12px", color: C.textMuted }}>{t.focusMode.workLabel}</label>

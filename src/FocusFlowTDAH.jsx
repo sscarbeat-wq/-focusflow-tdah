@@ -62,7 +62,7 @@ import CalmBubbles from "./CalmBubbles";
 import ReorderHandle from "./ReorderHandle";
 import AppTabBar from "./AppTabBar";
 import QuickAccessCompass from "./QuickAccessCompass";
-import ToolsGrid from "./ToolsGrid";
+import ToolsGrid, { TOOL_GROUPS } from "./ToolsGrid";
 import OnboardingTour from "./OnboardingTour";
 import InstallBanner from "./InstallBanner";
 import PostDiagnosisCard from "./PostDiagnosisCard";
@@ -138,10 +138,25 @@ import {
   setQuickNoteReminder,
   reminderDateKeyFromPreset,
 } from "./quickCapture";
-import { DEFAULT_SLEEP_LOG, recordBedtime, todayBedtime } from "./sleepLog";
+import { DEFAULT_SLEEP_LOG, recordBedtime, todayBedtime, sleepDurationMinutes } from "./sleepLog";
 import { DEFAULT_IMPULSE_BRAKE_LOG, recordImpulseBrakeUse } from "./impulseBrakeLog";
 import { DEFAULT_GOOD_MOMENTS, addGoodMoment, removeGoodMoment } from "./goodMoments";
 import ProgressSummary from "./ProgressSummary";
+import ActiveBreak from "./ActiveBreak";
+import DeskReady from "./DeskReady";
+import TodayHabitsStrip from "./TodayHabitsStrip";
+import HabitsList from "./HabitsList";
+import {
+  DEFAULT_CUSTOM_HABITS,
+  habitDayKey,
+  normalizeCustomHabits,
+  canAddCustomHabit,
+  addCustomHabit,
+  updateCustomHabit,
+  removeCustomHabit,
+  toggleCustomHabit,
+  resetCustomHabits,
+} from "./customHabits";
 import { DEFAULT_ONE_THING, startOneThing, finishOneThing, exitOneThing } from "./oneThing";
 import {
   DEFAULT_ROUTINES,
@@ -197,6 +212,14 @@ const DEFAULT_PROGRESS = {
   ateWell: false,
   hydrated: false,
   deskCleared: false,
+  // 11 nov 2026 — ver customHabits.js: hábitos propios, a qué "día de
+  // hábitos" pertenecen las palomitas y cuáles ya dieron XP ese día.
+  customHabits: DEFAULT_CUSTOM_HABITS,
+  habitsDay: null,
+  habitXpGiven: [],
+  // Avisos de hábitos (10 am, 3 pm, 9 pm — ver habitReminders.js). La
+  // persona puede apagar solo estos desde Perfil → Notificaciones.
+  habitReminders: true,
   streak: DEFAULT_STREAK,
   moodLog: DEFAULT_MOOD_LOG,
   energyLog: DEFAULT_ENERGY_LOG,
@@ -372,6 +395,11 @@ export default function FocusFlowTDAH({
   // preferencia de dispositivo, mismo patrón que especie/accesorio/fijado.
   const [compassEditOpen, setCompassEditOpen] = useState(false);
   const [compassKeys, setCompassKeys] = useState(() => getStoredCompassSelection());
+  // Rediseño de la brújula (12 de noviembre de 2026): cuando la paciente
+  // toca un planeta de categoría en Inicio, se guarda aquí la clave del
+  // grupo ("start", "focus", etc.) para que ToolsGrid abra directamente
+  // ese grupo al cambiar a la pestaña Herramientas.
+  const [herramientasGroup, setHerramientasGroup] = useState(null);
   // Se calcula YA en el primer render (antes empezaba en `false` y se
   // corregía en un useEffect): las 3 burbujas flotantes calculan su
   // posición inicial al montarse, y como los efectos de los hijos corren
@@ -379,8 +407,18 @@ export default function FocusFlowTDAH({
   // con bottomOffset 0 — y nacían encimadas sobre la barra de pestañas de
   // abajo (tapando "Inicio" y "Perfil"). Verificado con Playwright a 390px.
   const [isNarrow, setIsNarrow] = useState(() => typeof window !== "undefined" && window.innerWidth < 760);
+  // Pantalla ancha (computadora) y pantalla bajita (celular chico) — las
+  // usa la franja de hábitos de Inicio: en pantalla ancha va A UN LADO de
+  // la brújula (debajo empujaba la barra de pestañas fuera de la pantalla)
+  // y en celulares bajitos se compacta.
+  const [isWide, setIsWide] = useState(() => typeof window !== "undefined" && window.innerWidth >= 1180);
+  const [isShort, setIsShort] = useState(() => typeof window !== "undefined" && window.innerHeight < 800);
   useEffect(() => {
-    const check = () => setIsNarrow(window.innerWidth < 760);
+    const check = () => {
+      setIsNarrow(window.innerWidth < 760);
+      setIsWide(window.innerWidth >= 1180);
+      setIsShort(window.innerHeight < 800);
+    };
     check();
     window.addEventListener("resize", check);
     return () => window.removeEventListener("resize", check);
@@ -388,6 +426,7 @@ export default function FocusFlowTDAH({
 
   const breathingSectionRef = useRef(null);
   const calmBubblesSectionRef = useRef(null);
+  const activeBreakSectionRef = useRef(null);
   const stopThinkSectionRef = useRef(null);
   const desglosadorSectionRef = useRef(null);
   const mindMapSectionRef = useRef(null);
@@ -436,6 +475,10 @@ export default function FocusFlowTDAH({
   // (o desde "Ir a..."), con un botón para volver — mismo patrón que ya
   // usan las herramientas (cuadrícula → herramienta → volver).
   const [inicioView, setInicioView] = useState("compass");
+  // Herramienta abierta DENTRO de Inicio (12 de noviembre de 2026): al
+  // tocar una herramienta desde la nudge card o "Tus más usadas", se abre
+  // aquí mismo sin salir de la pestaña Inicio. `null` = sin overlay.
+  const [inicioToolKey, setInicioToolKey] = useState(null);
   const [activeTab, setActiveTab] = useState(() => {
     try {
       return window.localStorage.getItem("anro-active-tab") || "inicio";
@@ -460,9 +503,25 @@ export default function FocusFlowTDAH({
   // en localStorage): es de sesión, se reinicia a la cuadrícula cada vez
   // que se entra de nuevo a Herramientas desde otra pestaña, para no dejar
   // a la paciente "atorada" dentro de una herramienta vieja sin querer.
-  const [activeTool, setActiveTool] = useState(null);
+  const [activeTool, setActiveTool] = useState(() => {
+    // Si al cargar ya hay una pausa activa, empezar con ella abierta
+    try { if (localStorage.getItem("anro-break-session")) return "activeBreak"; } catch (_) {}
+    return null;
+  });
   useEffect(() => {
-    if (activeTab !== "herramientas") setActiveTool(null);
+    if (activeTab === "herramientas") {
+      // Al volver a Herramientas, si hay pausa guardada → re-abrir
+      try {
+        const saved = localStorage.getItem("anro-break-session");
+        if (saved) { setActiveTool("activeBreak"); return; }
+      } catch (_) {}
+    } else {
+      // No resetear si hay pausa activa en curso
+      try {
+        if (localStorage.getItem("anro-break-session")) return;
+      } catch (_) {}
+      setActiveTool(null);
+    }
   }, [activeTab]);
 
   useEffect(() => {
@@ -490,6 +549,7 @@ export default function FocusFlowTDAH({
     oneThing: oneThingSectionRef,
     burbuja: breathingSectionRef,
     calmBubbles: calmBubblesSectionRef,
+    activeBreak: activeBreakSectionRef,
     auditor: auditorSectionRef,
     freno: stopThinkSectionRef,
     reestructuracion: reestructuracionSectionRef,
@@ -538,6 +598,7 @@ export default function FocusFlowTDAH({
     freno: "herramientas",
     burbuja: "herramientas",
     calmBubbles: "herramientas",
+    activeBreak: "herramientas",
     mindfulness: "herramientas",
     reestructuracion: "herramientas",
     messageTone: "herramientas",
@@ -601,7 +662,8 @@ export default function FocusFlowTDAH({
   // Tocar la pestaña "Inicio" siempre regresa a la brújula (aunque se
   // estuviera viendo la página "Hoy").
   const goToTab = (tab) => {
-    if (tab === "inicio") setInicioView("compass");
+    if (tab === "inicio") { setInicioView("compass"); setInicioToolKey(null); }
+    setInicioToolKey(null);
     setActiveTab(tab);
   };
   // Igual que tabStyle, pero para las 20 herramientas dentro de la pestaña
@@ -612,7 +674,11 @@ export default function FocusFlowTDAH({
   // vez, así que no tiene con quién compartir la fila). Fuera de una
   // cuadrícula esta propiedad no hace nada.
   const toolStyle = (key) => ({
-    display: activeTab === "herramientas" && activeTool === key ? undefined : "none",
+    display:
+      (activeTab === "herramientas" && activeTool === key) ||
+      (activeTab === "inicio" && inicioToolKey === key)
+        ? undefined
+        : "none",
     gridColumn: "1 / -1",
   });
 
@@ -647,33 +713,32 @@ export default function FocusFlowTDAH({
     { key: "freno", icon: <Hand size={18} />, label: t.app.panels.stopThink.title },
     { key: "burbuja", icon: <Wind size={18} />, label: t.app.panels.breathing.title },
     { key: "calmBubbles", icon: <Sparkles size={18} />, label: t.app.panels.calmBubbles.title },
+    { key: "activeBreak", icon: <Activity size={18} />, label: t.app.panels.activeBreak.title },
     { key: "mindfulness", icon: <Flower2 size={18} />, label: t.app.panels.mindfulness.title },
     { key: "reestructuracion", icon: <Brain size={18} />, label: t.app.panels.reframe.title },
     { key: "messageTone", icon: <MessageSquare size={18} />, label: t.app.panels.messageTone.title },
     { key: "habits", icon: <Moon size={18} />, label: t.app.panels.habits.title },
   ];
 
-  // Catálogo completo para "✏️ Editar" (botón del mockup original que
-  // había quedado fuera de la primera entrega, 9 de noviembre de 2026):
-  // la paciente elige hasta 6 de estos para su brújula de Inicio, en vez
-  // de los 6 fijos de siempre. Reutiliza `quickNavSections` (misma lista,
-  // mismos íconos/etiquetas, que el menú flotante "Ir a...") para no
-  // mantener un segundo catálogo de destinos aparte — con 3 agregados
-  // sintéticos al principio que no son secciones individuales sino
-  // atajos: "todayNextStep" (salta al primer pendiente real de HOY, el
-  // mismo que calcula buildTodayItems más abajo — el destino cambia según
-  // el día, pero la paciente solo elige "quiero este atajo" una vez) y
-  // "herramientasRoot"/"agendaRoot" (saltan a la raíz de esas pestañas,
-  // no a una herramienta en particular). No se tocó `quickNavSections` en
-  // sí — ese array lo sigue usando tal cual el menú "Ir a..." y el
-  // filtro de la cuadrícula de Herramientas (SECTION_TABS) más abajo.
+  // Rediseño de la brújula (12 de noviembre de 2026): los 6 planetas
+  // editables se reemplazan por 5 planetas FIJOS de categoría — uno por
+  // cada grupo de TOOL_GROUPS (ToolsGrid.jsx). Al tocar un planeta, la
+  // app salta a la pestaña Herramientas con ese grupo ya abierto. Así la
+  // paciente ve de un vistazo "¿qué necesito ahora?" sin tener que leer
+  // 22 herramientas de golpe.
+  // COMPASS_POOL y DEFAULT_COMPASS_KEYS se conservan por si el botón
+  // "✏️ Editar" se reactiva más adelante (el código de CompassEditSheet
+  // sigue importado aunque no se use).
   const COMPASS_POOL = [
     { key: "todayNextStep", icon: <ListChecks size={18} />, label: t.today.compassNextStep },
     { key: "herramientasRoot", icon: <Wrench size={18} />, label: t.appTabs.herramientas },
     { key: "agendaRoot", icon: <CalendarClock size={18} />, label: t.appTabs.agenda },
-    ...quickNavSections,
+    ...quickNavSections.filter((sec) => sec.key !== "habits"),
   ];
   const DEFAULT_COMPASS_KEYS = ["companion", "insights", "agendaRoot", "mood", "todayNextStep", "herramientasRoot"];
+
+  // Los 5 planetas de categoría para la brújula rediseñada:
+  const CATEGORY_PLANET_COLORS = TOOL_GROUPS.map((g) => g.color);
 
   // Los 6 accesos de la brújula de Inicio (reemplaza a los 4 anteriores —
   // ver nota larga del 9 de noviembre de 2026 más abajo, junto a
@@ -704,6 +769,7 @@ export default function FocusFlowTDAH({
     freno: t.app.panels.stopThink.subtitle,
     burbuja: t.app.panels.breathing.subtitle,
     calmBubbles: t.app.panels.calmBubbles.subtitle,
+    activeBreak: t.app.panels.activeBreak.subtitle,
     mindfulness: t.app.panels.mindfulness.subtitle,
     reestructuracion: t.app.panels.reframe.subtitle,
     messageTone: t.app.panels.messageTone.subtitle,
@@ -727,13 +793,47 @@ export default function FocusFlowTDAH({
   // ---- Persisted state ----
   const [xp, setXp] = useState(saved.xp);
   const [jar, setJar] = useState(saved.jar);
-  const [screensOff, setScreensOff] = useState(saved.screensOff);
-  const [sleepEnv, setSleepEnv] = useState(saved.sleepEnv);
-  const [ateWell, setAteWell] = useState(saved.ateWell);
-  const [hydrated, setHydrated] = useState(saved.hydrated);
-  const [deskCleared, setDeskCleared] = useState(saved.deskCleared);
+  // Reinicio diario de hábitos (ver customHabits.js): si lo guardado es de
+  // otro "día de hábitos" —o de antes de que existiera este dato— las
+  // palomitas arrancan apagadas.
+  const habitsFresh = saved.habitsDay === habitDayKey();
+  const [habitsDay, setHabitsDay] = useState(() => habitDayKey());
+  const [screensOff, setScreensOff] = useState(habitsFresh && saved.screensOff);
+  const [sleepEnv, setSleepEnv] = useState(habitsFresh && saved.sleepEnv);
+  const [ateWell, setAteWell] = useState(habitsFresh && saved.ateWell);
+  const [hydrated, setHydrated] = useState(habitsFresh && saved.hydrated);
+  const [deskCleared, setDeskCleared] = useState(habitsFresh && saved.deskCleared);
+  const [customHabits, setCustomHabits] = useState(() => {
+    const list = normalizeCustomHabits(saved.customHabits);
+    return habitsFresh ? list : resetCustomHabits(list);
+  });
+  const [habitReminders, setHabitReminders] = useState(saved.habitReminders !== false);
+  const [habitXpGiven, setHabitXpGiven] = useState(() => (habitsFresh && Array.isArray(saved.habitXpGiven) ? saved.habitXpGiven : []));
+  // Con la app abierta al cambiar el día (o al volver a ella al día
+  // siguiente): se apagan todas las palomitas.
+  useEffect(() => {
+    const check = () => {
+      const key = habitDayKey();
+      if (key === habitsDay) return;
+      setHabitsDay(key);
+      setScreensOff(false);
+      setSleepEnv(false);
+      setAteWell(false);
+      setHydrated(false);
+      setDeskCleared(false);
+      setCustomHabits((list) => resetCustomHabits(list));
+      setHabitXpGiven([]);
+    };
+    const id = setInterval(check, 60 * 1000);
+    document.addEventListener("visibilitychange", check);
+    return () => {
+      clearInterval(id);
+      document.removeEventListener("visibilitychange", check);
+    };
+  }, [habitsDay]);
   const [streak, setStreak] = useState(() => effectiveStreak(saved.streak));
   const [moodLog, setMoodLog] = useState(saved.moodLog);
+  const [homeMoodSaved, setHomeMoodSaved] = useState(false);
   const [energyLog, setEnergyLog] = useState(saved.energyLog);
   const [focusSessionLog, setFocusSessionLog] = useState(saved.focusSessionLog);
   // % real de enfoque de hoy (rediseño "estilo K" de Inicio, 9 de noviembre
@@ -809,6 +909,10 @@ export default function FocusFlowTDAH({
       ateWell,
       hydrated,
       deskCleared,
+      customHabits,
+      habitsDay,
+      habitXpGiven,
+      habitReminders,
       streak,
       moodLog,
       energyLog,
@@ -835,6 +939,10 @@ export default function FocusFlowTDAH({
     ateWell,
     hydrated,
     deskCleared,
+    customHabits,
+    habitsDay,
+    habitXpGiven,
+    habitReminders,
     streak,
     moodLog,
     energyLog,
@@ -964,6 +1072,41 @@ export default function FocusFlowTDAH({
     [grantXp, t]
   );
 
+  // Sonidito corto al tocar una carita de ánimo (Web Audio API).
+  const playMoodSound = useCallback((mood) => {
+    try {
+      const ctx = new (window.AudioContext || window.webkitAudioContext)();
+      // Frecuencias: de grave (triste) a agudo (feliz)
+      const freqs = { 1: [260], 2: [330], 3: [392], 4: [440, 554], 5: [523, 659, 784] };
+      const notes = freqs[mood] || [392];
+      notes.forEach((freq, i) => {
+        const osc = ctx.createOscillator();
+        const gain = ctx.createGain();
+        osc.type = "sine";
+        osc.frequency.value = freq;
+        gain.gain.setValueAtTime(0, ctx.currentTime + i * 0.08);
+        gain.gain.linearRampToValueAtTime(0.18, ctx.currentTime + i * 0.08 + 0.04);
+        gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + i * 0.08 + 0.35);
+        osc.connect(gain);
+        gain.connect(ctx.destination);
+        osc.start(ctx.currentTime + i * 0.08);
+        osc.stop(ctx.currentTime + i * 0.08 + 0.4);
+      });
+      setTimeout(() => ctx.close(), 800);
+    } catch (_) { /* silenciar si el navegador no soporta Web Audio */ }
+  }, []);
+
+  // Guarda ánimo desde la tarjeta compacta de Inicio (sin nota).
+  const handleHomeMoodSave = useCallback(
+    (mood) => {
+      playMoodSound(mood);
+      handleMoodSave(mood, "");
+      setHomeMoodSaved(true);
+      setTimeout(() => setHomeMoodSaved(false), 1800);
+    },
+    [handleMoodSave, playMoodSound]
+  );
+
   const handleEnergySave = useCallback(
     (level) => {
       setEnergyLog((prev) => recordEnergy(prev, level));
@@ -972,12 +1115,16 @@ export default function FocusFlowTDAH({
     [grantXp, t]
   );
 
+  // `wake`: hora de despertar (opcional, "" la borra) — ver sleepLog.js.
+  // Los XP se dan solo la primera vez del día; corregir la hora después ya
+  // no vuelve a dar puntos.
   const handleRecordBedtime = useCallback(
-    (time) => {
-      setSleepLog((prev) => recordBedtime(prev, time));
-      grantXp(t.app.xpLabels.bedtimeLogged);
+    (time, wake) => {
+      const firstToday = !todayBedtime(sleepLog);
+      setSleepLog((prev) => recordBedtime(prev, time, new Date(), wake));
+      if (firstToday) grantXp(t.app.xpLabels.bedtimeLogged);
     },
-    [grantXp, t]
+    [grantXp, t, sleepLog]
   );
 
   const handleAddGoodMoment = useCallback(
@@ -1613,43 +1760,72 @@ export default function FocusFlowTDAH({
     setRfAlternative("");
   };
 
-  // ---- Movement break (no persiste el conteo entre sesiones) ----
-  const [breakRunning, setBreakRunning] = useState(false);
-  const [breakSec, setBreakSec] = useState(300);
-  const [breakDone, setBreakDone] = useState(false);
-  const breakRef = useRef(null);
+  // ---- Pausa activa: ahora es su propia herramienta (ActiveBreak.jsx).
+  // `activeBreakStart` cambia (Date.now()) cuando se abre desde el aviso de
+  // Modo enfoque, para que arranque sola. `breakPrompt`: el aviso
+  // "¿Te mueves 5 minutos?" que aparece al terminar una sesión de enfoque.
+  const [activeBreakStart, setActiveBreakStart] = useState(0);
+  const [breakPrompt, setBreakPrompt] = useState(false);
+  // "＋ Agregar un hábito mío" desde la franja de Inicio: abre "Mis hábitos
+  // de hoy" con el formulario ya abierto (ver HabitsList.jsx).
+  const [habitAddSignal, setHabitAddSignal] = useState(0);
+  const [habitFormOpen, setHabitFormOpen] = useState(false);
+  const [breakInProgress, setBreakInProgress] = useState(false);
+  const openAddHabit = () => {
+    setHabitAddSignal(Date.now());
+    scrollToCompanionSection("habits");
+  };
 
-  useEffect(() => {
-    if (breakRunning && breakSec > 0) {
-      breakRef.current = setInterval(() => {
-        setBreakSec((s) => {
-          if (s <= 1) {
-            setBreakRunning(false);
-            setBreakDone(true);
-            grantXp(t.app.xpLabels.activeBreakCompleted);
-            return 0;
-          }
-          return s - 1;
-        });
-      }, 1000);
-    }
-    return () => breakRef.current && clearInterval(breakRef.current);
-  }, [breakRunning, grantXp, t]);
-
-  const toggleXp = (setter, current, label) => {
+  // Palomear un hábito. Los XP se dan UNA vez por hábito por día
+  // (`habitXpGiven`): antes, marcar y desmarcar el mismo hábito daba XP
+  // cada vez. `key` identifica al hábito (los propios usan su id).
+  const toggleXp = (setter, current, label, key) => {
     const next = !current;
     setter(next);
-    if (next) grantXp(label);
+    if (next) grantHabitXp(key || label, label);
   };
+  const grantHabitXp = (key, label) => {
+    if (habitXpGiven.includes(key)) return;
+    setHabitXpGiven((prev) => [...prev, key]);
+    grantXp(label);
+  };
+
+  // Los hábitos del día — los mismos en "Mis hábitos de hoy" (Herramientas)
+  // y en la franja de Inicio (TodayHabitsStrip.jsx): los 4 fijos y luego
+  // los que la paciente agregó (máximo 3, ver customHabits.js).
+  const habitItems = [
+    { key: "screensOff", hint: t.habitsInfo.items.screensOff.what, emoji: "📵", short: t.todayStrip.short.screensOff, label: t.app.habits.screensOff, checked: screensOff, onToggle: () => toggleXp(setScreensOff, screensOff, t.app.xpLabels.screensOffLabel, "screensOff") },
+    { key: "sleepEnv", hint: t.habitsInfo.items.sleepEnv.what, emoji: "🛏️", short: t.todayStrip.short.sleepEnv, label: t.app.habits.sleepEnvReady, checked: sleepEnv, onToggle: () => toggleXp(setSleepEnv, sleepEnv, t.app.xpLabels.sleepEnvLabel, "sleepEnv") },
+    { key: "ateWell", hint: t.habitsInfo.items.ateWell.what, emoji: "🥗", short: t.todayStrip.short.ateWell, label: t.app.habits.ateWell, checked: ateWell, onToggle: () => toggleXp(setAteWell, ateWell, t.app.xpLabels.ateWellLabel, "ateWell") },
+    { key: "hydrated", hint: t.habitsInfo.items.hydrated.what, emoji: "💧", short: t.todayStrip.short.hydrated, label: t.app.habits.hydrated, checked: hydrated, onToggle: () => toggleXp(setHydrated, hydrated, t.app.xpLabels.hydratedLabel, "hydrated") },
+    ...customHabits.map((ch) => ({
+      key: `custom-${ch.id}`,
+      id: ch.id,
+      custom: true,
+      emoji: ch.emoji,
+      short: ch.label,
+      label: ch.label,
+      checked: ch.done,
+      onToggle: () => {
+        setCustomHabits((list) => toggleCustomHabit(list, ch.id));
+        if (!ch.done) grantHabitXp(`custom-${ch.id}`, t.app.xpLabels.customHabitDone(ch.label));
+      },
+    })),
+  ];
 
   // ---- Hora de dormir ----
   const todayBedtimeEntry = todayBedtime(sleepLog);
-  const [bedtimeInput, setBedtimeInput] = useState("");
+  // Los dos campos arrancan con lo ya guardado hoy (si hay), para poder
+  // corregir una hora sin volver a escribir la otra.
+  const [bedtimeInput, setBedtimeInput] = useState(() => todayBedtimeEntry?.time || "");
+  const [wakeInput, setWakeInput] = useState(() => todayBedtimeEntry?.wake || "");
+  const [sleepSaved, setSleepSaved] = useState(false);
   const saveBedtime = () => {
     if (!bedtimeInput) return;
-    handleRecordBedtime(bedtimeInput);
-    setBedtimeInput("");
+    handleRecordBedtime(bedtimeInput, wakeInput);
+    setSleepSaved(true);
   };
+  const sleepMinutesToday = sleepDurationMinutes(todayBedtimeEntry);
 
   // 27 de octubre de 2026 — mismo pedido de "que no se vea tan plana":
   // el campo de texto ahora tiene una sombra interior sutil (se siente
@@ -1799,7 +1975,7 @@ export default function FocusFlowTDAH({
             payments,
             paymentPaidLog,
             cbtProgram,
-            habits: { screensOff, sleepEnv, ateWell, hydrated, deskCleared },
+            habits: { screensOff, sleepEnv, ateWell, hydrated, deskCleared, custom: customHabits },
             quickNotes,
             routines,
             now,
@@ -1850,71 +2026,57 @@ export default function FocusFlowTDAH({
           // larga más abajo de dónde sale) e "insights" (muestra la racha y
           // los puntos reales de hoy en vez de la etiqueta genérica
           // "Progreso" del catálogo).
-          const effectiveKeys = compassKeys || DEFAULT_COMPASS_KEYS;
-          const compassItems = effectiveKeys.map((key, i) => {
-            const variant = i >= 4 ? "accent-solid" : "accent-outline";
-            if (key === "todayNextStep") {
-              // key propia ("todayNextStep") en vez de `nextStepTarget`
-              // (10 de noviembre de 2026): el próximo paso puede ser
-              // justamente "mood" o "insights", y entonces 2 accesos de la
-              // brújula tenían la MISMA key — React mezclaba los 2 y uno se
-              // quedaba atorado en el centro, encima de la mascota. El
-              // destino real se resuelve al tocarlo (handleCompassSelect).
-              return { key: "todayNextStep", icon: <ListChecks size={18} />, label: t.today.compassNextStep, variant };
-            }
-            if (key === "insights") {
-              return {
-                key: "insights",
-                icon: <Flame size={18} />,
-                // Redondeado (10 de noviembre de 2026): los puntos se suman de a
-                // 0.85, así que `xp` puede traer decimales ("41.65 pts") — en
-                // un acceso tan chico de la brújula se lee mejor el entero; el
-                // valor exacto con 2 decimales se sigue viendo en el panel de
-                // puntos de siempre.
-                label: `${streak.current} ${t.mascot.dayWord(streak.current)} · ${Math.round(xp)} ${t.today.pointsAbbrev}`,
-                variant,
-              };
-            }
-            if (key === "agendaRoot") {
-              return { key: "agendaRoot", icon: <CalendarClock size={18} />, label: agendaLabel, variant };
-            }
-            // "companion"/"mood": corregido el mismo día — al agregar el
-            // catálogo editable se me había olvidado que estos 2 YA tenían
-            // una presentación más corta y específica para la brújula
-            // (ver tercera corrección de fidelidad más arriba: ícono de
-            // burbuja de chat para Compañero, etiqueta corta "Ánimo") que
-            // NO es la misma que su título genérico en `quickNavSections`
-            // ("Compañero de apoyo" con ícono de manos, "Registro de
-            // ánimo") — sin este caso especial, elegirlos desde "Editar"
-            // los mostraba con el ícono/etiqueta larga del panel en vez de
-            // la versión corta pensada para la brújula.
-            if (key === "companion") {
-              return { key: "companion", icon: <MessageCircle size={18} />, label: t.today.compassCompanionLabel, variant };
-            }
-            if (key === "mood") {
-              return { key: "mood", icon: <Smile size={18} />, label: t.today.compassMoodLabel, variant };
-            }
-            const poolItem = COMPASS_POOL.find((p) => p.key === key);
-            if (!poolItem) return null; // clave guardada que ya no existe (ej. sección renombrada) — se omite en vez de romper
-            return { ...poolItem, variant };
-          }).filter(Boolean);
+          // Si alguien ya tenía "habits" como planeta (antes de que tuviera
+          // su pestaña), se sustituye por el primer acceso de siempre que
+          // no esté ya en su brújula, para no dejarle un hueco.
+          // Rediseño de la brújula (12 de noviembre de 2026): 5 planetas
+          // fijos de categoría en vez de los 6 editables de antes. Cada
+          // planeta es un grupo de TOOL_GROUPS (emoji + nombre del grupo).
+          const compassItems = TOOL_GROUPS.map((g) => ({
+            key: `cat_${g.key}`,
+            icon: <span style={{ fontSize: "20px", lineHeight: 1 }}>{g.emoji}</span>,
+            label: t.tools.groups[g.key],
+            variant: "accent-solid",
+          }));
 
+          // Al tocar un planeta de categoría, se abre Herramientas con ese
+          // grupo ya seleccionado. Las claves empiezan con "cat_" para
+          // distinguirlas del catálogo anterior.
           const handleCompassSelect = (key) => {
-            if (key === "todayNextStep") {
-              scrollToCompanionSection(nextStepTarget);
-              return;
-            }
-            if (key === "herramientasRoot") {
-              setActiveTool(null);
-              if (activeTab !== "herramientas") setActiveTab("herramientas");
-              return;
-            }
-            if (key === "agendaRoot") {
-              if (activeTab !== "agenda") setActiveTab("agenda");
-              return;
-            }
-            scrollToCompanionSection(key);
+            const groupKey = key.replace("cat_", "");
+            setHerramientasGroup(groupKey);
+            setActiveTool(null);
+            if (activeTab !== "herramientas") setActiveTab("herramientas");
           };
+
+          // --- Sugerencia contextual para Inicio (nudge card) -----------
+          // Misma lógica de prioridad que ToolsGrid.suggestion, pero
+          // calculada aquí porque la tarjeta se muestra entre la brújula y
+          // la franja de hábitos.
+          const contextualNudge = (() => {
+            const now = new Date();
+            const h = now.getHours();
+            const moodToday = todayMoodEntry(moodLog, now);
+            if (moodToday && moodToday.mood <= 2) return { key: "calmBubbles", reason: "moodLow" };
+            const lastFocus = Object.values(focusSessionLog || {}).flat().map((e) => Date.parse(e.completedAt)).filter(Boolean).sort().pop();
+            if (lastFocus && now.getTime() - lastFocus < 60 * 60 * 1000) return { key: "activeBreak", reason: "afterFocus" };
+            if (h >= 21 || h < 5) return { key: "habits", reason: "night" };
+            if (!moodToday) return { key: "mood", reason: "noCheckin" };
+            if (steps.some((st) => !st.done)) return { key: "oneThing", reason: "pending" };
+            if (h < 13) return { key: "desglosador", reason: "morning" };
+            return { key: "focusMode", reason: "default" };
+          })();
+
+          // --- Herramientas más usadas (hasta 7 recientes) ---------------
+          // Empieza vacía; se va llenando conforme el usuario usa
+          // herramientas (se guardan en localStorage desde ToolsGrid).
+          const recentToolKeys = (() => {
+            try {
+              const raw = JSON.parse(window.localStorage.getItem("anro-tools-recent"));
+              if (Array.isArray(raw)) return raw.slice(0, 7);
+            } catch (e) { /* sin localStorage */ }
+            return [];
+          })();
 
           return (
             <div
@@ -1954,7 +2116,7 @@ export default function FocusFlowTDAH({
                 // Solo en Inicio (ver la nota junto a <AppTabBar> arriba).
                 // display:none en vez de no montarla: igual que el resto de
                 // las pestañas, así nada se reinicia al ir y volver.
-                display: inicioCompass ? "flex" : "none",
+                display: inicioCompass && !inicioToolKey ? "flex" : "none",
                 flexDirection: "column",
               }}
             >
@@ -1965,31 +2127,37 @@ export default function FocusFlowTDAH({
                 period={period}
                 nextBlock={nextBlock}
                 nowMinutes={nowMinutes}
-                onEditClick={() => setCompassEditOpen(true)}
+                // "✏️ Editar" desactivado: los 5 planetas de categoría son
+                // fijos. CompassEditSheet sigue disponible si se reactiva.
               />
-              {compassEditOpen && (
-                <CompassEditSheet
-                  C={C}
-                  t={t}
-                  accent={personalAccent}
-                  pool={COMPASS_POOL}
-                  selectedKeys={effectiveKeys}
-                  defaultKeys={DEFAULT_COMPASS_KEYS}
-                  onClose={() => setCompassEditOpen(false)}
-                  onSave={(keys) => {
-                    setCompassKeys(keys);
-                    storeCompassSelection(keys);
-                    setCompassEditOpen(false);
-                  }}
-                />
-              )}
               {/* `flex: 1` + `justifyContent: "center"` (igual, cuarta
                   corrección): con el fondo ahora ocupando toda la
                   pantalla, la brújula se centra sola en el espacio que
                   sobra debajo del saludo — igual que en el mockup, en vez
                   de quedar pegada arriba con un hueco vacío abajo. */}
-              <div style={{ flex: 1, display: "flex", flexDirection: "column", justifyContent: "center" }}>
-                <div id="anro-tour-mascot" style={{ marginTop: "8px", paddingBottom: "20px" }}>
+              <div style={{ flex: 1, display: "flex", flexDirection: "column", justifyContent: "center", position: "relative" }}>
+                {/* Computadora: la franja de hábitos va a la derecha de la
+                    brújula, centrada a lo alto (ver TodayHabitsStrip.jsx).
+                    El envoltorio no recibe clics; solo la tarjeta. */}
+                {isWide && (
+                  <div style={{ position: "absolute", top: 0, bottom: 0, right: 0, display: "flex", alignItems: "center", pointerEvents: "none", zIndex: 3 }}>
+                    <div style={{ pointerEvents: "auto" }}>
+                      <TodayHabitsStrip
+                        C={C}
+                        t={t}
+                        palette={palette}
+                        items={habitItems}
+                        deskCleared={deskCleared}
+                        side
+                        onDesk={() => scrollToCompanionSection("focusMode")}
+                        onBreak={() => scrollToCompanionSection("activeBreak")}
+                        onAddHabit={canAddCustomHabit(customHabits) ? openAddHabit : undefined}
+                        onOpenAll={() => scrollToCompanionSection("habits")}
+                      />
+                    </div>
+                  </div>
+                )}
+                <div id="anro-tour-mascot" style={{ marginTop: "8px", paddingBottom: isNarrow && isShort ? "2px" : "20px" }}>
                 <QuickAccessCompass
                   C={C}
                   t={t}
@@ -2022,9 +2190,10 @@ export default function FocusFlowTDAH({
                   palette={palette}
                   xp={xp}
                   dayMood={dayMood}
-                  // Planetas en tonos del color que eligió la paciente (o de
-                  // colores, si eligió "Sistema solar") — 10 de noviembre de 2026.
-                  planetColors={planetColorsFor(accentLocked ? null : accentKey, personalAccent)}
+                  // Planetas de categoría: cada uno con el color fijo de su
+                  // grupo (TOOL_GROUPS), ya no del acento personal — así se
+                  // reconocen de un vistazo, independiente del color elegido.
+                  planetColors={CATEGORY_PLANET_COLORS}
                   // Explicaciones del centro (10 de noviembre de 2026): qué
                   // mide el %, qué son los XP y cuánto falta para el
                   // siguiente premio.
@@ -2055,13 +2224,143 @@ export default function FocusFlowTDAH({
                     else setSpeciesPickerOpen(true);
                     requestAnimationFrame(() => window.scrollTo({ top: 0, behavior: "auto" }));
                   }}
-                  onReorder={(keys) => {
-                    setCompassKeys(keys);
-                    storeCompassSelection(keys);
-                  }}
+                  // Reordenar desactivado: los 5 planetas de categoría son
+                  // fijos, sin arrastrar. Se omite onReorder para que
+                  // QuickAccessCompass no habilite el arrastre.
+                  // onReorder desactivado
                 />
                 </div>
               </div>
+              {/* ✨ Tarjeta contextual "Te puede servir ahora" (12 de
+                  noviembre de 2026, rediseño brújula): una sugerencia
+                  dinámica basada en lo que la app ya sabe del día. Se
+                  muestra tanto en móvil como en escritorio. */}
+              {contextualNudge && (() => {
+                const nudgeItem = quickNavSections.find((s) => s.key === contextualNudge.key);
+                if (!nudgeItem) return null;
+                const nudgeGroup = TOOL_GROUPS.find((g) => g.tools.includes(contextualNudge.key));
+                const nudgeColor = nudgeGroup ? nudgeGroup.color : personalAccent;
+                return (
+                  <div style={{ padding: isNarrow ? "6px 12px 0" : "6px 18px 0", maxWidth: isWide ? "600px" : "420px", width: "100%", margin: "0 auto", boxSizing: "border-box" }}>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        // 12 de noviembre de 2026: abre la herramienta
+                        // DENTRO de Inicio, sin navegar a Herramientas.
+                        setInicioToolKey(contextualNudge.key);
+                        window.scrollTo({ top: 0, behavior: "smooth" });
+                      }}
+                      style={{
+                        display: "flex",
+                        alignItems: "center",
+                        gap: "12px",
+                        width: "100%",
+                        padding: "12px 14px",
+                        borderRadius: "16px",
+                        border: `1.5px solid ${nudgeColor}33`,
+                        background: `linear-gradient(135deg, ${nudgeColor}18 0%, ${nudgeColor}08 100%)`,
+                        color: palette.textHi || C.text,
+                        cursor: "pointer",
+                        textAlign: "left",
+                        boxSizing: "border-box",
+                      }}
+                    >
+                      <span style={{ width: "40px", height: "40px", borderRadius: "12px", background: nudgeColor, color: "#fff", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
+                        {nudgeItem.icon}
+                      </span>
+                      <span style={{ flex: 1, minWidth: 0 }}>
+                        <span style={{ display: "block", fontSize: "11px", fontWeight: 800, color: nudgeColor, textTransform: "uppercase", letterSpacing: "0.04em" }}>
+                          ✨ {t.today.nudgeTitle}
+                        </span>
+                        <span style={{ display: "block", fontSize: "14px", fontWeight: 700, margin: "1px 0" }}>{nudgeItem.label}</span>
+                        <span style={{ display: "block", fontSize: "12px", color: C.textMuted, lineHeight: 1.3 }}>
+                          {t.tools.suggestReasons[contextualNudge.reason]}
+                        </span>
+                      </span>
+                      <span style={{ fontSize: "18px", color: nudgeColor, fontWeight: 800 }}>›</span>
+                    </button>
+                  </div>
+                );
+              })()}
+
+              {/* ⚡ Tus más usadas (12 de noviembre de 2026): las últimas
+                  5 herramientas usadas, en un scroll horizontal compacto.
+                  Se muestra si hay al menos 1 herramienta reciente
+                  guardada en localStorage. */}
+              {recentToolKeys.length > 0 && (
+                <div style={{ padding: isNarrow ? "8px 12px 0" : "8px 18px 0", maxWidth: isWide ? "600px" : "420px", width: "100%", margin: "0 auto", boxSizing: "border-box" }}>
+                  <h3 style={{ fontSize: "12px", fontWeight: 800, color: C.textMuted, margin: "0 0 6px", textTransform: "uppercase", letterSpacing: "0.04em" }}>
+                    ⚡ {t.today.frequentTitle}
+                  </h3>
+                  <div style={{ display: "flex", gap: "8px", overflowX: "auto", paddingBottom: "4px", scrollbarWidth: "thin" }}>
+                    {recentToolKeys.map((key) => {
+                      const item = quickNavSections.find((s) => s.key === key);
+                      if (!item) return null;
+                      const grp = TOOL_GROUPS.find((g) => g.tools.includes(key));
+                      const color = grp ? grp.color : personalAccent;
+                      return (
+                        <button
+                          key={key}
+                          type="button"
+                          onClick={() => {
+                            // 12 de noviembre de 2026: abre la herramienta
+                            // DENTRO de Inicio, sin navegar a Herramientas.
+                            setInicioToolKey(key);
+                            window.scrollTo({ top: 0, behavior: "smooth" });
+                          }}
+                          style={{
+                            display: "flex",
+                            flexDirection: "column",
+                            alignItems: "center",
+                            gap: "4px",
+                            minWidth: "64px",
+                            padding: "8px 6px",
+                            borderRadius: "14px",
+                            border: `1px solid ${color}22`,
+                            background: `${color}0a`,
+                            color: palette.textHi || C.text,
+                            cursor: "pointer",
+                            flexShrink: 0,
+                          }}
+                        >
+                          <span style={{ width: "32px", height: "32px", borderRadius: "10px", background: `${color}22`, color, display: "flex", alignItems: "center", justifyContent: "center" }}>
+                            {item.icon}
+                          </span>
+                          <span style={{ fontSize: "10.5px", fontWeight: 700, lineHeight: 1.2, textAlign: "center", maxWidth: "60px", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                            {item.label}
+                          </span>
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
+
+              {/* Franja "Hoy" (hábitos + despejar + pausa activa), debajo
+                  de la mascota — ver TodayHabitsStrip.jsx. */}
+              {!isWide && (
+                <div style={{ padding: isNarrow ? "0 12px" : "0 18px" }}>
+                  <TodayHabitsStrip
+                    C={C}
+                    t={t}
+                    palette={palette}
+                    items={habitItems}
+                    deskCleared={deskCleared}
+                    isNarrow={isNarrow}
+                    isShort={isShort}
+                    onDesk={() => scrollToCompanionSection("focusMode")}
+                    onBreak={() => scrollToCompanionSection("activeBreak")}
+                    onAddHabit={canAddCustomHabit(customHabits) ? openAddHabit : undefined}
+                    onOpenAll={() => scrollToCompanionSection("habits")}
+                  />
+                </div>
+              )}
+              {/* Tarjeta compacta de ánimo ELIMINADA (12 de noviembre de
+                  2026, rediseño brújula): el registro de ánimo ahora solo
+                  aparece como sugerencia contextual (nudge card arriba)
+                  cuando no lo ha registrado hoy. Las caritas 3D con
+                  sonido y animación siguen disponibles en la herramienta
+                  completa de Ánimo en la pestaña Herramientas. */}
               {tabBarInHero && (
                 <div style={{ maxWidth: "1000px", width: "100%", margin: "0 auto", padding: "0 18px", boxSizing: "border-box" }}>
                   <AppTabBar C={C} t={t} accent={personalAccent} activeTab={activeTab} onChange={goToTab} isNarrow={isNarrow} />
@@ -2912,7 +3211,7 @@ export default function FocusFlowTDAH({
             funcionar como una verdadera pantalla de inicio. Ahora es lo
             primero que se ve al abrir la app, y ya conoce las Rutinas
             (Módulo 5) además de todo lo que ya cubría. */}
-        {activeTab === "inicio" && inicioView === "hoy" && (
+        {activeTab === "inicio" && inicioView === "hoy" && !inicioToolKey && (
           <div style={{ marginBottom: "20px" }}>
             <button
               onClick={() => {
@@ -2938,7 +3237,37 @@ export default function FocusFlowTDAH({
             </button>
           </div>
         )}
-        <div ref={todaySectionRef} style={{ display: activeTab === "inicio" && inicioView === "hoy" ? undefined : "none" }}>
+        {/* Botón "Volver al inicio" cuando una herramienta se abrió
+            directamente desde Inicio (nudge card o "Tus más usadas") —
+            12 de noviembre de 2026: la herramienta se muestra aquí mismo
+            sin navegar a la pestaña Herramientas. */}
+        {activeTab === "inicio" && inicioToolKey && (
+          <div style={{ marginBottom: "20px" }}>
+            <button
+              onClick={() => {
+                setInicioToolKey(null);
+                window.scrollTo({ top: 0, behavior: "auto" });
+              }}
+              style={{
+                display: "flex",
+                alignItems: "center",
+                gap: "8px",
+                minHeight: "40px",
+                padding: "8px 14px",
+                background: "transparent",
+                border: `1px solid ${C.border}`,
+                borderRadius: "12px",
+                color: C.text,
+                fontSize: "13px",
+                fontWeight: 600,
+                cursor: "pointer",
+              }}
+            >
+              <ArrowLeft size={16} /> {t.today.backToHome}
+            </button>
+          </div>
+        )}
+        <div ref={todaySectionRef} style={{ display: activeTab === "inicio" && inicioView === "hoy" && !inicioToolKey ? undefined : "none" }}>
           <Panel C={C}
             accent={personalAccent}
             icon={<ListChecks size={22} />}
@@ -2957,7 +3286,7 @@ export default function FocusFlowTDAH({
               payments={payments}
               paymentPaidLog={paymentPaidLog}
               cbtProgram={cbtProgram}
-              habits={{ screensOff, sleepEnv, ateWell, hydrated, deskCleared }}
+              habits={{ screensOff, sleepEnv, ateWell, hydrated, deskCleared, custom: customHabits }}
               quickNotes={quickNotes}
               routines={routines}
               onNavigate={scrollToCompanionSection}
@@ -3060,7 +3389,7 @@ export default function FocusFlowTDAH({
                   moodLog={moodLog}
                   jar={jar}
                   streak={streak}
-                  habits={{ screensOff, sleepEnv, ateWell, hydrated, deskCleared }}
+                  habits={{ screensOff, sleepEnv, ateWell, hydrated, deskCleared, custom: customHabits }}
                   sleepLog={sleepLog}
                   focusSessionLog={focusSessionLog}
                 />
@@ -3094,7 +3423,7 @@ export default function FocusFlowTDAH({
                   energyLog={energyLog}
                   medications={medications}
                   medicationDoseLog={medicationDoseLog}
-                  habits={{ screensOff, sleepEnv, ateWell, hydrated, deskCleared }}
+                  habits={{ screensOff, sleepEnv, ateWell, hydrated, deskCleared, custom: customHabits }}
                   streak={streak}
                   sleepLog={sleepLog}
                   impulseBrakeLog={impulseBrakeLog}
@@ -3177,12 +3506,21 @@ export default function FocusFlowTDAH({
                   const h = now.getHours();
                   const moodToday = todayMoodEntry(moodLog, now);
                   if (moodToday && moodToday.mood <= 2) return { key: "calmBubbles", reason: "moodLow" };
+                  // Acaba de terminar una sesión de enfoque (última hora) →
+                  // moverse un poco.
+                  const lastFocus = Object.values(focusSessionLog || {}).flat().map((e) => Date.parse(e.completedAt)).filter(Boolean).sort().pop();
+                  if (lastFocus && now.getTime() - lastFocus < 60 * 60 * 1000) return { key: "activeBreak", reason: "afterFocus" };
                   if (h >= 21 || h < 5) return { key: "habits", reason: "night" };
                   if (!moodToday) return { key: "mood", reason: "noCheckin" };
                   if (steps.some((st) => !st.done)) return { key: "oneThing", reason: "pending" };
                   if (h < 13) return { key: "desglosador", reason: "morning" };
                   return { key: "focusMode", reason: "default" };
                 })()}
+                // Conexión brújula → ToolsGrid (12 de noviembre de 2026):
+                // al tocar un planeta de categoría en Inicio, se manda el
+                // grupo aquí para que ToolsGrid lo abra automáticamente.
+                initialGroup={herramientasGroup}
+                onGroupClear={() => setHerramientasGroup(null)}
               />
             ) : (
               <button
@@ -3810,6 +4148,12 @@ export default function FocusFlowTDAH({
               title={t.app.panels.focusMode.title}
               subtitle={t.app.panels.focusMode.subtitle}
             >
+              <DeskReady
+                C={C}
+                t={t}
+                done={deskCleared}
+                onDone={() => toggleXp(setDeskCleared, deskCleared, t.app.xpLabels.deskClearedLabel, "deskCleared")}
+              />
               <FocusMode
                 C={C}
                 t={t}
@@ -3819,6 +4163,7 @@ export default function FocusFlowTDAH({
                   setFocusSessionLog((prev) => logFocusSession(prev, session));
                   grantXp(t.app.xpLabels.focusSessionCompleted);
                   bodyDouble.setStatus("aqui");
+                  setBreakPrompt(true);
                 }}
                 onSessionStart={(min) => {
                   scheduleStepsOnCalendar(userId, [{ text: t.app.focusSessionEventTitle, min }], { kind: "focus" });
@@ -3827,6 +4172,47 @@ export default function FocusFlowTDAH({
                 onFocusStatusChange={setFocusStatus}
                 storageKey={`anro-focus-session-main-${userId}`}
               />
+              {/* Al terminar una sesión de trabajo empieza el descanso: buen
+                  momento para la pausa activa. Un toque la abre y arranca. */}
+              {breakPrompt && (
+                <div
+                  style={{
+                    display: "flex",
+                    alignItems: "center",
+                    gap: "12px",
+                    flexWrap: "wrap",
+                    marginTop: "16px",
+                    padding: "14px 16px",
+                    borderRadius: "16px",
+                    background: tint(C.amber, 0.14),
+                    border: `1px solid ${tint(C.amber, 0.35)}`,
+                  }}
+                >
+                  <span aria-hidden="true" style={{ fontSize: "28px" }}>🚶</span>
+                  <div style={{ flex: 1, minWidth: "160px" }}>
+                    <p style={{ fontSize: "15px", fontWeight: 800, color: C.text, margin: 0 }}>{t.activeBreak.promptTitle}</p>
+                    <p style={{ fontSize: "13px", color: C.textMuted, margin: "2px 0 0", lineHeight: 1.4 }}>{t.activeBreak.promptText}</p>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setBreakPrompt(false);
+                      setActiveBreakStart(Date.now());
+                      scrollToCompanionSection("activeBreak");
+                    }}
+                    style={btnPrimary(C.amber, C.amberText)}
+                  >
+                    {t.activeBreak.promptButton}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setBreakPrompt(false)}
+                    style={{ background: "transparent", border: "none", color: C.textMuted, fontSize: "13px", cursor: "pointer", padding: "8px" }}
+                  >
+                    {t.activeBreak.promptLater}
+                  </button>
+                </div>
+              )}
             </Panel>
             </div>
 
@@ -3863,7 +4249,7 @@ export default function FocusFlowTDAH({
               title={t.app.panels.notifications.title}
               subtitle={t.app.panels.notifications.subtitle}
             >
-              <NotificationsPanel C={C} t={t} userId={userId} />
+              <NotificationsPanel C={C} t={t} userId={userId} habitReminders={habitReminders} onToggleHabitReminders={() => setHabitReminders((v) => !v)} />
             </Panel>
             </div>
 
@@ -4048,6 +4434,17 @@ export default function FocusFlowTDAH({
             </div>
 
             {/* Mini juego de calma (10 de noviembre de 2026) — ver CalmBubbles.jsx. */}
+            <div ref={activeBreakSectionRef} style={toolStyle("activeBreak")}>
+            <Panel C={C}
+              accent={C.amber}
+              icon={<Activity size={22} />}
+              title={t.app.panels.activeBreak.title}
+              subtitle={t.app.panels.activeBreak.subtitle}
+            >
+              <ActiveBreak C={C} t={t} lang={lang} isNarrow={isNarrow} autoStart={activeBreakStart} onComplete={() => grantXp(t.app.xpLabels.activeBreakCompleted)} onActiveChange={setBreakInProgress} />
+            </Panel>
+            </div>
+
             <div ref={calmBubblesSectionRef} style={toolStyle("calmBubbles")}>
             <Panel C={C}
               accent={C.sky}
@@ -4206,72 +4603,80 @@ export default function FocusFlowTDAH({
           title={t.app.panels.habits.title}
           subtitle={t.app.panels.habits.subtitle}
         >
-          <div style={{ display: "grid", gridTemplateColumns: isNarrow ? "1fr" : "1fr 1fr", gap: "0 24px" }}>
-            <div>
-              <p style={{ fontSize: "12px", color: C.textMuted, margin: "0 0 4px", display: "flex", alignItems: "center", gap: "6px" }}>
-                <Moon size={13} /> {t.app.habits.sleepHygiene}
-              </p>
-              <Toggle C={C} label={t.app.habits.screensOff} checked={screensOff} onChange={(v) => toggleXp(setScreensOff, screensOff, t.app.xpLabels.screensOffLabel)} />
-              <Toggle C={C} label={t.app.habits.sleepEnvReady} checked={sleepEnv} onChange={(v) => toggleXp(setSleepEnv, sleepEnv, t.app.xpLabels.sleepEnvLabel)} />
-              <div style={{ marginTop: "10px" }}>
-                {todayBedtimeEntry ? (
-                  <p style={{ fontSize: "13px", color: C.textMuted, margin: "0 0 6px" }}>
-                    {t.app.habits.bedtimeRegistered(todayBedtimeEntry.time)}
-                  </p>
-                ) : (
-                  <p style={{ fontSize: "13px", color: C.textMuted, margin: "0 0 6px" }}>
-                    {t.app.habits.bedtimeQuestion}
+          {/* 11 de noviembre de 2026 ("no me gusta nada el diseño"): antes
+              eran 4 bloques en 2 columnas mezclando hábitos, un reloj de
+              pausa activa y el "Fuera de la vista". Ahora es SOLO la lista
+              de hábitos del día, con contador. La pausa activa es su propia
+              herramienta (ActiveBreak.jsx) y el "Fuera de la vista" pasó a
+              Modo enfoque como paso de "Antes de empezar" (DeskReady.jsx). */}
+          {(() => {
+            return (
+              <div>
+                <HabitsList
+                  C={C}
+                  t={t}
+                  isNarrow={isNarrow}
+                  items={habitItems}
+                  canAdd={canAddCustomHabit(customHabits)}
+                  openAddSignal={habitAddSignal}
+                  onFormOpenChange={setHabitFormOpen}
+                  onAdd={(data) => setCustomHabits((list) => addCustomHabit(list, data))}
+                  onUpdate={(id, data) => setCustomHabits((list) => updateCustomHabit(list, id, data))}
+                  onRemove={(id) => setCustomHabits((list) => removeCustomHabit(list, id))}
+                />
+
+                <div style={{ borderTop: `1px solid ${C.border}`, margin: "20px 0 16px" }} />
+                {/* Sueño de anoche (11 nov 2026): hora de dormir y, si
+                    quiere, hora de despertar — con las dos se calcula el
+                    tiempo de sueño aproximado (ver sleepLog.js). */}
+                <p style={{ fontSize: "15px", fontWeight: 800, color: C.text, margin: "0 0 4px" }}>🌙 {t.app.habits.sleepTitle}</p>
+                <p style={{ fontSize: "12.5px", color: C.textMuted, margin: "0 0 12px", lineHeight: 1.5 }}>{t.app.habits.sleepHint}</p>
+                <div style={{ display: "flex", gap: "12px", flexWrap: "wrap", alignItems: "flex-end" }}>
+                  <label style={{ display: "flex", flexDirection: "column", gap: "4px", fontSize: "12.5px", fontWeight: 700, color: C.text }}>
+                    {t.app.habits.bedtimeLabel}
+                    <input
+                      type="time"
+                      value={bedtimeInput}
+                      onChange={(e) => {
+                        setBedtimeInput(e.target.value);
+                        setSleepSaved(false);
+                      }}
+                      style={{ ...inputStyle, width: "auto", minHeight: "44px", fontSize: "16px" }}
+                    />
+                  </label>
+                  <label style={{ display: "flex", flexDirection: "column", gap: "4px", fontSize: "12.5px", fontWeight: 700, color: C.text }}>
+                    {t.app.habits.wakeLabel}
+                    <input
+                      type="time"
+                      value={wakeInput}
+                      onChange={(e) => {
+                        setWakeInput(e.target.value);
+                        setSleepSaved(false);
+                      }}
+                      style={{ ...inputStyle, width: "auto", minHeight: "44px", fontSize: "16px" }}
+                    />
+                  </label>
+                  <button onClick={saveBedtime} disabled={!bedtimeInput} style={{ ...btnGhost, minHeight: "44px", opacity: bedtimeInput ? 1 : 0.5 }}>
+                    {sleepSaved ? `✓ ${t.app.habits.sleepSaved}` : t.common.save}
+                  </button>
+                </div>
+                {todayBedtimeEntry && (
+                  <p style={{ fontSize: "14px", color: C.text, margin: "12px 0 0", lineHeight: 1.5 }}>
+                    {sleepMinutesToday != null ? (
+                      <>
+                        😴 <strong>{t.app.habits.sleepDuration(t.app.habits.formatDuration(sleepMinutesToday))}</strong>{" "}
+                        <span style={{ color: C.textMuted, fontSize: "12.5px" }}>{t.app.habits.sleepApproxNote}</span>
+                      </>
+                    ) : todayBedtimeEntry.wake ? (
+                      <span style={{ color: C.textMuted }}>{t.app.habits.sleepCheckTimes}</span>
+                    ) : (
+                      <span style={{ color: C.textMuted }}>{t.app.habits.bedtimeRegistered(todayBedtimeEntry.time)} {t.app.habits.sleepAddWake}</span>
+                    )}
                   </p>
                 )}
-                <div style={{ display: "flex", gap: "8px" }}>
-                  <input
-                    type="time"
-                    value={bedtimeInput}
-                    onChange={(e) => setBedtimeInput(e.target.value)}
-                    style={{ ...inputStyle, width: "auto" }}
-                  />
-                  <button onClick={saveBedtime} style={btnGhost}>
-                    {t.common.save}
-                  </button>
-                </div>
               </div>
-            </div>
-            <div>
-              <p style={{ fontSize: "12px", color: C.textMuted, margin: "0 0 4px", display: "flex", alignItems: "center", gap: "6px" }}>
-                <Utensils size={13} /> {t.app.habits.nutrition}
-              </p>
-              <Toggle C={C} label={t.app.habits.ateWell} checked={ateWell} onChange={(v) => toggleXp(setAteWell, ateWell, t.app.xpLabels.ateWellLabel)} />
-              <Toggle C={C} label={t.app.habits.hydrated} checked={hydrated} onChange={(v) => toggleXp(setHydrated, hydrated, t.app.xpLabels.hydratedLabel)} />
-            </div>
-            <div style={{ marginTop: "18px" }}>
-              <p style={{ fontSize: "12px", color: C.textMuted, margin: "0 0 8px", display: "flex", alignItems: "center", gap: "6px" }}>
-                <Activity size={13} /> {t.app.habits.movement}
-              </p>
-              {!breakDone ? (
-                <div style={{ display: "flex", alignItems: "center", gap: "14px" }}>
-                  <button
-                    onClick={() => setBreakRunning((r) => !r)}
-                    style={btnPrimary(breakRunning ? C.surfaceAlt : C.amber, breakRunning ? C.text : C.amberText)}
-                  >
-                    {breakRunning ? t.app.habits.pauseButton : t.app.habits.activeBreak}
-                  </button>
-                  <span style={{ fontSize: "18px", fontVariantNumeric: "tabular-nums" }}>{fmt(breakSec)}</span>
-                </div>
-              ) : (
-                <p style={{ fontSize: "14px", color: C.mint, margin: 0 }}>{t.app.habits.breakDone}</p>
-              )}
-            </div>
-            <div style={{ marginTop: "18px" }}>
-              <p style={{ fontSize: "12px", color: C.textMuted, margin: "0 0 4px", display: "flex", alignItems: "center", gap: "6px" }}>
-                <LayoutIcon size={13} /> {t.app.habits.workspace}
-              </p>
-              <Toggle C={C}
-                label={t.app.habits.deskCleared}
-                checked={deskCleared}
-                onChange={(v) => toggleXp(setDeskCleared, deskCleared, t.app.xpLabels.deskClearedLabel)}
-              />
-            </div>
-          </div>
+            );
+          })()}
         </Panel>
         </div>
         </div>
@@ -4289,6 +4694,15 @@ export default function FocusFlowTDAH({
           sigue funcionando exactamente igual que antes de la Fase 2, ahora
           cruzando pestañas cuando hace falta. bottomOffset lo sube por
           encima de AppTabBar cuando esta queda fija abajo (móvil). */}
+      {/* 11 nov 2026: en Inicio (brújula) los 3 botones flotantes tapaban
+          la franja "Mis hábitos de hoy" de abajo; ahí se ocultan (la
+          brújula ya lleva a todo). Siguen montados (display:none), así que
+          no pierden su estado, y en las demás pestañas se ven igual. */}
+      <div style={{ display:
+            inicioCompass ||
+            (activeTab === "herramientas" && ((habitFormOpen && activeTool === "habits") || (breakInProgress && activeTool === "activeBreak")))
+              ? "none"
+              : undefined, }}>
       <QuickNavMenu
         C={C}
         t={t}
@@ -4331,6 +4745,7 @@ export default function FocusFlowTDAH({
   grantXp={grantXp}
   bottomOffset={isNarrow ? 64 : 0}
 />
+      </div>
     </div>
   );
 }

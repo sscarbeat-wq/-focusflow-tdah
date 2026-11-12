@@ -21,6 +21,13 @@
 //     así que este cron no tiene forma de saber si hay alguno pendiente —
 //     mismo principio de "nunca inventar un pendiente sin dato real" que
 //     ya sigue todayView.js en el cliente.
+//   - "?check=habits-morning", "habits-afternoon" y "habits-night" (3 crons
+//     diarios, un solo parámetro como los demás para no arriesgar el
+//     formato de vercel.json; a las
+//     10 am, 3 pm y 9 pm hora de Ciudad de México, agregados el 11 de
+//     noviembre de 2026 a petición de la doctora): avisa de los hábitos de
+//     "Mis hábitos de hoy" que todavía no se palomean a esa hora — ver
+//     src/habitReminders.js para qué toca en cada momento.
 // Estos crons cada 15 minutos requieren Vercel Pro (la doctora subió de
 // plan el 20 de octubre de 2026 — ver el roadmap). Si en algún momento se
 // baja de Pro a Hobby, el deploy completo se rompe (Vercel lo rechaza en
@@ -40,6 +47,7 @@ import { daysBetween } from "../src/streak.js";
 import { programStatus } from "../src/cbtProgram.js";
 import { capsuleForKey } from "../src/scienceCapsules.js";
 import { oldForgottenNote, setQuickNoteReminder } from "../src/quickCapture.js";
+import { habitReminderFor, slotForHour, HABIT_REMINDER_SLOTS } from "../src/habitReminders.js";
 
 const supabaseAdmin = createClient(process.env.VITE_SUPABASE_URL, process.env.SUPABASE_SERVICE_ROLE_KEY);
 
@@ -81,6 +89,9 @@ export default async function handler(req, res) {
   }
   if (req.query && req.query.check === "digest") {
     return handleDigestCheck(req, res);
+  }
+  if (req.query && typeof req.query.check === "string" && req.query.check.startsWith("habits")) {
+    return handleHabitsCheck(req, res);
   }
   return handleDailyCheck(req, res);
 }
@@ -549,6 +560,64 @@ async function handleDigestCheck(req, res) {
     }
 
     res.status(200).json({ sent, total: subs.length });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: err.message });
+  }
+}
+
+// Avisos de hábitos (10 am, 3 pm, 9 pm — ver vercel.json). Solo LEE el
+// progreso, nunca lo escribe: qué aviso toca (o ninguno) lo decide
+// habitReminderFor() con las palomitas que la persona ya guardó. Quien ya
+// palomeó lo de esa hora, o apagó estos avisos en Perfil → Notificaciones,
+// no recibe nada.
+async function handleHabitsCheck(req, res) {
+  try {
+    const { data: subs, error: subsErr } = await supabaseAdmin.from("push_subscriptions").select("*");
+    if (subsErr) throw subsErr;
+    if (!subs || subs.length === 0) {
+      return res.status(200).json({ sent: 0, total: 0 });
+    }
+
+    const userIds = [...new Set(subs.map((s) => s.user_id))];
+    const { data: rows, error: progErr } = await supabaseAdmin
+      .from("progress")
+      .select("user_id, data")
+      .in("user_id", userIds);
+    if (progErr) throw progErr;
+
+    const progressByUser = Object.fromEntries((rows || []).map((r) => [r.user_id, r.data || {}]));
+    const now = mxNow();
+    // El cron manda ?check=habits-morning (o -afternoon / -night); si el
+    // momento faltara o viniera mal, se deduce de la hora de Ciudad de
+    // México.
+    const requested = String((req.query && req.query.check) || "").replace(/^habits-?/, "");
+    const slot = HABIT_REMINDER_SLOTS.includes(requested) ? requested : slotForHour(now.getUTCHours());
+
+    let sent = 0;
+    const toRemove = [];
+
+    for (const sub of subs) {
+      const reminder = habitReminderFor(progressByUser[sub.user_id], slot, now);
+      if (!reminder) continue; // nada pendiente a esta hora, o avisos apagados
+
+      try {
+        await webpush.sendNotification(sub.subscription, JSON.stringify({ ...reminder, url: "/" }));
+        sent += 1;
+      } catch (err) {
+        if (err.statusCode === 404 || err.statusCode === 410) {
+          toRemove.push(sub.endpoint);
+        } else {
+          console.error("Error enviando push de hábitos a", sub.endpoint, err.message);
+        }
+      }
+    }
+
+    if (toRemove.length) {
+      await supabaseAdmin.from("push_subscriptions").delete().in("endpoint", toRemove);
+    }
+
+    res.status(200).json({ sent, total: subs.length, slot });
   } catch (err) {
     console.error(err);
     res.status(500).json({ error: err.message });

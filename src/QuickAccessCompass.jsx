@@ -939,19 +939,9 @@ export default function QuickAccessCompass({
           )}
         </button>
       )}
-      <p
-        style={{
-          fontSize: "11px",
-          color: palette?.chipBg ? textColor : mutedColor,
-          margin: "12px auto 0",
-          opacity: palette?.chipBg ? 1 : 0.8,
-          ...(palette?.chipBg
-            ? { background: palette.chipBg, display: "table", padding: "4px 12px", borderRadius: "10px", maxWidth: "92%" }
-            : {}),
-        }}
-      >
-        {t.today.quickAccessPinHint}
-      </p>
+      {/* Texto de ayuda "Los accesos giran solos" ELIMINADO (12 de
+          noviembre de 2026, rediseño brújula): los planetas ahora son
+          categorías fijas — no se fijan ni se arrastran. */}
     </div>
   );
 }
