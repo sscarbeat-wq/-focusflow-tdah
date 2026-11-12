@@ -21,8 +21,8 @@ import { PlusUpsellBadge } from "./PlusUpsellCard";
 // cuándo el paciente deja esta pestaña mientras una sesión de enfoque está
 // corriendo, y le avisa al volver cuánto tiempo estuvo fuera.
 
-const WORK_OPTIONS = [15, 20, 25, 30, 45];
-const BREAK_OPTIONS = [3, 5, 10, 15];
+const WORK_OPTIONS = [5, 10, 15, 20, 25, 30, 45, 60, 90];
+const BREAK_OPTIONS = [1, 2, 3, 5, 10, 15, 20, 30];
 
 // Fase 4 (sonidos de enfoque, 30 de octubre de 2026) — el ruido blanco
 // original se queda gratis (es lo que ya tenía la app); los otros 3 son la
