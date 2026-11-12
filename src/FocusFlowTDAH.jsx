@@ -62,7 +62,7 @@ import CalmBubbles from "./CalmBubbles";
 import ReorderHandle from "./ReorderHandle";
 import AppTabBar from "./AppTabBar";
 import QuickAccessCompass from "./QuickAccessCompass";
-import ToolsGrid from "./ToolsGrid";
+import ToolsGrid, { TOOL_GROUPS } from "./ToolsGrid";
 import OnboardingTour from "./OnboardingTour";
 import InstallBanner from "./InstallBanner";
 import PostDiagnosisCard from "./PostDiagnosisCard";
@@ -395,6 +395,11 @@ export default function FocusFlowTDAH({
   // preferencia de dispositivo, mismo patrón que especie/accesorio/fijado.
   const [compassEditOpen, setCompassEditOpen] = useState(false);
   const [compassKeys, setCompassKeys] = useState(() => getStoredCompassSelection());
+  // Rediseño de la brújula (12 de noviembre de 2026): cuando la paciente
+  // toca un planeta de categoría en Inicio, se guarda aquí la clave del
+  // grupo ("start", "focus", etc.) para que ToolsGrid abra directamente
+  // ese grupo al cambiar a la pestaña Herramientas.
+  const [herramientasGroup, setHerramientasGroup] = useState(null);
   // Se calcula YA en el primer render (antes empezaba en `false` y se
   // corregía en un useEffect): las 3 burbujas flotantes calculan su
   // posición inicial al montarse, y como los efectos de los hijos corren
@@ -706,29 +711,25 @@ export default function FocusFlowTDAH({
     { key: "habits", icon: <Moon size={18} />, label: t.app.panels.habits.title },
   ];
 
-  // Catálogo completo para "✏️ Editar" (botón del mockup original que
-  // había quedado fuera de la primera entrega, 9 de noviembre de 2026):
-  // la paciente elige hasta 6 de estos para su brújula de Inicio, en vez
-  // de los 6 fijos de siempre. Reutiliza `quickNavSections` (misma lista,
-  // mismos íconos/etiquetas, que el menú flotante "Ir a...") para no
-  // mantener un segundo catálogo de destinos aparte — con 3 agregados
-  // sintéticos al principio que no son secciones individuales sino
-  // atajos: "todayNextStep" (salta al primer pendiente real de HOY, el
-  // mismo que calcula buildTodayItems más abajo — el destino cambia según
-  // el día, pero la paciente solo elige "quiero este atajo" una vez) y
-  // "herramientasRoot"/"agendaRoot" (saltan a la raíz de esas pestañas,
-  // no a una herramienta en particular). No se tocó `quickNavSections` en
-  // sí — ese array lo sigue usando tal cual el menú "Ir a..." y el
-  // filtro de la cuadrícula de Herramientas (SECTION_TABS) más abajo.
+  // Rediseño de la brújula (12 de noviembre de 2026): los 6 planetas
+  // editables se reemplazan por 5 planetas FIJOS de categoría — uno por
+  // cada grupo de TOOL_GROUPS (ToolsGrid.jsx). Al tocar un planeta, la
+  // app salta a la pestaña Herramientas con ese grupo ya abierto. Así la
+  // paciente ve de un vistazo "¿qué necesito ahora?" sin tener que leer
+  // 22 herramientas de golpe.
+  // COMPASS_POOL y DEFAULT_COMPASS_KEYS se conservan por si el botón
+  // "✏️ Editar" se reactiva más adelante (el código de CompassEditSheet
+  // sigue importado aunque no se use).
   const COMPASS_POOL = [
     { key: "todayNextStep", icon: <ListChecks size={18} />, label: t.today.compassNextStep },
     { key: "herramientasRoot", icon: <Wrench size={18} />, label: t.appTabs.herramientas },
     { key: "agendaRoot", icon: <CalendarClock size={18} />, label: t.appTabs.agenda },
-    // "Mis hábitos de hoy" ya no se puede elegir como planeta (12 nov
-    // 2026): tiene su propia pestaña en Inicio y sería repetir lo mismo.
     ...quickNavSections.filter((sec) => sec.key !== "habits"),
   ];
   const DEFAULT_COMPASS_KEYS = ["companion", "insights", "agendaRoot", "mood", "todayNextStep", "herramientasRoot"];
+
+  // Los 5 planetas de categoría para la brújula rediseñada:
+  const CATEGORY_PLANET_COLORS = TOOL_GROUPS.map((g) => g.color);
 
   // Los 6 accesos de la brújula de Inicio (reemplaza a los 4 anteriores —
   // ver nota larga del 9 de noviembre de 2026 más abajo, junto a
@@ -2019,75 +2020,52 @@ export default function FocusFlowTDAH({
           // Si alguien ya tenía "habits" como planeta (antes de que tuviera
           // su pestaña), se sustituye por el primer acceso de siempre que
           // no esté ya en su brújula, para no dejarle un hueco.
-          const rawKeys = compassKeys || DEFAULT_COMPASS_KEYS;
-          const habitsReplacement = [...DEFAULT_COMPASS_KEYS, ...COMPASS_POOL.map((c) => c.key)].find((k) => !rawKeys.includes(k));
-          const effectiveKeys = rawKeys.includes("habits")
-            ? rawKeys.map((k) => (k === "habits" ? habitsReplacement : k)).filter(Boolean)
-            : rawKeys;
-          const compassItems = effectiveKeys.map((key, i) => {
-            const variant = i >= 4 ? "accent-solid" : "accent-outline";
-            if (key === "todayNextStep") {
-              // key propia ("todayNextStep") en vez de `nextStepTarget`
-              // (10 de noviembre de 2026): el próximo paso puede ser
-              // justamente "mood" o "insights", y entonces 2 accesos de la
-              // brújula tenían la MISMA key — React mezclaba los 2 y uno se
-              // quedaba atorado en el centro, encima de la mascota. El
-              // destino real se resuelve al tocarlo (handleCompassSelect).
-              return { key: "todayNextStep", icon: <ListChecks size={18} />, label: t.today.compassNextStep, variant };
-            }
-            if (key === "insights") {
-              return {
-                key: "insights",
-                icon: <Flame size={18} />,
-                // Redondeado (10 de noviembre de 2026): los puntos se suman de a
-                // 0.85, así que `xp` puede traer decimales ("41.65 pts") — en
-                // un acceso tan chico de la brújula se lee mejor el entero; el
-                // valor exacto con 2 decimales se sigue viendo en el panel de
-                // puntos de siempre.
-                label: `${streak.current} ${t.mascot.dayWord(streak.current)} · ${Math.round(xp)} ${t.today.pointsAbbrev}`,
-                variant,
-              };
-            }
-            if (key === "agendaRoot") {
-              return { key: "agendaRoot", icon: <CalendarClock size={18} />, label: agendaLabel, variant };
-            }
-            // "companion"/"mood": corregido el mismo día — al agregar el
-            // catálogo editable se me había olvidado que estos 2 YA tenían
-            // una presentación más corta y específica para la brújula
-            // (ver tercera corrección de fidelidad más arriba: ícono de
-            // burbuja de chat para Compañero, etiqueta corta "Ánimo") que
-            // NO es la misma que su título genérico en `quickNavSections`
-            // ("Compañero de apoyo" con ícono de manos, "Registro de
-            // ánimo") — sin este caso especial, elegirlos desde "Editar"
-            // los mostraba con el ícono/etiqueta larga del panel en vez de
-            // la versión corta pensada para la brújula.
-            if (key === "companion") {
-              return { key: "companion", icon: <MessageCircle size={18} />, label: t.today.compassCompanionLabel, variant };
-            }
-            if (key === "mood") {
-              return { key: "mood", icon: <Smile size={18} />, label: t.today.compassMoodLabel, variant };
-            }
-            const poolItem = COMPASS_POOL.find((p) => p.key === key);
-            if (!poolItem) return null; // clave guardada que ya no existe (ej. sección renombrada) — se omite en vez de romper
-            return { ...poolItem, variant };
-          }).filter(Boolean);
+          // Rediseño de la brújula (12 de noviembre de 2026): 5 planetas
+          // fijos de categoría en vez de los 6 editables de antes. Cada
+          // planeta es un grupo de TOOL_GROUPS (emoji + nombre del grupo).
+          const compassItems = TOOL_GROUPS.map((g) => ({
+            key: `cat_${g.key}`,
+            icon: <span style={{ fontSize: "20px", lineHeight: 1 }}>{g.emoji}</span>,
+            label: t.tools.groups[g.key],
+            variant: "accent-solid",
+          }));
 
+          // Al tocar un planeta de categoría, se abre Herramientas con ese
+          // grupo ya seleccionado. Las claves empiezan con "cat_" para
+          // distinguirlas del catálogo anterior.
           const handleCompassSelect = (key) => {
-            if (key === "todayNextStep") {
-              scrollToCompanionSection(nextStepTarget);
-              return;
-            }
-            if (key === "herramientasRoot") {
-              setActiveTool(null);
-              if (activeTab !== "herramientas") setActiveTab("herramientas");
-              return;
-            }
-            if (key === "agendaRoot") {
-              if (activeTab !== "agenda") setActiveTab("agenda");
-              return;
-            }
-            scrollToCompanionSection(key);
+            const groupKey = key.replace("cat_", "");
+            setHerramientasGroup(groupKey);
+            setActiveTool(null);
+            if (activeTab !== "herramientas") setActiveTab("herramientas");
           };
+
+          // --- Sugerencia contextual para Inicio (nudge card) -----------
+          // Misma lógica de prioridad que ToolsGrid.suggestion, pero
+          // calculada aquí porque la tarjeta se muestra entre la brújula y
+          // la franja de hábitos.
+          const contextualNudge = (() => {
+            const now = new Date();
+            const h = now.getHours();
+            const moodToday = todayMoodEntry(moodLog, now);
+            if (moodToday && moodToday.mood <= 2) return { key: "calmBubbles", reason: "moodLow" };
+            const lastFocus = Object.values(focusSessionLog || {}).flat().map((e) => Date.parse(e.completedAt)).filter(Boolean).sort().pop();
+            if (lastFocus && now.getTime() - lastFocus < 60 * 60 * 1000) return { key: "activeBreak", reason: "afterFocus" };
+            if (h >= 21 || h < 5) return { key: "habits", reason: "night" };
+            if (!moodToday) return { key: "mood", reason: "noCheckin" };
+            if (steps.some((st) => !st.done)) return { key: "oneThing", reason: "pending" };
+            if (h < 13) return { key: "desglosador", reason: "morning" };
+            return { key: "focusMode", reason: "default" };
+          })();
+
+          // --- Herramientas más usadas (top 5 recientes) ----------------
+          const recentToolKeys = (() => {
+            try {
+              const raw = JSON.parse(window.localStorage.getItem("anro-tools-recent"));
+              if (Array.isArray(raw)) return raw.slice(0, 5);
+            } catch (e) { /* sin localStorage */ }
+            return [];
+          })();
 
           return (
             <div
@@ -2138,24 +2116,9 @@ export default function FocusFlowTDAH({
                 period={period}
                 nextBlock={nextBlock}
                 nowMinutes={nowMinutes}
-                onEditClick={() => setCompassEditOpen(true)}
+                // "✏️ Editar" desactivado: los 5 planetas de categoría son
+                // fijos. CompassEditSheet sigue disponible si se reactiva.
               />
-              {compassEditOpen && (
-                <CompassEditSheet
-                  C={C}
-                  t={t}
-                  accent={personalAccent}
-                  pool={COMPASS_POOL}
-                  selectedKeys={effectiveKeys}
-                  defaultKeys={DEFAULT_COMPASS_KEYS}
-                  onClose={() => setCompassEditOpen(false)}
-                  onSave={(keys) => {
-                    setCompassKeys(keys);
-                    storeCompassSelection(keys);
-                    setCompassEditOpen(false);
-                  }}
-                />
-              )}
               {/* `flex: 1` + `justifyContent: "center"` (igual, cuarta
                   corrección): con el fondo ahora ocupando toda la
                   pantalla, la brújula se centra sola en el espacio que
@@ -2216,9 +2179,10 @@ export default function FocusFlowTDAH({
                   palette={palette}
                   xp={xp}
                   dayMood={dayMood}
-                  // Planetas en tonos del color que eligió la paciente (o de
-                  // colores, si eligió "Sistema solar") — 10 de noviembre de 2026.
-                  planetColors={planetColorsFor(accentLocked ? null : accentKey, personalAccent)}
+                  // Planetas de categoría: cada uno con el color fijo de su
+                  // grupo (TOOL_GROUPS), ya no del acento personal — así se
+                  // reconocen de un vistazo, independiente del color elegido.
+                  planetColors={CATEGORY_PLANET_COLORS}
                   // Explicaciones del centro (10 de noviembre de 2026): qué
                   // mide el %, qué son los XP y cuánto falta para el
                   // siguiente premio.
@@ -2249,13 +2213,112 @@ export default function FocusFlowTDAH({
                     else setSpeciesPickerOpen(true);
                     requestAnimationFrame(() => window.scrollTo({ top: 0, behavior: "auto" }));
                   }}
-                  onReorder={(keys) => {
-                    setCompassKeys(keys);
-                    storeCompassSelection(keys);
-                  }}
+                  // Reordenar desactivado: los 5 planetas de categoría son
+                  // fijos, sin arrastrar. Se omite onReorder para que
+                  // QuickAccessCompass no habilite el arrastre.
+                  // onReorder desactivado
                 />
                 </div>
               </div>
+              {/* ✨ Tarjeta contextual "Te puede servir ahora" (12 de
+                  noviembre de 2026, rediseño brújula): una sugerencia
+                  dinámica basada en lo que la app ya sabe del día. Solo se
+                  muestra en móvil (en escritorio, la sugerencia ya vive
+                  dentro de ToolsGrid al abrir Herramientas). */}
+              {!isWide && contextualNudge && (() => {
+                const nudgeItem = quickNavSections.find((s) => s.key === contextualNudge.key);
+                if (!nudgeItem) return null;
+                const nudgeGroup = TOOL_GROUPS.find((g) => g.tools.includes(contextualNudge.key));
+                const nudgeColor = nudgeGroup ? nudgeGroup.color : personalAccent;
+                return (
+                  <div style={{ padding: isNarrow ? "6px 12px 0" : "6px 18px 0", maxWidth: "420px", width: "100%", margin: "0 auto", boxSizing: "border-box" }}>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setActiveTool(null);
+                        scrollToCompanionSection(contextualNudge.key);
+                      }}
+                      style={{
+                        display: "flex",
+                        alignItems: "center",
+                        gap: "12px",
+                        width: "100%",
+                        padding: "12px 14px",
+                        borderRadius: "16px",
+                        border: `1.5px solid ${nudgeColor}33`,
+                        background: `linear-gradient(135deg, ${nudgeColor}18 0%, ${nudgeColor}08 100%)`,
+                        color: palette.textHi || C.text,
+                        cursor: "pointer",
+                        textAlign: "left",
+                        boxSizing: "border-box",
+                      }}
+                    >
+                      <span style={{ width: "40px", height: "40px", borderRadius: "12px", background: nudgeColor, color: "#fff", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
+                        {nudgeItem.icon}
+                      </span>
+                      <span style={{ flex: 1, minWidth: 0 }}>
+                        <span style={{ display: "block", fontSize: "11px", fontWeight: 800, color: nudgeColor, textTransform: "uppercase", letterSpacing: "0.04em" }}>
+                          ✨ {t.today.nudgeTitle}
+                        </span>
+                        <span style={{ display: "block", fontSize: "14px", fontWeight: 700, margin: "1px 0" }}>{nudgeItem.label}</span>
+                        <span style={{ display: "block", fontSize: "12px", color: C.textMuted, lineHeight: 1.3 }}>
+                          {t.tools.suggestReasons[contextualNudge.reason]}
+                        </span>
+                      </span>
+                      <span style={{ fontSize: "18px", color: nudgeColor, fontWeight: 800 }}>›</span>
+                    </button>
+                  </div>
+                );
+              })()}
+
+              {/* ⚡ Tus más usadas (12 de noviembre de 2026): las últimas
+                  5 herramientas usadas, en un scroll horizontal compacto.
+                  Solo se muestra en móvil si hay al menos 1 herramienta
+                  reciente guardada en localStorage. */}
+              {!isWide && recentToolKeys.length > 0 && (
+                <div style={{ padding: isNarrow ? "8px 12px 0" : "8px 18px 0", maxWidth: "420px", width: "100%", margin: "0 auto", boxSizing: "border-box" }}>
+                  <h3 style={{ fontSize: "12px", fontWeight: 800, color: C.textMuted, margin: "0 0 6px", textTransform: "uppercase", letterSpacing: "0.04em" }}>
+                    ⚡ {t.today.frequentTitle}
+                  </h3>
+                  <div style={{ display: "flex", gap: "8px", overflowX: "auto", paddingBottom: "4px", scrollbarWidth: "thin" }}>
+                    {recentToolKeys.map((key) => {
+                      const item = quickNavSections.find((s) => s.key === key);
+                      if (!item) return null;
+                      const grp = TOOL_GROUPS.find((g) => g.tools.includes(key));
+                      const color = grp ? grp.color : personalAccent;
+                      return (
+                        <button
+                          key={key}
+                          type="button"
+                          onClick={() => scrollToCompanionSection(key)}
+                          style={{
+                            display: "flex",
+                            flexDirection: "column",
+                            alignItems: "center",
+                            gap: "4px",
+                            minWidth: "64px",
+                            padding: "8px 6px",
+                            borderRadius: "14px",
+                            border: `1px solid ${color}22`,
+                            background: `${color}0a`,
+                            color: palette.textHi || C.text,
+                            cursor: "pointer",
+                            flexShrink: 0,
+                          }}
+                        >
+                          <span style={{ width: "32px", height: "32px", borderRadius: "10px", background: `${color}22`, color, display: "flex", alignItems: "center", justifyContent: "center" }}>
+                            {item.icon}
+                          </span>
+                          <span style={{ fontSize: "10.5px", fontWeight: 700, lineHeight: 1.2, textAlign: "center", maxWidth: "60px", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                            {item.label}
+                          </span>
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
+
               {/* Franja "Hoy" (hábitos + despejar + pausa activa), debajo
                   de la mascota — ver TodayHabitsStrip.jsx. */}
               {!isWide && (
@@ -2275,205 +2338,12 @@ export default function FocusFlowTDAH({
                   />
                 </div>
               )}
-              {/* Tarjeta compacta de ánimo: se muestra solo si el
-                  usuario NO ha registrado su ánimo hoy. Al tocar una
-                  carita se guarda al instante (sin nota) y se muestra
-                  una confirmación breve antes de desaparecer.
-                  Caritas SVG kawaii animadas (nov 2026). */}
-              {(!todayMoodEntry(moodLog) || homeMoodSaved) && (
-                <div style={{
-                  padding: isNarrow ? "8px 12px 0" : "8px 18px 0",
-                  maxWidth: "420px",
-                  width: "100%",
-                  margin: "0 auto",
-                  boxSizing: "border-box",
-                }}>
-                  {homeMoodSaved ? (
-                    <div style={{
-                      display: "flex",
-                      alignItems: "center",
-                      justifyContent: "center",
-                      gap: "8px",
-                      background: `${personalAccent}22`,
-                      borderRadius: "14px",
-                      padding: "10px 16px",
-                      animation: "moodFadeIn .4s ease",
-                    }}>
-                      <span style={{ fontSize: "18px" }}>✓</span>
-                      <span style={{ fontSize: "13px", color: palette.textHi || C.text, fontWeight: 600 }}>
-                        {t.moodLog.homeSaved}
-                      </span>
-                    </div>
-                  ) : (
-                    <div style={{
-                      background: `${palette.textHi || C.text}0a`,
-                      borderRadius: "14px",
-                      padding: "10px 14px",
-                      textAlign: "center",
-                    }}>
-                      <style>{`
-                        @keyframes moodFloat {
-                          0%, 100% { transform: translateY(0) rotate(0deg); }
-                          25% { transform: translateY(-4px) rotate(-2deg); }
-                          50% { transform: translateY(-1px) rotate(0deg); }
-                          75% { transform: translateY(-5px) rotate(2deg); }
-                        }
-                        @keyframes moodFadeIn {
-                          from { opacity: 0; transform: scale(.6) translateY(10px); }
-                          to { opacity: 1; transform: scale(1) translateY(0); }
-                        }
-                        @keyframes moodPulse {
-                          0%, 100% { filter: drop-shadow(0 2px 3px rgba(0,0,0,.12)); }
-                          50% { filter: drop-shadow(0 4px 8px rgba(0,0,0,.18)); }
-                        }
-                        .mood-face-btn { animation: moodFadeIn .4s cubic-bezier(.34,1.56,.64,1) both; }
-                        .mood-face-btn:nth-child(1) { animation-delay: .05s; }
-                        .mood-face-btn:nth-child(2) { animation-delay: .12s; }
-                        .mood-face-btn:nth-child(3) { animation-delay: .19s; }
-                        .mood-face-btn:nth-child(4) { animation-delay: .26s; }
-                        .mood-face-btn:nth-child(5) { animation-delay: .33s; }
-                        .mood-face-btn svg {
-                          animation: moodFloat 3s ease-in-out infinite, moodPulse 3s ease-in-out infinite;
-                        }
-                        .mood-face-btn:nth-child(1) svg { animation-delay: 0s, 0s; }
-                        .mood-face-btn:nth-child(2) svg { animation-delay: .3s, .3s; }
-                        .mood-face-btn:nth-child(3) svg { animation-delay: .6s, .6s; }
-                        .mood-face-btn:nth-child(4) svg { animation-delay: .9s, .9s; }
-                        .mood-face-btn:nth-child(5) svg { animation-delay: 1.2s, 1.2s; }
-                        .mood-face-btn:hover svg {
-                          animation: none;
-                          transform: scale(1.25) translateY(-3px);
-                          filter: drop-shadow(0 6px 12px rgba(0,0,0,.22));
-                        }
-                        .mood-face-btn:active svg { transform: scale(.9); }
-                      `}</style>
-                      <p style={{
-                        margin: "0 0 8px",
-                        fontSize: "13px",
-                        color: palette.textHi || C.text,
-                        fontWeight: 600,
-                      }}>
-                        {t.moodLog.homePrompt}
-                      </p>
-                      <div style={{ display: "flex", justifyContent: "center", gap: "8px" }}>
-                        {[
-                          { v: 1, hi: "#dbeaf5", mid: "#a3c8e0", lo: "#6a9cbd", shadow: "#5888a8", label: t.moodLog.veryBad, face: (id) => <>
-                            {/* ojos cerrados tristes */}
-                            <path d="M14.5 21c1.8-2 4.5-2 6 0" stroke="#4a7a96" strokeWidth="1.6" fill="none" strokeLinecap="round"/>
-                            <path d="M29.5 21c1.8-2 4.5-2 6 0" stroke="#4a7a96" strokeWidth="1.6" fill="none" strokeLinecap="round"/>
-                            {/* cejas tristes */}
-                            <path d="M13 16.5c2-1.8 5-1.5 6.5 0" stroke="#4a7a96" strokeWidth="1.1" fill="none" strokeLinecap="round"/>
-                            <path d="M30.5 16.5c1.5-1.5 4.5-1.8 6.5 0" stroke="#4a7a96" strokeWidth="1.1" fill="none" strokeLinecap="round"/>
-                            {/* boca triste */}
-                            <path d="M17 34c3-3.5 13-3.5 16 0" stroke="#4a7a96" strokeWidth="1.8" fill="none" strokeLinecap="round"/>
-                            {/* lágrima */}
-                            <ellipse cx="35.5" cy="25" rx="1.8" ry="2.5" fill={`url(#tear${id})`}/>
-                          </>},
-                          { v: 2, hi: "#fef1c8", mid: "#f0d478", lo: "#d4ae4a", shadow: "#b8923a", label: t.moodLog.bad, face: (id) => <>
-                            {/* ojos preocupados */}
-                            <ellipse cx="17.5" cy="22" rx="2.8" ry="3.2" fill="#8a6e20"/>
-                            <ellipse cx="17.5" cy="21.3" rx="2.8" ry="2.5" fill="#5c4a15"/>
-                            <circle cx="16.5" cy="20.5" r="1" fill="#fff" opacity=".8"/>
-                            <ellipse cx="32.5" cy="22" rx="2.8" ry="3.2" fill="#8a6e20"/>
-                            <ellipse cx="32.5" cy="21.3" rx="2.8" ry="2.5" fill="#5c4a15"/>
-                            <circle cx="31.5" cy="20.5" r="1" fill="#fff" opacity=".8"/>
-                            {/* cejas preocupadas */}
-                            <path d="M13 17c2-2.2 5.5-1.5 7 .3" stroke="#8a6e20" strokeWidth="1.2" fill="none" strokeLinecap="round"/>
-                            <path d="M30 17.3c1.5-1.8 5-2.2 7 0" stroke="#8a6e20" strokeWidth="1.2" fill="none" strokeLinecap="round"/>
-                            {/* boca triste suave */}
-                            <path d="M18 34c3-2.5 11-2.5 14 0" stroke="#8a6e20" strokeWidth="1.8" fill="none" strokeLinecap="round"/>
-                          </>},
-                          { v: 3, hi: "#d5f5e5", mid: "#8edcb5", lo: "#5cc08a", shadow: "#3ea06a", label: t.moodLog.regular, face: () => <>
-                            {/* ojos neutrales */}
-                            <ellipse cx="17.5" cy="22" rx="2.8" ry="3.2" fill="#2d7a55"/>
-                            <ellipse cx="17.5" cy="21.3" rx="2.8" ry="2.5" fill="#1e5a3c"/>
-                            <circle cx="16.5" cy="20.5" r="1" fill="#fff" opacity=".8"/>
-                            <ellipse cx="32.5" cy="22" rx="2.8" ry="3.2" fill="#2d7a55"/>
-                            <ellipse cx="32.5" cy="21.3" rx="2.8" ry="2.5" fill="#1e5a3c"/>
-                            <circle cx="31.5" cy="20.5" r="1" fill="#fff" opacity=".8"/>
-                            {/* boca recta */}
-                            <line x1="19" y1="32" x2="31" y2="32" stroke="#2d7a55" strokeWidth="1.8" strokeLinecap="round"/>
-                          </>},
-                          { v: 4, hi: "#feecd0", mid: "#f5c882", lo: "#e8a445", shadow: "#c8862a", label: t.moodLog.good, face: () => <>
-                            {/* ojos felices */}
-                            <ellipse cx="17.5" cy="21.5" rx="2.8" ry="3.2" fill="#8a5a18"/>
-                            <ellipse cx="17.5" cy="20.8" rx="2.8" ry="2.5" fill="#5c3c10"/>
-                            <circle cx="16.5" cy="20" r="1.1" fill="#fff" opacity=".85"/>
-                            <ellipse cx="32.5" cy="21.5" rx="2.8" ry="3.2" fill="#8a5a18"/>
-                            <ellipse cx="32.5" cy="20.8" rx="2.8" ry="2.5" fill="#5c3c10"/>
-                            <circle cx="31.5" cy="20" r="1.1" fill="#fff" opacity=".85"/>
-                            {/* sonrisa */}
-                            <path d="M17 30c4 5 12 5 16 0" stroke="#8a5a18" strokeWidth="1.8" fill="none" strokeLinecap="round"/>
-                          </>},
-                          { v: 5, hi: "#fde0e8", mid: "#f5a0b8", lo: "#e06888", shadow: "#c04868", label: t.moodLog.veryGood, face: () => <>
-                            {/* ojos grandes brillantes */}
-                            <ellipse cx="17" cy="21" rx="3.8" ry="4.2" fill="#8a2048"/>
-                            <ellipse cx="17" cy="20" rx="3.5" ry="3.2" fill="#5c1530"/>
-                            <circle cx="15.5" cy="19" r="1.6" fill="#fff" opacity=".9"/>
-                            <circle cx="18.5" cy="21.5" r=".8" fill="#fff" opacity=".6"/>
-                            <ellipse cx="33" cy="21" rx="3.8" ry="4.2" fill="#8a2048"/>
-                            <ellipse cx="33" cy="20" rx="3.5" ry="3.2" fill="#5c1530"/>
-                            <circle cx="31.5" cy="19" r="1.6" fill="#fff" opacity=".9"/>
-                            <circle cx="34.5" cy="21.5" r=".8" fill="#fff" opacity=".6"/>
-                            {/* sonrisota */}
-                            <path d="M15 29c5 7 15 7 20 0" stroke="#8a2048" strokeWidth="1.8" fill="none" strokeLinecap="round"/>
-                            <path d="M18 32c3.5 2 11 2 14.5 0" stroke="#8a2048" strokeWidth="1" fill="none" strokeLinecap="round"/>
-                            {/* rubor */}
-                            <circle cx="10" cy="26" r="3.5" fill="#e06888" opacity=".25"/>
-                            <circle cx="40" cy="26" r="3.5" fill="#e06888" opacity=".25"/>
-                          </>},
-                        ].map(({ v, hi, mid, lo, shadow, label, face }) => {
-                          const gid = `mf${v}`;
-                          return (
-                          <button
-                            key={v}
-                            className="mood-face-btn"
-                            onClick={() => handleHomeMoodSave(v)}
-                            style={{
-                              background: "none",
-                              border: "none",
-                              cursor: "pointer",
-                              padding: "2px",
-                              borderRadius: "50%",
-                              lineHeight: 0,
-                              transition: "transform .15s",
-                            }}
-                            aria-label={label}
-                          >
-                            <svg width="50" height="54" viewBox="0 0 50 54" style={{ transition: "transform .15s", filter: "drop-shadow(0 2px 3px rgba(0,0,0,.12))" }}>
-                              <defs>
-                                <radialGradient id={`bg${gid}`} cx="35%" cy="30%" r="65%">
-                                  <stop offset="0%" stopColor={hi}/>
-                                  <stop offset="55%" stopColor={mid}/>
-                                  <stop offset="100%" stopColor={lo}/>
-                                </radialGradient>
-                                <radialGradient id={`sh${gid}`} cx="50%" cy="50%" r="50%">
-                                  <stop offset="0%" stopColor={shadow} stopOpacity=".3"/>
-                                  <stop offset="100%" stopColor={shadow} stopOpacity="0"/>
-                                </radialGradient>
-                                {v === 1 && <linearGradient id={`tear${gid}`} x1="0" y1="0" x2="0" y2="1">
-                                  <stop offset="0%" stopColor="#cce8f8"/>
-                                  <stop offset="100%" stopColor="#7abade"/>
-                                </linearGradient>}
-                              </defs>
-                              {/* sombra debajo */}
-                              <ellipse cx="25" cy="50" rx="16" ry="3" fill={`url(#sh${gid})`}/>
-                              {/* esfera 3D */}
-                              <circle cx="25" cy="25" r="22" fill={`url(#bg${gid})`}/>
-                              {/* brillo superior */}
-                              <ellipse cx="19" cy="14" rx="10" ry="6" fill="#fff" opacity=".35"/>
-                              <ellipse cx="17" cy="12" rx="5" ry="3" fill="#fff" opacity=".25"/>
-                              {/* cara */}
-                              {face(gid)}
-                            </svg>
-                          </button>
-                          );
-                        })}
-                      </div>
-                    </div>
-                  )}
-                </div>
-              )}
+              {/* Tarjeta compacta de ánimo ELIMINADA (12 de noviembre de
+                  2026, rediseño brújula): el registro de ánimo ahora solo
+                  aparece como sugerencia contextual (nudge card arriba)
+                  cuando no lo ha registrado hoy. Las caritas 3D con
+                  sonido y animación siguen disponibles en la herramienta
+                  completa de Ánimo en la pestaña Herramientas. */}
               {tabBarInHero && (
                 <div style={{ maxWidth: "1000px", width: "100%", margin: "0 auto", padding: "0 18px", boxSizing: "border-box" }}>
                   <AppTabBar C={C} t={t} accent={personalAccent} activeTab={activeTab} onChange={goToTab} isNarrow={isNarrow} />
@@ -3599,6 +3469,11 @@ export default function FocusFlowTDAH({
                   if (h < 13) return { key: "desglosador", reason: "morning" };
                   return { key: "focusMode", reason: "default" };
                 })()}
+                // Conexión brújula → ToolsGrid (12 de noviembre de 2026):
+                // al tocar un planeta de categoría en Inicio, se manda el
+                // grupo aquí para que ToolsGrid lo abra automáticamente.
+                initialGroup={herramientasGroup}
+                onGroupClear={() => setHerramientasGroup(null)}
               />
             ) : (
               <button

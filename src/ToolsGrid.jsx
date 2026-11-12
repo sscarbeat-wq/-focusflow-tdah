@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { tint } from "./theme";
 
 // Herramientas agrupadas por lo que la paciente necesita (11 de noviembre
@@ -45,11 +45,24 @@ function writeJSON(key, value) {
 // el día, ver `suggestion` desde FocusFlowTDAH.jsx), "Las que más usas" y 5
 // tarjetas grandes, una por grupo. Las herramientas de cada grupo se ven al
 // tocar su tarjeta.
-export default function ToolsGrid({ C, t, accent, items, onSelect, suggestion }) {
+export default function ToolsGrid({ C, t, accent, items, onSelect, suggestion, initialGroup, onGroupClear }) {
   const tg = t.tools;
   // El grupo elegido NO se recuerda entre visitas: cada vez que entra a
   // Herramientas empieza en la vista corta (sugerencia + 5 tarjetas).
   const [group, setGroup] = useState(null);
+
+  // Sincronizar desde el padre cuando se navega desde un planeta de la
+  // brújula (12 de noviembre de 2026): al tocar un planeta de categoría
+  // en Inicio, FocusFlowTDAH manda `initialGroup` con la clave del grupo
+  // y cambia a la pestaña Herramientas. Este efecto abre ese grupo
+  // automáticamente y luego limpia la señal para que el botón "← Categorías"
+  // vuelva a funcionar normal sin quedar atorado en el grupo.
+  useEffect(() => {
+    if (initialGroup) {
+      setGroup(initialGroup);
+      onGroupClear?.();
+    }
+  }, [initialGroup]);
   const [recent, setRecent] = useState(() => readJSON(RECENT_KEY, []));
   const byKey = Object.fromEntries(items.map((it) => [it.key, it]));
   const groupOf = (key) => TOOL_GROUPS.find((g) => g.tools.includes(key));
