@@ -1,13 +1,14 @@
-// ScheduleAgendaPanel.jsx — Agenda visual v8
-// Diseño "Tarjetas apiladas" con tarjeta hero para la siguiente actividad
-// y barra de progreso del día. Rediseño completo (nov 2026).
+// ScheduleAgendaPanel.jsx — Agenda visual v10
+// Calendario colapsable semana/mes + bloques sugeridos en estado vacío
+// + repetir día anterior + entrada por voz.
+// Rediseño aprobado nov 2026.
 //
 // Props: C, t, lang, scheduleState, onAdd, onRemove, onUpdate, onMove
 // scheduleState es el array de bloques — cada bloque:
 //   { id, name, icon, startMin, durationMin, day? }
 // scheduleBlocksForDay(scheduleState, date) filtra los de hoy.
 
-import React, { useState, useMemo, useCallback } from "react";
+import React, { useState, useMemo, useCallback, useRef, useEffect } from "react";
 import {
   scheduleBlocksForDay,
   formatMinutesAsTime,
@@ -17,18 +18,22 @@ import {
   Check,
   ChevronRight,
   ChevronLeft,
+  ChevronDown,
+  ChevronUp,
   Trash2,
   Clock,
+  Mic,
+  MicOff,
 } from "lucide-react";
 import { tint } from "./theme";
 
 // ---- Colores por categoría (tomados de los planetas de ANRO) ----
 const CATEGORY_COLORS = {
-  default: "#7C5CE0",
-  focus: "#2E7FD9",
-  calm: "#1E9E6E",
-  feel: "#D98A0B",
-  daily: "#D9467F",
+  default: "#7C5CE0", // purple — Empezar y organizarme
+  focus: "#2E7FD9",   // blue — Concentrarme
+  calm: "#1E9E6E",    // green — Calmarme
+  feel: "#D98A0B",    // yellow — Cómo me siento
+  daily: "#D9467F",   // pink — Mi día a día
 };
 
 function guessCategoryColor(block) {
@@ -37,11 +42,186 @@ function guessCategoryColor(block) {
     return CATEGORY_COLORS.focus;
   if (n.includes("calma") || n.includes("mindful") || n.includes("respir") || n.includes("burbuja") || n.includes("pausa"))
     return CATEGORY_COLORS.calm;
-  if (n.includes("ánimo") || n.includes("mood") || n.includes("energía") || n.includes("energy"))
+  if (n.includes("ánimo") || n.includes("mood") || n.includes("energía") || n.includes("energy") || n.includes("humor"))
     return CATEGORY_COLORS.feel;
-  if (n.includes("medica") || n.includes("hábito") || n.includes("habit") || n.includes("pago"))
+  if (n.includes("hábito") || n.includes("habit") || n.includes("pago") || n.includes("rutina") || n.includes("routine"))
     return CATEGORY_COLORS.daily;
+  if (n.includes("medica") || n.includes("pastilla") || n.includes("pill"))
+    return CATEGORY_COLORS.default;
   return CATEGORY_COLORS.default;
+}
+
+// ---- Bloques sugeridos para estado vacío ----
+const SUGGESTED_BLOCKS = [
+  { nameKey: "sugMedicamento", fallback: "Medicamento",        icon: "💊", startMin: 480,  durationMin: 5,  color: CATEGORY_COLORS.default },
+  { nameKey: "sugEnfoque",     fallback: "Sesión de enfoque",  icon: "🎯", startMin: 540,  durationMin: 25, color: CATEGORY_COLORS.focus },
+  { nameKey: "sugPausa",       fallback: "Pausa activa",       icon: "🧘", startMin: 660,  durationMin: 10, color: CATEGORY_COLORS.calm },
+  { nameKey: "sugAnimo",       fallback: "Registro de ánimo",  icon: "😊", startMin: 780,  durationMin: 3,  color: CATEGORY_COLORS.feel },
+  { nameKey: "sugHabitos",     fallback: "Hábitos del día",    icon: "✅", startMin: 1140, durationMin: 15, color: CATEGORY_COLORS.daily },
+];
+
+// ---- Parser de voz → bloque de agenda ----
+// Extrae nombre, hora de inicio y duración de un texto hablado.
+// Soporta español, inglés, francés y portugués.
+function parseVoiceToBlock(raw) {
+  const text = raw.toLowerCase().trim();
+  let startMin = null;
+  let durationMin = 25; // default
+  let name = text;
+
+  // ── Extraer duración (ej. "por 30 minutos", "for 15 minutes", "pendant 20 minutes", "por 10 minutos") ──
+  const durPatterns = [
+    /(?:por|during|pendant|durante)\s+(\d+)\s*(?:min(?:utos?|utes?)?)/i,
+    /(\d+)\s*(?:min(?:utos?|utes?)?)/i,
+  ];
+  for (const pat of durPatterns) {
+    const m = text.match(pat);
+    if (m) {
+      durationMin = parseInt(m[1], 10);
+      name = name.replace(m[0], "").trim();
+      break;
+    }
+  }
+
+  // ── Extraer hora (ej. "a las 10", "at 3 pm", "à 14h", "às 9") ──
+  const timePatterns = [
+    // "a las 10 y media", "a las 3 de la tarde", "a las 10:30"
+    /a\s+las?\s+(\d{1,2})(?::(\d{2}))?\s*(?:y\s+media)?\s*(?:de\s+la\s+(mañana|tarde|noche))?/i,
+    // "at 3 pm", "at 10:30 am"
+    /at\s+(\d{1,2})(?::(\d{2}))?\s*(am|pm)?/i,
+    // "à 14h", "à 9h30"
+    /[àa]\s+(\d{1,2})\s*h\s*(\d{2})?/i,
+    // "às 9 horas"
+    /[àa]s?\s+(\d{1,2})(?::(\d{2}))?\s*(?:horas?)?/i,
+  ];
+
+  for (const pat of timePatterns) {
+    const m = text.match(pat);
+    if (m) {
+      let hour = parseInt(m[1], 10);
+      const mins = m[2] ? parseInt(m[2], 10) : 0;
+      const period = m[3] ? m[3].toLowerCase() : null;
+
+      // "y media" dentro del match original
+      if (text.match(/a\s+las?\s+\d{1,2}\s+y\s+media/i) && mins === 0) {
+        startMin = hour * 60 + 30;
+      } else {
+        // am/pm o de la tarde/noche
+        if (period === "pm" || period === "tarde") {
+          if (hour < 12) hour += 12;
+        } else if (period === "noche") {
+          if (hour < 12) hour += 12;
+        } else if (period === "am" || period === "mañana") {
+          if (hour === 12) hour = 0;
+        } else {
+          // Sin indicador: si es < 7 asumir pm
+          if (hour >= 1 && hour <= 6) hour += 12;
+        }
+        startMin = hour * 60 + mins;
+      }
+
+      name = name.replace(m[0], "").trim();
+      break;
+    }
+  }
+
+  // ── Limpiar nombre ──
+  // Quitar conectores sueltos al inicio/final
+  name = name
+    .replace(/^(?:agendar|agregar|añadir|crear|add|create|ajouter|adicionar)\s+/i, "")
+    .replace(/^(?:una?|un|the|le|la|o)\s+/i, "")
+    .replace(/\s+$/g, "")
+    .replace(/^[\s,.\-]+|[\s,.\-]+$/g, "");
+
+  // Capitalizar primera letra
+  if (name.length > 0) name = name.charAt(0).toUpperCase() + name.slice(1);
+
+  // Si no se extrajo nombre útil, usar fallback
+  if (name.length < 2) name = "Bloque de voz";
+
+  // Asignar ícono según keywords
+  let icon = "🎤";
+  const nl = name.toLowerCase();
+  if (nl.includes("medica") || nl.includes("pastilla") || nl.includes("pill")) icon = "💊";
+  else if (nl.includes("enfoque") || nl.includes("focus") || nl.includes("pomodoro")) icon = "🎯";
+  else if (nl.includes("pausa") || nl.includes("break") || nl.includes("calma") || nl.includes("respir")) icon = "🧘";
+  else if (nl.includes("ánimo") || nl.includes("mood") || nl.includes("humor")) icon = "😊";
+  else if (nl.includes("hábito") || nl.includes("habit") || nl.includes("rutina")) icon = "✅";
+  else if (nl.includes("comer") || nl.includes("comida") || nl.includes("lunch") || nl.includes("eat")) icon = "🍽️";
+  else if (nl.includes("ejercicio") || nl.includes("exercise") || nl.includes("gym") || nl.includes("correr") || nl.includes("run")) icon = "🏃";
+  else if (nl.includes("dormir") || nl.includes("sleep") || nl.includes("siesta") || nl.includes("nap")) icon = "😴";
+
+  return {
+    name,
+    icon,
+    startMin: startMin != null ? startMin : null,
+    durationMin,
+  };
+}
+
+// Detección de soporte de Web Speech API
+const SpeechRecognitionAPI =
+  typeof window !== "undefined"
+    ? window.SpeechRecognition || window.webkitSpeechRecognition
+    : null;
+
+// Mapeo de lang a BCP47 para SpeechRecognition
+const SPEECH_LANG = { es: "es-MX", en: "en-US", fr: "fr-FR", pt: "pt-BR" };
+
+// ---- Helpers del calendario ----
+const MONTH_NAMES = {
+  es: ["Enero", "Febrero", "Marzo", "Abril", "Mayo", "Junio", "Julio", "Agosto", "Septiembre", "Octubre", "Noviembre", "Diciembre"],
+  en: ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"],
+  fr: ["Janvier", "Février", "Mars", "Avril", "Mai", "Juin", "Juillet", "Août", "Septembre", "Octobre", "Novembre", "Décembre"],
+  pt: ["Janeiro", "Fevereiro", "Março", "Abril", "Maio", "Junho", "Julho", "Agosto", "Setembro", "Outubro", "Novembro", "Dezembro"],
+};
+
+const DAY_HEADERS = {
+  es: ["L", "M", "Mi", "J", "V", "S", "D"],
+  en: ["M", "T", "W", "T", "F", "S", "S"],
+  fr: ["L", "M", "Me", "J", "V", "S", "D"],
+  pt: ["S", "T", "Q", "Q", "S", "S", "D"],
+};
+
+/** Lunes–Domingo de la semana que contiene `date` */
+function getWeekForDate(date) {
+  const d = new Date(date);
+  const dow = d.getDay(); // 0=dom
+  const monday = new Date(d);
+  monday.setDate(d.getDate() - ((dow + 6) % 7));
+  const week = [];
+  for (let i = 0; i < 7; i++) {
+    const wd = new Date(monday);
+    wd.setDate(monday.getDate() + i);
+    week.push(wd);
+  }
+  return week;
+}
+
+/** Grid del mes completo (array de semanas, cada semana = 7 celdas, null si no hay día) */
+function getMonthGrid(year, month) {
+  const first = new Date(year, month, 1);
+  const last = new Date(year, month + 1, 0);
+  const startOffset = (first.getDay() + 6) % 7; // 0=lunes
+  const grid = [];
+  let week = new Array(startOffset).fill(null);
+  for (let d = 1; d <= last.getDate(); d++) {
+    week.push(new Date(year, month, d));
+    if (week.length === 7) {
+      grid.push(week);
+      week = [];
+    }
+  }
+  if (week.length > 0) {
+    while (week.length < 7) week.push(null);
+    grid.push(week);
+  }
+  return grid;
+}
+
+function sameDay(a, b) {
+  if (!a || !b) return false;
+  return a.getFullYear() === b.getFullYear() && a.getMonth() === b.getMonth() && a.getDate() === b.getDate();
 }
 
 // ---- Componente principal ----
@@ -55,7 +235,11 @@ export default function ScheduleAgendaPanel({
   onUpdate,
   onMove,
 }) {
-  const [viewMode, setViewMode] = useState("day"); // "day" | "week"
+  const [calendarOpen, setCalendarOpen] = useState(false);
+  const [calMonth, setCalMonth] = useState(() => {
+    const n = new Date();
+    return { y: n.getFullYear(), m: n.getMonth() };
+  });
   const [selectedDate, setSelectedDate] = useState(new Date());
   const [addingNew, setAddingNew] = useState(false);
   const [newName, setNewName] = useState("");
@@ -67,13 +251,96 @@ export default function ScheduleAgendaPanel({
       const stored = localStorage.getItem("anro_schedule_completed");
       if (stored) {
         const parsed = JSON.parse(stored);
-        // Solo mantener los del día de hoy
         const today = new Date().toDateString();
         if (parsed.date === today) return new Set(parsed.ids);
       }
     } catch (_) {}
     return new Set();
   });
+
+  // ── Voice input state ──
+  const [voiceListening, setVoiceListening] = useState(false);
+  const [voiceText, setVoiceText] = useState("");
+  const [voiceError, setVoiceError] = useState("");
+  const [voiceParsed, setVoiceParsed] = useState(null); // resultado del parser para confirmar
+  const recognitionRef = useRef(null);
+
+  const stopVoice = useCallback(() => {
+    if (recognitionRef.current) {
+      try { recognitionRef.current.stop(); } catch (_) {}
+      recognitionRef.current = null;
+    }
+    setVoiceListening(false);
+  }, []);
+
+  const startVoice = useCallback(() => {
+    if (!SpeechRecognitionAPI) {
+      setVoiceError(labels.voiceUnsupported || "Tu navegador no soporta entrada de voz.");
+      return;
+    }
+    setVoiceError("");
+    setVoiceText("");
+    setVoiceParsed(null);
+
+    const rec = new SpeechRecognitionAPI();
+    rec.lang = SPEECH_LANG[lang] || "es-MX";
+    rec.interimResults = true;
+    rec.maxAlternatives = 1;
+    rec.continuous = false;
+
+    rec.onresult = (e) => {
+      const transcript = Array.from(e.results)
+        .map((r) => r[0].transcript)
+        .join("");
+      setVoiceText(transcript);
+      // Si es resultado final, parsear
+      if (e.results[e.results.length - 1].isFinal) {
+        const parsed = parseVoiceToBlock(transcript);
+        setVoiceParsed(parsed);
+        stopVoice();
+      }
+    };
+
+    rec.onerror = (e) => {
+      if (e.error === "not-allowed") {
+        setVoiceError(labels.voiceDenied || "Permite el acceso al micrófono para usar esta función.");
+      } else if (e.error !== "aborted") {
+        setVoiceError(labels.voiceErrorGeneric || "No se captó nada. Intenta de nuevo.");
+      }
+      stopVoice();
+    };
+
+    rec.onend = () => {
+      setVoiceListening(false);
+    };
+
+    recognitionRef.current = rec;
+    setVoiceListening(true);
+    rec.start();
+  }, [lang, labels, stopVoice]);
+
+  // Limpiar al desmontar
+  useEffect(() => () => stopVoice(), [stopVoice]);
+
+  const handleVoiceConfirm = useCallback(() => {
+    if (!voiceParsed) return;
+    const now = new Date();
+    const fallbackStart = now.getHours() * 60 + now.getMinutes() + 15; // 15 min desde ahora
+    onAdd({
+      name: voiceParsed.name,
+      icon: voiceParsed.icon,
+      startMin: voiceParsed.startMin != null ? voiceParsed.startMin : fallbackStart,
+      durationMin: voiceParsed.durationMin,
+    });
+    setVoiceParsed(null);
+    setVoiceText("");
+  }, [voiceParsed, onAdd]);
+
+  const handleVoiceCancel = useCallback(() => {
+    setVoiceParsed(null);
+    setVoiceText("");
+    setVoiceError("");
+  }, []);
 
   const saveCompleted = useCallback((newSet) => {
     setCompletedIds(newSet);
@@ -106,7 +373,8 @@ export default function ScheduleAgendaPanel({
     return now.getHours() * 60 + now.getMinutes();
   }, []);
 
-  const isToday = selectedDate.toDateString() === new Date().toDateString();
+  const today = useMemo(() => new Date(), []);
+  const isToday = sameDay(selectedDate, today);
 
   // Encontrar el siguiente bloque (no completado, startMin >= ahora)
   const nextBlock = useMemo(() => {
@@ -119,33 +387,26 @@ export default function ScheduleAgendaPanel({
   const completedCount = dayBlocks.filter((b) => completedIds.has(b.id)).length;
   const progressPct = totalBlocks > 0 ? Math.round((completedCount / totalBlocks) * 100) : 0;
 
-  // Navegación de días
-  const goDay = (delta) => {
-    const d = new Date(selectedDate);
-    d.setDate(d.getDate() + delta);
-    setSelectedDate(d);
-  };
-
-  const dayLabel = useMemo(() => {
-    const days = lang === "es"
-      ? ["Domingo", "Lunes", "Martes", "Miércoles", "Jueves", "Viernes", "Sábado"]
-      : lang === "pt"
-        ? ["Domingo", "Segunda", "Terça", "Quarta", "Quinta", "Sexta", "Sábado"]
-        : lang === "fr"
-          ? ["Dimanche", "Lundi", "Mardi", "Mercredi", "Jeudi", "Vendredi", "Samedi"]
-          : ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
-    const months = lang === "es"
-      ? ["Ene", "Feb", "Mar", "Abr", "May", "Jun", "Jul", "Ago", "Sep", "Oct", "Nov", "Dic"]
-      : lang === "pt"
-        ? ["Jan", "Fev", "Mar", "Abr", "Mai", "Jun", "Jul", "Ago", "Set", "Out", "Nov", "Dez"]
-        : lang === "fr"
-          ? ["Jan", "Fév", "Mar", "Avr", "Mai", "Juin", "Juil", "Aoû", "Sep", "Oct", "Nov", "Déc"]
-          : ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
-    return `${days[selectedDate.getDay()]} ${selectedDate.getDate()} de ${months[selectedDate.getMonth()]}`;
-  }, [selectedDate, lang]);
-
   // i18n labels
   const labels = t.schedule || {};
+  const monthNames = MONTH_NAMES[lang] || MONTH_NAMES.es;
+  const dayHeaders = DAY_HEADERS[lang] || DAY_HEADERS.es;
+
+  // Seleccionar un día desde el calendario
+  const pickDate = useCallback((d) => {
+    if (!d) return;
+    setSelectedDate(d);
+  }, []);
+
+  // Navegación del mes expandido
+  const prevMonth = () => setCalMonth((p) => p.m === 0 ? { y: p.y - 1, m: 11 } : { y: p.y, m: p.m - 1 });
+  const nextMonth = () => setCalMonth((p) => p.m === 11 ? { y: p.y + 1, m: 0 } : { y: p.y, m: p.m + 1 });
+
+  // Abrir mes expandido (sync con selectedDate)
+  const openMonth = () => {
+    setCalMonth({ y: selectedDate.getFullYear(), m: selectedDate.getMonth() });
+    setCalendarOpen(true);
+  };
 
   const handleAdd = () => {
     if (!newName.trim()) return;
@@ -159,70 +420,165 @@ export default function ScheduleAgendaPanel({
     setAddingNew(false);
   };
 
+  const handleSuggestedAdd = (sug) => {
+    onAdd({
+      name: labels[sug.nameKey] || sug.fallback,
+      icon: sug.icon,
+      startMin: sug.startMin,
+      durationMin: sug.durationMin,
+    });
+  };
+
+  // Semana visible (para el strip colapsado)
+  const weekDays = useMemo(() => getWeekForDate(selectedDate), [selectedDate]);
+
+  // Grid del mes (para expandido)
+  const monthGrid = useMemo(() => getMonthGrid(calMonth.y, calMonth.m), [calMonth.y, calMonth.m]);
+
+  // Bloques de ayer (para "Repetir mi día anterior")
+  const yesterdayBlocks = useMemo(() => {
+    const yd = new Date(selectedDate);
+    yd.setDate(yd.getDate() - 1);
+    return scheduleBlocksForDay(scheduleState, yd).sort((a, b) => a.startMin - b.startMin);
+  }, [scheduleState, selectedDate]);
+
+  const handleRepeatYesterday = useCallback(() => {
+    yesterdayBlocks.forEach((b) => {
+      onAdd({
+        name: b.name,
+        icon: b.icon || "📋",
+        startMin: b.startMin,
+        durationMin: b.durationMin,
+      });
+    });
+  }, [yesterdayBlocks, onAdd]);
+
+  // Accent color
+  const accent = C.accent || "#7C5CE0";
+
   // ---- RENDER ----
   return (
     <div>
-      {/* Selector Día / Semana + navegación */}
-      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: "14px" }}>
-        <div style={{ display: "flex", gap: "6px" }}>
-          {["day", "week"].map((mode) => (
-            <button
-              key={mode}
-              onClick={() => setViewMode(mode)}
-              style={{
-                border: "none",
-                background: viewMode === mode ? C.accent || "#7C5CE0" : tint(C.text, 0.08),
-                color: viewMode === mode ? "#fff" : C.textMuted,
-                fontSize: "12px",
-                fontWeight: 600,
-                padding: "6px 14px",
-                borderRadius: "20px",
-                cursor: "pointer",
-                transition: "all 0.2s",
-              }}
-            >
-              {mode === "day" ? (labels.dayViewTab || "Día") : (labels.weekViewTab || "Semana")}
-            </button>
-          ))}
-        </div>
-        <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
-          <button
-            onClick={() => goDay(-1)}
-            aria-label={labels.prevDay || "Día anterior"}
-            style={{ background: "none", border: "none", cursor: "pointer", color: C.textMuted, padding: "4px", display: "flex" }}
-          >
-            <ChevronLeft size={18} />
-          </button>
-          <span style={{ fontSize: "12px", fontWeight: 600, color: C.text, minWidth: "100px", textAlign: "center" }}>
-            {dayLabel}
-            {isToday && (
-              <span
+      {/* Keyframes para pulse de micrófono */}
+      <style>{`
+        @keyframes anro-pulse {
+          0%, 100% { opacity: 1; transform: scale(1); }
+          50% { opacity: 0.7; transform: scale(1.05); }
+        }
+      `}</style>
+
+      {/* ===== CALENDARIO ===== */}
+      <div
+        style={{
+          background: C.surface,
+          borderRadius: "16px",
+          padding: "12px 10px 10px",
+          marginBottom: "14px",
+          boxShadow: `0 1px 4px ${tint(accent, 0.08)}`,
+        }}
+      >
+        {/* Cabecera: mes + botón expandir/colapsar */}
+        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "0 6px 8px" }}>
+          {calendarOpen ? (
+            <>
+              <button
+                onClick={prevMonth}
+                aria-label={labels.prevDay || "Mes anterior"}
+                style={{ background: "none", border: "none", cursor: "pointer", color: C.textMuted, padding: "4px", display: "flex" }}
+              >
+                <ChevronLeft size={16} />
+              </button>
+              <span style={{ fontSize: "13px", fontWeight: 700, color: C.text }}>
+                {monthNames[calMonth.m]} {calMonth.y}
+              </span>
+              <button
+                onClick={nextMonth}
+                aria-label={labels.nextDay || "Mes siguiente"}
+                style={{ background: "none", border: "none", cursor: "pointer", color: C.textMuted, padding: "4px", display: "flex" }}
+              >
+                <ChevronRight size={16} />
+              </button>
+            </>
+          ) : (
+            <>
+              <span style={{ fontSize: "13px", fontWeight: 700, color: C.text }}>
+                {monthNames[selectedDate.getMonth()]} {selectedDate.getFullYear()}
+              </span>
+              <button
+                onClick={openMonth}
                 style={{
-                  marginLeft: "6px",
-                  fontSize: "10px",
-                  fontWeight: 700,
-                  background: C.accent || "#7C5CE0",
-                  color: "#fff",
-                  padding: "2px 7px",
-                  borderRadius: "8px",
-                  verticalAlign: "middle",
+                  background: "none",
+                  border: "none",
+                  cursor: "pointer",
+                  color: accent,
+                  fontSize: "12px",
+                  fontWeight: 600,
+                  display: "flex",
+                  alignItems: "center",
+                  gap: "4px",
+                  padding: "4px 8px",
                 }}
               >
-                {labels.todayBadge || "Hoy"}
-              </span>
-            )}
-          </span>
-          <button
-            onClick={() => goDay(1)}
-            aria-label={labels.nextDay || "Día siguiente"}
-            style={{ background: "none", border: "none", cursor: "pointer", color: C.textMuted, padding: "4px", display: "flex" }}
-          >
-            <ChevronRight size={18} />
-          </button>
+                {labels.viewMonth || "Ver mes"}
+                <ChevronDown size={12} />
+              </button>
+            </>
+          )}
         </div>
+
+        {/* Headers de días: L M Mi J V S D */}
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(7, 1fr)", textAlign: "center", marginBottom: "4px" }}>
+          {dayHeaders.map((h, i) => (
+            <span key={i} style={{ fontSize: "11px", fontWeight: 600, color: C.textMuted, padding: "2px 0" }}>
+              {h}
+            </span>
+          ))}
+        </div>
+
+        {/* Grid de días */}
+        {calendarOpen ? (
+          /* Mes completo */
+          <div>
+            {monthGrid.map((week, wi) => (
+              <div key={wi} style={{ display: "grid", gridTemplateColumns: "repeat(7, 1fr)", textAlign: "center" }}>
+                {week.map((d, di) => (
+                  <DayCell key={di} date={d} selectedDate={selectedDate} today={today} accent={accent} C={C} onPick={pickDate} />
+                ))}
+              </div>
+            ))}
+            {/* Botón ocultar */}
+            <div style={{ textAlign: "center", marginTop: "6px" }}>
+              <button
+                onClick={() => setCalendarOpen(false)}
+                style={{
+                  background: "none",
+                  border: "none",
+                  cursor: "pointer",
+                  color: accent,
+                  fontSize: "12px",
+                  fontWeight: 600,
+                  display: "inline-flex",
+                  alignItems: "center",
+                  gap: "4px",
+                  padding: "4px 8px",
+                }}
+              >
+                {labels.hideMonth || "Ocultar"}
+                <ChevronUp size={12} />
+              </button>
+            </div>
+          </div>
+        ) : (
+          /* Semana colapsada */
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(7, 1fr)", textAlign: "center" }}>
+            {weekDays.map((d, i) => (
+              <DayCell key={i} date={d} selectedDate={selectedDate} today={today} accent={accent} C={C} onPick={pickDate} />
+            ))}
+          </div>
+        )}
       </div>
 
-      {/* Barra de progreso */}
+      {/* ===== BARRA DE PROGRESO ===== */}
       {totalBlocks > 0 && (
         <div
           style={{
@@ -236,7 +592,7 @@ export default function ScheduleAgendaPanel({
             <span style={{ fontSize: "12px", fontWeight: 600, color: C.text }}>
               {labels.progressLabel || "Progreso del día"}
             </span>
-            <span style={{ fontSize: "12px", fontWeight: 700, color: C.accent || "#7C5CE0" }}>
+            <span style={{ fontSize: "12px", fontWeight: 700, color: accent }}>
               {completedCount} / {totalBlocks}
             </span>
           </div>
@@ -245,7 +601,7 @@ export default function ScheduleAgendaPanel({
               style={{
                 width: `${progressPct}%`,
                 height: "100%",
-                background: `linear-gradient(90deg, ${C.accent || "#7C5CE0"}, ${tint(C.accent || "#7C5CE0", 0.6)})`,
+                background: `linear-gradient(90deg, ${accent}, ${tint(accent, 0.6)})`,
                 borderRadius: "3px",
                 transition: "width 0.4s ease",
               }}
@@ -254,7 +610,7 @@ export default function ScheduleAgendaPanel({
         </div>
       )}
 
-      {/* Tarjeta HERO — siguiente actividad */}
+      {/* ===== TARJETA HERO — siguiente actividad ===== */}
       {nextBlock && isToday && (
         <div
           style={{
@@ -322,18 +678,305 @@ export default function ScheduleAgendaPanel({
         </div>
       )}
 
-      {/* Lista de bloques */}
+      {/* ===== LISTA DE BLOQUES Ó SUGERIDOS ===== */}
       {dayBlocks.length === 0 ? (
-        <div style={{ textAlign: "center", padding: "30px 16px", color: C.textMuted }}>
-          <Clock size={32} style={{ opacity: 0.3, marginBottom: "8px" }} />
-          <div style={{ fontSize: "13px", fontWeight: 500 }}>
-            {labels.emptyDay || "No tienes bloques para este día"}
+        /* ---- Estado vacío: sugerencias rápidas ---- */
+        <div>
+          <div style={{ textAlign: "center", marginBottom: "12px" }}>
+            <div style={{ fontSize: "14px", fontWeight: 700, color: C.text }}>
+              {labels.buildYourDay || "Arma tu día con un toque"}
+            </div>
+            <div style={{ fontSize: "12px", color: C.textMuted, marginTop: "3px" }}>
+              {labels.chooseSuggested || "Elige los bloques que necesitas"}
+            </div>
           </div>
-          <div style={{ fontSize: "12px", marginTop: "4px", opacity: 0.7 }}>
-            {labels.emptyDayHint || "Agrega uno para organizar tu tiempo"}
+          <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
+            {/* Repetir día anterior (solo si ayer tuvo bloques) */}
+            {yesterdayBlocks.length > 0 && (
+              <button
+                onClick={handleRepeatYesterday}
+                style={{
+                  width: "100%",
+                  background: `linear-gradient(135deg, ${accent}, ${tint(accent, 0.7)})`,
+                  border: "none",
+                  borderRadius: "14px",
+                  padding: "14px 16px",
+                  display: "flex",
+                  alignItems: "center",
+                  gap: "12px",
+                  cursor: "pointer",
+                  boxShadow: `0 2px 8px ${tint(accent, 0.25)}`,
+                  textAlign: "left",
+                }}
+              >
+                <div
+                  style={{
+                    width: "40px",
+                    height: "40px",
+                    borderRadius: "12px",
+                    background: "rgba(255,255,255,0.18)",
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    flexShrink: 0,
+                    fontSize: "20px",
+                  }}
+                >
+                  🔄
+                </div>
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <div style={{ fontSize: "13px", fontWeight: 700, color: "white" }}>
+                    {labels.repeatYesterday || "Repetir mi día anterior"}
+                  </div>
+                  <div style={{ fontSize: "11px", color: "rgba(255,255,255,0.8)", marginTop: "2px" }}>
+                    {(labels.repeatYesterdayHint || "{n} bloques listos para copiar").replace("{n}", yesterdayBlocks.length)}
+                  </div>
+                </div>
+                <ChevronRight size={18} color="rgba(255,255,255,0.7)" />
+              </button>
+            )}
+
+            {SUGGESTED_BLOCKS.map((sug) => (
+              <button
+                key={sug.nameKey}
+                onClick={() => handleSuggestedAdd(sug)}
+                style={{
+                  width: "100%",
+                  background: C.surface,
+                  border: "none",
+                  borderRadius: "14px",
+                  padding: "12px 14px",
+                  display: "flex",
+                  alignItems: "center",
+                  gap: "12px",
+                  cursor: "pointer",
+                  boxShadow: "0 1px 3px rgba(0,0,0,0.04)",
+                  transition: "transform 0.15s, box-shadow 0.15s",
+                  textAlign: "left",
+                }}
+              >
+                {/* Color bar */}
+                <div style={{ width: "4px", height: "36px", borderRadius: "2px", background: sug.color, flexShrink: 0 }} />
+                {/* Icon */}
+                <div
+                  style={{
+                    width: "36px",
+                    height: "36px",
+                    borderRadius: "10px",
+                    background: `${sug.color}15`,
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    flexShrink: 0,
+                    fontSize: "18px",
+                  }}
+                >
+                  {sug.icon}
+                </div>
+                {/* Text */}
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <div style={{ fontSize: "13px", fontWeight: 600, color: C.text }}>
+                    {labels[sug.nameKey] || sug.fallback}
+                  </div>
+                  <div style={{ fontSize: "11px", color: C.textMuted, marginTop: "1px" }}>
+                    {formatMinutesAsTime(sug.startMin)} · {sug.durationMin} min
+                  </div>
+                </div>
+                {/* + icon */}
+                <div
+                  style={{
+                    width: "28px",
+                    height: "28px",
+                    borderRadius: "50%",
+                    background: `${sug.color}20`,
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    flexShrink: 0,
+                  }}
+                >
+                  <Plus size={14} color={sug.color} />
+                </div>
+              </button>
+            ))}
+
+            {/* Fila: bloque personalizado + voz */}
+            <div style={{ display: "flex", gap: "8px" }}>
+              <button
+                onClick={() => setAddingNew(true)}
+                style={{
+                  flex: 1,
+                  border: `2px dashed ${tint(accent, 0.3)}`,
+                  background: "transparent",
+                  borderRadius: "14px",
+                  padding: "12px",
+                  fontSize: "13px",
+                  fontWeight: 600,
+                  color: accent,
+                  cursor: "pointer",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  gap: "6px",
+                }}
+              >
+                <Plus size={16} />
+                {labels.customBlock || "Crear bloque personalizado"}
+              </button>
+
+              {/* Botón de voz */}
+              {SpeechRecognitionAPI && (
+                <button
+                  onClick={voiceListening ? stopVoice : startVoice}
+                  style={{
+                    width: "52px",
+                    height: "52px",
+                    borderRadius: "14px",
+                    border: voiceListening ? `2px solid ${accent}` : `2px dashed ${tint(accent, 0.3)}`,
+                    background: voiceListening ? tint(accent, 0.12) : "transparent",
+                    cursor: "pointer",
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    flexShrink: 0,
+                    animation: voiceListening ? "anro-pulse 1.5s ease-in-out infinite" : "none",
+                  }}
+                  aria-label={labels.voiceAdd || "Agregar con voz"}
+                >
+                  {voiceListening
+                    ? <Mic size={20} color={accent} />
+                    : <Mic size={20} color={tint(accent, 0.6)} />}
+                </button>
+              )}
+            </div>
+
+            {/* Indicador de voz activa */}
+            {voiceListening && (
+              <div
+                style={{
+                  background: tint(accent, 0.06),
+                  borderRadius: "12px",
+                  padding: "12px 14px",
+                  display: "flex",
+                  alignItems: "center",
+                  gap: "10px",
+                }}
+              >
+                <div
+                  style={{
+                    width: "10px",
+                    height: "10px",
+                    borderRadius: "50%",
+                    background: "#E53935",
+                    animation: "anro-pulse 1s ease-in-out infinite",
+                    flexShrink: 0,
+                  }}
+                />
+                <div style={{ flex: 1 }}>
+                  <div style={{ fontSize: "12px", fontWeight: 600, color: C.text }}>
+                    {labels.voiceListening || "Escuchando..."}
+                  </div>
+                  {voiceText && (
+                    <div style={{ fontSize: "12px", color: C.textMuted, marginTop: "2px", fontStyle: "italic" }}>
+                      "{voiceText}"
+                    </div>
+                  )}
+                </div>
+                <button
+                  onClick={stopVoice}
+                  style={{
+                    background: tint(C.text, 0.08),
+                    border: "none",
+                    borderRadius: "8px",
+                    padding: "6px 10px",
+                    fontSize: "11px",
+                    fontWeight: 600,
+                    color: C.text,
+                    cursor: "pointer",
+                  }}
+                >
+                  {labels.voiceStop || "Parar"}
+                </button>
+              </div>
+            )}
+
+            {/* Resultado de voz: confirmar o cancelar */}
+            {voiceParsed && !voiceListening && (
+              <div
+                style={{
+                  background: C.surface,
+                  borderRadius: "14px",
+                  padding: "14px",
+                  boxShadow: `0 2px 8px ${tint(accent, 0.12)}`,
+                  border: `1px solid ${tint(accent, 0.15)}`,
+                }}
+              >
+                <div style={{ fontSize: "11px", fontWeight: 600, color: accent, textTransform: "uppercase", letterSpacing: "0.5px", marginBottom: "8px" }}>
+                  {labels.voiceConfirmTitle || "¿Agregar este bloque?"}
+                </div>
+                <div style={{ display: "flex", alignItems: "center", gap: "10px", marginBottom: "10px" }}>
+                  <span style={{ fontSize: "22px" }}>{voiceParsed.icon}</span>
+                  <div>
+                    <div style={{ fontSize: "14px", fontWeight: 700, color: C.text }}>{voiceParsed.name}</div>
+                    <div style={{ fontSize: "12px", color: C.textMuted, marginTop: "2px" }}>
+                      {voiceParsed.startMin != null
+                        ? `${formatMinutesAsTime(voiceParsed.startMin)} · ${voiceParsed.durationMin} min`
+                        : `${voiceParsed.durationMin} min`}
+                    </div>
+                  </div>
+                </div>
+                <div style={{ display: "flex", gap: "8px" }}>
+                  <button
+                    onClick={handleVoiceConfirm}
+                    style={{
+                      flex: 1,
+                      background: accent,
+                      color: "white",
+                      border: "none",
+                      borderRadius: "10px",
+                      padding: "10px",
+                      fontSize: "13px",
+                      fontWeight: 600,
+                      cursor: "pointer",
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "center",
+                      gap: "6px",
+                    }}
+                  >
+                    <Check size={16} />
+                    {labels.voiceConfirm || "Agregar"}
+                  </button>
+                  <button
+                    onClick={handleVoiceCancel}
+                    style={{
+                      flex: 1,
+                      background: tint(C.text, 0.06),
+                      color: C.text,
+                      border: "none",
+                      borderRadius: "10px",
+                      padding: "10px",
+                      fontSize: "13px",
+                      fontWeight: 600,
+                      cursor: "pointer",
+                    }}
+                  >
+                    {labels.voiceCancel || "Cancelar"}
+                  </button>
+                </div>
+              </div>
+            )}
+
+            {/* Error de voz */}
+            {voiceError && (
+              <div style={{ fontSize: "12px", color: "#E53935", textAlign: "center", padding: "8px" }}>
+                {voiceError}
+              </div>
+            )}
           </div>
         </div>
       ) : (
+        /* ---- Lista de bloques existentes ---- */
         <div style={{ display: "flex", flexDirection: "column", gap: "6px" }}>
           {dayBlocks.map((block) => {
             const isDone = completedIds.has(block.id);
@@ -398,9 +1041,7 @@ export default function ScheduleAgendaPanel({
                   <div style={{ fontSize: "11px", color: isDone ? "#22c55e" : C.textMuted, fontWeight: isDone ? 500 : 400, marginTop: "1px" }}>
                     {formatMinutesAsTime(block.startMin)}
                     {block.durationMin ? ` · ${block.durationMin} min` : ""}
-                    {isDone
-                      ? ` · ${labels.completedLabel || "Completado"}`
-                      : ""}
+                    {isDone ? ` · ${labels.completedLabel || "Completado"}` : ""}
                   </div>
                 </div>
 
@@ -421,7 +1062,7 @@ export default function ScheduleAgendaPanel({
         </div>
       )}
 
-      {/* Formulario para agregar bloque */}
+      {/* ===== FORMULARIO AGREGAR BLOQUE ===== */}
       {addingNew ? (
         <div
           style={{
@@ -531,7 +1172,7 @@ export default function ScheduleAgendaPanel({
               onClick={handleAdd}
               disabled={!newName.trim()}
               style={{
-                background: C.accent || "#7C5CE0",
+                background: accent,
                 color: "#fff",
                 border: "none",
                 borderRadius: "10px",
@@ -547,29 +1188,141 @@ export default function ScheduleAgendaPanel({
           </div>
         </div>
       ) : (
-        <button
-          onClick={() => setAddingNew(true)}
+        /* Botones para agregar otro bloque: texto + voz */
+        dayBlocks.length > 0 && (
+          <div style={{ display: "flex", gap: "8px", marginTop: "12px" }}>
+            <button
+              onClick={() => setAddingNew(true)}
+              style={{
+                flex: 1,
+                border: `2px dashed ${tint(accent, 0.3)}`,
+                background: "transparent",
+                borderRadius: "14px",
+                padding: "12px",
+                fontSize: "13px",
+                fontWeight: 600,
+                color: accent,
+                cursor: "pointer",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                gap: "6px",
+              }}
+            >
+              <Plus size={16} />
+              {labels.addAnotherBlock || "Agregar otro bloque"}
+            </button>
+            {SpeechRecognitionAPI && (
+              <button
+                onClick={voiceListening ? stopVoice : startVoice}
+                style={{
+                  width: "52px",
+                  height: "52px",
+                  borderRadius: "14px",
+                  border: voiceListening ? `2px solid ${accent}` : `2px dashed ${tint(accent, 0.3)}`,
+                  background: voiceListening ? tint(accent, 0.12) : "transparent",
+                  cursor: "pointer",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  flexShrink: 0,
+                  animation: voiceListening ? "anro-pulse 1.5s ease-in-out infinite" : "none",
+                }}
+                aria-label={labels.voiceAdd || "Agregar con voz"}
+              >
+                <Mic size={20} color={voiceListening ? accent : tint(accent, 0.6)} />
+              </button>
+            )}
+          </div>
+        )
+      )}
+
+      {/* ===== VOICE FEEDBACK (fuera del ternario, visible siempre) ===== */}
+      {voiceListening && dayBlocks.length > 0 && (
+        <div
           style={{
-            width: "100%",
-            marginTop: "12px",
-            border: `2px dashed ${tint(C.accent || "#7C5CE0", 0.3)}`,
-            background: "transparent",
-            borderRadius: "14px",
-            padding: "12px",
-            fontSize: "13px",
-            fontWeight: 600,
-            color: C.accent || "#7C5CE0",
-            cursor: "pointer",
+            background: tint(accent, 0.06),
+            borderRadius: "12px",
+            padding: "12px 14px",
+            marginTop: "8px",
             display: "flex",
             alignItems: "center",
-            justifyContent: "center",
-            gap: "6px",
+            gap: "10px",
           }}
         >
-          <Plus size={16} />
-          {labels.addBlockButton || "Agregar bloque"}
-        </button>
+          <div style={{ width: "10px", height: "10px", borderRadius: "50%", background: "#E53935", animation: "anro-pulse 1s ease-in-out infinite", flexShrink: 0 }} />
+          <div style={{ flex: 1 }}>
+            <div style={{ fontSize: "12px", fontWeight: 600, color: C.text }}>{labels.voiceListening || "Escuchando..."}</div>
+            {voiceText && <div style={{ fontSize: "12px", color: C.textMuted, marginTop: "2px", fontStyle: "italic" }}>"{voiceText}"</div>}
+          </div>
+          <button onClick={stopVoice} style={{ background: tint(C.text, 0.08), border: "none", borderRadius: "8px", padding: "6px 10px", fontSize: "11px", fontWeight: 600, color: C.text, cursor: "pointer" }}>
+            {labels.voiceStop || "Parar"}
+          </button>
+        </div>
+      )}
+      {voiceParsed && !voiceListening && dayBlocks.length > 0 && (
+        <div style={{ background: C.surface, borderRadius: "14px", padding: "14px", marginTop: "8px", boxShadow: `0 2px 8px ${tint(accent, 0.12)}`, border: `1px solid ${tint(accent, 0.15)}` }}>
+          <div style={{ fontSize: "11px", fontWeight: 600, color: accent, textTransform: "uppercase", letterSpacing: "0.5px", marginBottom: "8px" }}>
+            {labels.voiceConfirmTitle || "¿Agregar este bloque?"}
+          </div>
+          <div style={{ display: "flex", alignItems: "center", gap: "10px", marginBottom: "10px" }}>
+            <span style={{ fontSize: "22px" }}>{voiceParsed.icon}</span>
+            <div>
+              <div style={{ fontSize: "14px", fontWeight: 700, color: C.text }}>{voiceParsed.name}</div>
+              <div style={{ fontSize: "12px", color: C.textMuted, marginTop: "2px" }}>
+                {voiceParsed.startMin != null ? `${formatMinutesAsTime(voiceParsed.startMin)} · ${voiceParsed.durationMin} min` : `${voiceParsed.durationMin} min`}
+              </div>
+            </div>
+          </div>
+          <div style={{ display: "flex", gap: "8px" }}>
+            <button onClick={handleVoiceConfirm} style={{ flex: 1, background: accent, color: "white", border: "none", borderRadius: "10px", padding: "10px", fontSize: "13px", fontWeight: 600, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", gap: "6px" }}>
+              <Check size={16} /> {labels.voiceConfirm || "Agregar"}
+            </button>
+            <button onClick={handleVoiceCancel} style={{ flex: 1, background: tint(C.text, 0.06), color: C.text, border: "none", borderRadius: "10px", padding: "10px", fontSize: "13px", fontWeight: 600, cursor: "pointer" }}>
+              {labels.voiceCancel || "Cancelar"}
+            </button>
+          </div>
+        </div>
+      )}
+      {voiceError && dayBlocks.length > 0 && (
+        <div style={{ fontSize: "12px", color: "#E53935", textAlign: "center", padding: "8px" }}>{voiceError}</div>
       )}
     </div>
+  );
+}
+
+// ---- Sub-componente: celda de día en el calendario ----
+function DayCell({ date, selectedDate, today, accent, C, onPick }) {
+  if (!date) {
+    return <div style={{ padding: "6px 0" }} />;
+  }
+  const isSelected = sameDay(date, selectedDate);
+  const isToday = sameDay(date, today);
+  const isPast = date < today && !isToday;
+
+  return (
+    <button
+      onClick={() => onPick(date)}
+      style={{
+        background: isSelected ? accent : "transparent",
+        color: isSelected ? "#fff" : isPast ? C.textMuted : C.text,
+        border: isToday && !isSelected ? `2px solid ${accent}` : "2px solid transparent",
+        borderRadius: "50%",
+        width: "34px",
+        height: "34px",
+        fontSize: "12px",
+        fontWeight: isToday || isSelected ? 700 : 400,
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "center",
+        cursor: "pointer",
+        margin: "2px auto",
+        transition: "all 0.15s",
+        opacity: isPast ? 0.5 : 1,
+        padding: 0,
+      }}
+    >
+      {date.getDate()}
+    </button>
   );
 }

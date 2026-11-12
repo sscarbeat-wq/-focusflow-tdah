@@ -808,6 +808,7 @@ export default function FocusFlowTDAH({
     return habitsFresh ? list : resetCustomHabits(list);
   });
   const [habitReminders, setHabitReminders] = useState(saved.habitReminders !== false);
+  const [morningAgendaReminder, setMorningAgendaReminder] = useState(saved.morningAgendaReminder !== false);
   const [habitXpGiven, setHabitXpGiven] = useState(() => (habitsFresh && Array.isArray(saved.habitXpGiven) ? saved.habitXpGiven : []));
   // Con la app abierta al cambiar el día (o al volver a ella al día
   // siguiente): se apagan todas las palomitas.
@@ -913,6 +914,7 @@ export default function FocusFlowTDAH({
       habitsDay,
       habitXpGiven,
       habitReminders,
+      morningAgendaReminder,
       streak,
       moodLog,
       energyLog,
@@ -943,6 +945,7 @@ export default function FocusFlowTDAH({
     habitsDay,
     habitXpGiven,
     habitReminders,
+    morningAgendaReminder,
     streak,
     moodLog,
     energyLog,
@@ -2061,6 +2064,10 @@ export default function FocusFlowTDAH({
             const lastFocus = Object.values(focusSessionLog || {}).flat().map((e) => Date.parse(e.completedAt)).filter(Boolean).sort().pop();
             if (lastFocus && now.getTime() - lastFocus < 60 * 60 * 1000) return { key: "activeBreak", reason: "afterFocus" };
             if (h >= 21 || h < 5) return { key: "habits", reason: "night" };
+            // Agenda vacía — prioridad alta antes del check-in de ánimo
+            // (planear el día es lo primero que debería hacer al abrir la app por la mañana)
+            const todayBlocks = scheduleBlocksForDay(scheduleBlocks, now);
+            if (todayBlocks.length === 0 && h >= 5 && h < 20) return { key: "schedule", reason: "emptyAgenda" };
             if (!moodToday) return { key: "mood", reason: "noCheckin" };
             if (steps.some((st) => !st.done)) return { key: "oneThing", reason: "pending" };
             if (h < 13) return { key: "desglosador", reason: "morning" };
@@ -4311,6 +4318,54 @@ export default function FocusFlowTDAH({
               subtitle={t.app.panels.notifications.subtitle}
             >
               <NotificationsPanel C={C} t={t} userId={userId} habitReminders={habitReminders} onToggleHabitReminders={() => setHabitReminders((v) => !v)} />
+
+              {/* ── Recordatorio matutino de agenda ── */}
+              <div style={{ marginTop: "16px", borderTop: `1px solid ${tint(C.text, 0.06)}`, paddingTop: "14px" }}>
+                <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+                  <div style={{ flex: 1 }}>
+                    <div style={{ fontSize: "13px", fontWeight: 700, color: C.text }}>
+                      {t.notifications.morningAgendaTitle || "Recordatorio de agenda"}
+                    </div>
+                    <div style={{ fontSize: "11px", color: C.textMuted, marginTop: "3px", lineHeight: "1.4" }}>
+                      {t.notifications.morningAgendaDesc || "Aviso a las 8 am si tu día no tiene bloques."}
+                    </div>
+                  </div>
+                  <button
+                    onClick={() => setMorningAgendaReminder((v) => !v)}
+                    style={{
+                      width: "48px",
+                      height: "28px",
+                      borderRadius: "14px",
+                      border: "none",
+                      cursor: "pointer",
+                      background: morningAgendaReminder ? C.accent || "#7C5CE0" : tint(C.text, 0.12),
+                      position: "relative",
+                      transition: "background 0.2s",
+                      flexShrink: 0,
+                      marginLeft: "12px",
+                    }}
+                  >
+                    <div
+                      style={{
+                        width: "22px",
+                        height: "22px",
+                        borderRadius: "50%",
+                        background: "white",
+                        position: "absolute",
+                        top: "3px",
+                        left: morningAgendaReminder ? "23px" : "3px",
+                        transition: "left 0.2s",
+                        boxShadow: "0 1px 3px rgba(0,0,0,0.15)",
+                      }}
+                    />
+                  </button>
+                </div>
+                <div style={{ fontSize: "11px", color: morningAgendaReminder ? (C.accent || "#7C5CE0") : C.textMuted, fontWeight: 600, marginTop: "6px" }}>
+                  {morningAgendaReminder
+                    ? (t.notifications.morningAgendaOn || "Activado")
+                    : (t.notifications.morningAgendaOff || "Apagado")}
+                </div>
+              </div>
             </Panel>
             </div>
 
