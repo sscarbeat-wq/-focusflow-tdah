@@ -577,6 +577,8 @@ const fr = {
     updateButton: "Mettre à jour l'entrée d'aujourd'hui",
     saveButton: "Enregistrer l'entrée d'aujourd'hui",
     last7Days: "7 derniers jours",
+    homePrompt: "Comment tu te sens aujourd'hui ?",
+    homeSaved: "C'est noté ! ✓",
   },
 
   notifications: {

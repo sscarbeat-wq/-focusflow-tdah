@@ -574,6 +574,8 @@ const en = {
     updateButton: "Update today's entry",
     saveButton: "Save today's entry",
     last7Days: "Last 7 days",
+    homePrompt: "How are you feeling today?",
+    homeSaved: "Done! Logged ✓",
   },
 
   notifications: {

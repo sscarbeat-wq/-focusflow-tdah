@@ -601,6 +601,8 @@ const es = {
     updateButton: "Actualizar registro de hoy",
     saveButton: "Guardar registro de hoy",
     last7Days: "Últimos 7 días",
+    homePrompt: "¿Cómo te sientes hoy?",
+    homeSaved: "¡Listo! Registrado ✓",
   },
 
   notifications: {
