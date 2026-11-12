@@ -2231,6 +2231,43 @@ export default function FocusFlowTDAH({
                 />
                 </div>
               </div>
+              {/* 💬 Mensaje diario del koala (12 de noviembre de 2026):
+                  una frase diferente cada día, debajo de la brújula. */}
+              {(() => {
+                const tips = t.today.mascotDailyTips;
+                if (!Array.isArray(tips) || tips.length === 0) return null;
+                const tip = tips[new Date().getDate() % tips.length];
+                return (
+                  <div style={{
+                    padding: isNarrow ? "2px 12px 0" : "2px 18px 0",
+                    maxWidth: isWide ? "600px" : "380px",
+                    width: "100%",
+                    margin: "0 auto",
+                    boxSizing: "border-box",
+                    textAlign: "center",
+                  }}>
+                    <div style={{
+                      display: "inline-flex",
+                      alignItems: "center",
+                      gap: "6px",
+                      background: `${palette.chipBg || (C.bg + "dd")}`,
+                      borderRadius: "20px",
+                      padding: "6px 14px",
+                      maxWidth: "100%",
+                    }}>
+                      <span style={{ fontSize: "14px", flexShrink: 0 }}>💬</span>
+                      <span style={{
+                        fontSize: "12px",
+                        fontWeight: 600,
+                        color: palette.text || C.text,
+                        lineHeight: 1.35,
+                      }}>
+                        {tip}
+                      </span>
+                    </div>
+                  </div>
+                );
+              })()}
               {/* ✨ Tarjeta contextual "Te puede servir ahora" (12 de
                   noviembre de 2026, rediseño brújula): una sugerencia
                   dinámica basada en lo que la app ya sabe del día. Se
