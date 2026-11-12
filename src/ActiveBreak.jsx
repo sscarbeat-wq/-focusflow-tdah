@@ -61,7 +61,7 @@ export const ROUTINES = [
     moves: [
       { key: "neck", fig: "neck" },
       { key: "shouldersBack", fig: "shoulders" },
-      { key: "chairTwist", fig: "twist" },
+      { key: "sideBend", fig: "sideBend" },
       { key: "seatedLegs", fig: "seatedLegs" },
     ],
   },
