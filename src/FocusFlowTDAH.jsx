@@ -2222,16 +2222,15 @@ export default function FocusFlowTDAH({
               </div>
               {/* ✨ Tarjeta contextual "Te puede servir ahora" (12 de
                   noviembre de 2026, rediseño brújula): una sugerencia
-                  dinámica basada en lo que la app ya sabe del día. Solo se
-                  muestra en móvil (en escritorio, la sugerencia ya vive
-                  dentro de ToolsGrid al abrir Herramientas). */}
-              {!isWide && contextualNudge && (() => {
+                  dinámica basada en lo que la app ya sabe del día. Se
+                  muestra tanto en móvil como en escritorio. */}
+              {contextualNudge && (() => {
                 const nudgeItem = quickNavSections.find((s) => s.key === contextualNudge.key);
                 if (!nudgeItem) return null;
                 const nudgeGroup = TOOL_GROUPS.find((g) => g.tools.includes(contextualNudge.key));
                 const nudgeColor = nudgeGroup ? nudgeGroup.color : personalAccent;
                 return (
-                  <div style={{ padding: isNarrow ? "6px 12px 0" : "6px 18px 0", maxWidth: "420px", width: "100%", margin: "0 auto", boxSizing: "border-box" }}>
+                  <div style={{ padding: isNarrow ? "6px 12px 0" : "6px 18px 0", maxWidth: isWide ? "600px" : "420px", width: "100%", margin: "0 auto", boxSizing: "border-box" }}>
                     <button
                       type="button"
                       onClick={() => {
@@ -2273,10 +2272,10 @@ export default function FocusFlowTDAH({
 
               {/* ⚡ Tus más usadas (12 de noviembre de 2026): las últimas
                   5 herramientas usadas, en un scroll horizontal compacto.
-                  Solo se muestra en móvil si hay al menos 1 herramienta
-                  reciente guardada en localStorage. */}
-              {!isWide && recentToolKeys.length > 0 && (
-                <div style={{ padding: isNarrow ? "8px 12px 0" : "8px 18px 0", maxWidth: "420px", width: "100%", margin: "0 auto", boxSizing: "border-box" }}>
+                  Se muestra si hay al menos 1 herramienta reciente
+                  guardada en localStorage. */}
+              {recentToolKeys.length > 0 && (
+                <div style={{ padding: isNarrow ? "8px 12px 0" : "8px 18px 0", maxWidth: isWide ? "600px" : "420px", width: "100%", margin: "0 auto", boxSizing: "border-box" }}>
                   <h3 style={{ fontSize: "12px", fontWeight: 800, color: C.textMuted, margin: "0 0 6px", textTransform: "uppercase", letterSpacing: "0.04em" }}>
                     ⚡ {t.today.frequentTitle}
                   </h3>
