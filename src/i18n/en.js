@@ -1086,6 +1086,9 @@ const en = {
     editCompassReset: "Reset",
     editCompassSave: "Save",
     backToHome: "Back to home",
+    // Compass redesign with 5 category planets (November 12, 2026)
+    nudgeTitle: "This might help right now",
+    frequentTitle: "Your most used",
     compassNextStep: "Next step",
     compassCompanionLabel: "Companion",
     compassMoodLabel: "Mood",

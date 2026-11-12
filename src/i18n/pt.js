@@ -1091,6 +1091,9 @@ const pt = {
     editCompassReset: "Redefinir",
     editCompassSave: "Salvar",
     backToHome: "Voltar ao início",
+    // Redesenho da bússola com 5 planetas de categoria (12 de novembro de 2026)
+    nudgeTitle: "Isso pode ajudar agora",
+    frequentTitle: "Suas mais usadas",
     compassNextStep: "Próximo passo",
     compassCompanionLabel: "Companheiro",
     compassMoodLabel: "Humor",

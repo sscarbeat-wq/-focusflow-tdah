@@ -1116,6 +1116,9 @@ const es = {
     editCompassReset: "Restablecer",
     editCompassSave: "Guardar",
     backToHome: "Volver al inicio",
+    // Rediseño brújula con 5 planetas de categoría (12 de noviembre de 2026)
+    nudgeTitle: "Te puede servir ahora",
+    frequentTitle: "Tus más usadas",
     // Rediseño de la brújula de 6 accesos (9 de noviembre de 2026): labels
     // cortos para los accesos que no reutilizan el título completo de su
     // panel (sería muy largo para caber en el círculo chico de la

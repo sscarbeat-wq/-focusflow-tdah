@@ -1089,6 +1089,9 @@ const fr = {
     editCompassReset: "Réinitialiser",
     editCompassSave: "Enregistrer",
     backToHome: "Retour à l'accueil",
+    // Refonte de la boussole avec 5 planètes de catégorie (12 novembre 2026)
+    nudgeTitle: "Ça peut t'aider maintenant",
+    frequentTitle: "Tes plus utilisées",
     compassNextStep: "Prochaine étape",
     compassCompanionLabel: "Compagnon",
     compassMoodLabel: "Humeur",
