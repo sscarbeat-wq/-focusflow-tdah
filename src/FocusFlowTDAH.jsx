@@ -823,6 +823,7 @@ export default function FocusFlowTDAH({
   }, [habitsDay]);
   const [streak, setStreak] = useState(() => effectiveStreak(saved.streak));
   const [moodLog, setMoodLog] = useState(saved.moodLog);
+  const [homeMoodSaved, setHomeMoodSaved] = useState(false);
   const [energyLog, setEnergyLog] = useState(saved.energyLog);
   const [focusSessionLog, setFocusSessionLog] = useState(saved.focusSessionLog);
   // % real de enfoque de hoy (rediseño "estilo K" de Inicio, 9 de noviembre
@@ -1059,6 +1060,41 @@ export default function FocusFlowTDAH({
       grantXp(t.app.xpLabels.moodLogged);
     },
     [grantXp, t]
+  );
+
+  // Sonidito corto al tocar una carita de ánimo (Web Audio API).
+  const playMoodSound = useCallback((mood) => {
+    try {
+      const ctx = new (window.AudioContext || window.webkitAudioContext)();
+      // Frecuencias: de grave (triste) a agudo (feliz)
+      const freqs = { 1: [260], 2: [330], 3: [392], 4: [440, 554], 5: [523, 659, 784] };
+      const notes = freqs[mood] || [392];
+      notes.forEach((freq, i) => {
+        const osc = ctx.createOscillator();
+        const gain = ctx.createGain();
+        osc.type = "sine";
+        osc.frequency.value = freq;
+        gain.gain.setValueAtTime(0, ctx.currentTime + i * 0.08);
+        gain.gain.linearRampToValueAtTime(0.18, ctx.currentTime + i * 0.08 + 0.04);
+        gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + i * 0.08 + 0.35);
+        osc.connect(gain);
+        gain.connect(ctx.destination);
+        osc.start(ctx.currentTime + i * 0.08);
+        osc.stop(ctx.currentTime + i * 0.08 + 0.4);
+      });
+      setTimeout(() => ctx.close(), 800);
+    } catch (_) { /* silenciar si el navegador no soporta Web Audio */ }
+  }, []);
+
+  // Guarda ánimo desde la tarjeta compacta de Inicio (sin nota).
+  const handleHomeMoodSave = useCallback(
+    (mood) => {
+      playMoodSound(mood);
+      handleMoodSave(mood, "");
+      setHomeMoodSaved(true);
+      setTimeout(() => setHomeMoodSaved(false), 1800);
+    },
+    [handleMoodSave, playMoodSound]
   );
 
   const handleEnergySave = useCallback(
@@ -2237,6 +2273,205 @@ export default function FocusFlowTDAH({
                     onAddHabit={canAddCustomHabit(customHabits) ? openAddHabit : undefined}
                     onOpenAll={() => scrollToCompanionSection("habits")}
                   />
+                </div>
+              )}
+              {/* Tarjeta compacta de ánimo: se muestra solo si el
+                  usuario NO ha registrado su ánimo hoy. Al tocar una
+                  carita se guarda al instante (sin nota) y se muestra
+                  una confirmación breve antes de desaparecer.
+                  Caritas SVG kawaii animadas (nov 2026). */}
+              {(!todayMoodEntry(moodLog) || homeMoodSaved) && (
+                <div style={{
+                  padding: isNarrow ? "8px 12px 0" : "8px 18px 0",
+                  maxWidth: "420px",
+                  width: "100%",
+                  margin: "0 auto",
+                  boxSizing: "border-box",
+                }}>
+                  {homeMoodSaved ? (
+                    <div style={{
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "center",
+                      gap: "8px",
+                      background: `${personalAccent}22`,
+                      borderRadius: "14px",
+                      padding: "10px 16px",
+                      animation: "moodFadeIn .4s ease",
+                    }}>
+                      <span style={{ fontSize: "18px" }}>✓</span>
+                      <span style={{ fontSize: "13px", color: palette.textHi || C.text, fontWeight: 600 }}>
+                        {t.moodLog.homeSaved}
+                      </span>
+                    </div>
+                  ) : (
+                    <div style={{
+                      background: `${palette.textHi || C.text}0a`,
+                      borderRadius: "14px",
+                      padding: "10px 14px",
+                      textAlign: "center",
+                    }}>
+                      <style>{`
+                        @keyframes moodFloat {
+                          0%, 100% { transform: translateY(0) rotate(0deg); }
+                          25% { transform: translateY(-4px) rotate(-2deg); }
+                          50% { transform: translateY(-1px) rotate(0deg); }
+                          75% { transform: translateY(-5px) rotate(2deg); }
+                        }
+                        @keyframes moodFadeIn {
+                          from { opacity: 0; transform: scale(.6) translateY(10px); }
+                          to { opacity: 1; transform: scale(1) translateY(0); }
+                        }
+                        @keyframes moodPulse {
+                          0%, 100% { filter: drop-shadow(0 2px 3px rgba(0,0,0,.12)); }
+                          50% { filter: drop-shadow(0 4px 8px rgba(0,0,0,.18)); }
+                        }
+                        .mood-face-btn { animation: moodFadeIn .4s cubic-bezier(.34,1.56,.64,1) both; }
+                        .mood-face-btn:nth-child(1) { animation-delay: .05s; }
+                        .mood-face-btn:nth-child(2) { animation-delay: .12s; }
+                        .mood-face-btn:nth-child(3) { animation-delay: .19s; }
+                        .mood-face-btn:nth-child(4) { animation-delay: .26s; }
+                        .mood-face-btn:nth-child(5) { animation-delay: .33s; }
+                        .mood-face-btn svg {
+                          animation: moodFloat 3s ease-in-out infinite, moodPulse 3s ease-in-out infinite;
+                        }
+                        .mood-face-btn:nth-child(1) svg { animation-delay: 0s, 0s; }
+                        .mood-face-btn:nth-child(2) svg { animation-delay: .3s, .3s; }
+                        .mood-face-btn:nth-child(3) svg { animation-delay: .6s, .6s; }
+                        .mood-face-btn:nth-child(4) svg { animation-delay: .9s, .9s; }
+                        .mood-face-btn:nth-child(5) svg { animation-delay: 1.2s, 1.2s; }
+                        .mood-face-btn:hover svg {
+                          animation: none;
+                          transform: scale(1.25) translateY(-3px);
+                          filter: drop-shadow(0 6px 12px rgba(0,0,0,.22));
+                        }
+                        .mood-face-btn:active svg { transform: scale(.9); }
+                      `}</style>
+                      <p style={{
+                        margin: "0 0 8px",
+                        fontSize: "13px",
+                        color: palette.textHi || C.text,
+                        fontWeight: 600,
+                      }}>
+                        {t.moodLog.homePrompt}
+                      </p>
+                      <div style={{ display: "flex", justifyContent: "center", gap: "8px" }}>
+                        {[
+                          { v: 1, hi: "#dbeaf5", mid: "#a3c8e0", lo: "#6a9cbd", shadow: "#5888a8", label: t.moodLog.veryBad, face: (id) => <>
+                            {/* ojos cerrados tristes */}
+                            <path d="M14.5 21c1.8-2 4.5-2 6 0" stroke="#4a7a96" strokeWidth="1.6" fill="none" strokeLinecap="round"/>
+                            <path d="M29.5 21c1.8-2 4.5-2 6 0" stroke="#4a7a96" strokeWidth="1.6" fill="none" strokeLinecap="round"/>
+                            {/* cejas tristes */}
+                            <path d="M13 16.5c2-1.8 5-1.5 6.5 0" stroke="#4a7a96" strokeWidth="1.1" fill="none" strokeLinecap="round"/>
+                            <path d="M30.5 16.5c1.5-1.5 4.5-1.8 6.5 0" stroke="#4a7a96" strokeWidth="1.1" fill="none" strokeLinecap="round"/>
+                            {/* boca triste */}
+                            <path d="M17 34c3-3.5 13-3.5 16 0" stroke="#4a7a96" strokeWidth="1.8" fill="none" strokeLinecap="round"/>
+                            {/* lágrima */}
+                            <ellipse cx="35.5" cy="25" rx="1.8" ry="2.5" fill={`url(#tear${id})`}/>
+                          </>},
+                          { v: 2, hi: "#fef1c8", mid: "#f0d478", lo: "#d4ae4a", shadow: "#b8923a", label: t.moodLog.bad, face: (id) => <>
+                            {/* ojos preocupados */}
+                            <ellipse cx="17.5" cy="22" rx="2.8" ry="3.2" fill="#8a6e20"/>
+                            <ellipse cx="17.5" cy="21.3" rx="2.8" ry="2.5" fill="#5c4a15"/>
+                            <circle cx="16.5" cy="20.5" r="1" fill="#fff" opacity=".8"/>
+                            <ellipse cx="32.5" cy="22" rx="2.8" ry="3.2" fill="#8a6e20"/>
+                            <ellipse cx="32.5" cy="21.3" rx="2.8" ry="2.5" fill="#5c4a15"/>
+                            <circle cx="31.5" cy="20.5" r="1" fill="#fff" opacity=".8"/>
+                            {/* cejas preocupadas */}
+                            <path d="M13 17c2-2.2 5.5-1.5 7 .3" stroke="#8a6e20" strokeWidth="1.2" fill="none" strokeLinecap="round"/>
+                            <path d="M30 17.3c1.5-1.8 5-2.2 7 0" stroke="#8a6e20" strokeWidth="1.2" fill="none" strokeLinecap="round"/>
+                            {/* boca triste suave */}
+                            <path d="M18 34c3-2.5 11-2.5 14 0" stroke="#8a6e20" strokeWidth="1.8" fill="none" strokeLinecap="round"/>
+                          </>},
+                          { v: 3, hi: "#d5f5e5", mid: "#8edcb5", lo: "#5cc08a", shadow: "#3ea06a", label: t.moodLog.regular, face: () => <>
+                            {/* ojos neutrales */}
+                            <ellipse cx="17.5" cy="22" rx="2.8" ry="3.2" fill="#2d7a55"/>
+                            <ellipse cx="17.5" cy="21.3" rx="2.8" ry="2.5" fill="#1e5a3c"/>
+                            <circle cx="16.5" cy="20.5" r="1" fill="#fff" opacity=".8"/>
+                            <ellipse cx="32.5" cy="22" rx="2.8" ry="3.2" fill="#2d7a55"/>
+                            <ellipse cx="32.5" cy="21.3" rx="2.8" ry="2.5" fill="#1e5a3c"/>
+                            <circle cx="31.5" cy="20.5" r="1" fill="#fff" opacity=".8"/>
+                            {/* boca recta */}
+                            <line x1="19" y1="32" x2="31" y2="32" stroke="#2d7a55" strokeWidth="1.8" strokeLinecap="round"/>
+                          </>},
+                          { v: 4, hi: "#feecd0", mid: "#f5c882", lo: "#e8a445", shadow: "#c8862a", label: t.moodLog.good, face: () => <>
+                            {/* ojos felices */}
+                            <ellipse cx="17.5" cy="21.5" rx="2.8" ry="3.2" fill="#8a5a18"/>
+                            <ellipse cx="17.5" cy="20.8" rx="2.8" ry="2.5" fill="#5c3c10"/>
+                            <circle cx="16.5" cy="20" r="1.1" fill="#fff" opacity=".85"/>
+                            <ellipse cx="32.5" cy="21.5" rx="2.8" ry="3.2" fill="#8a5a18"/>
+                            <ellipse cx="32.5" cy="20.8" rx="2.8" ry="2.5" fill="#5c3c10"/>
+                            <circle cx="31.5" cy="20" r="1.1" fill="#fff" opacity=".85"/>
+                            {/* sonrisa */}
+                            <path d="M17 30c4 5 12 5 16 0" stroke="#8a5a18" strokeWidth="1.8" fill="none" strokeLinecap="round"/>
+                          </>},
+                          { v: 5, hi: "#fde0e8", mid: "#f5a0b8", lo: "#e06888", shadow: "#c04868", label: t.moodLog.veryGood, face: () => <>
+                            {/* ojos grandes brillantes */}
+                            <ellipse cx="17" cy="21" rx="3.8" ry="4.2" fill="#8a2048"/>
+                            <ellipse cx="17" cy="20" rx="3.5" ry="3.2" fill="#5c1530"/>
+                            <circle cx="15.5" cy="19" r="1.6" fill="#fff" opacity=".9"/>
+                            <circle cx="18.5" cy="21.5" r=".8" fill="#fff" opacity=".6"/>
+                            <ellipse cx="33" cy="21" rx="3.8" ry="4.2" fill="#8a2048"/>
+                            <ellipse cx="33" cy="20" rx="3.5" ry="3.2" fill="#5c1530"/>
+                            <circle cx="31.5" cy="19" r="1.6" fill="#fff" opacity=".9"/>
+                            <circle cx="34.5" cy="21.5" r=".8" fill="#fff" opacity=".6"/>
+                            {/* sonrisota */}
+                            <path d="M15 29c5 7 15 7 20 0" stroke="#8a2048" strokeWidth="1.8" fill="none" strokeLinecap="round"/>
+                            <path d="M18 32c3.5 2 11 2 14.5 0" stroke="#8a2048" strokeWidth="1" fill="none" strokeLinecap="round"/>
+                            {/* rubor */}
+                            <circle cx="10" cy="26" r="3.5" fill="#e06888" opacity=".25"/>
+                            <circle cx="40" cy="26" r="3.5" fill="#e06888" opacity=".25"/>
+                          </>},
+                        ].map(({ v, hi, mid, lo, shadow, label, face }) => {
+                          const gid = `mf${v}`;
+                          return (
+                          <button
+                            key={v}
+                            className="mood-face-btn"
+                            onClick={() => handleHomeMoodSave(v)}
+                            style={{
+                              background: "none",
+                              border: "none",
+                              cursor: "pointer",
+                              padding: "2px",
+                              borderRadius: "50%",
+                              lineHeight: 0,
+                              transition: "transform .15s",
+                            }}
+                            aria-label={label}
+                          >
+                            <svg width="50" height="54" viewBox="0 0 50 54" style={{ transition: "transform .15s", filter: "drop-shadow(0 2px 3px rgba(0,0,0,.12))" }}>
+                              <defs>
+                                <radialGradient id={`bg${gid}`} cx="35%" cy="30%" r="65%">
+                                  <stop offset="0%" stopColor={hi}/>
+                                  <stop offset="55%" stopColor={mid}/>
+                                  <stop offset="100%" stopColor={lo}/>
+                                </radialGradient>
+                                <radialGradient id={`sh${gid}`} cx="50%" cy="50%" r="50%">
+                                  <stop offset="0%" stopColor={shadow} stopOpacity=".3"/>
+                                  <stop offset="100%" stopColor={shadow} stopOpacity="0"/>
+                                </radialGradient>
+                                {v === 1 && <linearGradient id={`tear${gid}`} x1="0" y1="0" x2="0" y2="1">
+                                  <stop offset="0%" stopColor="#cce8f8"/>
+                                  <stop offset="100%" stopColor="#7abade"/>
+                                </linearGradient>}
+                              </defs>
+                              {/* sombra debajo */}
+                              <ellipse cx="25" cy="50" rx="16" ry="3" fill={`url(#sh${gid})`}/>
+                              {/* esfera 3D */}
+                              <circle cx="25" cy="25" r="22" fill={`url(#bg${gid})`}/>
+                              {/* brillo superior */}
+                              <ellipse cx="19" cy="14" rx="10" ry="6" fill="#fff" opacity=".35"/>
+                              <ellipse cx="17" cy="12" rx="5" ry="3" fill="#fff" opacity=".25"/>
+                              {/* cara */}
+                              {face(gid)}
+                            </svg>
+                          </button>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  )}
                 </div>
               )}
               {tabBarInHero && (
