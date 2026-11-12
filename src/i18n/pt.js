@@ -830,6 +830,12 @@ const pt = {
     weekEmptyDay: "Sem blocos",
     prevDay: "Dia anterior",
     nextDay: "Dia seguinte",
+    progressLabel: "Progresso do dia",
+    nextUpLabel: "Próximo",
+    markDone: "Marcar como feito",
+    completedLabel: "Concluído",
+    emptyDay: "Sem blocos para este dia",
+    emptyDayHint: "Adicione um para organizar seu tempo",
   },
 
   activeBreak: {

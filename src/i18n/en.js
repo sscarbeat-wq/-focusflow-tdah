@@ -825,6 +825,12 @@ const en = {
     weekEmptyDay: "No blocks",
     prevDay: "Previous day",
     nextDay: "Next day",
+    progressLabel: "Today's progress",
+    nextUpLabel: "Next",
+    markDone: "Mark as done",
+    completedLabel: "Done",
+    emptyDay: "No blocks for this day",
+    emptyDayHint: "Add one to organize your time",
   },
 
   activeBreak: {

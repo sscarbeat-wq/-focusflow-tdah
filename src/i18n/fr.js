@@ -828,6 +828,12 @@ const fr = {
     weekEmptyDay: "Aucun bloc",
     prevDay: "Jour précédent",
     nextDay: "Jour suivant",
+    progressLabel: "Progrès du jour",
+    nextUpLabel: "Suivant",
+    markDone: "Marquer comme fait",
+    completedLabel: "Terminé",
+    emptyDay: "Pas de blocs pour ce jour",
+    emptyDayHint: "Ajoutez-en un pour organiser votre temps",
   },
 
   activeBreak: {
