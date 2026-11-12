@@ -23,7 +23,6 @@ import {
   Trash2,
   Clock,
   Mic,
-  MicOff,
 } from "lucide-react";
 import { tint } from "./theme";
 
@@ -258,6 +257,9 @@ export default function ScheduleAgendaPanel({
     return new Set();
   });
 
+  // i18n labels (moved up so voice handlers can reference it)
+  const labels = t.schedule || {};
+
   // ── Voice input state ──
   const [voiceListening, setVoiceListening] = useState(false);
   const [voiceText, setVoiceText] = useState("");
@@ -387,8 +389,6 @@ export default function ScheduleAgendaPanel({
   const completedCount = dayBlocks.filter((b) => completedIds.has(b.id)).length;
   const progressPct = totalBlocks > 0 ? Math.round((completedCount / totalBlocks) * 100) : 0;
 
-  // i18n labels
-  const labels = t.schedule || {};
   const monthNames = MONTH_NAMES[lang] || MONTH_NAMES.es;
   const dayHeaders = DAY_HEADERS[lang] || DAY_HEADERS.es;
 
