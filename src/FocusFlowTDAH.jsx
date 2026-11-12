@@ -475,6 +475,10 @@ export default function FocusFlowTDAH({
   // (o desde "Ir a..."), con un botón para volver — mismo patrón que ya
   // usan las herramientas (cuadrícula → herramienta → volver).
   const [inicioView, setInicioView] = useState("compass");
+  // Herramienta abierta DENTRO de Inicio (12 de noviembre de 2026): al
+  // tocar una herramienta desde la nudge card o "Tus más usadas", se abre
+  // aquí mismo sin salir de la pestaña Inicio. `null` = sin overlay.
+  const [inicioToolKey, setInicioToolKey] = useState(null);
   const [activeTab, setActiveTab] = useState(() => {
     try {
       return window.localStorage.getItem("anro-active-tab") || "inicio";
@@ -658,7 +662,8 @@ export default function FocusFlowTDAH({
   // Tocar la pestaña "Inicio" siempre regresa a la brújula (aunque se
   // estuviera viendo la página "Hoy").
   const goToTab = (tab) => {
-    if (tab === "inicio") setInicioView("compass");
+    if (tab === "inicio") { setInicioView("compass"); setInicioToolKey(null); }
+    setInicioToolKey(null);
     setActiveTab(tab);
   };
   // Igual que tabStyle, pero para las 20 herramientas dentro de la pestaña
@@ -669,7 +674,11 @@ export default function FocusFlowTDAH({
   // vez, así que no tiene con quién compartir la fila). Fuera de una
   // cuadrícula esta propiedad no hace nada.
   const toolStyle = (key) => ({
-    display: activeTab === "herramientas" && activeTool === key ? undefined : "none",
+    display:
+      (activeTab === "herramientas" && activeTool === key) ||
+      (activeTab === "inicio" && inicioToolKey === key)
+        ? undefined
+        : "none",
     gridColumn: "1 / -1",
   });
 
@@ -2107,7 +2116,7 @@ export default function FocusFlowTDAH({
                 // Solo en Inicio (ver la nota junto a <AppTabBar> arriba).
                 // display:none en vez de no montarla: igual que el resto de
                 // las pestañas, así nada se reinicia al ir y volver.
-                display: inicioCompass ? "flex" : "none",
+                display: inicioCompass && !inicioToolKey ? "flex" : "none",
                 flexDirection: "column",
               }}
             >
@@ -2236,8 +2245,10 @@ export default function FocusFlowTDAH({
                     <button
                       type="button"
                       onClick={() => {
-                        setActiveTool(null);
-                        scrollToCompanionSection(contextualNudge.key);
+                        // 12 de noviembre de 2026: abre la herramienta
+                        // DENTRO de Inicio, sin navegar a Herramientas.
+                        setInicioToolKey(contextualNudge.key);
+                        window.scrollTo({ top: 0, behavior: "smooth" });
                       }}
                       style={{
                         display: "flex",
@@ -2291,7 +2302,12 @@ export default function FocusFlowTDAH({
                         <button
                           key={key}
                           type="button"
-                          onClick={() => scrollToCompanionSection(key)}
+                          onClick={() => {
+                            // 12 de noviembre de 2026: abre la herramienta
+                            // DENTRO de Inicio, sin navegar a Herramientas.
+                            setInicioToolKey(key);
+                            window.scrollTo({ top: 0, behavior: "smooth" });
+                          }}
                           style={{
                             display: "flex",
                             flexDirection: "column",
@@ -3195,7 +3211,7 @@ export default function FocusFlowTDAH({
             funcionar como una verdadera pantalla de inicio. Ahora es lo
             primero que se ve al abrir la app, y ya conoce las Rutinas
             (Módulo 5) además de todo lo que ya cubría. */}
-        {activeTab === "inicio" && inicioView === "hoy" && (
+        {activeTab === "inicio" && inicioView === "hoy" && !inicioToolKey && (
           <div style={{ marginBottom: "20px" }}>
             <button
               onClick={() => {
@@ -3221,7 +3237,37 @@ export default function FocusFlowTDAH({
             </button>
           </div>
         )}
-        <div ref={todaySectionRef} style={{ display: activeTab === "inicio" && inicioView === "hoy" ? undefined : "none" }}>
+        {/* Botón "Volver al inicio" cuando una herramienta se abrió
+            directamente desde Inicio (nudge card o "Tus más usadas") —
+            12 de noviembre de 2026: la herramienta se muestra aquí mismo
+            sin navegar a la pestaña Herramientas. */}
+        {activeTab === "inicio" && inicioToolKey && (
+          <div style={{ marginBottom: "20px" }}>
+            <button
+              onClick={() => {
+                setInicioToolKey(null);
+                window.scrollTo({ top: 0, behavior: "auto" });
+              }}
+              style={{
+                display: "flex",
+                alignItems: "center",
+                gap: "8px",
+                minHeight: "40px",
+                padding: "8px 14px",
+                background: "transparent",
+                border: `1px solid ${C.border}`,
+                borderRadius: "12px",
+                color: C.text,
+                fontSize: "13px",
+                fontWeight: 600,
+                cursor: "pointer",
+              }}
+            >
+              <ArrowLeft size={16} /> {t.today.backToHome}
+            </button>
+          </div>
+        )}
+        <div ref={todaySectionRef} style={{ display: activeTab === "inicio" && inicioView === "hoy" && !inicioToolKey ? undefined : "none" }}>
           <Panel C={C}
             accent={personalAccent}
             icon={<ListChecks size={22} />}
