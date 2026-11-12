@@ -2157,7 +2157,7 @@ export default function FocusFlowTDAH({
                     </div>
                   </div>
                 )}
-                <div id="anro-tour-mascot" style={{ marginTop: "8px", paddingBottom: isNarrow && isShort ? "2px" : "20px" }}>
+                <div id="anro-tour-mascot" style={{ marginTop: "4px", paddingBottom: isNarrow && isShort ? "2px" : "8px" }}>
                 <QuickAccessCompass
                   C={C}
                   t={t}
@@ -2232,11 +2232,26 @@ export default function FocusFlowTDAH({
                 </div>
               </div>
               {/* 💬 Mensaje diario del koala (12 de noviembre de 2026):
-                  una frase diferente cada día, debajo de la brújula. */}
+                  una frase diferente cada día, debajo de la brújula.
+                  Ahora cada tip es { text, tool? } — cuando `tool` está
+                  presente, el globito se vuelve tappable y abre esa
+                  herramienta directamente en Inicio. */}
               {(() => {
                 const tips = t.today.mascotDailyTips;
                 if (!Array.isArray(tips) || tips.length === 0) return null;
-                const tip = tips[new Date().getDate() % tips.length];
+                const tipData = tips[new Date().getDate() % tips.length];
+                // Compatibilidad: si algún idioma aún no se actualizó y
+                // sigue teniendo strings en vez de objetos.
+                const tipText = typeof tipData === "string" ? tipData : tipData.text;
+                const tipTool = typeof tipData === "object" ? tipData.tool : null;
+                const Wrapper = tipTool ? "button" : "div";
+                const wrapperProps = tipTool ? {
+                  type: "button",
+                  onClick: () => {
+                    setInicioToolKey(tipTool);
+                    window.scrollTo({ top: 0, behavior: "smooth" });
+                  },
+                } : {};
                 return (
                   <div style={{
                     padding: isNarrow ? "2px 12px 0" : "2px 18px 0",
@@ -2246,15 +2261,21 @@ export default function FocusFlowTDAH({
                     boxSizing: "border-box",
                     textAlign: "center",
                   }}>
-                    <div style={{
-                      display: "inline-flex",
-                      alignItems: "center",
-                      gap: "6px",
-                      background: `${palette.chipBg || (C.bg + "dd")}`,
-                      borderRadius: "20px",
-                      padding: "6px 14px",
-                      maxWidth: "100%",
-                    }}>
+                    <Wrapper
+                      {...wrapperProps}
+                      style={{
+                        display: "inline-flex",
+                        alignItems: "center",
+                        gap: "6px",
+                        background: `${palette.chipBg || (C.bg + "dd")}`,
+                        borderRadius: "20px",
+                        padding: "6px 14px",
+                        maxWidth: "100%",
+                        border: "none",
+                        cursor: tipTool ? "pointer" : "default",
+                        transition: "transform 0.15s ease",
+                      }}
+                    >
                       <span style={{ fontSize: "14px", flexShrink: 0 }}>💬</span>
                       <span style={{
                         fontSize: "12px",
@@ -2262,9 +2283,12 @@ export default function FocusFlowTDAH({
                         color: palette.text || C.text,
                         lineHeight: 1.35,
                       }}>
-                        {tip}
+                        {tipText}
                       </span>
-                    </div>
+                      {tipTool && (
+                        <span style={{ fontSize: "14px", fontWeight: 800, color: palette.text || C.text, flexShrink: 0, opacity: 0.6 }}>›</span>
+                      )}
+                    </Wrapper>
                   </div>
                 );
               })()}
