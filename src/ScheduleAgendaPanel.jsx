@@ -95,14 +95,14 @@ function parseVoiceToBlock(raw) {
   ];
 
   for (const pat of timePatterns) {
-    const m = text.match(pat);
+    const m = name.match(pat);
     if (m) {
       let hour = parseInt(m[1], 10);
       const mins = m[2] ? parseInt(m[2], 10) : 0;
       const period = m[3] ? m[3].toLowerCase() : null;
 
       // "y media" dentro del match original
-      if (text.match(/a\s+las?\s+\d{1,2}\s+y\s+media/i) && mins === 0) {
+      if (name.match(/a\s+las?\s+\d{1,2}\s+y\s+media/i) && mins === 0) {
         startMin = hour * 60 + 30;
       } else {
         // am/pm o de la tarde/noche
@@ -125,10 +125,11 @@ function parseVoiceToBlock(raw) {
   }
 
   // ── Limpiar nombre ──
-  // Quitar conectores sueltos al inicio/final
+  // Quitar verbos / conectores típicos de voz al inicio
   name = name
-    .replace(/^(?:agendar|agregar|añadir|crear|add|create|ajouter|adicionar)\s+/i, "")
-    .replace(/^(?:una?|un|the|le|la|o)\s+/i, "")
+    .replace(/^(?:agendar|agregar|añadir|crear|add|create|ajouter|adicionar|programar|poner|recordar)\s+/i, "")
+    .replace(/^(?:tengo|tenemos|hay|necesito|quiero|voy a|i have|i need|i want)\s+/i, "")
+    .replace(/^(?:que\s+)?(?:una?|un|the|le|la|o|mi|my|mon|ma)\s+/i, "")
     .replace(/\s+$/g, "")
     .replace(/^[\s,.\-]+|[\s,.\-]+$/g, "");
 
@@ -149,6 +150,10 @@ function parseVoiceToBlock(raw) {
   else if (nl.includes("comer") || nl.includes("comida") || nl.includes("lunch") || nl.includes("eat")) icon = "🍽️";
   else if (nl.includes("ejercicio") || nl.includes("exercise") || nl.includes("gym") || nl.includes("correr") || nl.includes("run")) icon = "🏃";
   else if (nl.includes("dormir") || nl.includes("sleep") || nl.includes("siesta") || nl.includes("nap")) icon = "😴";
+  else if (nl.includes("cita") || nl.includes("doctor") || nl.includes("dentista") || nl.includes("appointment") || nl.includes("consulta")) icon = "🏥";
+  else if (nl.includes("reunión") || nl.includes("reunion") || nl.includes("meeting") || nl.includes("junta") || nl.includes("call") || nl.includes("llamada")) icon = "📞";
+  else if (nl.includes("estudi") || nl.includes("study") || nl.includes("tarea") || nl.includes("homework") || nl.includes("leer") || nl.includes("read")) icon = "📚";
+  else if (nl.includes("compra") || nl.includes("shop") || nl.includes("super") || nl.includes("mercado")) icon = "🛒";
 
   return {
     name,
@@ -266,6 +271,7 @@ export default function ScheduleAgendaPanel({
   const [voiceError, setVoiceError] = useState("");
   const [voiceParsed, setVoiceParsed] = useState(null); // resultado del parser para confirmar
   const recognitionRef = useRef(null);
+  const latestTranscriptRef = useRef(""); // guarda el último transcript para fallback en onend
 
   const stopVoice = useCallback(() => {
     if (recognitionRef.current) {
@@ -283,6 +289,7 @@ export default function ScheduleAgendaPanel({
     setVoiceError("");
     setVoiceText("");
     setVoiceParsed(null);
+    latestTranscriptRef.current = "";
 
     const rec = new SpeechRecognitionAPI();
     rec.lang = SPEECH_LANG[lang] || "es-MX";
@@ -290,13 +297,17 @@ export default function ScheduleAgendaPanel({
     rec.maxAlternatives = 1;
     rec.continuous = false;
 
+    let gotFinal = false;
+
     rec.onresult = (e) => {
       const transcript = Array.from(e.results)
         .map((r) => r[0].transcript)
         .join("");
       setVoiceText(transcript);
+      latestTranscriptRef.current = transcript;
       // Si es resultado final, parsear
       if (e.results[e.results.length - 1].isFinal) {
+        gotFinal = true;
         const parsed = parseVoiceToBlock(transcript);
         setVoiceParsed(parsed);
         stopVoice();
@@ -314,6 +325,12 @@ export default function ScheduleAgendaPanel({
 
     rec.onend = () => {
       setVoiceListening(false);
+      // Fallback: si el navegador terminó sin marcar isFinal pero sí captó texto,
+      // parsear lo que tengamos (Chrome a veces cierra sin final result)
+      if (!gotFinal && latestTranscriptRef.current.length > 0) {
+        const parsed = parseVoiceToBlock(latestTranscriptRef.current);
+        setVoiceParsed(parsed);
+      }
     };
 
     recognitionRef.current = rec;
