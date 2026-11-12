@@ -609,6 +609,11 @@ export default function FocusMode({
 
   return (
     <div>
+      {!minimal && t.focusMode.introNote && (
+        <p style={{ fontSize: "13px", color: C.text, margin: "0 0 16px", lineHeight: 1.5 }}>
+          {t.focusMode.introNote}
+        </p>
+      )}
       {!minimal && (
         <div style={{ display: "flex", gap: "10px", marginBottom: "16px", flexWrap: "wrap", alignItems: "center" }}>
           <label style={{ fontSize: "12px", color: C.textMuted }}>{t.focusMode.workLabel}</label>
