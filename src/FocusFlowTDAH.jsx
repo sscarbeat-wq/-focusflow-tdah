@@ -2058,11 +2058,13 @@ export default function FocusFlowTDAH({
             return { key: "focusMode", reason: "default" };
           })();
 
-          // --- Herramientas más usadas (top 5 recientes) ----------------
+          // --- Herramientas más usadas (hasta 7 recientes) ---------------
+          // Empieza vacía; se va llenando conforme el usuario usa
+          // herramientas (se guardan en localStorage desde ToolsGrid).
           const recentToolKeys = (() => {
             try {
               const raw = JSON.parse(window.localStorage.getItem("anro-tools-recent"));
-              if (Array.isArray(raw)) return raw.slice(0, 5);
+              if (Array.isArray(raw)) return raw.slice(0, 7);
             } catch (e) { /* sin localStorage */ }
             return [];
           })();

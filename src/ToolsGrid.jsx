@@ -72,7 +72,7 @@ export default function ToolsGrid({ C, t, accent, items, onSelect, suggestion, i
   const leftovers = items.filter((it) => !grouped.has(it.key)).map((it) => it.key);
 
   const open = (key) => {
-    const next = [key, ...recent.filter((k) => k !== key)].slice(0, 4);
+    const next = [key, ...recent.filter((k) => k !== key)].slice(0, 7);
     setRecent(next);
     writeJSON(RECENT_KEY, next);
     onSelect(key);
