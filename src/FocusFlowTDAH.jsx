@@ -196,7 +196,7 @@ import ScheduleAgendaPanel from "./ScheduleAgendaPanel";
 import { buildTodayItems } from "./todayView";
 import { timeOfDayPeriod, timeOfDayPalette, timeOfDayBackground } from "./timeOfDayPalette";
 import HomeHeader from "./HomeHeader";
-import { tint, ACCENT_OPTIONS, UNLOCKABLE_ACCENT_OPTIONS, PLUS_ACCENTS, planetColorsFor, SOLAR_PLANETS } from "./theme";
+import { tint, shadeColor, luminance, ACCENT_OPTIONS, UNLOCKABLE_ACCENT_OPTIONS, PLUS_ACCENTS, planetColorsFor, SOLAR_PLANETS } from "./theme";
 import { PlusUpsellBadge as PlusMark } from "./PlusUpsellCard";
 import { PLUS_THEMES } from "./plusThemes";
 import {
@@ -1583,39 +1583,20 @@ export default function FocusFlowTDAH({
     [grantXp, t]
   );
 
-  // Acceso a Modo Salida desde Inicio (13 de noviembre de 2026). Dos lugares:
-  // "active" = tarjeta grande con lo que falta, arriba; "idle" = renglón
-  // discreto para empezar una lista. Abre la herramienta DENTRO de Inicio,
-  // igual que las "más usadas". Solo se llama desde el JSX de abajo.
-  const renderErrandHome = (slot) => {
+  // Tarjeta de Inicio cuando hay una salida activa (13 de noviembre de
+  // 2026): va arriba de todo con lo que falta. Sin salida activa no pinta
+  // nada — para empezar una está el botón redondo "Voy a salir" (ver
+  // renderHomeQuickActions). Abre la herramienta DENTRO de Inicio, igual que
+  // las "más usadas". Solo se llama desde el JSX de abajo.
+  const renderErrandHome = () => {
     const em = t.errandMode || {};
     const trip = getActiveErrandTrip(errandState);
+    if (!trip) return null;
     const openErrands = () => {
       setInicioToolKey("errandMode");
       window.scrollTo({ top: 0, behavior: "smooth" });
     };
     const wrap = { padding: isNarrow ? "6px 12px 0" : "6px 18px 0", maxWidth: isWide ? "600px" : "420px", width: "100%", margin: "0 auto", boxSizing: "border-box" };
-    if (!trip) {
-      if (slot !== "idle") return null;
-      return (
-        <div style={wrap}>
-          <button type="button" onClick={openErrands}
-            style={{
-              display: "flex", alignItems: "center", gap: "10px", width: "100%",
-              padding: "11px 14px", borderRadius: "14px",
-              border: `1px solid ${C.border}`, background: C.surface,
-              color: C.text, cursor: "pointer", textAlign: "left",
-            }}>
-            <span aria-hidden="true" style={{ fontSize: "18px", flexShrink: 0 }}>🚗</span>
-            <span style={{ flex: 1, minWidth: 0, fontSize: "13px", fontWeight: 600 }}>
-              {em.homeCTA || "¿Vas a salir? Arma tu lista de mandados"}
-            </span>
-            <span aria-hidden="true" style={{ fontSize: "18px", color: C.textMuted, flexShrink: 0 }}>›</span>
-          </button>
-        </div>
-      );
-    }
-    if (slot !== "active") return null;
     const pend = pendingErrandItems(trip);
     const total = trip.items.length;
     const allDone = pend.length === 0;
@@ -1646,6 +1627,83 @@ export default function FocusFlowTDAH({
           </span>
           <span aria-hidden="true" style={{ fontSize: "20px", fontWeight: 800, opacity: 0.8, flexShrink: 0 }}>›</span>
         </button>
+      </div>
+    );
+  };
+
+  // Acciones rápidas de Inicio (13 de noviembre de 2026, "más luminosos",
+  // la doctora eligió la opción de botones redondos): relleno claro con
+  // resplandor. El botón de dictar usa el acento de la paciente — aclarado
+  // si el acento es oscuro y el fondo de Inicio también, para que brille
+  // igual en tema claro de noche — y el color del ícono se decide por
+  // luminancia para que se distinga con cualquier acento. Las etiquetas
+  // usan el color de texto del fondo de Inicio (`palette`), no C.text: de
+  // noche el fondo es oscuro aunque el tema sea claro.
+  // De noche se atenúan igual que la brújula (mismo `palette.circleFilter`
+  // y un resplandor más corto): la regla de bajar estímulos antes de dormir
+  // también aplica a estos dos botones. De mañana y tarde quedan igual.
+  // Atenuados, conservan un halo BLANCO que late despacio (pedido de la
+  // doctora): va en un envoltorio aparte para que el filtro de noche no lo
+  // apague, respira cada 3.6 s y se queda fijo si el teléfono pide menos
+  // movimiento (prefers-reduced-motion).
+  const renderHomeQuickActions = (palette = {}) => {
+    const nightFilter = palette.circleFilter || undefined;
+    const em = t.errandMode || {};
+    const homeBgIsDark = typeof palette.bg === "string" && luminance(palette.bg) < 0.25;
+    const voiceBase = homeBgIsDark && luminance(personalAccent) < 0.3 ? shadeColor(personalAccent, 0.3) : personalAccent;
+    const voiceLight = shadeColor(voiceBase, 0.3);
+    const voiceIcon = luminance(voiceLight) > 0.36 ? "#1B1530" : "#FFFFFF";
+    const labelColor = palette.textHi || palette.text || C.text;
+    const actions = [
+      {
+        key: "voice",
+        icon: <Mic size={26} color={voiceIcon} />,
+        label: t.today.voiceQuickShort || "Dictar pendiente",
+        bg: `linear-gradient(135deg, ${voiceLight}, ${voiceBase})`,
+        glow: tint(voiceBase, 0.5),
+        onClick: () => {
+          setPendingVoiceStart(true);
+          setActiveTab("agenda");
+          window.scrollTo({ top: 0, behavior: "smooth" });
+        },
+      },
+      {
+        key: "errand",
+        icon: <span aria-hidden="true" style={{ fontSize: "26px", lineHeight: 1 }}>🚗</span>,
+        label: em.homeTitle || "Voy a salir",
+        bg: "linear-gradient(135deg, #FFD66B, #FF9F1C)",
+        glow: "rgba(255, 170, 40, 0.5)",
+        onClick: () => {
+          setInicioToolKey("errandMode");
+          window.scrollTo({ top: 0, behavior: "smooth" });
+        },
+      },
+    ];
+    return (
+      <div style={{ padding: isNarrow ? "10px 12px 2px" : "10px 18px 2px", maxWidth: isWide ? "600px" : "420px", width: "100%", margin: "0 auto", boxSizing: "border-box", display: "flex", justifyContent: "center", gap: "40px" }}>
+        {nightFilter && (
+          <style>{`
+            @keyframes anroQuickHalo {
+              0%, 100% { box-shadow: 0 0 9px 1px rgba(255,255,255,0.26); }
+              50% { box-shadow: 0 0 22px 5px rgba(255,255,255,0.55); }
+            }
+            .anro-quick-halo { animation: anroQuickHalo 3.6s ease-in-out infinite; }
+            @media (prefers-reduced-motion: reduce) { .anro-quick-halo { animation: none; } }
+          `}</style>
+        )}
+        {actions.map((a) => (
+          <button key={a.key} type="button" onClick={a.onClick}
+            style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: "7px", minWidth: "110px", background: "none", border: "none", padding: 0, cursor: "pointer" }}>
+            <span className={nightFilter ? "anro-quick-halo" : undefined} style={{ display: "flex", borderRadius: "50%", boxShadow: nightFilter ? "0 0 14px 2px rgba(255,255,255,0.38)" : undefined }}>
+              <span style={{ width: "64px", height: "64px", borderRadius: "50%", background: a.bg, boxShadow: nightFilter ? "inset 0 1px 0 rgba(255,255,255,0.25)" : `0 6px 22px ${a.glow}, inset 0 1px 0 rgba(255,255,255,0.45)`, filter: nightFilter, display: "flex", alignItems: "center", justifyContent: "center" }}>
+                {a.icon}
+              </span>
+            </span>
+            <span style={{ fontSize: "13px", fontWeight: 700, lineHeight: 1.2, color: labelColor, background: palette.chipBg || "transparent", padding: palette.chipBg ? "2px 8px" : 0, borderRadius: "999px" }}>
+              {a.label}
+            </span>
+          </button>
+        ))}
       </div>
     );
   };
@@ -2415,7 +2473,7 @@ export default function FocusFlowTDAH({
               {/* 🚗 Modo Salida con salida activa: va ARRIBA de todo lo
                   demás de Inicio — es lo que hay que ver al desbloquear
                   el teléfono a media calle. */}
-              {renderErrandHome("active")}
+              {renderErrandHome()}
               {/* ✨ Tarjeta contextual "Te puede servir ahora" (12 de
                   noviembre de 2026, rediseño brújula): una sugerencia
                   dinámica basada en lo que la app ya sabe del día. Se
@@ -2468,67 +2526,11 @@ export default function FocusFlowTDAH({
                 );
               })()}
 
-              {/* 🎙️ Botón de voz rápido para pendientes (13 de noviembre
-                  de 2026): acceso directo desde Inicio para dictar un
-                  pendiente sin entrar a la Agenda. Al tocar, cambia a la
-                  pestaña Agenda y auto-inicia la captura de voz. */}
-              <div style={{
-                padding: isNarrow ? "6px 12px 0" : "6px 18px 0",
-                maxWidth: isWide ? "600px" : "420px",
-                width: "100%",
-                margin: "0 auto",
-                boxSizing: "border-box",
-              }}>
-                <button
-                  type="button"
-                  onClick={() => {
-                    setPendingVoiceStart(true);
-                    setActiveTab("agenda");
-                    window.scrollTo({ top: 0, behavior: "smooth" });
-                  }}
-                  style={{
-                    display: "flex",
-                    alignItems: "center",
-                    gap: "12px",
-                    width: "100%",
-                    padding: "14px 16px",
-                    borderRadius: "16px",
-                    border: "none",
-                    background: `linear-gradient(135deg, ${personalAccent}, ${personalAccent}bb)`,
-                    color: "#fff",
-                    cursor: "pointer",
-                    textAlign: "left",
-                    boxSizing: "border-box",
-                    boxShadow: `0 4px 16px ${personalAccent}33`,
-                  }}
-                >
-                  <span style={{
-                    width: "42px",
-                    height: "42px",
-                    borderRadius: "12px",
-                    background: "rgba(255,255,255,0.2)",
-                    display: "flex",
-                    alignItems: "center",
-                    justifyContent: "center",
-                    flexShrink: 0,
-                  }}>
-                    <Mic size={22} color="#fff" />
-                  </span>
-                  <span style={{ flex: 1, minWidth: 0 }}>
-                    <span style={{ display: "block", fontSize: "14px", fontWeight: 700 }}>
-                      {t.today.voiceQuickAdd || "Dicta un pendiente"}
-                    </span>
-                    <span style={{ display: "block", fontSize: "11px", opacity: 0.85, marginTop: "2px" }}>
-                      {t.today.voiceQuickAddHint || "Citas, mandados, compromisos... con voz"}
-                    </span>
-                  </span>
-                  <span style={{ fontSize: "20px", fontWeight: 800, opacity: 0.7, flexShrink: 0 }}>›</span>
-                </button>
-              </div>
-
-              {/* 🚗 Modo Salida sin salida activa: un renglón discreto para
-                  empezar una (con salida activa la tarjeta va arriba). */}
-              {renderErrandHome("idle")}
+              {/* 🎙️ + 🚗 Acciones rápidas de Inicio (13 de noviembre de
+                  2026): dos botones redondos y luminosos — dictar un
+                  pendiente (salta a la Agenda con el micrófono ya
+                  escuchando) y Modo Salida. Ver renderHomeQuickActions. */}
+              {renderHomeQuickActions(palette)}
 
               {/* ⚡ Tus más usadas (12 de noviembre de 2026): las últimas
                   5 herramientas usadas, en un scroll horizontal compacto.
