@@ -55,6 +55,7 @@ import {
   Wrench,
   Flame,
   Globe,
+  Mic,
 } from "lucide-react";
 
 import LanguageSwitcher from "./LanguageSwitcher";
@@ -90,6 +91,17 @@ import RoutinesPanel from "./RoutinesPanel";
 import ClinicalReportPanel from "./ClinicalReportPanel";
 import GoodMomentsPanel from "./GoodMomentsPanel";
 import DayTimelinePanel from "./DayTimelinePanel";
+import ErrandModePanel from "./ErrandModePanel";
+import {
+  DEFAULT_ERRAND_STATE,
+  addErrands,
+  toggleErrandItem,
+  removeErrandItem,
+  completeTrip as completeErrandTrip,
+  cancelTrip as cancelErrandTrip,
+  activeTrip as getActiveErrandTrip,
+  pendingItems as pendingErrandItems,
+} from "./errandMode";
 import QuickNavMenu from "./QuickNavMenu";
 import MemoriaAnroLauncher from "./MemoriaAnroLauncher";
 import BreathingBubbleLauncher from "./BreathingBubbleLauncher";
@@ -236,6 +248,7 @@ const DEFAULT_PROGRESS = {
   oneThing: DEFAULT_ONE_THING,
   routines: DEFAULT_ROUTINES,
   scheduleBlocks: DEFAULT_SCHEDULE_BLOCKS,
+  errandState: DEFAULT_ERRAND_STATE,
 };
 
 // Panel y Toggle viven a nivel de módulo (no adentro de FocusFlowTDAH) para
@@ -460,6 +473,7 @@ export default function FocusFlowTDAH({
   const bodyDoubleSectionRef = useRef(null);
   const mindfulnessSectionRef = useRef(null);
   const messageToneSectionRef = useRef(null);
+  const errandModeSectionRef = useRef(null);
   // Fase 2 (navegación, 28 de octubre de 2026): la app pasa de una sola
   // página larga a 5 pestañas (Inicio/Agenda/Herramientas/Progreso/Perfil —
   // ver AppTabBar.jsx). Es una preferencia de DISPOSITIVO, no de paciente
@@ -479,6 +493,8 @@ export default function FocusFlowTDAH({
   // tocar una herramienta desde la nudge card o "Tus más usadas", se abre
   // aquí mismo sin salir de la pestaña Inicio. `null` = sin overlay.
   const [inicioToolKey, setInicioToolKey] = useState(null);
+  // Trigger para auto-iniciar voz en la agenda desde el Home
+  const [pendingVoiceStart, setPendingVoiceStart] = useState(false);
   const [activeTab, setActiveTab] = useState(() => {
     try {
       return window.localStorage.getItem("anro-active-tab") || "inicio";
@@ -574,6 +590,7 @@ export default function FocusFlowTDAH({
     bodyDouble: bodyDoubleSectionRef,
     mindfulness: mindfulnessSectionRef,
     messageTone: messageToneSectionRef,
+    errandMode: errandModeSectionRef,
   };
   // A qué pestaña (de las 5 de AppTabBar) pertenece cada sección — mismas
   // llaves que companionSectionRefs arriba. "today" no está porque Inicio
@@ -602,6 +619,7 @@ export default function FocusFlowTDAH({
     mindfulness: "herramientas",
     reestructuracion: "herramientas",
     messageTone: "herramientas",
+    errandMode: "herramientas",
     bodyDouble: "herramientas",
     goodMoments: "progreso",
     insights: "progreso",
@@ -717,6 +735,7 @@ export default function FocusFlowTDAH({
     { key: "mindfulness", icon: <Flower2 size={18} />, label: t.app.panels.mindfulness.title },
     { key: "reestructuracion", icon: <Brain size={18} />, label: t.app.panels.reframe.title },
     { key: "messageTone", icon: <MessageSquare size={18} />, label: t.app.panels.messageTone.title },
+    { key: "errandMode", icon: <ShoppingCart size={18} />, label: t.app.panels.errandMode.title },
     { key: "habits", icon: <Moon size={18} />, label: t.app.panels.habits.title },
   ];
 
@@ -773,6 +792,7 @@ export default function FocusFlowTDAH({
     mindfulness: t.app.panels.mindfulness.subtitle,
     reestructuracion: t.app.panels.reframe.subtitle,
     messageTone: t.app.panels.messageTone.subtitle,
+    errandMode: t.app.panels.errandMode.subtitle,
     bodyDouble: t.app.panels.bodyDouble.subtitle,
   };
   // Fase 3 del sistema de planes (30 de octubre de 2026) — las 6
@@ -854,6 +874,7 @@ export default function FocusFlowTDAH({
   const [oneThing, setOneThing] = useState(saved.oneThing);
   const [routines, setRoutines] = useState(saved.routines);
   const [scheduleBlocks, setScheduleBlocks] = useState(saved.scheduleBlocks);
+  const [errandState, setErrandState] = useState(saved.errandState);
 
   // Acento personal con candado por puntos (8 de noviembre de 2026, ver
   // UNLOCKABLE_ACCENT_OPTIONS en theme.js y XP_MILESTONES en
@@ -931,6 +952,7 @@ export default function FocusFlowTDAH({
       oneThing,
       routines,
       scheduleBlocks,
+      errandState,
     });
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [
@@ -962,6 +984,7 @@ export default function FocusFlowTDAH({
     oneThing,
     routines,
     scheduleBlocks,
+    errandState,
   ]);
 
   // ---- XP + jar ----
@@ -1536,6 +1559,96 @@ export default function FocusFlowTDAH({
     setScheduleBlocks((prev) => updateScheduleBlock(prev, blockId, fields));
   const handleMoveScheduleBlock = (blockId, newStartMin) =>
     setScheduleBlocks((prev) => moveScheduleBlock(prev, blockId, newStartMin));
+
+  // ---- Modo Salida (13 de noviembre de 2026) — ver errandMode.js ----
+  // La lista de mandados vive en progress.data.errandState (se guarda junto
+  // con todo lo demás), así el cron ?check=errands puede leerla y avisar.
+  const handleAddErrands = useCallback((items) => setErrandState((prev) => addErrands(prev, items)), []);
+  const handleToggleErrandItem = useCallback(
+    (tripId, itemId) => setErrandState((prev) => toggleErrandItem(prev, tripId, itemId)),
+    []
+  );
+  const handleRemoveErrandItem = useCallback(
+    (tripId, itemId) => setErrandState((prev) => removeErrandItem(prev, tripId, itemId)),
+    []
+  );
+  const handleCancelErrandTrip = useCallback((tripId) => setErrandState((prev) => cancelErrandTrip(prev, tripId)), []);
+  // Cerrar una salida con todo tachado da puntos como cualquier otra acción
+  // (grantXp ya trae el sonido/vibración de celebrate.js).
+  const handleCompleteErrandTrip = useCallback(
+    (tripId) => {
+      setErrandState((prev) => completeErrandTrip(prev, tripId));
+      grantXp(t.errandMode?.xpLabel || "Mandados completos");
+    },
+    [grantXp, t]
+  );
+
+  // Acceso a Modo Salida desde Inicio (13 de noviembre de 2026). Dos lugares:
+  // "active" = tarjeta grande con lo que falta, arriba; "idle" = renglón
+  // discreto para empezar una lista. Abre la herramienta DENTRO de Inicio,
+  // igual que las "más usadas". Solo se llama desde el JSX de abajo.
+  const renderErrandHome = (slot) => {
+    const em = t.errandMode || {};
+    const trip = getActiveErrandTrip(errandState);
+    const openErrands = () => {
+      setInicioToolKey("errandMode");
+      window.scrollTo({ top: 0, behavior: "smooth" });
+    };
+    const wrap = { padding: isNarrow ? "6px 12px 0" : "6px 18px 0", maxWidth: isWide ? "600px" : "420px", width: "100%", margin: "0 auto", boxSizing: "border-box" };
+    if (!trip) {
+      if (slot !== "idle") return null;
+      return (
+        <div style={wrap}>
+          <button type="button" onClick={openErrands}
+            style={{
+              display: "flex", alignItems: "center", gap: "10px", width: "100%",
+              padding: "11px 14px", borderRadius: "14px",
+              border: `1px solid ${C.border}`, background: C.surface,
+              color: C.text, cursor: "pointer", textAlign: "left",
+            }}>
+            <span aria-hidden="true" style={{ fontSize: "18px", flexShrink: 0 }}>🚗</span>
+            <span style={{ flex: 1, minWidth: 0, fontSize: "13px", fontWeight: 600 }}>
+              {em.homeCTA || "¿Vas a salir? Arma tu lista de mandados"}
+            </span>
+            <span aria-hidden="true" style={{ fontSize: "18px", color: C.textMuted, flexShrink: 0 }}>›</span>
+          </button>
+        </div>
+      );
+    }
+    if (slot !== "active") return null;
+    const pend = pendingErrandItems(trip);
+    const total = trip.items.length;
+    const allDone = pend.length === 0;
+    return (
+      <div style={wrap}>
+        <button type="button" onClick={openErrands}
+          style={{
+            display: "flex", alignItems: "center", gap: "12px", width: "100%",
+            padding: "14px 16px", borderRadius: "16px", border: "none",
+            background: allDone ? "#1E9E6E" : "#B45309",
+            color: "#fff", cursor: "pointer", textAlign: "left",
+            boxShadow: "0 4px 16px rgba(0,0,0,0.14)",
+          }}>
+          <span aria-hidden="true" style={{ width: "42px", height: "42px", borderRadius: "12px", background: "rgba(255,255,255,0.2)", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0, fontSize: "20px" }}>
+            {allDone ? "🎉" : "🚗"}
+          </span>
+          <span style={{ flex: 1, minWidth: 0 }}>
+            <span style={{ display: "block", fontSize: "14px", fontWeight: 700 }}>
+              {allDone
+                ? (em.homeDone || "¡Mandados completos! Cierra tu salida")
+                : (em.homeActive ? em.homeActive(pend.length) : `Te ${pend.length === 1 ? "falta" : "faltan"} ${pend.length} mandado${pend.length === 1 ? "" : "s"}`)}
+            </span>
+            <span style={{ display: "block", fontSize: "12px", opacity: 0.92, marginTop: "2px", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+              {allDone
+                ? `${total}/${total}`
+                : pend.map((it) => `${it.icon} ${it.text}`).join(" · ")}
+            </span>
+          </span>
+          <span aria-hidden="true" style={{ fontSize: "20px", fontWeight: 800, opacity: 0.8, flexShrink: 0 }}>›</span>
+        </button>
+      </div>
+    );
+  };
 
   // Igual que addStep, pero a partir de lo que propuso la IA de "Captura
   // rápida" (ver api/quick-capture.js) — solo se llama cuando la persona ya
@@ -2299,6 +2412,10 @@ export default function FocusFlowTDAH({
                   </div>
                 );
               })()}
+              {/* 🚗 Modo Salida con salida activa: va ARRIBA de todo lo
+                  demás de Inicio — es lo que hay que ver al desbloquear
+                  el teléfono a media calle. */}
+              {renderErrandHome("active")}
               {/* ✨ Tarjeta contextual "Te puede servir ahora" (12 de
                   noviembre de 2026, rediseño brújula): una sugerencia
                   dinámica basada en lo que la app ya sabe del día. Se
@@ -2350,6 +2467,68 @@ export default function FocusFlowTDAH({
                   </div>
                 );
               })()}
+
+              {/* 🎙️ Botón de voz rápido para pendientes (13 de noviembre
+                  de 2026): acceso directo desde Inicio para dictar un
+                  pendiente sin entrar a la Agenda. Al tocar, cambia a la
+                  pestaña Agenda y auto-inicia la captura de voz. */}
+              <div style={{
+                padding: isNarrow ? "6px 12px 0" : "6px 18px 0",
+                maxWidth: isWide ? "600px" : "420px",
+                width: "100%",
+                margin: "0 auto",
+                boxSizing: "border-box",
+              }}>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setPendingVoiceStart(true);
+                    setActiveTab("agenda");
+                    window.scrollTo({ top: 0, behavior: "smooth" });
+                  }}
+                  style={{
+                    display: "flex",
+                    alignItems: "center",
+                    gap: "12px",
+                    width: "100%",
+                    padding: "14px 16px",
+                    borderRadius: "16px",
+                    border: "none",
+                    background: `linear-gradient(135deg, ${personalAccent}, ${personalAccent}bb)`,
+                    color: "#fff",
+                    cursor: "pointer",
+                    textAlign: "left",
+                    boxSizing: "border-box",
+                    boxShadow: `0 4px 16px ${personalAccent}33`,
+                  }}
+                >
+                  <span style={{
+                    width: "42px",
+                    height: "42px",
+                    borderRadius: "12px",
+                    background: "rgba(255,255,255,0.2)",
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    flexShrink: 0,
+                  }}>
+                    <Mic size={22} color="#fff" />
+                  </span>
+                  <span style={{ flex: 1, minWidth: 0 }}>
+                    <span style={{ display: "block", fontSize: "14px", fontWeight: 700 }}>
+                      {t.today.voiceQuickAdd || "Dicta un pendiente"}
+                    </span>
+                    <span style={{ display: "block", fontSize: "11px", opacity: 0.85, marginTop: "2px" }}>
+                      {t.today.voiceQuickAddHint || "Citas, mandados, compromisos... con voz"}
+                    </span>
+                  </span>
+                  <span style={{ fontSize: "20px", fontWeight: 800, opacity: 0.7, flexShrink: 0 }}>›</span>
+                </button>
+              </div>
+
+              {/* 🚗 Modo Salida sin salida activa: un renglón discreto para
+                  empezar una (con salida activa la tarjeta va arriba). */}
+              {renderErrandHome("idle")}
 
               {/* ⚡ Tus más usadas (12 de noviembre de 2026): las últimas
                   5 herramientas usadas, en un scroll horizontal compacto.
@@ -3545,6 +3724,8 @@ export default function FocusFlowTDAH({
               onUpdate={handleUpdateScheduleBlock}
               onMove={handleMoveScheduleBlock}
               medications={medications}
+              autoStartVoice={pendingVoiceStart}
+              onVoiceConsumed={() => setPendingVoiceStart(false)}
             />
           </Panel>
         </div>
@@ -4709,6 +4890,29 @@ export default function FocusFlowTDAH({
               <PlusLockedPanel C={C} t={t} locked={!isPlus} onRequestUpgrade={onRequestUpgrade}>
               <MessageTonePanel C={C} t={t} lang={lang} userId={userId} />
               </PlusLockedPanel>
+            </Panel>
+            </div>
+
+            <div ref={errandModeSectionRef} style={toolStyle("errandMode")}>
+            <Panel C={C}
+              accent={C.amber}
+              icon={<ShoppingCart size={22} />}
+              title={t.app.panels.errandMode.title}
+              subtitle={t.app.panels.errandMode.subtitle}
+            >
+              <ErrandModePanel
+                C={C}
+                t={t}
+                lang={lang}
+                accent={personalAccent}
+                errandState={errandState}
+                onAddItems={handleAddErrands}
+                onToggleItem={handleToggleErrandItem}
+                onRemoveItem={handleRemoveErrandItem}
+                onCompleteTrip={handleCompleteErrandTrip}
+                onCancelTrip={handleCancelErrandTrip}
+                onOpenNotifications={() => scrollToCompanionSection("notifications")}
+              />
             </Panel>
             </div>
         </div>

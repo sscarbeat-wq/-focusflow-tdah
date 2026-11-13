@@ -19,7 +19,7 @@ export const TOOL_GROUPS = [
   { key: "focus", emoji: "🎯", color: "#2E7FD9", tools: ["focusMode", "bodyDouble", "activeBreak"] },
   { key: "calm", emoji: "🫧", color: "#1E9E6E", tools: ["burbuja", "calmBubbles", "mindfulness", "freno", "reestructuracion"] },
   { key: "feel", emoji: "💛", color: "#D98A0B", tools: ["mood", "energy", "companion", "cbt"] },
-  { key: "daily", emoji: "📋", color: "#D9467F", tools: ["medication", "payments", "habits", "messageTone"] },
+  { key: "daily", emoji: "📋", color: "#D9467F", tools: ["medication", "payments", "habits", "messageTone", "errandMode"] },
 ];
 
 const RECENT_KEY = "anro-tools-recent";

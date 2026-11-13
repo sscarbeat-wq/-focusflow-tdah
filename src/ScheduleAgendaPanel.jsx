@@ -305,6 +305,8 @@ export default function ScheduleAgendaPanel({
   onUpdate,
   onMove,
   medications,
+  autoStartVoice,
+  onVoiceConsumed,
 }) {
   const [calendarOpen, setCalendarOpen] = useState(false);
   const [calMonth, setCalMonth] = useState(() => {
@@ -435,6 +437,14 @@ export default function ScheduleAgendaPanel({
 
   // Limpiar al desmontar
   useEffect(() => () => stopVoice(), [stopVoice]);
+
+  // Auto-iniciar voz cuando viene del Home (prop autoStartVoice)
+  useEffect(() => {
+    if (autoStartVoice && SpeechRecognitionAPI && !voiceListening) {
+      startVoice();
+      if (onVoiceConsumed) onVoiceConsumed();
+    }
+  }, [autoStartVoice]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Cuando la voz parsea un bloque, auto-agregarlo directamente
   const applyVoiceParsed = useCallback((parsed) => {
@@ -940,55 +950,89 @@ export default function ScheduleAgendaPanel({
               </div>
             </div>
 
-            {/* Fila: bloque personalizado + voz */}
-            <div style={{ display: "flex", gap: "8px" }}>
+            {/* Botón principal de voz — grande y destacado */}
+            {SpeechRecognitionAPI && (
               <button
-                onClick={() => setAddingNew(true)}
+                onClick={voiceListening ? stopVoice : startVoice}
                 style={{
-                  flex: 1,
-                  border: `2px dashed ${tint(accent, 0.3)}`,
-                  background: "transparent",
-                  borderRadius: "14px",
-                  padding: "12px",
-                  fontSize: "13px",
-                  fontWeight: 600,
-                  color: accent,
+                  width: "100%",
+                  background: voiceListening
+                    ? `linear-gradient(135deg, #E53935, #FF5252)`
+                    : `linear-gradient(135deg, ${accent}, ${tint(accent, 0.7)})`,
+                  border: "none",
+                  borderRadius: "16px",
+                  padding: "16px 18px",
                   cursor: "pointer",
                   display: "flex",
                   alignItems: "center",
-                  justifyContent: "center",
-                  gap: "6px",
+                  gap: "12px",
+                  boxShadow: voiceListening
+                    ? "0 4px 16px rgba(229,57,53,0.3)"
+                    : `0 4px 16px ${tint(accent, 0.25)}`,
+                  animation: voiceListening ? "anro-pulse 1.5s ease-in-out infinite" : "none",
+                  transition: "all 0.3s ease",
                 }}
+                aria-label={labels.voiceAdd || "Agregar con voz"}
               >
-                <Plus size={16} />
-                {labels.customBlock || "Crear bloque personalizado"}
-              </button>
-
-              {/* Botón de voz */}
-              {SpeechRecognitionAPI && (
-                <button
-                  onClick={voiceListening ? stopVoice : startVoice}
-                  style={{
-                    width: "52px",
-                    height: "52px",
-                    borderRadius: "14px",
-                    border: voiceListening ? `2px solid ${accent}` : `2px dashed ${tint(accent, 0.3)}`,
-                    background: voiceListening ? tint(accent, 0.12) : "transparent",
-                    cursor: "pointer",
-                    display: "flex",
-                    alignItems: "center",
-                    justifyContent: "center",
+                <div style={{
+                  width: "44px",
+                  height: "44px",
+                  borderRadius: "12px",
+                  background: "rgba(255,255,255,0.2)",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  flexShrink: 0,
+                }}>
+                  <Mic size={22} color="#fff" />
+                </div>
+                <div style={{ flex: 1, textAlign: "left" }}>
+                  <div style={{ fontSize: "14px", fontWeight: 700, color: "#fff" }}>
+                    {voiceListening
+                      ? (labels.voiceListening || "Escuchando...")
+                      : (labels.voiceCTA || "Dicta tu pendiente")}
+                  </div>
+                  <div style={{ fontSize: "11px", color: "rgba(255,255,255,0.8)", marginTop: "2px" }}>
+                    {voiceListening
+                      ? (labels.voiceTapStop || "Toca para detener")
+                      : (labels.voiceHint || "\"Cita con el dentista el viernes a las 4\"")}
+                  </div>
+                </div>
+                {voiceListening && (
+                  <div style={{
+                    width: "12px",
+                    height: "12px",
+                    borderRadius: "50%",
+                    background: "#fff",
+                    animation: "anro-pulse 1s ease-in-out infinite",
                     flexShrink: 0,
-                    animation: voiceListening ? "anro-pulse 1.5s ease-in-out infinite" : "none",
-                  }}
-                  aria-label={labels.voiceAdd || "Agregar con voz"}
-                >
-                  {voiceListening
-                    ? <Mic size={20} color={accent} />
-                    : <Mic size={20} color={tint(accent, 0.6)} />}
-                </button>
-              )}
-            </div>
+                  }} />
+                )}
+              </button>
+            )}
+
+            {/* Botón secundario: crear bloque manual */}
+            <button
+              onClick={() => setAddingNew(true)}
+              style={{
+                width: "100%",
+                border: `2px dashed ${tint(accent, 0.3)}`,
+                background: "transparent",
+                borderRadius: "14px",
+                padding: "12px",
+                fontSize: "13px",
+                fontWeight: 600,
+                color: accent,
+                cursor: "pointer",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                gap: "6px",
+              }}
+            >
+              <Plus size={16} />
+              {labels.customBlock || "Escribir manualmente"}
+            </button>
 
             {/* Indicador de voz activa */}
             {voiceListening && (
@@ -1342,13 +1386,67 @@ export default function ScheduleAgendaPanel({
           </div>
         </div>
       ) : (
-        /* Botones para agregar otro bloque: texto + voz */
+        /* Botones para agregar otro bloque: voz (principal) + manual */
         dayBlocks.length > 0 && (
-          <div style={{ display: "flex", gap: "8px", marginTop: "12px" }}>
+          <div style={{ display: "flex", flexDirection: "column", gap: "8px", marginTop: "12px" }}>
+            {/* Botón de voz — prominente */}
+            {SpeechRecognitionAPI && (
+              <button
+                onClick={voiceListening ? stopVoice : startVoice}
+                style={{
+                  width: "100%",
+                  background: voiceListening
+                    ? `linear-gradient(135deg, #E53935, #FF5252)`
+                    : `linear-gradient(135deg, ${accent}, ${tint(accent, 0.7)})`,
+                  border: "none",
+                  borderRadius: "14px",
+                  padding: "14px 16px",
+                  cursor: "pointer",
+                  display: "flex",
+                  alignItems: "center",
+                  gap: "10px",
+                  boxShadow: voiceListening
+                    ? "0 3px 12px rgba(229,57,53,0.25)"
+                    : `0 3px 12px ${tint(accent, 0.2)}`,
+                  animation: voiceListening ? "anro-pulse 1.5s ease-in-out infinite" : "none",
+                  transition: "all 0.3s ease",
+                }}
+                aria-label={labels.voiceAdd || "Agregar con voz"}
+              >
+                <div style={{
+                  width: "36px",
+                  height: "36px",
+                  borderRadius: "10px",
+                  background: "rgba(255,255,255,0.2)",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  flexShrink: 0,
+                }}>
+                  <Mic size={18} color="#fff" />
+                </div>
+                <div style={{ flex: 1, textAlign: "left" }}>
+                  <div style={{ fontSize: "13px", fontWeight: 700, color: "#fff" }}>
+                    {voiceListening
+                      ? (labels.voiceListening || "Escuchando...")
+                      : (labels.voiceCTA || "Dicta tu pendiente")}
+                  </div>
+                  <div style={{ fontSize: "11px", color: "rgba(255,255,255,0.8)", marginTop: "1px" }}>
+                    {voiceListening
+                      ? (labels.voiceTapStop || "Toca para detener")
+                      : (labels.voiceHintShort || "\"Ir al banco mañana a las 10\"")}
+                  </div>
+                </div>
+                {voiceListening && (
+                  <div style={{ width: "10px", height: "10px", borderRadius: "50%", background: "#fff", animation: "anro-pulse 1s ease-in-out infinite", flexShrink: 0 }} />
+                )}
+              </button>
+            )}
+            {/* Botón manual — secundario */}
             <button
               onClick={() => setAddingNew(true)}
               style={{
-                flex: 1,
+                width: "100%",
                 border: `2px dashed ${tint(accent, 0.3)}`,
                 background: "transparent",
                 borderRadius: "14px",
@@ -1366,27 +1464,6 @@ export default function ScheduleAgendaPanel({
               <Plus size={16} />
               {labels.addAnotherBlock || "Agregar otro bloque"}
             </button>
-            {SpeechRecognitionAPI && (
-              <button
-                onClick={voiceListening ? stopVoice : startVoice}
-                style={{
-                  width: "52px",
-                  height: "52px",
-                  borderRadius: "14px",
-                  border: voiceListening ? `2px solid ${accent}` : `2px dashed ${tint(accent, 0.3)}`,
-                  background: voiceListening ? tint(accent, 0.12) : "transparent",
-                  cursor: "pointer",
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "center",
-                  flexShrink: 0,
-                  animation: voiceListening ? "anro-pulse 1.5s ease-in-out infinite" : "none",
-                }}
-                aria-label={labels.voiceAdd || "Agregar con voz"}
-              >
-                <Mic size={20} color={voiceListening ? accent : tint(accent, 0.6)} />
-              </button>
-            )}
           </div>
         )
       )}
