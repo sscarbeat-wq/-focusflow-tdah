@@ -341,19 +341,33 @@ export default function ScheduleAgendaPanel({
   // Limpiar al desmontar
   useEffect(() => () => stopVoice(), [stopVoice]);
 
-  const handleVoiceConfirm = useCallback(() => {
-    if (!voiceParsed) return;
+  // Cuando la voz parsea un bloque, auto-agregarlo directamente
+  const applyVoiceParsed = useCallback((parsed) => {
+    if (!parsed) return;
     const now = new Date();
-    const fallbackStart = now.getHours() * 60 + now.getMinutes() + 15; // 15 min desde ahora
+    const fallbackStart = now.getHours() * 60 + now.getMinutes() + 15;
+    const startMin = parsed.startMin != null ? parsed.startMin : fallbackStart;
+    // Agregar el bloque directamente
     onAdd({
-      name: voiceParsed.name,
-      icon: voiceParsed.icon,
-      startMin: voiceParsed.startMin != null ? voiceParsed.startMin : fallbackStart,
-      durationMin: voiceParsed.durationMin,
+      name: parsed.name,
+      icon: parsed.icon,
+      startMin,
+      durationMin: parsed.durationMin,
     });
     setVoiceParsed(null);
     setVoiceText("");
-  }, [voiceParsed, onAdd]);
+  }, [onAdd]);
+
+  // AUTO-AGREGAR: cuando voiceParsed cambia, agregar el bloque automáticamente
+  useEffect(() => {
+    if (voiceParsed) {
+      applyVoiceParsed(voiceParsed);
+    }
+  }, [voiceParsed, applyVoiceParsed]);
+
+  const handleVoiceConfirm = useCallback(() => {
+    applyVoiceParsed(voiceParsed);
+  }, [voiceParsed, applyVoiceParsed]);
 
   const handleVoiceCancel = useCallback(() => {
     setVoiceParsed(null);
