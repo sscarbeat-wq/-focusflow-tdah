@@ -1632,8 +1632,8 @@ export default function FocusFlowTDAH({
   };
 
   // Acciones rápidas de Inicio (13 de noviembre de 2026, "más luminosos",
-  // la doctora eligió la opción de botones redondos): relleno claro con
-  // resplandor. El botón de dictar usa el acento de la paciente — aclarado
+  // la doctora eligió la opción de botones redondos, después los pidió
+  // "como en 3D"): esferas con relleno claro y resplandor. El botón de dictar usa el acento de la paciente — aclarado
   // si el acento es oscuro y el fondo de Inicio también, para que brille
   // igual en tema claro de noche — y el color del ícono se decide por
   // luminancia para que se distinga con cualquier acento. Las etiquetas
@@ -1654,12 +1654,17 @@ export default function FocusFlowTDAH({
     const voiceLight = shadeColor(voiceBase, 0.3);
     const voiceIcon = luminance(voiceLight) > 0.36 ? "#1B1530" : "#FFFFFF";
     const labelColor = palette.textHi || palette.text || C.text;
+    // Volumen de esfera (mismo truco de luz que los planetas de la brújula,
+    // ver QuickAccessCompass.jsx): brillo arriba a la izquierda, sombra
+    // abajo a la derecha, sombra proyectada y un pequeño hundimiento al tocar.
+    const sphereHighlight = "radial-gradient(circle at 32% 24%, rgba(255,255,255,0.85) 0%, rgba(255,255,255,0) 40%)";
+    const sphereShade = "radial-gradient(circle at 70% 82%, rgba(0,0,0,0.26) 0%, rgba(0,0,0,0) 58%)";
     const actions = [
       {
         key: "voice",
-        icon: <Mic size={26} color={voiceIcon} />,
+        icon: <Mic size={30} color={voiceIcon} />,
         label: t.today.voiceQuickShort || "Dictar pendiente",
-        bg: `linear-gradient(135deg, ${voiceLight}, ${voiceBase})`,
+        bg: `radial-gradient(circle at 38% 30%, ${voiceLight} 0%, ${voiceBase} 62%, ${shadeColor(voiceBase, -0.22)} 100%)`,
         glow: tint(voiceBase, 0.5),
         onClick: () => {
           setPendingVoiceStart(true);
@@ -1669,9 +1674,9 @@ export default function FocusFlowTDAH({
       },
       {
         key: "errand",
-        icon: <span aria-hidden="true" style={{ fontSize: "26px", lineHeight: 1 }}>🚗</span>,
+        icon: <span aria-hidden="true" style={{ fontSize: "32px", lineHeight: 1 }}>🚗</span>,
         label: em.homeTitle || "Voy a salir",
-        bg: "linear-gradient(135deg, #FFD66B, #FF9F1C)",
+        bg: "radial-gradient(circle at 38% 30%, #FFE08A 0%, #FFAE2B 60%, #E07B00 100%)",
         glow: "rgba(255, 170, 40, 0.5)",
         onClick: () => {
           setInicioToolKey("errandMode");
@@ -1680,26 +1685,38 @@ export default function FocusFlowTDAH({
       },
     ];
     return (
-      <div style={{ padding: isNarrow ? "10px 12px 2px" : "10px 18px 2px", maxWidth: isWide ? "600px" : "420px", width: "100%", margin: "0 auto", boxSizing: "border-box", display: "flex", justifyContent: "center", gap: "40px" }}>
-        {nightFilter && (
-          <style>{`
-            @keyframes anroQuickHalo {
-              0%, 100% { box-shadow: 0 0 9px 1px rgba(255,255,255,0.26); }
-              50% { box-shadow: 0 0 22px 5px rgba(255,255,255,0.55); }
-            }
-            .anro-quick-halo { animation: anroQuickHalo 3.6s ease-in-out infinite; }
-            @media (prefers-reduced-motion: reduce) { .anro-quick-halo { animation: none; } }
-          `}</style>
-        )}
+      <div style={{ padding: isNarrow ? "4px 12px 10px" : "6px 18px 12px", maxWidth: isWide ? "600px" : "420px", width: "100%", margin: "0 auto", boxSizing: "border-box", display: "flex", justifyContent: "center", gap: "36px" }}>
+        <style>{`
+          @keyframes anroQuickHalo {
+            0%, 100% { box-shadow: 0 0 9px 1px rgba(255,255,255,0.26); }
+            50% { box-shadow: 0 0 22px 5px rgba(255,255,255,0.55); }
+          }
+          .anro-quick-halo { animation: anroQuickHalo 3.6s ease-in-out infinite; }
+          .anro-quick-sphere { transition: transform 0.12s ease; }
+          .anro-quick-btn:active .anro-quick-sphere { transform: translateY(3px) scale(0.96); }
+          @media (prefers-reduced-motion: reduce) {
+            .anro-quick-halo { animation: none; }
+            .anro-quick-sphere { transition: none; }
+          }
+        `}</style>
         {actions.map((a) => (
-          <button key={a.key} type="button" onClick={a.onClick}
-            style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: "7px", minWidth: "110px", background: "none", border: "none", padding: 0, cursor: "pointer" }}>
+          <button key={a.key} type="button" onClick={a.onClick} className="anro-quick-btn"
+            style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: "10px", minWidth: "124px", background: "none", border: "none", padding: 0, cursor: "pointer", WebkitTapHighlightColor: "transparent" }}>
             <span className={nightFilter ? "anro-quick-halo" : undefined} style={{ display: "flex", borderRadius: "50%", boxShadow: nightFilter ? "0 0 14px 2px rgba(255,255,255,0.38)" : undefined }}>
-              <span style={{ width: "64px", height: "64px", borderRadius: "50%", background: a.bg, boxShadow: nightFilter ? "inset 0 1px 0 rgba(255,255,255,0.25)" : `0 6px 22px ${a.glow}, inset 0 1px 0 rgba(255,255,255,0.45)`, filter: nightFilter, display: "flex", alignItems: "center", justifyContent: "center" }}>
-                {a.icon}
+              <span className="anro-quick-sphere"
+                style={{
+                  width: "76px", height: "76px", borderRadius: "50%",
+                  background: `${sphereHighlight}, ${sphereShade}, ${a.bg}`,
+                  boxShadow: nightFilter
+                    ? "0 6px 12px rgba(0,0,0,0.45), inset 0 -7px 12px rgba(0,0,0,0.24), inset 0 3px 6px rgba(255,255,255,0.35)"
+                    : `0 10px 18px ${a.glow}, 0 3px 6px rgba(0,0,0,0.22), inset 0 -7px 12px rgba(0,0,0,0.2), inset 0 3px 6px rgba(255,255,255,0.55)`,
+                  filter: nightFilter,
+                  display: "flex", alignItems: "center", justifyContent: "center",
+                }}>
+                <span style={{ display: "flex", filter: "drop-shadow(0 2px 2px rgba(0,0,0,0.28))" }}>{a.icon}</span>
               </span>
             </span>
-            <span style={{ fontSize: "13px", fontWeight: 700, lineHeight: 1.2, color: labelColor, background: palette.chipBg || "transparent", padding: palette.chipBg ? "2px 8px" : 0, borderRadius: "999px" }}>
+            <span style={{ fontSize: "14px", fontWeight: 700, lineHeight: 1.2, color: labelColor, background: palette.chipBg || "transparent", padding: palette.chipBg ? "2px 8px" : 0, borderRadius: "999px" }}>
               {a.label}
             </span>
           </button>
@@ -2409,6 +2426,14 @@ export default function FocusFlowTDAH({
                 />
                 </div>
               </div>
+              {/* 🎙️ + 🚗 Acciones rápidas de Inicio (13 de noviembre de
+                  2026): dos botones redondos y luminosos — dictar un
+                  pendiente (salta a la Agenda con el micrófono ya
+                  escuchando) y Modo Salida. Van justo debajo de la
+                  brújula, antes del mensaje del día (pedido de la
+                  doctora). Ver renderHomeQuickActions. */}
+              {renderHomeQuickActions(palette)}
+
               {/* 💬 Mensaje diario del koala (12 de noviembre de 2026):
                   una frase diferente cada día, debajo de la brújula.
                   Ahora cada tip es { text, tool? } — cuando `tool` está
@@ -2525,12 +2550,6 @@ export default function FocusFlowTDAH({
                   </div>
                 );
               })()}
-
-              {/* 🎙️ + 🚗 Acciones rápidas de Inicio (13 de noviembre de
-                  2026): dos botones redondos y luminosos — dictar un
-                  pendiente (salta a la Agenda con el micrófono ya
-                  escuchando) y Modo Salida. Ver renderHomeQuickActions. */}
-              {renderHomeQuickActions(palette)}
 
               {/* ⚡ Tus más usadas (12 de noviembre de 2026): las últimas
                   5 herramientas usadas, en un scroll horizontal compacto.
