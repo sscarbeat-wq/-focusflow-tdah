@@ -55,6 +55,7 @@ import {
   Wrench,
   Flame,
   Globe,
+  Mic,
 } from "lucide-react";
 
 import LanguageSwitcher from "./LanguageSwitcher";
@@ -90,6 +91,17 @@ import RoutinesPanel from "./RoutinesPanel";
 import ClinicalReportPanel from "./ClinicalReportPanel";
 import GoodMomentsPanel from "./GoodMomentsPanel";
 import DayTimelinePanel from "./DayTimelinePanel";
+import ErrandModePanel from "./ErrandModePanel";
+import {
+  DEFAULT_ERRAND_STATE,
+  addErrands,
+  toggleErrandItem,
+  removeErrandItem,
+  completeTrip as completeErrandTrip,
+  cancelTrip as cancelErrandTrip,
+  activeTrip as getActiveErrandTrip,
+  pendingItems as pendingErrandItems,
+} from "./errandMode";
 import QuickNavMenu from "./QuickNavMenu";
 import MemoriaAnroLauncher from "./MemoriaAnroLauncher";
 import BreathingBubbleLauncher from "./BreathingBubbleLauncher";
@@ -184,7 +196,7 @@ import ScheduleAgendaPanel from "./ScheduleAgendaPanel";
 import { buildTodayItems } from "./todayView";
 import { timeOfDayPeriod, timeOfDayPalette, timeOfDayBackground } from "./timeOfDayPalette";
 import HomeHeader from "./HomeHeader";
-import { tint, ACCENT_OPTIONS, UNLOCKABLE_ACCENT_OPTIONS, PLUS_ACCENTS, planetColorsFor, SOLAR_PLANETS } from "./theme";
+import { tint, shadeColor, luminance, ACCENT_OPTIONS, UNLOCKABLE_ACCENT_OPTIONS, PLUS_ACCENTS, planetColorsFor, SOLAR_PLANETS } from "./theme";
 import { PlusUpsellBadge as PlusMark } from "./PlusUpsellCard";
 import { PLUS_THEMES } from "./plusThemes";
 import {
@@ -236,6 +248,7 @@ const DEFAULT_PROGRESS = {
   oneThing: DEFAULT_ONE_THING,
   routines: DEFAULT_ROUTINES,
   scheduleBlocks: DEFAULT_SCHEDULE_BLOCKS,
+  errandState: DEFAULT_ERRAND_STATE,
 };
 
 // Panel y Toggle viven a nivel de módulo (no adentro de FocusFlowTDAH) para
@@ -460,6 +473,7 @@ export default function FocusFlowTDAH({
   const bodyDoubleSectionRef = useRef(null);
   const mindfulnessSectionRef = useRef(null);
   const messageToneSectionRef = useRef(null);
+  const errandModeSectionRef = useRef(null);
   // Fase 2 (navegación, 28 de octubre de 2026): la app pasa de una sola
   // página larga a 5 pestañas (Inicio/Agenda/Herramientas/Progreso/Perfil —
   // ver AppTabBar.jsx). Es una preferencia de DISPOSITIVO, no de paciente
@@ -479,6 +493,8 @@ export default function FocusFlowTDAH({
   // tocar una herramienta desde la nudge card o "Tus más usadas", se abre
   // aquí mismo sin salir de la pestaña Inicio. `null` = sin overlay.
   const [inicioToolKey, setInicioToolKey] = useState(null);
+  // Trigger para auto-iniciar voz en la agenda desde el Home
+  const [pendingVoiceStart, setPendingVoiceStart] = useState(false);
   const [activeTab, setActiveTab] = useState(() => {
     try {
       return window.localStorage.getItem("anro-active-tab") || "inicio";
@@ -574,6 +590,7 @@ export default function FocusFlowTDAH({
     bodyDouble: bodyDoubleSectionRef,
     mindfulness: mindfulnessSectionRef,
     messageTone: messageToneSectionRef,
+    errandMode: errandModeSectionRef,
   };
   // A qué pestaña (de las 5 de AppTabBar) pertenece cada sección — mismas
   // llaves que companionSectionRefs arriba. "today" no está porque Inicio
@@ -602,6 +619,7 @@ export default function FocusFlowTDAH({
     mindfulness: "herramientas",
     reestructuracion: "herramientas",
     messageTone: "herramientas",
+    errandMode: "herramientas",
     bodyDouble: "herramientas",
     goodMoments: "progreso",
     insights: "progreso",
@@ -717,6 +735,7 @@ export default function FocusFlowTDAH({
     { key: "mindfulness", icon: <Flower2 size={18} />, label: t.app.panels.mindfulness.title },
     { key: "reestructuracion", icon: <Brain size={18} />, label: t.app.panels.reframe.title },
     { key: "messageTone", icon: <MessageSquare size={18} />, label: t.app.panels.messageTone.title },
+    { key: "errandMode", icon: <ShoppingCart size={18} />, label: t.app.panels.errandMode.title },
     { key: "habits", icon: <Moon size={18} />, label: t.app.panels.habits.title },
   ];
 
@@ -773,6 +792,7 @@ export default function FocusFlowTDAH({
     mindfulness: t.app.panels.mindfulness.subtitle,
     reestructuracion: t.app.panels.reframe.subtitle,
     messageTone: t.app.panels.messageTone.subtitle,
+    errandMode: t.app.panels.errandMode.subtitle,
     bodyDouble: t.app.panels.bodyDouble.subtitle,
   };
   // Fase 3 del sistema de planes (30 de octubre de 2026) — las 6
@@ -808,6 +828,7 @@ export default function FocusFlowTDAH({
     return habitsFresh ? list : resetCustomHabits(list);
   });
   const [habitReminders, setHabitReminders] = useState(saved.habitReminders !== false);
+  const [morningAgendaReminder, setMorningAgendaReminder] = useState(saved.morningAgendaReminder !== false);
   const [habitXpGiven, setHabitXpGiven] = useState(() => (habitsFresh && Array.isArray(saved.habitXpGiven) ? saved.habitXpGiven : []));
   // Con la app abierta al cambiar el día (o al volver a ella al día
   // siguiente): se apagan todas las palomitas.
@@ -853,6 +874,7 @@ export default function FocusFlowTDAH({
   const [oneThing, setOneThing] = useState(saved.oneThing);
   const [routines, setRoutines] = useState(saved.routines);
   const [scheduleBlocks, setScheduleBlocks] = useState(saved.scheduleBlocks);
+  const [errandState, setErrandState] = useState(saved.errandState);
 
   // Acento personal con candado por puntos (8 de noviembre de 2026, ver
   // UNLOCKABLE_ACCENT_OPTIONS en theme.js y XP_MILESTONES en
@@ -913,6 +935,7 @@ export default function FocusFlowTDAH({
       habitsDay,
       habitXpGiven,
       habitReminders,
+      morningAgendaReminder,
       streak,
       moodLog,
       energyLog,
@@ -929,6 +952,7 @@ export default function FocusFlowTDAH({
       oneThing,
       routines,
       scheduleBlocks,
+      errandState,
     });
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [
@@ -943,6 +967,7 @@ export default function FocusFlowTDAH({
     habitsDay,
     habitXpGiven,
     habitReminders,
+    morningAgendaReminder,
     streak,
     moodLog,
     energyLog,
@@ -959,6 +984,7 @@ export default function FocusFlowTDAH({
     oneThing,
     routines,
     scheduleBlocks,
+    errandState,
   ]);
 
   // ---- XP + jar ----
@@ -1534,6 +1560,188 @@ export default function FocusFlowTDAH({
   const handleMoveScheduleBlock = (blockId, newStartMin) =>
     setScheduleBlocks((prev) => moveScheduleBlock(prev, blockId, newStartMin));
 
+  // ---- Modo Salida (13 de noviembre de 2026) — ver errandMode.js ----
+  // La lista de mandados vive en progress.data.errandState (se guarda junto
+  // con todo lo demás), así el cron ?check=errands puede leerla y avisar.
+  const handleAddErrands = useCallback((items) => setErrandState((prev) => addErrands(prev, items)), []);
+  const handleToggleErrandItem = useCallback(
+    (tripId, itemId) => setErrandState((prev) => toggleErrandItem(prev, tripId, itemId)),
+    []
+  );
+  const handleRemoveErrandItem = useCallback(
+    (tripId, itemId) => setErrandState((prev) => removeErrandItem(prev, tripId, itemId)),
+    []
+  );
+  const handleCancelErrandTrip = useCallback((tripId) => setErrandState((prev) => cancelErrandTrip(prev, tripId)), []);
+  // Cerrar una salida con todo tachado da puntos como cualquier otra acción
+  // (grantXp ya trae el sonido/vibración de celebrate.js).
+  const handleCompleteErrandTrip = useCallback(
+    (tripId) => {
+      setErrandState((prev) => completeErrandTrip(prev, tripId));
+      grantXp(t.errandMode?.xpLabel || "Mandados completos");
+    },
+    [grantXp, t]
+  );
+
+  // Abrir algo desde Inicio (tarjeta "Te puede servir ahora", mensaje del
+  // día, "Tus más usadas"). Las herramientas de la pestaña Herramientas se
+  // abren DENTRO de Inicio (12 de noviembre de 2026). Lo que vive en otra
+  // pestaña — Agenda visual, línea de tiempo, Progreso, Perfil — no tiene
+  // panel que mostrar dentro de Inicio, así que se navega a su pestaña.
+  // Corrección del 13 de noviembre de 2026: antes todo iba por
+  // setInicioToolKey, y la tarjeta "Agenda visual — tu día no tiene plan
+  // todavía" dejaba la pantalla en blanco con solo "Volver al inicio".
+  const openFromHome = (key) => {
+    if (SECTION_TABS[key] === "herramientas") {
+      setInicioToolKey(key);
+      window.scrollTo({ top: 0, behavior: "smooth" });
+      return;
+    }
+    scrollToCompanionSection(key);
+  };
+
+  // Tarjeta de Inicio cuando hay una salida activa (13 de noviembre de
+  // 2026): va arriba de todo con lo que falta. Sin salida activa no pinta
+  // nada — para empezar una está el botón redondo "Voy a salir" (ver
+  // renderHomeQuickActions). Abre la herramienta DENTRO de Inicio, igual que
+  // las "más usadas". Solo se llama desde el JSX de abajo.
+  const renderErrandHome = () => {
+    const em = t.errandMode || {};
+    const trip = getActiveErrandTrip(errandState);
+    if (!trip) return null;
+    const openErrands = () => {
+      setInicioToolKey("errandMode");
+      window.scrollTo({ top: 0, behavior: "smooth" });
+    };
+    const wrap = { padding: isNarrow ? "6px 12px 0" : "6px 18px 0", maxWidth: isWide ? "600px" : "420px", width: "100%", margin: "0 auto", boxSizing: "border-box" };
+    const pend = pendingErrandItems(trip);
+    const total = trip.items.length;
+    const allDone = pend.length === 0;
+    return (
+      <div style={wrap}>
+        <button type="button" onClick={openErrands}
+          style={{
+            display: "flex", alignItems: "center", gap: "12px", width: "100%",
+            padding: "14px 16px", borderRadius: "16px", border: "none",
+            background: allDone ? "#1E9E6E" : "#B45309",
+            color: "#fff", cursor: "pointer", textAlign: "left",
+            boxShadow: "0 4px 16px rgba(0,0,0,0.14)",
+          }}>
+          <span aria-hidden="true" style={{ width: "42px", height: "42px", borderRadius: "12px", background: "rgba(255,255,255,0.2)", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0, fontSize: "20px" }}>
+            {allDone ? "🎉" : "🚗"}
+          </span>
+          <span style={{ flex: 1, minWidth: 0 }}>
+            <span style={{ display: "block", fontSize: "14px", fontWeight: 700 }}>
+              {allDone
+                ? (em.homeDone || "¡Mandados completos! Cierra tu salida")
+                : (em.homeActive ? em.homeActive(pend.length) : `Te ${pend.length === 1 ? "falta" : "faltan"} ${pend.length} mandado${pend.length === 1 ? "" : "s"}`)}
+            </span>
+            <span style={{ display: "block", fontSize: "12px", opacity: 0.92, marginTop: "2px", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+              {allDone
+                ? `${total}/${total}`
+                : pend.map((it) => `${it.icon} ${it.text}`).join(" · ")}
+            </span>
+          </span>
+          <span aria-hidden="true" style={{ fontSize: "20px", fontWeight: 800, opacity: 0.8, flexShrink: 0 }}>›</span>
+        </button>
+      </div>
+    );
+  };
+
+  // Acciones rápidas de Inicio (13 de noviembre de 2026, "más luminosos",
+  // la doctora eligió la opción de botones redondos, después los pidió
+  // "como en 3D"): esferas con relleno claro y resplandor. El botón de dictar usa el acento de la paciente — aclarado
+  // si el acento es oscuro y el fondo de Inicio también, para que brille
+  // igual en tema claro de noche — y el color del ícono se decide por
+  // luminancia para que se distinga con cualquier acento. Las etiquetas
+  // usan el color de texto del fondo de Inicio (`palette`), no C.text: de
+  // noche el fondo es oscuro aunque el tema sea claro.
+  // De noche se atenúan igual que la brújula (mismo `palette.circleFilter`
+  // y un resplandor más corto): la regla de bajar estímulos antes de dormir
+  // también aplica a estos dos botones. De mañana y tarde quedan igual.
+  // Atenuados, conservan un halo BLANCO que late despacio (pedido de la
+  // doctora): va en un envoltorio aparte para que el filtro de noche no lo
+  // apague, respira cada 3.6 s y se queda fijo si el teléfono pide menos
+  // movimiento (prefers-reduced-motion).
+  const renderHomeQuickActions = (palette = {}) => {
+    const nightFilter = palette.circleFilter || undefined;
+    const em = t.errandMode || {};
+    const homeBgIsDark = typeof palette.bg === "string" && luminance(palette.bg) < 0.25;
+    const voiceBase = homeBgIsDark && luminance(personalAccent) < 0.3 ? shadeColor(personalAccent, 0.3) : personalAccent;
+    const voiceLight = shadeColor(voiceBase, 0.3);
+    const voiceIcon = luminance(voiceLight) > 0.36 ? "#1B1530" : "#FFFFFF";
+    const labelColor = palette.textHi || palette.text || C.text;
+    // Volumen de esfera (mismo truco de luz que los planetas de la brújula,
+    // ver QuickAccessCompass.jsx): brillo arriba a la izquierda, sombra
+    // abajo a la derecha, sombra proyectada y un pequeño hundimiento al tocar.
+    const sphereHighlight = "radial-gradient(circle at 32% 24%, rgba(255,255,255,0.85) 0%, rgba(255,255,255,0) 40%)";
+    const sphereShade = "radial-gradient(circle at 70% 82%, rgba(0,0,0,0.26) 0%, rgba(0,0,0,0) 58%)";
+    const actions = [
+      {
+        key: "voice",
+        icon: <Mic size={30} color={voiceIcon} />,
+        label: t.today.voiceQuickShort || "Dictar pendiente",
+        bg: `radial-gradient(circle at 38% 30%, ${voiceLight} 0%, ${voiceBase} 62%, ${shadeColor(voiceBase, -0.22)} 100%)`,
+        glow: tint(voiceBase, 0.5),
+        onClick: () => {
+          setPendingVoiceStart(true);
+          setActiveTab("agenda");
+          window.scrollTo({ top: 0, behavior: "smooth" });
+        },
+      },
+      {
+        key: "errand",
+        icon: <span aria-hidden="true" style={{ fontSize: "32px", lineHeight: 1 }}>🚗</span>,
+        label: em.homeTitle || "Voy a salir",
+        bg: "radial-gradient(circle at 38% 30%, #FFE08A 0%, #FFAE2B 60%, #E07B00 100%)",
+        glow: "rgba(255, 170, 40, 0.5)",
+        onClick: () => {
+          setInicioToolKey("errandMode");
+          window.scrollTo({ top: 0, behavior: "smooth" });
+        },
+      },
+    ];
+    return (
+      <div style={{ padding: isNarrow ? "4px 12px 10px" : "6px 18px 12px", maxWidth: isWide ? "600px" : "420px", width: "100%", margin: "0 auto", boxSizing: "border-box", display: "flex", justifyContent: "center", gap: "36px" }}>
+        <style>{`
+          @keyframes anroQuickHalo {
+            0%, 100% { box-shadow: 0 0 9px 1px rgba(255,255,255,0.26); }
+            50% { box-shadow: 0 0 22px 5px rgba(255,255,255,0.55); }
+          }
+          .anro-quick-halo { animation: anroQuickHalo 3.6s ease-in-out infinite; }
+          .anro-quick-sphere { transition: transform 0.12s ease; }
+          .anro-quick-btn:active .anro-quick-sphere { transform: translateY(3px) scale(0.96); }
+          @media (prefers-reduced-motion: reduce) {
+            .anro-quick-halo { animation: none; }
+            .anro-quick-sphere { transition: none; }
+          }
+        `}</style>
+        {actions.map((a) => (
+          <button key={a.key} type="button" onClick={a.onClick} className="anro-quick-btn"
+            style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: "10px", minWidth: "124px", background: "none", border: "none", padding: 0, cursor: "pointer", WebkitTapHighlightColor: "transparent" }}>
+            <span className={nightFilter ? "anro-quick-halo" : undefined} style={{ display: "flex", borderRadius: "50%", boxShadow: nightFilter ? "0 0 14px 2px rgba(255,255,255,0.38)" : undefined }}>
+              <span className="anro-quick-sphere"
+                style={{
+                  width: "76px", height: "76px", borderRadius: "50%",
+                  background: `${sphereHighlight}, ${sphereShade}, ${a.bg}`,
+                  boxShadow: nightFilter
+                    ? "0 6px 12px rgba(0,0,0,0.45), inset 0 -7px 12px rgba(0,0,0,0.24), inset 0 3px 6px rgba(255,255,255,0.35)"
+                    : `0 10px 18px ${a.glow}, 0 3px 6px rgba(0,0,0,0.22), inset 0 -7px 12px rgba(0,0,0,0.2), inset 0 3px 6px rgba(255,255,255,0.55)`,
+                  filter: nightFilter,
+                  display: "flex", alignItems: "center", justifyContent: "center",
+                }}>
+                <span style={{ display: "flex", filter: "drop-shadow(0 2px 2px rgba(0,0,0,0.28))" }}>{a.icon}</span>
+              </span>
+            </span>
+            <span style={{ fontSize: "14px", fontWeight: 700, lineHeight: 1.2, color: labelColor, background: palette.chipBg || "transparent", padding: palette.chipBg ? "2px 8px" : 0, borderRadius: "999px" }}>
+              {a.label}
+            </span>
+          </button>
+        ))}
+      </div>
+    );
+  };
+
   // Igual que addStep, pero a partir de lo que propuso la IA de "Captura
   // rápida" (ver api/quick-capture.js) — solo se llama cuando la persona ya
   // tocó "Sí, agrégalo" en la tarjeta de confirmación, nunca antes.
@@ -2061,6 +2269,10 @@ export default function FocusFlowTDAH({
             const lastFocus = Object.values(focusSessionLog || {}).flat().map((e) => Date.parse(e.completedAt)).filter(Boolean).sort().pop();
             if (lastFocus && now.getTime() - lastFocus < 60 * 60 * 1000) return { key: "activeBreak", reason: "afterFocus" };
             if (h >= 21 || h < 5) return { key: "habits", reason: "night" };
+            // Agenda vacía — prioridad alta antes del check-in de ánimo
+            // (planear el día es lo primero que debería hacer al abrir la app por la mañana)
+            const todayBlocks = scheduleBlocksForDay(scheduleBlocks, now);
+            if (todayBlocks.length === 0 && h >= 5 && h < 20) return { key: "schedule", reason: "emptyAgenda" };
             if (!moodToday) return { key: "mood", reason: "noCheckin" };
             if (steps.some((st) => !st.done)) return { key: "oneThing", reason: "pending" };
             if (h < 13) return { key: "desglosador", reason: "morning" };
@@ -2157,7 +2369,7 @@ export default function FocusFlowTDAH({
                     </div>
                   </div>
                 )}
-                <div id="anro-tour-mascot" style={{ marginTop: "8px", paddingBottom: isNarrow && isShort ? "2px" : "20px" }}>
+                <div id="anro-tour-mascot" style={{ marginTop: "4px", paddingBottom: isNarrow && isShort ? "2px" : "8px" }}>
                 <QuickAccessCompass
                   C={C}
                   t={t}
@@ -2231,12 +2443,32 @@ export default function FocusFlowTDAH({
                 />
                 </div>
               </div>
+              {/* 🎙️ + 🚗 Acciones rápidas de Inicio (13 de noviembre de
+                  2026): dos botones redondos y luminosos — dictar un
+                  pendiente (salta a la Agenda con el micrófono ya
+                  escuchando) y Modo Salida. Van justo debajo de la
+                  brújula, antes del mensaje del día (pedido de la
+                  doctora). Ver renderHomeQuickActions. */}
+              {renderHomeQuickActions(palette)}
+
               {/* 💬 Mensaje diario del koala (12 de noviembre de 2026):
-                  una frase diferente cada día, debajo de la brújula. */}
+                  una frase diferente cada día, debajo de la brújula.
+                  Ahora cada tip es { text, tool? } — cuando `tool` está
+                  presente, el globito se vuelve tappable y abre esa
+                  herramienta directamente en Inicio. */}
               {(() => {
                 const tips = t.today.mascotDailyTips;
                 if (!Array.isArray(tips) || tips.length === 0) return null;
-                const tip = tips[new Date().getDate() % tips.length];
+                const tipData = tips[new Date().getDate() % tips.length];
+                // Compatibilidad: si algún idioma aún no se actualizó y
+                // sigue teniendo strings en vez de objetos.
+                const tipText = typeof tipData === "string" ? tipData : tipData.text;
+                const tipTool = typeof tipData === "object" ? tipData.tool : null;
+                const Wrapper = tipTool ? "button" : "div";
+                const wrapperProps = tipTool ? {
+                  type: "button",
+                  onClick: () => openFromHome(tipTool),
+                } : {};
                 return (
                   <div style={{
                     padding: isNarrow ? "2px 12px 0" : "2px 18px 0",
@@ -2246,15 +2478,21 @@ export default function FocusFlowTDAH({
                     boxSizing: "border-box",
                     textAlign: "center",
                   }}>
-                    <div style={{
-                      display: "inline-flex",
-                      alignItems: "center",
-                      gap: "6px",
-                      background: `${palette.chipBg || (C.bg + "dd")}`,
-                      borderRadius: "20px",
-                      padding: "6px 14px",
-                      maxWidth: "100%",
-                    }}>
+                    <Wrapper
+                      {...wrapperProps}
+                      style={{
+                        display: "inline-flex",
+                        alignItems: "center",
+                        gap: "6px",
+                        background: `${palette.chipBg || (C.bg + "dd")}`,
+                        borderRadius: "20px",
+                        padding: "6px 14px",
+                        maxWidth: "100%",
+                        border: "none",
+                        cursor: tipTool ? "pointer" : "default",
+                        transition: "transform 0.15s ease",
+                      }}
+                    >
                       <span style={{ fontSize: "14px", flexShrink: 0 }}>💬</span>
                       <span style={{
                         fontSize: "12px",
@@ -2262,12 +2500,19 @@ export default function FocusFlowTDAH({
                         color: palette.text || C.text,
                         lineHeight: 1.35,
                       }}>
-                        {tip}
+                        {tipText}
                       </span>
-                    </div>
+                      {tipTool && (
+                        <span style={{ fontSize: "14px", fontWeight: 800, color: palette.text || C.text, flexShrink: 0, opacity: 0.6 }}>›</span>
+                      )}
+                    </Wrapper>
                   </div>
                 );
               })()}
+              {/* 🚗 Modo Salida con salida activa: va ARRIBA de todo lo
+                  demás de Inicio — es lo que hay que ver al desbloquear
+                  el teléfono a media calle. */}
+              {renderErrandHome()}
               {/* ✨ Tarjeta contextual "Te puede servir ahora" (12 de
                   noviembre de 2026, rediseño brújula): una sugerencia
                   dinámica basada en lo que la app ya sabe del día. Se
@@ -2281,12 +2526,7 @@ export default function FocusFlowTDAH({
                   <div style={{ padding: isNarrow ? "6px 12px 0" : "6px 18px 0", maxWidth: isWide ? "600px" : "420px", width: "100%", margin: "0 auto", boxSizing: "border-box" }}>
                     <button
                       type="button"
-                      onClick={() => {
-                        // 12 de noviembre de 2026: abre la herramienta
-                        // DENTRO de Inicio, sin navegar a Herramientas.
-                        setInicioToolKey(contextualNudge.key);
-                        window.scrollTo({ top: 0, behavior: "smooth" });
-                      }}
+                      onClick={() => openFromHome(contextualNudge.key)}
                       style={{
                         display: "flex",
                         alignItems: "center",
@@ -2339,12 +2579,7 @@ export default function FocusFlowTDAH({
                         <button
                           key={key}
                           type="button"
-                          onClick={() => {
-                            // 12 de noviembre de 2026: abre la herramienta
-                            // DENTRO de Inicio, sin navegar a Herramientas.
-                            setInicioToolKey(key);
-                            window.scrollTo({ top: 0, behavior: "smooth" });
-                          }}
+                          onClick={() => openFromHome(key)}
                           style={{
                             display: "flex",
                             flexDirection: "column",
@@ -3513,6 +3748,9 @@ export default function FocusFlowTDAH({
               onRemove={handleRemoveScheduleBlock}
               onUpdate={handleUpdateScheduleBlock}
               onMove={handleMoveScheduleBlock}
+              medications={medications}
+              autoStartVoice={pendingVoiceStart}
+              onVoiceConsumed={() => setPendingVoiceStart(false)}
             />
           </Panel>
         </div>
@@ -4287,6 +4525,54 @@ export default function FocusFlowTDAH({
               subtitle={t.app.panels.notifications.subtitle}
             >
               <NotificationsPanel C={C} t={t} userId={userId} habitReminders={habitReminders} onToggleHabitReminders={() => setHabitReminders((v) => !v)} />
+
+              {/* ── Recordatorio matutino de agenda ── */}
+              <div style={{ marginTop: "16px", borderTop: `1px solid ${tint(C.text, 0.06)}`, paddingTop: "14px" }}>
+                <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+                  <div style={{ flex: 1 }}>
+                    <div style={{ fontSize: "13px", fontWeight: 700, color: C.text }}>
+                      {t.notifications.morningAgendaTitle || "Recordatorio de agenda"}
+                    </div>
+                    <div style={{ fontSize: "11px", color: C.textMuted, marginTop: "3px", lineHeight: "1.4" }}>
+                      {t.notifications.morningAgendaDesc || "Aviso a las 8 am si tu día no tiene bloques."}
+                    </div>
+                  </div>
+                  <button
+                    onClick={() => setMorningAgendaReminder((v) => !v)}
+                    style={{
+                      width: "48px",
+                      height: "28px",
+                      borderRadius: "14px",
+                      border: "none",
+                      cursor: "pointer",
+                      background: morningAgendaReminder ? C.accent || "#7C5CE0" : tint(C.text, 0.12),
+                      position: "relative",
+                      transition: "background 0.2s",
+                      flexShrink: 0,
+                      marginLeft: "12px",
+                    }}
+                  >
+                    <div
+                      style={{
+                        width: "22px",
+                        height: "22px",
+                        borderRadius: "50%",
+                        background: "white",
+                        position: "absolute",
+                        top: "3px",
+                        left: morningAgendaReminder ? "23px" : "3px",
+                        transition: "left 0.2s",
+                        boxShadow: "0 1px 3px rgba(0,0,0,0.15)",
+                      }}
+                    />
+                  </button>
+                </div>
+                <div style={{ fontSize: "11px", color: morningAgendaReminder ? (C.accent || "#7C5CE0") : C.textMuted, fontWeight: 600, marginTop: "6px" }}>
+                  {morningAgendaReminder
+                    ? (t.notifications.morningAgendaOn || "Activado")
+                    : (t.notifications.morningAgendaOff || "Apagado")}
+                </div>
+              </div>
             </Panel>
             </div>
 
@@ -4629,6 +4915,29 @@ export default function FocusFlowTDAH({
               <PlusLockedPanel C={C} t={t} locked={!isPlus} onRequestUpgrade={onRequestUpgrade}>
               <MessageTonePanel C={C} t={t} lang={lang} userId={userId} />
               </PlusLockedPanel>
+            </Panel>
+            </div>
+
+            <div ref={errandModeSectionRef} style={toolStyle("errandMode")}>
+            <Panel C={C}
+              accent={C.amber}
+              icon={<ShoppingCart size={22} />}
+              title={t.app.panels.errandMode.title}
+              subtitle={t.app.panels.errandMode.subtitle}
+            >
+              <ErrandModePanel
+                C={C}
+                t={t}
+                lang={lang}
+                accent={personalAccent}
+                errandState={errandState}
+                onAddItems={handleAddErrands}
+                onToggleItem={handleToggleErrandItem}
+                onRemoveItem={handleRemoveErrandItem}
+                onCompleteTrip={handleCompleteErrandTrip}
+                onCancelTrip={handleCancelErrandTrip}
+                onOpenNotifications={() => scrollToCompanionSection("notifications")}
+              />
             </Panel>
             </div>
         </div>

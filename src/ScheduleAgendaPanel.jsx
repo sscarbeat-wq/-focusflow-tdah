@@ -1,458 +1,1258 @@
-import React, { useEffect, useMemo, useRef, useState } from "react";
-import { Plus, Trash2, GripVertical, AlertTriangle, ChevronLeft, ChevronRight, Calendar, CalendarDays } from "lucide-react";
-import { tint } from "./theme";
+// ScheduleAgendaPanel.jsx — Agenda visual v16
+// La agenda es un ESPEJO DEL DÍA, no una lista de tareas.
+// Muestra automáticamente: medicamentos (del módulo de medicamentos).
+// El paciente solo agrega: pendientes externos (citas, mandados, compromisos).
+// Captura rápida por voz con soporte de fechas ("cita el viernes a las 4").
+//
+// Props: C, t, lang, scheduleState, onAdd, onRemove, onUpdate, onMove, medications
+// medications: array de medicamentos activos (del módulo medicationLog.js)
+// scheduleState es el array de bloques — cada bloque:
+//   { id, text, icon, startMin, durationMin, day? }
+// scheduleBlocksForDay(scheduleState, date) filtra los de hoy.
+
+import React, { useState, useMemo, useCallback, useRef, useEffect } from "react";
 import {
-  DEFAULT_DURATION_MIN,
-  MAX_BLOCKS_PER_DAY,
+  scheduleBlocksForDay,
   formatMinutesAsTime,
-  parseTimeInputToMinutes,
-  scheduleBlocksForDate,
-  scheduleBlocksForWeek,
-  detectConflicts,
 } from "./scheduleBlocks";
-import { todayKey } from "./streak";
+import {
+  Plus,
+  Check,
+  ChevronRight,
+  ChevronLeft,
+  ChevronDown,
+  ChevronUp,
+  Trash2,
+  Clock,
+  Mic,
+} from "lucide-react";
+import { tint } from "./theme";
 
-// Agenda visual del día — Módulo 2 de ANRO TDAH 2.0 (ver scheduleBlocks.js
-// para la decisión de alcance: esta agenda vive solo dentro de la app, no
-// se sincroniza con Google Calendar todavía).
-//
-// Dos formas de cambiar la hora de un bloque, a propósito:
-// 1) Arrastrarlo con el dedo/mouse directo en la cuadrícula (gesto rápido,
-//    visual, igual que Tiimo/Structured).
-// 2) El campo de hora (<input type="time">) dentro del editor de cada
-//    bloque — funciona igual de bien con teclado/lector de pantalla, así
-//    que la agenda es 100% usable sin arrastrar nada.
-// Ambos caminos llaman a la MISMA función (onMove), así que siempre
-// terminan en el mismo estado válido.
-//
-// Fase 2E (29 de octubre de 2026): se agregó un selector Día/Semana arriba.
-// La vista Día es exactamente la cuadrícula de siempre (arrastrar, editar,
-// agregar), ahora capaz de mostrar cualquier día (no solo "hoy") mediante
-// las flechas de navegación — sigue abriendo cerca de la hora actual
-// cuando el día mostrado es hoy. La vista Semana es deliberadamente más
-// simple: una lista compacta de los 7 días (lunes a domingo) con sus
-// bloques — tocar un bloque ahí cambia a la vista Día de ese día y abre su
-// editor (reutiliza el mismo formulario, nunca se duplica); tocar el
-// encabezado de un día cambia a su vista Día sin abrir nada, para poder
-// agregar un bloque nuevo ese día. Arrastrar para mover solo existe dentro
-// de la vista Día, igual que antes — mover un bloque arrastrando ENTRE
-// columnas de días distintos habría sido mucho más riesgo para un
-// beneficio chico, y no lo pidió la doctora.
-const START_HOUR = 0;
-const END_HOUR = 24;
-const PX_PER_MIN = 1; // 60px por hora
-const GRID_HEIGHT = (END_HOUR - START_HOUR) * 60 * PX_PER_MIN;
-const CLICK_THRESHOLD_PX = 6; // menos que esto = toque, no arrastre
-const DURATION_OPTIONS = [15, 30, 45, 60, 90, 120];
-const BLOCK_ICONS = ["🗓️", "💻", "🍽️", "🏃", "📞", "🧘", "📚", "🛒", "👥", "😴"];
+// ---- Colores por categoría (tomados de los planetas de ANRO) ----
+const CATEGORY_COLORS = {
+  default: "#7C5CE0", // purple — Empezar y organizarme
+  focus: "#2E7FD9",   // blue — Concentrarme
+  calm: "#1E9E6E",    // green — Calmarme
+  feel: "#D98A0B",    // yellow — Cómo me siento
+  daily: "#D9467F",   // pink — Mi día a día
+};
 
-// Mismo patrón que ClinicalReportPanel.jsx/GoodMomentsPanel.jsx: un locale
-// de formato por idioma de la app (no por país de la persona), solo para
-// que el nombre del día/mes salga en el orden e idioma esperados.
-const DATE_LOCALES = { es: "es-MX", en: "en-US", fr: "fr-FR", pt: "pt-BR" };
-
-function minutesNow(now) {
-  return now.getHours() * 60 + now.getMinutes();
+function guessCategoryColor(block) {
+  const n = (block.text || block.name || "").toLowerCase();
+  if (n.includes("enfoque") || n.includes("focus") || n.includes("pomodoro") || n.includes("body double"))
+    return CATEGORY_COLORS.focus;
+  if (n.includes("calma") || n.includes("mindful") || n.includes("respir") || n.includes("burbuja") || n.includes("pausa"))
+    return CATEGORY_COLORS.calm;
+  if (n.includes("ánimo") || n.includes("mood") || n.includes("energía") || n.includes("energy") || n.includes("humor"))
+    return CATEGORY_COLORS.feel;
+  if (n.includes("hábito") || n.includes("habit") || n.includes("pago") || n.includes("rutina") || n.includes("routine"))
+    return CATEGORY_COLORS.daily;
+  if (n.includes("medica") || n.includes("pastilla") || n.includes("pill"))
+    return CATEGORY_COLORS.default;
+  return CATEGORY_COLORS.default;
 }
 
-function dateFromKey(dateKey) {
-  return new Date(`${dateKey}T00:00:00`);
+// (Sugerencias predefinidas eliminadas en v16 — la agenda ya no repite cosas
+// que tienen su propio módulo. Solo sirve para pendientes externos del paciente
+// + medicamentos automáticos.)
+
+// ---- Helpers de fecha para el parser de voz ----
+const DAY_NAMES_ES = { lunes: 1, martes: 2, miércoles: 3, miercoles: 3, jueves: 4, viernes: 5, sábado: 6, sabado: 6, domingo: 0 };
+const MONTH_NAMES_ES = { enero: 0, febrero: 1, marzo: 2, abril: 3, mayo: 4, junio: 5, julio: 6, agosto: 7, septiembre: 8, octubre: 9, noviembre: 10, diciembre: 11 };
+
+/** Dado un día de la semana (0=dom), encuentra la próxima fecha con ese día */
+function nextWeekday(targetDay, from = new Date()) {
+  const d = new Date(from.getFullYear(), from.getMonth(), from.getDate());
+  const diff = (targetDay - d.getDay() + 7) % 7;
+  d.setDate(d.getDate() + (diff === 0 ? 7 : diff)); // si es hoy, ir al próximo
+  return d;
 }
 
-function addDays(date, delta) {
-  return new Date(date.getFullYear(), date.getMonth(), date.getDate() + delta);
-}
+/** Extrae una fecha del texto hablado. Retorna { date: Date|null, cleaned: string } */
+function parseDateFromVoice(text, now = new Date()) {
+  let cleaned = text;
+  let date = null;
 
-export default function ScheduleAgendaPanel({ C, t, lang, scheduleState, onAdd, onRemove, onUpdate, onMove }) {
-  const locale = DATE_LOCALES[lang] || DATE_LOCALES.es;
-  const scrollRef = useRef(null);
-  const [nowMin, setNowMin] = useState(() => minutesNow(new Date()));
-  const [viewMode, setViewMode] = useState("day"); // "day" | "week"
-  const [selectedDate, setSelectedDate] = useState(() => new Date());
-  const [expandedId, setExpandedId] = useState(null);
-  const [drag, setDrag] = useState(null); // { id, startClientY, startMin, previewMin }
-  const [newText, setNewText] = useState("");
-  const [newTime, setNewTime] = useState("");
-  const [newDuration, setNewDuration] = useState(DEFAULT_DURATION_MIN);
-  const [newIcon, setNewIcon] = useState(BLOCK_ICONS[0]);
-
-  useEffect(() => {
-    const id = setInterval(() => setNowMin(minutesNow(new Date())), 60000);
-    return () => clearInterval(id);
-  }, []);
-
-  const selectedDateKey = todayKey(selectedDate);
-  const todayKeyNow = todayKey(new Date());
-  const isToday = selectedDateKey === todayKeyNow;
-
-  const blocks = useMemo(
-    () => scheduleBlocksForDate(scheduleState, selectedDateKey),
-    [scheduleState, selectedDateKey]
-  );
-  const conflicts = useMemo(() => detectConflicts(blocks), [blocks]);
-  const week = useMemo(() => scheduleBlocksForWeek(scheduleState, selectedDate), [scheduleState, selectedDate]);
-
-  // Al entrar a la vista Día (o cambiar de día dentro de ella), la
-  // cuadrícula hace scroll hasta un poco antes de "ahora" cuando el día
-  // mostrado es hoy — así la hora actual queda visible sin buscarla. Si es
-  // otro día, se abre cerca de las 8am (horario típico de inicio de
-  // actividades) en vez de medianoche, por la misma razón.
-  useEffect(() => {
-    if (viewMode !== "day" || !scrollRef.current) return;
-    const anchorMin = isToday ? nowMin : 8 * 60;
-    scrollRef.current.scrollTop = Math.max(0, (anchorMin - 90) * PX_PER_MIN);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [viewMode, selectedDateKey]);
-
-  const atCap = blocks.length >= MAX_BLOCKS_PER_DAY;
-
-  const handlePointerDown = (e, block) => {
-    if (e.button !== undefined && e.button !== 0) return; // solo click izquierdo / toque
-    e.currentTarget.setPointerCapture?.(e.pointerId);
-    setDrag({ id: block.id, startClientY: e.clientY, startMin: block.startMin, previewMin: block.startMin, moved: false });
-  };
-
-  const handlePointerMove = (e) => {
-    if (!drag) return;
-    const deltaY = e.clientY - drag.startClientY;
-    const deltaMin = deltaY / PX_PER_MIN;
-    const moved = Math.abs(deltaY) > CLICK_THRESHOLD_PX;
-    setDrag({ ...drag, previewMin: drag.startMin + deltaMin, moved: moved || drag.moved });
-  };
-
-  const endDrag = (commit) => {
-    if (!drag) return;
-    if (commit && drag.moved) {
-      onMove(drag.id, drag.previewMin);
-    } else if (!drag.moved) {
-      setExpandedId((cur) => (cur === drag.id ? null : drag.id));
+  // "el 20 de noviembre", "el 5 de diciembre"
+  const absDate = cleaned.match(/(?:el\s+)?(\d{1,2})\s+de\s+(enero|febrero|marzo|abril|mayo|junio|julio|agosto|septiembre|octubre|noviembre|diciembre)/i);
+  if (absDate) {
+    const day = parseInt(absDate[1], 10);
+    const month = MONTH_NAMES_ES[absDate[2].toLowerCase()];
+    if (month != null && day >= 1 && day <= 31) {
+      let year = now.getFullYear();
+      const candidate = new Date(year, month, day);
+      if (candidate < new Date(now.getFullYear(), now.getMonth(), now.getDate())) {
+        year++; // si ya pasó, asumir el del año que viene
+      }
+      date = new Date(year, month, day);
+      cleaned = cleaned.replace(absDate[0], "").trim();
     }
-    setDrag(null);
-  };
-
-  const handlePointerUp = () => endDrag(true);
-  const handlePointerCancel = () => endDrag(false);
-
-  const handleBlockKeyDown = (e, block) => {
-    if (e.key === "Enter" || e.key === " ") {
-      e.preventDefault();
-      setExpandedId((cur) => (cur === block.id ? null : block.id));
-    }
-  };
-
-  const expanded = useMemo(() => blocks.find((b) => b.id === expandedId) || null, [blocks, expandedId]);
-
-  const handleSubmitNew = (e) => {
-    e.preventDefault();
-    const cleanText = newText.trim();
-    if (!cleanText) return;
-    const startMin = parseTimeInputToMinutes(newTime);
-    onAdd({ text: cleanText, icon: newIcon, startMin: startMin ?? undefined, durationMin: Number(newDuration), dateKey: selectedDateKey });
-    setNewText("");
-    setNewTime("");
-  };
-
-  const goToDay = (dateKey) => {
-    setSelectedDate(dateFromKey(dateKey));
-    setViewMode("day");
-  };
-
-  const openBlockFromWeek = (dateKey, blockId) => {
-    setSelectedDate(dateFromKey(dateKey));
-    setViewMode("day");
-    setExpandedId(blockId);
-  };
-
-  const hourLines = [];
-  for (let h = START_HOUR; h < END_HOUR; h++) {
-    hourLines.push(h);
   }
 
-  const viewTabStyle = (isActive) => ({
-    display: "inline-flex",
-    alignItems: "center",
-    gap: "6px",
-    minHeight: "40px",
-    padding: "8px 14px",
-    background: isActive ? C.sky : "transparent",
-    border: `1px solid ${isActive ? C.sky : C.border}`,
-    borderRadius: "12px",
-    color: isActive ? "#fff" : C.text,
-    fontSize: "13px",
-    fontWeight: 600,
-    cursor: "pointer",
+  // "mañana"
+  if (!date && /\bmañana\b/i.test(cleaned) && !/\bde\s+la\s+mañana\b/i.test(cleaned)) {
+    // solo si es "mañana" suelto, no "de la mañana" (que es indicador AM)
+    const tmrw = new Date(now.getFullYear(), now.getMonth(), now.getDate() + 1);
+    date = tmrw;
+    cleaned = cleaned.replace(/\bmañana\b/i, "").trim();
+  }
+
+  // "pasado mañana"
+  if (!date && /\bpasado\s+mañana\b/i.test(cleaned)) {
+    date = new Date(now.getFullYear(), now.getMonth(), now.getDate() + 2);
+    cleaned = cleaned.replace(/\bpasado\s+mañana\b/i, "").trim();
+  }
+
+  // "el lunes", "el viernes", "el sábado"
+  if (!date) {
+    const dayMatch = cleaned.match(/(?:el\s+)?(lunes|martes|mi[eé]rcoles|jueves|viernes|s[aá]bado|domingo)/i);
+    if (dayMatch) {
+      const dayKey = dayMatch[1].toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g, "");
+      const targetDay = DAY_NAMES_ES[dayKey];
+      if (targetDay != null) {
+        date = nextWeekday(targetDay, now);
+        cleaned = cleaned.replace(dayMatch[0], "").trim();
+      }
+    }
+  }
+
+  return { date, cleaned };
+}
+
+// ---- Parser de voz → bloque de agenda ----
+// Extrae nombre, hora de inicio, duración y FECHA de un texto hablado.
+// Enfocado en pendientes externos: citas, mandados, compromisos.
+function parseVoiceToBlock(raw, now = new Date()) {
+  const text = raw.toLowerCase().trim();
+  let startMin = null;
+  let durationMin = null;
+  let name = text;
+
+  // ── Extraer FECHA (ej. "el viernes", "mañana", "el 20 de noviembre") ──
+  const { date: parsedDate, cleaned: afterDate } = parseDateFromVoice(name, now);
+  name = afterDate;
+
+  // ── Extraer duración (ej. "por 30 minutos") ──
+  const durPatterns = [
+    /(?:por|during|pendant|durante)\s+(\d+)\s*(?:min(?:utos?|utes?)?)/i,
+    /(\d+)\s*(?:min(?:utos?|utes?)?)/i,
+  ];
+  for (const pat of durPatterns) {
+    const m = name.match(pat);
+    if (m) {
+      durationMin = parseInt(m[1], 10);
+      name = name.replace(m[0], "").trim();
+      break;
+    }
+  }
+
+  // ── Extraer hora (ej. "a las 10", "at 3 pm") ──
+  const timePatterns = [
+    /a\s+las?\s+(\d{1,2})(?::(\d{2}))?\s*(?:y\s+media)?\s*(?:de\s+la\s+(mañana|tarde|noche))?/i,
+    /at\s+(\d{1,2})(?::(\d{2}))?\s*(am|pm)?/i,
+    /[àa]\s+(\d{1,2})\s*h\s*(\d{2})?/i,
+    /[àa]s?\s+(\d{1,2})(?::(\d{2}))?\s*(?:horas?)?/i,
+  ];
+
+  for (const pat of timePatterns) {
+    const m = name.match(pat);
+    if (m) {
+      let hour = parseInt(m[1], 10);
+      const mins = m[2] ? parseInt(m[2], 10) : 0;
+      const period = m[3] ? m[3].toLowerCase() : null;
+
+      if (name.match(/a\s+las?\s+\d{1,2}\s+y\s+media/i) && mins === 0) {
+        startMin = hour * 60 + 30;
+      } else {
+        if (period === "pm" || period === "tarde") {
+          if (hour < 12) hour += 12;
+        } else if (period === "noche") {
+          if (hour < 12) hour += 12;
+        } else if (period === "am" || period === "mañana") {
+          if (hour === 12) hour = 0;
+        } else {
+          if (hour >= 1 && hour <= 6) hour += 12;
+        }
+        startMin = hour * 60 + mins;
+      }
+      name = name.replace(m[0], "").trim();
+      break;
+    }
+  }
+
+  // ── Limpiar nombre ──
+  name = name
+    .replace(/^(?:agendar|agregar|añadir|crear|add|create|programar|poner|recordar|recordarme)\s+/i, "")
+    .replace(/^(?:tengo|tenemos|hay|necesito|quiero|voy a|i have|i need|i want)\s+/i, "")
+    .replace(/^(?:que\s+)?(?:una?|un|the|le|la|o|mi|my)\s+/i, "")
+    .replace(/\s+$/g, "")
+    .replace(/^[\s,.\-]+|[\s,.\-]+$/g, "");
+
+  if (name.length > 0) name = name.charAt(0).toUpperCase() + name.slice(1);
+  if (name.length < 2) name = "Pendiente";
+
+  // Asignar ícono inteligente según keywords (solo pendientes externos)
+  let icon = "📌";
+  let smartDuration = 30;
+  const nl = name.toLowerCase();
+
+  if (nl.includes("cita") || nl.includes("doctor") || nl.includes("dentista") || nl.includes("consulta") || nl.includes("appointment")) {
+    icon = "🏥"; smartDuration = 60;
+  } else if (nl.includes("reunión") || nl.includes("reunion") || nl.includes("meeting") || nl.includes("junta") || nl.includes("llamada") || nl.includes("call")) {
+    icon = "📞"; smartDuration = 30;
+  } else if (nl.includes("compra") || nl.includes("shop") || nl.includes("super") || nl.includes("mercado") || nl.includes("mandado")) {
+    icon = "🛒"; smartDuration = 45;
+  } else if (nl.includes("recoger") || nl.includes("llevar") || nl.includes("pick up") || nl.includes("dejar")) {
+    icon = "🚗"; smartDuration = 30;
+  } else if (nl.includes("pago") || nl.includes("pagar") || nl.includes("banco") || nl.includes("bank") || nl.includes("trámite")) {
+    icon = "🏦"; smartDuration = 30;
+  } else if (nl.includes("trabaj") || nl.includes("work") || nl.includes("oficina") || nl.includes("chamba")) {
+    icon = "💼"; smartDuration = 60;
+  } else if (nl.includes("clase") || nl.includes("class") || nl.includes("curso") || nl.includes("escuela") || nl.includes("examen")) {
+    icon = "🎓"; smartDuration = 50;
+  } else if (nl.includes("comer") || nl.includes("comida") || nl.includes("restaurante") || nl.includes("desayun") || nl.includes("cena")) {
+    icon = "🍽️"; smartDuration = 45;
+  } else if (nl.includes("ejercicio") || nl.includes("gym") || nl.includes("correr") || nl.includes("caminar")) {
+    icon = "🏃"; smartDuration = 30;
+  } else if (nl.includes("vuelo") || nl.includes("viaje") || nl.includes("aeropuerto") || nl.includes("avión")) {
+    icon = "✈️"; smartDuration = 120;
+  } else if (nl.includes("fiesta") || nl.includes("cumpleaños") || nl.includes("evento") || nl.includes("party")) {
+    icon = "🎉"; smartDuration = 120;
+  }
+
+  return {
+    name,
+    icon,
+    startMin: startMin != null ? startMin : null,
+    durationMin: durationMin != null ? durationMin : smartDuration,
+    dateKey: parsedDate, // Date object o null (hoy)
+  };
+}
+
+// Detección de soporte de Web Speech API
+const SpeechRecognitionAPI =
+  typeof window !== "undefined"
+    ? window.SpeechRecognition || window.webkitSpeechRecognition
+    : null;
+
+// Mapeo de lang a BCP47 para SpeechRecognition
+const SPEECH_LANG = { es: "es-MX", en: "en-US", fr: "fr-FR", pt: "pt-BR" };
+
+// ---- Helpers del calendario ----
+const MONTH_NAMES = {
+  es: ["Enero", "Febrero", "Marzo", "Abril", "Mayo", "Junio", "Julio", "Agosto", "Septiembre", "Octubre", "Noviembre", "Diciembre"],
+  en: ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"],
+  fr: ["Janvier", "Février", "Mars", "Avril", "Mai", "Juin", "Juillet", "Août", "Septembre", "Octobre", "Novembre", "Décembre"],
+  pt: ["Janeiro", "Fevereiro", "Março", "Abril", "Maio", "Junho", "Julho", "Agosto", "Setembro", "Outubro", "Novembro", "Dezembro"],
+};
+
+const DAY_HEADERS = {
+  es: ["L", "M", "Mi", "J", "V", "S", "D"],
+  en: ["M", "T", "W", "T", "F", "S", "S"],
+  fr: ["L", "M", "Me", "J", "V", "S", "D"],
+  pt: ["S", "T", "Q", "Q", "S", "S", "D"],
+};
+
+/** Lunes–Domingo de la semana que contiene `date` */
+function getWeekForDate(date) {
+  const d = new Date(date);
+  const dow = d.getDay(); // 0=dom
+  const monday = new Date(d);
+  monday.setDate(d.getDate() - ((dow + 6) % 7));
+  const week = [];
+  for (let i = 0; i < 7; i++) {
+    const wd = new Date(monday);
+    wd.setDate(monday.getDate() + i);
+    week.push(wd);
+  }
+  return week;
+}
+
+/** Grid del mes completo (array de semanas, cada semana = 7 celdas, null si no hay día) */
+function getMonthGrid(year, month) {
+  const first = new Date(year, month, 1);
+  const last = new Date(year, month + 1, 0);
+  const startOffset = (first.getDay() + 6) % 7; // 0=lunes
+  const grid = [];
+  let week = new Array(startOffset).fill(null);
+  for (let d = 1; d <= last.getDate(); d++) {
+    week.push(new Date(year, month, d));
+    if (week.length === 7) {
+      grid.push(week);
+      week = [];
+    }
+  }
+  if (week.length > 0) {
+    while (week.length < 7) week.push(null);
+    grid.push(week);
+  }
+  return grid;
+}
+
+function sameDay(a, b) {
+  if (!a || !b) return false;
+  return a.getFullYear() === b.getFullYear() && a.getMonth() === b.getMonth() && a.getDate() === b.getDate();
+}
+
+// ---- Componente principal ----
+export default function ScheduleAgendaPanel({
+  C,
+  t,
+  lang,
+  scheduleState,
+  onAdd,
+  onRemove,
+  onUpdate,
+  onMove,
+  medications,
+  autoStartVoice,
+  onVoiceConsumed,
+}) {
+  const [calendarOpen, setCalendarOpen] = useState(false);
+  const [calMonth, setCalMonth] = useState(() => {
+    const n = new Date();
+    return { y: n.getFullYear(), m: n.getMonth() };
+  });
+  const [selectedDate, setSelectedDate] = useState(new Date());
+  const [addingNew, setAddingNew] = useState(false);
+  const [newName, setNewName] = useState("");
+  const [newStartHour, setNewStartHour] = useState(9);
+  const [newStartMinute, setNewStartMinute] = useState(0);
+  const [newDuration, setNewDuration] = useState(25);
+  const [completedIds, setCompletedIds] = useState(() => {
+    try {
+      const stored = localStorage.getItem("anro_schedule_completed");
+      if (stored) {
+        const parsed = JSON.parse(stored);
+        const today = new Date().toDateString();
+        if (parsed.date === today) return new Set(parsed.ids);
+      }
+    } catch (_) {}
+    return new Set();
   });
 
-  const navBtnStyle = {
-    display: "flex",
-    alignItems: "center",
-    justifyContent: "center",
-    minHeight: "40px",
-    minWidth: "40px",
-    borderRadius: "10px",
-    border: `1px solid ${C.border}`,
-    background: "transparent",
-    color: C.text,
-    cursor: "pointer",
+  // i18n labels (moved up so voice handlers can reference it)
+  const labels = t.schedule || {};
+
+  // ── Voice input state ──
+  const [voiceListening, setVoiceListening] = useState(false);
+  const [voiceText, setVoiceText] = useState("");
+  const [voiceError, setVoiceError] = useState("");
+  const [voiceParsed, setVoiceParsed] = useState(null); // resultado del parser para confirmar
+  const recognitionRef = useRef(null);
+  const latestTranscriptRef = useRef(""); // guarda el último transcript para fallback en onend
+
+  const stopVoice = useCallback(() => {
+    if (recognitionRef.current) {
+      try { recognitionRef.current.stop(); } catch (_) {}
+      recognitionRef.current = null;
+    }
+    setVoiceListening(false);
+  }, []);
+
+  const startVoice = useCallback(() => {
+    if (!SpeechRecognitionAPI) {
+      setVoiceError(labels.voiceUnsupported || "Tu navegador no soporta entrada de voz.");
+      return;
+    }
+    setVoiceError("");
+    setVoiceText("");
+    setVoiceParsed(null);
+    latestTranscriptRef.current = "";
+
+    // Helper interno: parsear y agregar bloque DIRECTO (sin pasar por estado)
+    const addBlockFromVoice = (transcript) => {
+      const parsed = parseVoiceToBlock(transcript);
+      if (!parsed || !parsed.name) return;
+      const now = new Date();
+      const fallbackStart = now.getHours() * 60 + now.getMinutes() + 15;
+      try {
+        // Si el parser detectó una fecha ("el viernes", "mañana", "el 20 de nov"),
+        // convertir el Date a dateKey string "YYYY-MM-DD" para scheduleBlocks.js
+        let dateKey = undefined;
+        if (parsed.dateKey instanceof Date) {
+          const dd = parsed.dateKey;
+          dateKey = `${dd.getFullYear()}-${String(dd.getMonth() + 1).padStart(2, "0")}-${String(dd.getDate()).padStart(2, "0")}`;
+          // Auto-navegar al día donde se agendó
+          setSelectedDate(dd);
+        }
+        onAdd({
+          text: parsed.name,
+          icon: parsed.icon,
+          startMin: parsed.startMin != null ? parsed.startMin : fallbackStart,
+          durationMin: parsed.durationMin,
+          dateKey,
+        });
+        const dateLabel = dateKey && parsed.dateKey
+          ? ` (${parsed.dateKey.toLocaleDateString(lang === "en" ? "en-US" : "es-MX", { weekday: "short", day: "numeric", month: "short" })})`
+          : "";
+        setVoiceText("✅ " + parsed.name + dateLabel);
+      } catch (err) {
+        setVoiceError("Error al agregar: " + (err.message || "desconocido"));
+      }
+    };
+
+    const rec = new SpeechRecognitionAPI();
+    rec.lang = SPEECH_LANG[lang] || "es-MX";
+    rec.interimResults = true;
+    rec.maxAlternatives = 1;
+    rec.continuous = false;
+
+    let gotFinal = false;
+
+    rec.onresult = (e) => {
+      const transcript = Array.from(e.results)
+        .map((r) => r[0].transcript)
+        .join("");
+      setVoiceText(transcript);
+      latestTranscriptRef.current = transcript;
+      if (e.results[e.results.length - 1].isFinal) {
+        gotFinal = true;
+        addBlockFromVoice(transcript);
+        stopVoice();
+      }
+    };
+
+    rec.onerror = (e) => {
+      if (e.error === "not-allowed") {
+        setVoiceError(labels.voiceDenied || "Permite el acceso al micrófono para usar esta función.");
+      } else if (e.error !== "aborted") {
+        setVoiceError(labels.voiceErrorGeneric || "No se captó nada. Intenta de nuevo.");
+      }
+      stopVoice();
+    };
+
+    rec.onend = () => {
+      setVoiceListening(false);
+      // Fallback: si Chrome terminó sin isFinal pero captó texto
+      if (!gotFinal && latestTranscriptRef.current.length > 0) {
+        addBlockFromVoice(latestTranscriptRef.current);
+      }
+    };
+
+    recognitionRef.current = rec;
+    setVoiceListening(true);
+    rec.start();
+  }, [lang, labels, stopVoice, onAdd]);
+
+  // Limpiar al desmontar
+  useEffect(() => () => stopVoice(), [stopVoice]);
+
+  // Auto-iniciar voz cuando viene del Home (prop autoStartVoice)
+  useEffect(() => {
+    if (autoStartVoice && SpeechRecognitionAPI && !voiceListening) {
+      startVoice();
+      if (onVoiceConsumed) onVoiceConsumed();
+    }
+  }, [autoStartVoice]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Cuando la voz parsea un bloque, auto-agregarlo directamente
+  const applyVoiceParsed = useCallback((parsed) => {
+    if (!parsed) return;
+    const now = new Date();
+    const fallbackStart = now.getHours() * 60 + now.getMinutes() + 15;
+    const startMin = parsed.startMin != null ? parsed.startMin : fallbackStart;
+    let dateKey = undefined;
+    if (parsed.dateKey instanceof Date) {
+      const dd = parsed.dateKey;
+      dateKey = `${dd.getFullYear()}-${String(dd.getMonth() + 1).padStart(2, "0")}-${String(dd.getDate()).padStart(2, "0")}`;
+      setSelectedDate(dd);
+    }
+    onAdd({
+      text: parsed.name,
+      icon: parsed.icon,
+      startMin,
+      durationMin: parsed.durationMin,
+      dateKey,
+    });
+    setVoiceParsed(null);
+    setVoiceText("");
+  }, [onAdd]);
+
+  const handleVoiceConfirm = useCallback(() => {
+    applyVoiceParsed(voiceParsed);
+  }, [voiceParsed, applyVoiceParsed]);
+
+  const handleVoiceCancel = useCallback(() => {
+    setVoiceParsed(null);
+    setVoiceText("");
+    setVoiceError("");
+  }, []);
+
+  const saveCompleted = useCallback((newSet) => {
+    setCompletedIds(newSet);
+    try {
+      localStorage.setItem(
+        "anro_schedule_completed",
+        JSON.stringify({ date: new Date().toDateString(), ids: [...newSet] })
+      );
+    } catch (_) {}
+  }, []);
+
+  const toggleComplete = useCallback(
+    (blockId) => {
+      const next = new Set(completedIds);
+      if (next.has(blockId)) next.delete(blockId);
+      else next.add(blockId);
+      saveCompleted(next);
+    },
+    [completedIds, saveCompleted]
+  );
+
+  // Generar bloques virtuales de medicamentos a partir del prop medications
+  const medicationBlocks = useMemo(() => {
+    if (!medications || !Array.isArray(medications) || medications.length === 0) return [];
+    const blocks = [];
+    for (const med of medications) {
+      if (med.active === false) continue;
+      for (const time of med.doseTimes || []) {
+        const [hh, mm] = (time || "08:00").split(":").map(Number);
+        blocks.push({
+          id: `med_${med.id}_${time}`,
+          text: med.name || "Medicamento",
+          name: med.name || "Medicamento",
+          icon: "💊",
+          startMin: (hh || 0) * 60 + (mm || 0),
+          durationMin: 5,
+          isMedication: true, // flag para UI: no editable, no borrable
+          medicationId: med.id,
+          doseTime: time,
+        });
+      }
+    }
+    return blocks;
+  }, [medications]);
+
+  // Bloques del día seleccionado + medicamentos virtuales, ordenados por hora
+  const dayBlocks = useMemo(() => {
+    const manual = scheduleBlocksForDay(scheduleState, selectedDate);
+    // Los medicamentos se muestran todos los días (son diarios)
+    const all = [...manual, ...medicationBlocks];
+    return all.sort((a, b) => a.startMin - b.startMin);
+  }, [scheduleState, selectedDate, medicationBlocks]);
+
+  const nowMinutes = useMemo(() => {
+    const now = new Date();
+    return now.getHours() * 60 + now.getMinutes();
+  }, []);
+
+  const today = useMemo(() => new Date(), []);
+  const isToday = sameDay(selectedDate, today);
+
+  // Encontrar el siguiente bloque (no completado, startMin >= ahora)
+  const nextBlock = useMemo(() => {
+    if (!isToday) return null;
+    return dayBlocks.find((b) => !completedIds.has(b.id) && b.startMin >= nowMinutes - 15) || null;
+  }, [dayBlocks, completedIds, nowMinutes, isToday]);
+
+  // Progreso
+  const totalBlocks = dayBlocks.length;
+  const completedCount = dayBlocks.filter((b) => completedIds.has(b.id)).length;
+  const progressPct = totalBlocks > 0 ? Math.round((completedCount / totalBlocks) * 100) : 0;
+
+  const monthNames = MONTH_NAMES[lang] || MONTH_NAMES.es;
+  const dayHeaders = DAY_HEADERS[lang] || DAY_HEADERS.es;
+
+  // Seleccionar un día desde el calendario
+  const pickDate = useCallback((d) => {
+    if (!d) return;
+    setSelectedDate(d);
+  }, []);
+
+  // Navegación del mes expandido
+  const prevMonth = () => setCalMonth((p) => p.m === 0 ? { y: p.y - 1, m: 11 } : { y: p.y, m: p.m - 1 });
+  const nextMonth = () => setCalMonth((p) => p.m === 11 ? { y: p.y + 1, m: 0 } : { y: p.y, m: p.m + 1 });
+
+  // Abrir mes expandido (sync con selectedDate)
+  const openMonth = () => {
+    setCalMonth({ y: selectedDate.getFullYear(), m: selectedDate.getMonth() });
+    setCalendarOpen(true);
   };
 
+  const handleAdd = () => {
+    if (!newName.trim()) return;
+    onAdd({
+      text: newName.trim(),
+      icon: "📋",
+      startMin: newStartHour * 60 + newStartMinute,
+      durationMin: newDuration,
+    });
+    setNewName("");
+    setAddingNew(false);
+  };
+
+  // Semana visible (para el strip colapsado)
+  const weekDays = useMemo(() => getWeekForDate(selectedDate), [selectedDate]);
+
+  // Grid del mes (para expandido)
+  const monthGrid = useMemo(() => getMonthGrid(calMonth.y, calMonth.m), [calMonth.y, calMonth.m]);
+
+  // Bloques de ayer (para "Repetir mi día anterior")
+  const yesterdayBlocks = useMemo(() => {
+    const yd = new Date(selectedDate);
+    yd.setDate(yd.getDate() - 1);
+    return scheduleBlocksForDay(scheduleState, yd).sort((a, b) => a.startMin - b.startMin);
+  }, [scheduleState, selectedDate]);
+
+  const handleRepeatYesterday = useCallback(() => {
+    yesterdayBlocks.forEach((b) => {
+      onAdd({
+        text: b.name,
+        icon: b.icon || "📋",
+        startMin: b.startMin,
+        durationMin: b.durationMin,
+      });
+    });
+  }, [yesterdayBlocks, onAdd]);
+
+  // Accent color
+  const accent = C.accent || "#7C5CE0";
+
+  // ---- RENDER ----
   return (
     <div>
+      {/* Keyframes para pulse de micrófono */}
+      <style>{`
+        @keyframes anro-pulse {
+          0%, 100% { opacity: 1; transform: scale(1); }
+          50% { opacity: 0.7; transform: scale(1.05); }
+        }
+      `}</style>
+
+      {/* ===== CALENDARIO ===== */}
       <div
-        role="group"
-        aria-label={t.schedule.viewGroupLabel}
-        style={{ display: "flex", gap: "8px", flexWrap: "wrap", marginBottom: "12px" }}
+        style={{
+          background: C.surface,
+          borderRadius: "16px",
+          padding: "12px 10px 10px",
+          marginBottom: "14px",
+          boxShadow: `0 1px 4px ${tint(accent, 0.08)}`,
+        }}
       >
-        <button type="button" aria-pressed={viewMode === "day"} onClick={() => setViewMode("day")} style={viewTabStyle(viewMode === "day")}>
-          <Calendar size={14} /> {t.schedule.dayViewTab}
-        </button>
-        <button type="button" aria-pressed={viewMode === "week"} onClick={() => setViewMode("week")} style={viewTabStyle(viewMode === "week")}>
-          <CalendarDays size={14} /> {t.schedule.weekViewTab}
-        </button>
-      </div>
-
-      {viewMode === "day" && (
-        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: "8px", marginBottom: "10px" }}>
-          <button type="button" onClick={() => setSelectedDate((d) => addDays(d, -1))} aria-label={t.schedule.prevDay} style={navBtnStyle}>
-            <ChevronLeft size={18} />
-          </button>
-          <div style={{ display: "flex", alignItems: "center", gap: "8px", flexWrap: "wrap", justifyContent: "center" }}>
-            <span style={{ fontSize: "13px", fontWeight: 600, color: C.text, textTransform: "capitalize" }}>
-              {selectedDate.toLocaleDateString(locale, { weekday: "long", day: "numeric", month: "short" })}
-            </span>
-            {isToday ? (
-              <span
-                style={{
-                  fontSize: "11px",
-                  fontWeight: 700,
-                  color: C.sky,
-                  background: tint(C.sky, 0.18),
-                  borderRadius: "999px",
-                  padding: "2px 8px",
-                }}
-              >
-                {t.schedule.todayBadge}
-              </span>
-            ) : (
+        {/* Cabecera: mes + botón expandir/colapsar */}
+        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "0 6px 8px" }}>
+          {calendarOpen ? (
+            <>
               <button
-                type="button"
-                onClick={() => setSelectedDate(new Date())}
-                style={{ background: "transparent", border: "none", color: C.sky, fontSize: "12px", fontWeight: 600, cursor: "pointer", padding: 0 }}
+                onClick={prevMonth}
+                aria-label={labels.prevDay || "Mes anterior"}
+                style={{ background: "none", border: "none", cursor: "pointer", color: C.textMuted, padding: "4px", display: "flex" }}
               >
-                {t.schedule.backToToday}
+                <ChevronLeft size={16} />
               </button>
-            )}
-          </div>
-          <button type="button" onClick={() => setSelectedDate((d) => addDays(d, 1))} aria-label={t.schedule.nextDay} style={navBtnStyle}>
-            <ChevronRight size={18} />
-          </button>
-        </div>
-      )}
-
-      {viewMode === "day" && (
-        <div
-          ref={scrollRef}
-          style={{
-            position: "relative",
-            height: "440px",
-            overflowY: "auto",
-            border: `1px solid ${C.border}`,
-            borderRadius: "12px",
-            background: C.surfaceAlt,
-          }}
-          onPointerMove={handlePointerMove}
-          onPointerUp={handlePointerUp}
-          onPointerCancel={handlePointerCancel}
-        >
-          <div style={{ position: "relative", height: `${GRID_HEIGHT}px` }}>
-            {hourLines.map((h) => (
-              <div
-                key={h}
+              <span style={{ fontSize: "13px", fontWeight: 700, color: C.text }}>
+                {monthNames[calMonth.m]} {calMonth.y}
+              </span>
+              <button
+                onClick={nextMonth}
+                aria-label={labels.nextDay || "Mes siguiente"}
+                style={{ background: "none", border: "none", cursor: "pointer", color: C.textMuted, padding: "4px", display: "flex" }}
+              >
+                <ChevronRight size={16} />
+              </button>
+            </>
+          ) : (
+            <>
+              <span style={{ fontSize: "13px", fontWeight: 700, color: C.text }}>
+                {monthNames[selectedDate.getMonth()]} {selectedDate.getFullYear()}
+              </span>
+              <button
+                onClick={openMonth}
                 style={{
-                  position: "absolute",
-                  top: `${(h - START_HOUR) * 60 * PX_PER_MIN}px`,
-                  left: 0,
-                  right: 0,
-                  borderTop: `1px solid ${C.border}`,
-                  height: "1px",
+                  background: "none",
+                  border: "none",
+                  cursor: "pointer",
+                  color: accent,
+                  fontSize: "12px",
+                  fontWeight: 600,
+                  display: "flex",
+                  alignItems: "center",
+                  gap: "4px",
+                  padding: "4px 8px",
                 }}
               >
-                <span
-                  style={{
-                    position: "absolute",
-                    top: "2px",
-                    left: "6px",
-                    fontSize: "10px",
-                    color: C.textMuted,
-                    background: C.surfaceAlt,
-                    padding: "0 3px",
-                  }}
-                >
-                  {String(h).padStart(2, "0")}:00
-                </span>
+                {labels.viewMonth || "Ver mes"}
+                <ChevronDown size={12} />
+              </button>
+            </>
+          )}
+        </div>
+
+        {/* Headers de días: L M Mi J V S D */}
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(7, 1fr)", textAlign: "center", marginBottom: "4px" }}>
+          {dayHeaders.map((h, i) => (
+            <span key={i} style={{ fontSize: "11px", fontWeight: 600, color: C.textMuted, padding: "2px 0" }}>
+              {h}
+            </span>
+          ))}
+        </div>
+
+        {/* Grid de días */}
+        {calendarOpen ? (
+          /* Mes completo */
+          <div>
+            {monthGrid.map((week, wi) => (
+              <div key={wi} style={{ display: "grid", gridTemplateColumns: "repeat(7, 1fr)", textAlign: "center" }}>
+                {week.map((d, di) => (
+                  <DayCell key={di} date={d} selectedDate={selectedDate} today={today} accent={accent} C={C} onPick={pickDate} />
+                ))}
               </div>
             ))}
-
-            {/* Línea de "ahora" — solo cuando el día mostrado es hoy, para no
-                dar a entender que "ahora" cayó en un día distinto. */}
-            {isToday && (
-              <div
+            {/* Botón ocultar */}
+            <div style={{ textAlign: "center", marginTop: "6px" }}>
+              <button
+                onClick={() => setCalendarOpen(false)}
                 style={{
-                  position: "absolute",
-                  top: `${(nowMin - START_HOUR * 60) * PX_PER_MIN}px`,
-                  left: 0,
-                  right: 0,
-                  height: "2px",
-                  background: C.coral,
-                  zIndex: 5,
+                  background: "none",
+                  border: "none",
+                  cursor: "pointer",
+                  color: accent,
+                  fontSize: "12px",
+                  fontWeight: 600,
+                  display: "inline-flex",
+                  alignItems: "center",
+                  gap: "4px",
+                  padding: "4px 8px",
                 }}
-              />
-            )}
+              >
+                {labels.hideMonth || "Ocultar"}
+                <ChevronUp size={12} />
+              </button>
+            </div>
+          </div>
+        ) : (
+          /* Semana colapsada */
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(7, 1fr)", textAlign: "center" }}>
+            {weekDays.map((d, i) => (
+              <DayCell key={i} date={d} selectedDate={selectedDate} today={today} accent={accent} C={C} onPick={pickDate} />
+            ))}
+          </div>
+        )}
+      </div>
 
-            {blocks.map((block) => {
-              const isDragging = drag && drag.id === block.id;
-              const liveStartMin = isDragging ? drag.previewMin : block.startMin;
-              const top = (liveStartMin - START_HOUR * 60) * PX_PER_MIN;
-              const height = Math.max(20, block.durationMin * PX_PER_MIN);
-              const isConflicted = conflicts.has(block.id);
-              const accent = isConflicted ? C.rose : C.sky;
-              return (
-                <div
-                  key={block.id}
-                  role="button"
-                  tabIndex={0}
-                  aria-label={`${formatMinutesAsTime(block.startMin)} ${block.text}${isConflicted ? ` — ${t.schedule.conflictLabel}` : ""}`}
-                  aria-expanded={expandedId === block.id}
-                  onPointerDown={(e) => handlePointerDown(e, block)}
-                  onKeyDown={(e) => handleBlockKeyDown(e, block)}
-                  style={{
-                    position: "absolute",
-                    left: "56px",
-                    right: "8px",
-                    top: `${top}px`,
-                    height: `${height}px`,
-                    background: `linear-gradient(135deg, ${tint(accent, 0.35)}, ${tint(accent, 0.18)})`,
-                    border: `1px solid ${isConflicted ? C.rose : tint(accent, 0.5)}`,
-                    borderLeft: `4px solid ${accent}`,
-                    borderRadius: "8px",
-                    padding: "3px 8px",
-                    cursor: "grab",
-                    overflow: "hidden",
-                    zIndex: isDragging ? 10 : 2,
-                    boxShadow: isDragging ? "0 6px 16px rgba(0,0,0,0.25)" : "none",
-                    color: C.text,
-                    fontSize: "12px",
-                    display: "flex",
-                    alignItems: "center",
-                    gap: "6px",
-                    minHeight: "44px",
-                  }}
-                >
-                  <GripVertical size={13} style={{ flexShrink: 0, color: C.textMuted }} />
-                  <span style={{ flexShrink: 0 }}>{block.icon}</span>
-                  <span style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", flex: 1 }}>
-                    <strong>{formatMinutesAsTime(block.startMin)}</strong> {block.text}
-                  </span>
-                  {isConflicted && <AlertTriangle size={14} style={{ flexShrink: 0, color: C.rose }} />}
-                </div>
-              );
-            })}
+      {/* ===== BARRA DE PROGRESO ===== */}
+      {totalBlocks > 0 && (
+        <div
+          style={{
+            background: tint(C.text, 0.04),
+            borderRadius: "12px",
+            padding: "10px 14px",
+            marginBottom: "14px",
+          }}
+        >
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "5px" }}>
+            <span style={{ fontSize: "12px", fontWeight: 600, color: C.text }}>
+              {labels.progressLabel || "Progreso del día"}
+            </span>
+            <span style={{ fontSize: "12px", fontWeight: 700, color: accent }}>
+              {completedCount} / {totalBlocks}
+            </span>
+          </div>
+          <div style={{ height: "6px", background: tint(C.text, 0.08), borderRadius: "3px", overflow: "hidden" }}>
+            <div
+              style={{
+                width: `${progressPct}%`,
+                height: "100%",
+                background: `linear-gradient(90deg, ${accent}, ${tint(accent, 0.6)})`,
+                borderRadius: "3px",
+                transition: "width 0.4s ease",
+              }}
+            />
           </div>
         </div>
       )}
 
-      {viewMode === "week" && (
-        <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
-          {week.keys.map((dateKey) => {
-            const dayBlocks = week.byDate[dateKey] || [];
-            const dayConflicts = detectConflicts(dayBlocks);
-            const isDayToday = dateKey === todayKeyNow;
-            const d = dateFromKey(dateKey);
-            return (
-              <div
-                key={dateKey}
+      {/* ===== TARJETA HERO — siguiente actividad ===== */}
+      {nextBlock && isToday && (
+        <div
+          style={{
+            background: nextBlock.isMedication
+              ? `linear-gradient(135deg, #7C4DFF, ${tint("#7C4DFF", 0.7)})`
+              : `linear-gradient(135deg, ${guessCategoryColor(nextBlock)}, ${tint(guessCategoryColor(nextBlock), 0.7)})`,
+            borderRadius: "18px",
+            padding: "18px",
+            marginBottom: "14px",
+            position: "relative",
+            overflow: "hidden",
+          }}
+        >
+          {/* Decorative circles */}
+          <div style={{ position: "absolute", right: "-20px", top: "-20px", width: "80px", height: "80px", background: "rgba(255,255,255,0.08)", borderRadius: "50%", pointerEvents: "none" }} />
+          <div style={{ position: "absolute", right: "30px", bottom: "-15px", width: "50px", height: "50px", background: "rgba(255,255,255,0.05)", borderRadius: "50%", pointerEvents: "none" }} />
+
+          <div style={{ fontSize: "10px", fontWeight: 600, color: "rgba(255,255,255,0.8)", textTransform: "uppercase", letterSpacing: "1px", marginBottom: "8px" }}>
+            {labels.nextUpLabel || "Siguiente"}
+          </div>
+          <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
+            <div
+              style={{
+                width: "48px",
+                height: "48px",
+                borderRadius: "14px",
+                background: "rgba(255,255,255,0.18)",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                flexShrink: 0,
+                fontSize: "24px",
+              }}
+            >
+              {nextBlock.icon || "📋"}
+            </div>
+            <div style={{ flex: 1 }}>
+              <div style={{ fontSize: "16px", fontWeight: 700, color: "white" }}>{nextBlock.text || nextBlock.name}</div>
+              <div style={{ fontSize: "12px", color: "rgba(255,255,255,0.85)", marginTop: "2px" }}>
+                {nextBlock.startMin != null ? formatMinutesAsTime(nextBlock.startMin) : (labels.pendingToday || "Pendiente de hoy")}
+              </div>
+            </div>
+          </div>
+          {nextBlock.isMedication ? (
+            <div style={{
+              marginTop: "14px",
+              width: "100%",
+              background: "rgba(255,255,255,0.15)",
+              color: "rgba(255,255,255,0.9)",
+              fontSize: "12px",
+              fontWeight: 500,
+              padding: "8px",
+              borderRadius: "12px",
+              textAlign: "center",
+            }}>
+              💊 {labels.medHeroHint || "Regístralo en tu módulo de medicamentos"}
+            </div>
+          ) : (
+            <button
+              onClick={() => toggleComplete(nextBlock.id)}
+              style={{
+                marginTop: "14px",
+                width: "100%",
+                border: "none",
+                background: "rgba(255,255,255,0.2)",
+                color: "white",
+                fontSize: "13px",
+                fontWeight: 600,
+                padding: "10px",
+                borderRadius: "12px",
+                cursor: "pointer",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                gap: "6px",
+              }}
+            >
+              <Check size={16} />
+              {labels.markDone || "Marcar como hecho"}
+            </button>
+          )}
+        </div>
+      )}
+
+      {/* ===== LISTA DE BLOQUES Ó SUGERIDOS ===== */}
+      {dayBlocks.length === 0 ? (
+        /* ---- Estado vacío: sugerencias rápidas ---- */
+        <div>
+          <div style={{ textAlign: "center", marginBottom: "12px" }}>
+            <div style={{ fontSize: "14px", fontWeight: 700, color: C.text }}>
+              {labels.buildYourDay || "Tu agenda del día"}
+            </div>
+            <div style={{ fontSize: "12px", color: C.textMuted, marginTop: "3px" }}>
+              {labels.chooseSuggested || "Elige los bloques que necesitas"}
+            </div>
+          </div>
+          <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
+            {/* Repetir día anterior (solo si ayer tuvo bloques) */}
+            {yesterdayBlocks.length > 0 && (
+              <button
+                onClick={handleRepeatYesterday}
                 style={{
-                  border: `1px solid ${isDayToday ? C.sky : C.border}`,
-                  borderRadius: "12px",
-                  padding: "10px 12px",
-                  background: isDayToday ? tint(C.sky, 0.08) : C.surfaceAlt,
+                  width: "100%",
+                  background: `linear-gradient(135deg, ${accent}, ${tint(accent, 0.7)})`,
+                  border: "none",
+                  borderRadius: "14px",
+                  padding: "14px 16px",
+                  display: "flex",
+                  alignItems: "center",
+                  gap: "12px",
+                  cursor: "pointer",
+                  boxShadow: `0 2px 8px ${tint(accent, 0.25)}`,
+                  textAlign: "left",
                 }}
               >
-                <button
-                  type="button"
-                  onClick={() => goToDay(dateKey)}
+                <div
                   style={{
+                    width: "40px",
+                    height: "40px",
+                    borderRadius: "12px",
+                    background: "rgba(255,255,255,0.18)",
                     display: "flex",
                     alignItems: "center",
-                    justifyContent: "space-between",
-                    width: "100%",
-                    minHeight: "32px",
-                    background: "transparent",
-                    border: "none",
-                    padding: 0,
-                    marginBottom: dayBlocks.length ? "8px" : 0,
-                    cursor: "pointer",
-                    textAlign: "left",
+                    justifyContent: "center",
+                    flexShrink: 0,
+                    fontSize: "20px",
                   }}
-                  aria-label={`${t.schedule.viewFullDay} — ${d.toLocaleDateString(locale, { weekday: "long", day: "numeric", month: "short" })}`}
                 >
-                  <span style={{ display: "flex", alignItems: "center", gap: "8px" }}>
-                    <span style={{ fontSize: "13px", fontWeight: 700, color: C.text, textTransform: "capitalize" }}>
-                      {d.toLocaleDateString(locale, { weekday: "short", day: "numeric", month: "short" })}
-                    </span>
-                    {isDayToday && (
-                      <span
-                        style={{
-                          fontSize: "10px",
-                          fontWeight: 700,
-                          color: C.sky,
-                          background: tint(C.sky, 0.18),
-                          borderRadius: "999px",
-                          padding: "1px 7px",
-                        }}
-                      >
-                        {t.schedule.todayBadge}
-                      </span>
-                    )}
-                  </span>
-                  <ChevronRight size={16} style={{ color: C.textMuted, flexShrink: 0 }} />
-                </button>
-
-                {dayBlocks.length === 0 ? (
-                  <p style={{ fontSize: "12px", color: C.textMuted, margin: 0 }}>{t.schedule.weekEmptyDay}</p>
-                ) : (
-                  <div style={{ display: "flex", flexDirection: "column", gap: "6px" }}>
-                    {dayBlocks.map((block) => {
-                      const isConflicted = dayConflicts.has(block.id);
-                      return (
-                        <button
-                          key={block.id}
-                          type="button"
-                          onClick={() => openBlockFromWeek(dateKey, block.id)}
-                          aria-label={`${formatMinutesAsTime(block.startMin)} ${block.text}${isConflicted ? ` — ${t.schedule.conflictLabel}` : ""}`}
-                          style={{
-                            display: "flex",
-                            alignItems: "center",
-                            gap: "8px",
-                            minHeight: "36px",
-                            padding: "4px 10px",
-                            borderRadius: "8px",
-                            border: `1px solid ${isConflicted ? C.rose : "transparent"}`,
-                            background: C.surface,
-                            color: C.text,
-                            fontSize: "12px",
-                            cursor: "pointer",
-                            textAlign: "left",
-                          }}
-                        >
-                          <span style={{ flexShrink: 0 }}>{block.icon}</span>
-                          <span style={{ flexShrink: 0, fontWeight: 600 }}>{formatMinutesAsTime(block.startMin)}</span>
-                          <span style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", flex: 1 }}>{block.text}</span>
-                          {isConflicted && <AlertTriangle size={13} style={{ flexShrink: 0, color: C.rose }} />}
-                        </button>
-                      );
-                    })}
+                  🔄
+                </div>
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <div style={{ fontSize: "13px", fontWeight: 700, color: "white" }}>
+                    {labels.repeatYesterday || "Repetir mi día anterior"}
                   </div>
+                  <div style={{ fontSize: "11px", color: "rgba(255,255,255,0.8)", marginTop: "2px" }}>
+                    {(labels.repeatYesterdayHint || "{n} bloques listos para copiar").replace("{n}", yesterdayBlocks.length)}
+                  </div>
+                </div>
+                <ChevronRight size={18} color="rgba(255,255,255,0.7)" />
+              </button>
+            )}
+
+            {/* Medicamentos del día (automáticos del módulo de medicamentos) */}
+            {medicationBlocks.length > 0 && (
+              <div style={{
+                background: `${tint(accent, 0.08)}`,
+                borderRadius: "14px",
+                padding: "12px 14px",
+              }}>
+                <div style={{ fontSize: "12px", fontWeight: 700, color: accent, marginBottom: "8px", display: "flex", alignItems: "center", gap: "6px" }}>
+                  <span>💊</span>
+                  <span>{labels.autoMedications || "Tus medicamentos de hoy"}</span>
+                </div>
+                {medicationBlocks.map((mb) => (
+                  <div key={mb.id} style={{
+                    display: "flex", alignItems: "center", gap: "10px",
+                    padding: "6px 0",
+                    borderBottom: `1px solid ${tint(accent, 0.08)}`,
+                  }}>
+                    <span style={{ fontSize: "16px" }}>💊</span>
+                    <span style={{ fontSize: "13px", fontWeight: 500, color: C.text, flex: 1 }}>{mb.text}</span>
+                    <span style={{ fontSize: "11px", color: C.textMuted }}>{formatMinutesAsTime(mb.startMin)}</span>
+                  </div>
+                ))}
+                <div style={{ fontSize: "11px", color: C.textMuted, marginTop: "6px", textAlign: "center" }}>
+                  {labels.autoMedicationsHint || "Se agregan automáticamente desde tu módulo de medicamentos"}
+                </div>
+              </div>
+            )}
+
+            {/* Mensaje de estado vacío para pendientes */}
+            <div style={{
+              textAlign: "center",
+              padding: "16px 12px",
+              background: C.surface,
+              borderRadius: "14px",
+              boxShadow: "0 1px 3px rgba(0,0,0,0.04)",
+            }}>
+              <div style={{ fontSize: "28px", marginBottom: "8px" }}>📌</div>
+              <div style={{ fontSize: "13px", fontWeight: 600, color: C.text, marginBottom: "4px" }}>
+                {labels.emptyPendientes || "¿Tienes pendientes externos?"}
+              </div>
+              <div style={{ fontSize: "12px", color: C.textMuted, lineHeight: 1.4 }}>
+                {labels.emptyPendientesHint || "Agrega citas, mandados o compromisos. Usa el micrófono para decirlo con voz."}
+              </div>
+            </div>
+
+            {/* Botón principal de voz — grande y destacado */}
+            {SpeechRecognitionAPI && (
+              <button
+                onClick={voiceListening ? stopVoice : startVoice}
+                style={{
+                  width: "100%",
+                  background: voiceListening
+                    ? `linear-gradient(135deg, #E53935, #FF5252)`
+                    : `linear-gradient(135deg, ${accent}, ${tint(accent, 0.7)})`,
+                  border: "none",
+                  borderRadius: "16px",
+                  padding: "16px 18px",
+                  cursor: "pointer",
+                  display: "flex",
+                  alignItems: "center",
+                  gap: "12px",
+                  boxShadow: voiceListening
+                    ? "0 4px 16px rgba(229,57,53,0.3)"
+                    : `0 4px 16px ${tint(accent, 0.25)}`,
+                  animation: voiceListening ? "anro-pulse 1.5s ease-in-out infinite" : "none",
+                  transition: "all 0.3s ease",
+                }}
+                aria-label={labels.voiceAdd || "Agregar con voz"}
+              >
+                <div style={{
+                  width: "44px",
+                  height: "44px",
+                  borderRadius: "12px",
+                  background: "rgba(255,255,255,0.2)",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  flexShrink: 0,
+                }}>
+                  <Mic size={22} color="#fff" />
+                </div>
+                <div style={{ flex: 1, textAlign: "left" }}>
+                  <div style={{ fontSize: "14px", fontWeight: 700, color: "#fff" }}>
+                    {voiceListening
+                      ? (labels.voiceListening || "Escuchando...")
+                      : (labels.voiceCTA || "Dicta tu pendiente")}
+                  </div>
+                  <div style={{ fontSize: "11px", color: "rgba(255,255,255,0.8)", marginTop: "2px" }}>
+                    {voiceListening
+                      ? (labels.voiceTapStop || "Toca para detener")
+                      : (labels.voiceHint || "\"Cita con el dentista el viernes a las 4\"")}
+                  </div>
+                </div>
+                {voiceListening && (
+                  <div style={{
+                    width: "12px",
+                    height: "12px",
+                    borderRadius: "50%",
+                    background: "#fff",
+                    animation: "anro-pulse 1s ease-in-out infinite",
+                    flexShrink: 0,
+                  }} />
+                )}
+              </button>
+            )}
+
+            {/* Botón secundario: crear bloque manual */}
+            <button
+              onClick={() => setAddingNew(true)}
+              style={{
+                width: "100%",
+                border: `2px dashed ${tint(accent, 0.3)}`,
+                background: "transparent",
+                borderRadius: "14px",
+                padding: "12px",
+                fontSize: "13px",
+                fontWeight: 600,
+                color: accent,
+                cursor: "pointer",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                gap: "6px",
+              }}
+            >
+              <Plus size={16} />
+              {labels.customBlock || "Escribir manualmente"}
+            </button>
+
+            {/* Indicador de voz activa */}
+            {voiceListening && (
+              <div
+                style={{
+                  background: tint(accent, 0.06),
+                  borderRadius: "12px",
+                  padding: "12px 14px",
+                  display: "flex",
+                  alignItems: "center",
+                  gap: "10px",
+                }}
+              >
+                <div
+                  style={{
+                    width: "10px",
+                    height: "10px",
+                    borderRadius: "50%",
+                    background: "#E53935",
+                    animation: "anro-pulse 1s ease-in-out infinite",
+                    flexShrink: 0,
+                  }}
+                />
+                <div style={{ flex: 1 }}>
+                  <div style={{ fontSize: "12px", fontWeight: 600, color: C.text }}>
+                    {labels.voiceListening || "Escuchando..."}
+                  </div>
+                  {voiceText && (
+                    <div style={{ fontSize: "12px", color: C.textMuted, marginTop: "2px", fontStyle: "italic" }}>
+                      "{voiceText}"
+                    </div>
+                  )}
+                </div>
+                <button
+                  onClick={stopVoice}
+                  style={{
+                    background: tint(C.text, 0.08),
+                    border: "none",
+                    borderRadius: "8px",
+                    padding: "6px 10px",
+                    fontSize: "11px",
+                    fontWeight: 600,
+                    color: C.text,
+                    cursor: "pointer",
+                  }}
+                >
+                  {labels.voiceStop || "Parar"}
+                </button>
+              </div>
+            )}
+
+            {/* Resultado de voz: confirmar o cancelar */}
+            {voiceParsed && !voiceListening && (
+              <div
+                style={{
+                  background: C.surface,
+                  borderRadius: "14px",
+                  padding: "14px",
+                  boxShadow: `0 2px 8px ${tint(accent, 0.12)}`,
+                  border: `1px solid ${tint(accent, 0.15)}`,
+                }}
+              >
+                <div style={{ fontSize: "11px", fontWeight: 600, color: accent, textTransform: "uppercase", letterSpacing: "0.5px", marginBottom: "8px" }}>
+                  {labels.voiceConfirmTitle || "¿Agregar este bloque?"}
+                </div>
+                <div style={{ display: "flex", alignItems: "center", gap: "10px", marginBottom: "10px" }}>
+                  <span style={{ fontSize: "22px" }}>{voiceParsed.icon}</span>
+                  <div>
+                    <div style={{ fontSize: "14px", fontWeight: 700, color: C.text }}>{voiceParsed.name}</div>
+                    <div style={{ fontSize: "12px", color: C.textMuted, marginTop: "2px" }}>
+                      {voiceParsed.startMin != null
+                        ? formatMinutesAsTime(voiceParsed.startMin)
+                        : (labels.pendingToday || "Pendiente de hoy")}
+                    </div>
+                  </div>
+                </div>
+                <div style={{ display: "flex", gap: "8px" }}>
+                  <button
+                    onClick={handleVoiceConfirm}
+                    style={{
+                      flex: 1,
+                      background: accent,
+                      color: "white",
+                      border: "none",
+                      borderRadius: "10px",
+                      padding: "10px",
+                      fontSize: "13px",
+                      fontWeight: 600,
+                      cursor: "pointer",
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "center",
+                      gap: "6px",
+                    }}
+                  >
+                    <Check size={16} />
+                    {labels.voiceConfirm || "Agregar"}
+                  </button>
+                  <button
+                    onClick={handleVoiceCancel}
+                    style={{
+                      flex: 1,
+                      background: tint(C.text, 0.06),
+                      color: C.text,
+                      border: "none",
+                      borderRadius: "10px",
+                      padding: "10px",
+                      fontSize: "13px",
+                      fontWeight: 600,
+                      cursor: "pointer",
+                    }}
+                  >
+                    {labels.voiceCancel || "Cancelar"}
+                  </button>
+                </div>
+              </div>
+            )}
+
+            {/* Error de voz */}
+            {voiceError && (
+              <div style={{ fontSize: "12px", color: "#E53935", textAlign: "center", padding: "8px" }}>
+                {voiceError}
+              </div>
+            )}
+          </div>
+        </div>
+      ) : (
+        /* ---- Lista de bloques existentes ---- */
+        <div style={{ display: "flex", flexDirection: "column", gap: "6px" }}>
+          {dayBlocks.map((block) => {
+            const isDone = completedIds.has(block.id);
+            const isNext = nextBlock && block.id === nextBlock.id;
+            const catColor = block.isMedication ? "#7C4DFF" : guessCategoryColor(block);
+
+            // No mostrar el hero de nuevo como tarjeta normal
+            if (isNext && isToday) return null;
+
+            return (
+              <div
+                key={block.id}
+                style={{
+                  background: block.isMedication ? `${tint("#7C4DFF", 0.06)}` : C.surface,
+                  borderRadius: "14px",
+                  padding: "12px 14px",
+                  display: "flex",
+                  alignItems: "center",
+                  gap: "12px",
+                  opacity: isDone ? 0.6 : (isToday && block.startMin < nowMinutes && !isDone ? 0.8 : 1),
+                  transition: "all 0.2s",
+                  boxShadow: "0 1px 3px rgba(0,0,0,0.04)",
+                  borderLeft: block.isMedication ? "3px solid #7C4DFF" : "none",
+                }}
+              >
+                {/* Check circle / Med icon */}
+                {block.isMedication ? (
+                  <div style={{
+                    width: "36px", height: "36px", borderRadius: "10px",
+                    background: `${tint("#7C4DFF", 0.12)}`,
+                    display: "flex", alignItems: "center", justifyContent: "center",
+                    flexShrink: 0, fontSize: "18px",
+                  }}>
+                    💊
+                  </div>
+                ) : (
+                  <button
+                    onClick={() => toggleComplete(block.id)}
+                    aria-label={isDone ? "Desmarcar" : "Completar"}
+                    style={{
+                      width: "36px",
+                      height: "36px",
+                      borderRadius: "10px",
+                      background: isDone ? `${catColor}15` : tint(C.text, 0.04),
+                      border: "none",
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "center",
+                      cursor: "pointer",
+                      flexShrink: 0,
+                      transition: "all 0.2s",
+                    }}
+                  >
+                    {isDone ? (
+                      <Check size={18} color="#22c55e" strokeWidth={2.5} />
+                    ) : (
+                      <span style={{ fontSize: "18px" }}>{block.icon || "📋"}</span>
+                    )}
+                  </button>
+                )}
+
+                {/* Content */}
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <div
+                    style={{
+                      fontSize: "13px",
+                      fontWeight: 600,
+                      color: C.text,
+                      textDecoration: isDone ? "line-through" : "none",
+                    }}
+                  >
+                    {block.text || block.name}
+                  </div>
+                  <div style={{ fontSize: "11px", color: block.isMedication ? "#7C4DFF" : (isDone ? "#22c55e" : C.textMuted), fontWeight: block.isMedication ? 600 : (isDone ? 500 : 400), marginTop: "1px" }}>
+                    {block.startMin != null ? formatMinutesAsTime(block.startMin) : (labels.pendingToday || "Pendiente de hoy")}
+                    {block.isMedication ? ` · ${labels.autoLabel || "Automático"}` : ""}
+                    {isDone && !block.isMedication ? ` · ${labels.completedLabel || "Completado"}` : ""}
+                  </div>
+                </div>
+
+                {/* Color accent bar */}
+                <div style={{ width: "4px", height: "28px", borderRadius: "2px", background: catColor, flexShrink: 0 }} />
+
+                {/* Delete — solo para bloques manuales, NO medicamentos */}
+                {!block.isMedication && (
+                  <button
+                    onClick={() => onRemove(block.id)}
+                    aria-label={labels.deleteBlockTitle || "Eliminar bloque"}
+                    style={{ background: "none", border: "none", cursor: "pointer", color: C.textMuted, padding: "4px", display: "flex", opacity: 0.4 }}
+                  >
+                    <Trash2 size={14} />
+                  </button>
                 )}
               </div>
             );
@@ -460,235 +1260,302 @@ export default function ScheduleAgendaPanel({ C, t, lang, scheduleState, onAdd, 
         </div>
       )}
 
-      {viewMode === "day" && expanded && (
+      {/* ===== FORMULARIO AGREGAR BLOQUE ===== */}
+      {addingNew ? (
         <div
           style={{
-            marginTop: "10px",
+            marginTop: "12px",
             background: C.surface,
-            border: `1px solid ${C.border}`,
-            borderRadius: "12px",
-            padding: "12px",
+            borderRadius: "14px",
+            padding: "14px",
+            boxShadow: "0 2px 8px rgba(0,0,0,0.06)",
           }}
         >
-          {conflicts.has(expanded.id) && (
-            <p style={{ display: "flex", alignItems: "center", gap: "6px", fontSize: "12px", color: C.rose, margin: "0 0 8px" }}>
-              <AlertTriangle size={14} /> {t.schedule.conflictNotice}
-            </p>
-          )}
-          <div style={{ display: "flex", flexWrap: "wrap", gap: "8px", marginBottom: "8px" }}>
-            <input
-              type="text"
-              value={expanded.text}
-              onChange={(e) => onUpdate(expanded.id, { text: e.target.value })}
-              style={{
-                flex: "1 1 160px",
-                minHeight: "44px",
-                padding: "0 12px",
-                borderRadius: "10px",
-                border: `1px solid ${C.border}`,
-                background: C.surfaceAlt,
-                color: C.text,
-                fontSize: "13px",
-              }}
-            />
-            <label style={{ display: "flex", alignItems: "center", gap: "6px" }}>
-              <span style={{ fontSize: "12px", color: C.textMuted }}>{t.schedule.timeLabel}</span>
-              <input
-                type="time"
-                value={formatMinutesAsTime(expanded.startMin)}
-                onChange={(e) => {
-                  const parsed = parseTimeInputToMinutes(e.target.value);
-                  if (parsed !== null) onMove(expanded.id, parsed);
-                }}
-                aria-label={t.schedule.timeLabel}
-                style={{
-                  minHeight: "44px",
-                  padding: "0 10px",
-                  borderRadius: "10px",
-                  border: `1px solid ${C.border}`,
-                  background: C.surfaceAlt,
-                  color: C.text,
-                  fontSize: "13px",
-                }}
-              />
-            </label>
-            <label style={{ display: "flex", alignItems: "center", gap: "6px" }}>
-              <span style={{ fontSize: "12px", color: C.textMuted }}>{t.schedule.durationLabel}</span>
+          <input
+            type="text"
+            placeholder={labels.newBlockPlaceholder || "Tu pendiente (ej. Cita con el dentista)..."}
+            value={newName}
+            onChange={(e) => setNewName(e.target.value)}
+            onKeyDown={(e) => e.key === "Enter" && handleAdd()}
+            autoFocus
+            style={{
+              width: "100%",
+              border: `1px solid ${C.border}`,
+              background: tint(C.text, 0.03),
+              borderRadius: "10px",
+              padding: "10px 12px",
+              fontSize: "13px",
+              color: C.text,
+              boxSizing: "border-box",
+              outline: "none",
+            }}
+          />
+          <div style={{ display: "flex", gap: "8px", marginTop: "10px", alignItems: "center", flexWrap: "wrap" }}>
+            <div style={{ display: "flex", alignItems: "center", gap: "4px" }}>
+              <Clock size={13} color={C.textMuted} />
               <select
-                value={expanded.durationMin}
-                onChange={(e) => onUpdate(expanded.id, { durationMin: Number(e.target.value) })}
-                aria-label={t.schedule.durationLabel}
+                value={newStartHour}
+                onChange={(e) => setNewStartHour(+e.target.value)}
                 style={{
-                  minHeight: "44px",
-                  padding: "0 10px",
-                  borderRadius: "10px",
                   border: `1px solid ${C.border}`,
-                  background: C.surfaceAlt,
+                  background: tint(C.text, 0.03),
+                  borderRadius: "8px",
+                  padding: "6px 4px",
+                  fontSize: "12px",
                   color: C.text,
-                  fontSize: "13px",
+                  cursor: "pointer",
                 }}
               >
-                {DURATION_OPTIONS.map((min) => (
-                  <option key={min} value={min}>
-                    {t.schedule.aboutMinutes(min)}
+                {Array.from({ length: 24 }, (_, i) => (
+                  <option key={i} value={i}>
+                    {String(i).padStart(2, "0")}
                   </option>
                 ))}
               </select>
-            </label>
-          </div>
-          <div style={{ display: "flex", gap: "8px" }}>
-            <button
-              onClick={() => {
-                onRemove(expanded.id);
-                setExpandedId(null);
-              }}
-              aria-label={t.schedule.deleteBlockTitle}
+              <span style={{ color: C.textMuted, fontWeight: 600 }}>:</span>
+              <select
+                value={newStartMinute}
+                onChange={(e) => setNewStartMinute(+e.target.value)}
+                style={{
+                  border: `1px solid ${C.border}`,
+                  background: tint(C.text, 0.03),
+                  borderRadius: "8px",
+                  padding: "6px 4px",
+                  fontSize: "12px",
+                  color: C.text,
+                  cursor: "pointer",
+                }}
+              >
+                {[0, 5, 10, 15, 20, 25, 30, 35, 40, 45, 50, 55].map((m) => (
+                  <option key={m} value={m}>
+                    {String(m).padStart(2, "0")}
+                  </option>
+                ))}
+              </select>
+            </div>
+            <select
+              value={newDuration}
+              onChange={(e) => setNewDuration(+e.target.value)}
               style={{
-                minHeight: "44px",
-                minWidth: "44px",
+                border: `1px solid ${C.border}`,
+                background: tint(C.text, 0.03),
+                borderRadius: "8px",
+                padding: "6px 8px",
+                fontSize: "12px",
+                color: C.text,
+                cursor: "pointer",
+              }}
+            >
+              {[5, 10, 15, 20, 25, 30, 45, 60, 90, 120].map((d) => (
+                <option key={d} value={d}>
+                  {d} min
+                </option>
+              ))}
+            </select>
+            <div style={{ flex: 1 }} />
+            <button
+              onClick={() => { setAddingNew(false); setNewName(""); }}
+              style={{
+                background: "none",
+                border: "none",
+                color: C.textMuted,
+                fontSize: "12px",
+                cursor: "pointer",
+                padding: "6px 10px",
+              }}
+            >
+              {labels.closeEditor || "Cerrar"}
+            </button>
+            <button
+              onClick={handleAdd}
+              disabled={!newName.trim()}
+              style={{
+                background: accent,
+                color: "#fff",
+                border: "none",
+                borderRadius: "10px",
+                padding: "8px 16px",
+                fontSize: "12px",
+                fontWeight: 600,
+                cursor: newName.trim() ? "pointer" : "default",
+                opacity: newName.trim() ? 1 : 0.5,
+              }}
+            >
+              {labels.addBlockButton || "Agregar"}
+            </button>
+          </div>
+        </div>
+      ) : (
+        /* Botones para agregar otro bloque: voz (principal) + manual */
+        dayBlocks.length > 0 && (
+          <div style={{ display: "flex", flexDirection: "column", gap: "8px", marginTop: "12px" }}>
+            {/* Botón de voz — prominente */}
+            {SpeechRecognitionAPI && (
+              <button
+                onClick={voiceListening ? stopVoice : startVoice}
+                style={{
+                  width: "100%",
+                  background: voiceListening
+                    ? `linear-gradient(135deg, #E53935, #FF5252)`
+                    : `linear-gradient(135deg, ${accent}, ${tint(accent, 0.7)})`,
+                  border: "none",
+                  borderRadius: "14px",
+                  padding: "14px 16px",
+                  cursor: "pointer",
+                  display: "flex",
+                  alignItems: "center",
+                  gap: "10px",
+                  boxShadow: voiceListening
+                    ? "0 3px 12px rgba(229,57,53,0.25)"
+                    : `0 3px 12px ${tint(accent, 0.2)}`,
+                  animation: voiceListening ? "anro-pulse 1.5s ease-in-out infinite" : "none",
+                  transition: "all 0.3s ease",
+                }}
+                aria-label={labels.voiceAdd || "Agregar con voz"}
+              >
+                <div style={{
+                  width: "36px",
+                  height: "36px",
+                  borderRadius: "10px",
+                  background: "rgba(255,255,255,0.2)",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  flexShrink: 0,
+                }}>
+                  <Mic size={18} color="#fff" />
+                </div>
+                <div style={{ flex: 1, textAlign: "left" }}>
+                  <div style={{ fontSize: "13px", fontWeight: 700, color: "#fff" }}>
+                    {voiceListening
+                      ? (labels.voiceListening || "Escuchando...")
+                      : (labels.voiceCTA || "Dicta tu pendiente")}
+                  </div>
+                  <div style={{ fontSize: "11px", color: "rgba(255,255,255,0.8)", marginTop: "1px" }}>
+                    {voiceListening
+                      ? (labels.voiceTapStop || "Toca para detener")
+                      : (labels.voiceHintShort || "\"Ir al banco mañana a las 10\"")}
+                  </div>
+                </div>
+                {voiceListening && (
+                  <div style={{ width: "10px", height: "10px", borderRadius: "50%", background: "#fff", animation: "anro-pulse 1s ease-in-out infinite", flexShrink: 0 }} />
+                )}
+              </button>
+            )}
+            {/* Botón manual — secundario */}
+            <button
+              onClick={() => setAddingNew(true)}
+              style={{
+                width: "100%",
+                border: `2px dashed ${tint(accent, 0.3)}`,
+                background: "transparent",
+                borderRadius: "14px",
+                padding: "12px",
+                fontSize: "13px",
+                fontWeight: 600,
+                color: accent,
+                cursor: "pointer",
                 display: "flex",
                 alignItems: "center",
                 justifyContent: "center",
                 gap: "6px",
-                padding: "0 14px",
-                borderRadius: "10px",
-                border: `1px solid ${C.border}`,
-                background: "transparent",
-                color: C.rose,
-                cursor: "pointer",
-                fontSize: "13px",
               }}
             >
-              <Trash2 size={16} /> {t.schedule.deleteBlockTitle}
+              <Plus size={16} />
+              {labels.addAnotherBlock || "Agregar otro bloque"}
             </button>
-            <button
-              onClick={() => setExpandedId(null)}
-              style={{
-                minHeight: "44px",
-                padding: "0 14px",
-                borderRadius: "10px",
-                border: "none",
-                background: C.surfaceAlt,
-                color: C.text,
-                cursor: "pointer",
-                fontSize: "13px",
-              }}
-            >
-              {t.schedule.closeEditor}
+          </div>
+        )
+      )}
+
+      {/* ===== VOICE FEEDBACK (fuera del ternario, visible siempre) ===== */}
+      {voiceListening && dayBlocks.length > 0 && (
+        <div
+          style={{
+            background: tint(accent, 0.06),
+            borderRadius: "12px",
+            padding: "12px 14px",
+            marginTop: "8px",
+            display: "flex",
+            alignItems: "center",
+            gap: "10px",
+          }}
+        >
+          <div style={{ width: "10px", height: "10px", borderRadius: "50%", background: "#E53935", animation: "anro-pulse 1s ease-in-out infinite", flexShrink: 0 }} />
+          <div style={{ flex: 1 }}>
+            <div style={{ fontSize: "12px", fontWeight: 600, color: C.text }}>{labels.voiceListening || "Escuchando..."}</div>
+            {voiceText && <div style={{ fontSize: "12px", color: C.textMuted, marginTop: "2px", fontStyle: "italic" }}>"{voiceText}"</div>}
+          </div>
+          <button onClick={stopVoice} style={{ background: tint(C.text, 0.08), border: "none", borderRadius: "8px", padding: "6px 10px", fontSize: "11px", fontWeight: 600, color: C.text, cursor: "pointer" }}>
+            {labels.voiceStop || "Parar"}
+          </button>
+        </div>
+      )}
+      {voiceParsed && !voiceListening && dayBlocks.length > 0 && (
+        <div style={{ background: C.surface, borderRadius: "14px", padding: "14px", marginTop: "8px", boxShadow: `0 2px 8px ${tint(accent, 0.12)}`, border: `1px solid ${tint(accent, 0.15)}` }}>
+          <div style={{ fontSize: "11px", fontWeight: 600, color: accent, textTransform: "uppercase", letterSpacing: "0.5px", marginBottom: "8px" }}>
+            {labels.voiceConfirmTitle || "¿Agregar este bloque?"}
+          </div>
+          <div style={{ display: "flex", alignItems: "center", gap: "10px", marginBottom: "10px" }}>
+            <span style={{ fontSize: "22px" }}>{voiceParsed.icon}</span>
+            <div>
+              <div style={{ fontSize: "14px", fontWeight: 700, color: C.text }}>{voiceParsed.name}</div>
+              <div style={{ fontSize: "12px", color: C.textMuted, marginTop: "2px" }}>
+                {voiceParsed.startMin != null ? formatMinutesAsTime(voiceParsed.startMin) : (labels.pendingToday || "Pendiente de hoy")}
+              </div>
+            </div>
+          </div>
+          <div style={{ display: "flex", gap: "8px" }}>
+            <button onClick={handleVoiceConfirm} style={{ flex: 1, background: accent, color: "white", border: "none", borderRadius: "10px", padding: "10px", fontSize: "13px", fontWeight: 600, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", gap: "6px" }}>
+              <Check size={16} /> {labels.voiceConfirm || "Agregar"}
+            </button>
+            <button onClick={handleVoiceCancel} style={{ flex: 1, background: tint(C.text, 0.06), color: C.text, border: "none", borderRadius: "10px", padding: "10px", fontSize: "13px", fontWeight: 600, cursor: "pointer" }}>
+              {labels.voiceCancel || "Cancelar"}
             </button>
           </div>
         </div>
       )}
-
-      {viewMode === "day" && (
-        <form
-          onSubmit={handleSubmitNew}
-          style={{
-            marginTop: "12px",
-            display: "flex",
-            flexWrap: "wrap",
-            gap: "8px",
-            alignItems: "center",
-          }}
-        >
-          <select
-            value={newIcon}
-            onChange={(e) => setNewIcon(e.target.value)}
-            aria-label={t.schedule.iconLabel}
-            style={{
-              minHeight: "44px",
-              padding: "0 8px",
-              borderRadius: "10px",
-              border: `1px solid ${C.border}`,
-              background: C.surfaceAlt,
-              color: C.text,
-              fontSize: "15px",
-            }}
-          >
-            {BLOCK_ICONS.map((icon) => (
-              <option key={icon} value={icon}>
-                {icon}
-              </option>
-            ))}
-          </select>
-          <input
-            type="text"
-            value={newText}
-            onChange={(e) => setNewText(e.target.value)}
-            placeholder={t.schedule.newBlockPlaceholder}
-            disabled={atCap}
-            style={{
-              flex: "1 1 160px",
-              minHeight: "44px",
-              padding: "0 12px",
-              borderRadius: "10px",
-              border: `1px solid ${C.border}`,
-              background: C.surfaceAlt,
-              color: C.text,
-              fontSize: "13px",
-            }}
-          />
-          <input
-            type="time"
-            value={newTime}
-            onChange={(e) => setNewTime(e.target.value)}
-            aria-label={t.schedule.timeLabel}
-            disabled={atCap}
-            style={{
-              minHeight: "44px",
-              padding: "0 10px",
-              borderRadius: "10px",
-              border: `1px solid ${C.border}`,
-              background: C.surfaceAlt,
-              color: C.text,
-              fontSize: "13px",
-            }}
-          />
-          <select
-            value={newDuration}
-            onChange={(e) => setNewDuration(e.target.value)}
-            aria-label={t.schedule.durationLabel}
-            disabled={atCap}
-            style={{
-              minHeight: "44px",
-              padding: "0 10px",
-              borderRadius: "10px",
-              border: `1px solid ${C.border}`,
-              background: C.surfaceAlt,
-              color: C.text,
-              fontSize: "13px",
-            }}
-          >
-            {DURATION_OPTIONS.map((min) => (
-              <option key={min} value={min}>
-                {t.schedule.aboutMinutes(min)}
-              </option>
-            ))}
-          </select>
-          <button
-            type="submit"
-            disabled={atCap || !newText.trim()}
-            style={{
-              minHeight: "44px",
-              minWidth: "44px",
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-              gap: "6px",
-              padding: "0 16px",
-              borderRadius: "10px",
-              border: "none",
-              background: atCap || !newText.trim() ? C.surfaceAlt : C.sky,
-              color: atCap || !newText.trim() ? C.textMuted : "#fff",
-              cursor: atCap || !newText.trim() ? "default" : "pointer",
-              fontSize: "13px",
-            }}
-          >
-            <Plus size={16} /> {t.schedule.addBlockButton}
-          </button>
-        </form>
+      {voiceError && dayBlocks.length > 0 && (
+        <div style={{ fontSize: "12px", color: "#E53935", textAlign: "center", padding: "8px" }}>{voiceError}</div>
       )}
-      {viewMode === "day" && atCap && <p style={{ fontSize: "12px", color: C.textMuted, marginTop: "6px" }}>{t.schedule.dayFullNotice}</p>}
+
+      {/* (Ideas rápidas eliminadas en v16 — la agenda solo es para pendientes externos) */}
     </div>
+  );
+}
+
+// ---- Sub-componente: celda de día en el calendario ----
+function DayCell({ date, selectedDate, today, accent, C, onPick }) {
+  if (!date) {
+    return <div style={{ padding: "6px 0" }} />;
+  }
+  const isSelected = sameDay(date, selectedDate);
+  const isToday = sameDay(date, today);
+  const isPast = date < today && !isToday;
+
+  return (
+    <button
+      onClick={() => onPick(date)}
+      style={{
+        background: isSelected ? accent : "transparent",
+        color: isSelected ? "#fff" : isPast ? C.textMuted : C.text,
+        border: isToday && !isSelected ? `2px solid ${accent}` : "2px solid transparent",
+        borderRadius: "50%",
+        width: "34px",
+        height: "34px",
+        fontSize: "12px",
+        fontWeight: isToday || isSelected ? 700 : 400,
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "center",
+        cursor: "pointer",
+        margin: "2px auto",
+        transition: "all 0.15s",
+        opacity: isPast ? 0.5 : 1,
+        padding: 0,
+      }}
+    >
+      {date.getDate()}
+    </button>
   );
 }

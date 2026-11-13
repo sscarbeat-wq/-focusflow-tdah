@@ -74,9 +74,9 @@ function pruneOld(blocks, now) {
 // el bloque a un día que NO sea necesariamente "hoy" — sin ese parámetro el
 // comportamiento es idéntico al de siempre (el bloque cae en el día de
 // `now`), así que ningún llamador existente necesitó cambiar.
-export function addScheduleBlock(state, { text, icon, startMin, durationMin, dateKey } = {}, now = new Date()) {
+export function addScheduleBlock(state, { text, name, icon, startMin, durationMin, dateKey } = {}, now = new Date()) {
   const s = clean(state);
-  const cleanText = String(text || "").trim().slice(0, 80);
+  const cleanText = String(text || name || "").trim().slice(0, 80);
   if (!cleanText) return s;
   const targetDateKey = dateKey || todayKey(now);
   const todayCount = s.blocks.filter((b) => b.date === targetDateKey).length;
@@ -85,6 +85,7 @@ export function addScheduleBlock(state, { text, icon, startMin, durationMin, dat
     id: newId(),
     date: targetDateKey,
     text: cleanText,
+    name: cleanText,
     icon: icon || "🗓️",
     startMin: clampStartMin(startMin ?? 9 * 60),
     durationMin: clampDurationMin(durationMin ?? DEFAULT_DURATION_MIN),

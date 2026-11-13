@@ -94,17 +94,19 @@ const MOBILE_SIZES = {
 // (anillo 250px) y letras más grandes (18px), sin tocar el tamaño de los
 // 6 accesos ni la rotación.
 const DESKTOP_SIZES = {
-  centerSize: 260, // 250px de anillo-hero + 10px de sombra de piso
-  buttonSize: 54,
-  itemWidth: 88,
-  // 215: deja ~10px entre la etiqueta del acceso que pasa por arriba
-  // (que cuelga hacia el centro) y el círculo de la mascota (radio 130).
-  orbitRadius: 215,
-  labelFontSize: 18,
-  heroRingSize: 250,
-  heroRingRadius: 105,
-  heroRingStroke: 17,
-  heroEmojiSize: 66,
+  centerSize: 200, // 190px de anillo-hero + 10px de sombra de piso
+  buttonSize: 46,
+  itemWidth: 76,
+  // 170: compactado (12 de noviembre de 2026) para que la brújula +
+  // header + nudge + hábitos quepan en una sola pantalla de escritorio
+  // sin tener que hacer scroll/zoom. Antes era 215, pero la frase
+  // motivacional de arriba se salía de la ventana.
+  orbitRadius: 170,
+  labelFontSize: 14,
+  heroRingSize: 190,
+  heroRingRadius: 80,
+  heroRingStroke: 14,
+  heroEmojiSize: 52,
 };
 
 // Novena corrección (10 de noviembre de 2026): antes había un corte seco
@@ -124,7 +126,7 @@ const DESKTOP_SIZES = {
 // cualquier punto intermedio es un promedio ponderado de dos números
 // positivos — siempre positivo. Igual se verificó con Playwright.
 const TRANSITION_MIN = 480;
-const TRANSITION_MAX = 900;
+const TRANSITION_MAX = 820;
 
 function clampNum(v, lo, hi) {
   return Math.min(hi, Math.max(lo, v));

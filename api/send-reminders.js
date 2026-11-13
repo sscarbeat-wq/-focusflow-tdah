@@ -28,6 +28,10 @@
 //     noviembre de 2026 a petición de la doctora): avisa de los hábitos de
 //     "Mis hábitos de hoy" que todavía no se palomean a esa hora — ver
 //     src/habitReminders.js para qué toca en cada momento.
+//   - "?check=errands" (cron cada 15 min, 13 de noviembre de 2026, "Modo
+//     Salida"): si alguien armó su lista de mandados antes de salir y
+//     todavía le falta tachar alguno, le recuerda cuáles — ver
+//     src/errandMode.js (errandReminderDue) para cada cuánto y hasta cuándo.
 // Estos crons cada 15 minutos requieren Vercel Pro (la doctora subió de
 // plan el 20 de octubre de 2026 — ver el roadmap). Si en algún momento se
 // baja de Pro a Hobby, el deploy completo se rompe (Vercel lo rechaza en
@@ -48,6 +52,7 @@ import { programStatus } from "../src/cbtProgram.js";
 import { capsuleForKey } from "../src/scienceCapsules.js";
 import { oldForgottenNote, setQuickNoteReminder } from "../src/quickCapture.js";
 import { habitReminderFor, slotForHour, HABIT_REMINDER_SLOTS } from "../src/habitReminders.js";
+import { activeTrip, errandReminderDue, errandNotificationContent } from "../src/errandMode.js";
 
 const supabaseAdmin = createClient(process.env.VITE_SUPABASE_URL, process.env.SUPABASE_SERVICE_ROLE_KEY);
 
@@ -86,6 +91,9 @@ export default async function handler(req, res) {
   }
   if (req.query && req.query.check === "schedule") {
     return handleScheduleCheck(req, res);
+  }
+  if (req.query && req.query.check === "errands") {
+    return handleErrandsCheck(req, res);
   }
   if (req.query && req.query.check === "digest") {
     return handleDigestCheck(req, res);
@@ -391,6 +399,65 @@ async function handleScheduleCheck(req, res) {
           } else {
             console.error("Error enviando push de agenda a", sub.endpoint, err.message);
           }
+        }
+      }
+    }
+
+    if (toRemove.length) {
+      await supabaseAdmin.from("push_subscriptions").delete().in("endpoint", toRemove);
+    }
+
+    res.status(200).json({ sent, total: subs.length });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: err.message });
+  }
+}
+
+// "Modo Salida": recuerda los mandados que siguen sin tachar mientras la
+// persona anda fuera. Cuándo toca avisar lo decide errandReminderDue (a
+// partir de la hora en que se armó la lista), así este cron no necesita
+// escribir nada en la base. El aviso lleva `tag` para que reemplace al
+// anterior en la bandeja en vez de apilarse (ver public/push-sw.js).
+async function handleErrandsCheck(req, res) {
+  try {
+    const { data: subs, error: subsErr } = await supabaseAdmin.from("push_subscriptions").select("*");
+    if (subsErr) throw subsErr;
+    if (!subs || subs.length === 0) {
+      return res.status(200).json({ sent: 0, total: 0 });
+    }
+
+    const userIds = [...new Set(subs.map((s) => s.user_id))];
+    const { data: rows, error: progErr } = await supabaseAdmin
+      .from("progress")
+      .select("user_id, data")
+      .in("user_id", userIds);
+    if (progErr) throw progErr;
+
+    const progressByUser = Object.fromEntries((rows || []).map((r) => [r.user_id, r.data || {}]));
+    const nowMs = Date.now();
+
+    let sent = 0;
+    const toRemove = [];
+
+    for (const sub of subs) {
+      const progress = progressByUser[sub.user_id] || {};
+      const trip = activeTrip(progress.errandState);
+      if (!errandReminderDue(trip, nowMs)) continue;
+      const content = errandNotificationContent(trip);
+      if (!content) continue;
+
+      try {
+        await webpush.sendNotification(
+          sub.subscription,
+          JSON.stringify({ title: content.title, body: content.body, tag: content.tag, url: "/" })
+        );
+        sent += 1;
+      } catch (err) {
+        if (err.statusCode === 404 || err.statusCode === 410) {
+          toRemove.push(sub.endpoint);
+        } else {
+          console.error("Error enviando push de mandados a", sub.endpoint, err.message);
         }
       }
     }

@@ -13,6 +13,10 @@
       "schedule": "*/15 * * * *"
     },
     {
+      "path": "/api/send-reminders?check=errands",
+      "schedule": "*/15 * * * *"
+    },
+    {
       "path": "/api/send-reminders?check=digest",
       "schedule": "0 14 * * *"
     },
