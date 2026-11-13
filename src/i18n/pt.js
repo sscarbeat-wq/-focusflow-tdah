@@ -581,7 +581,7 @@ const pt = {
     voiceUnsupported: "Este navegador não permite ditar. Escreva suas tarefas abaixo.",
     voiceDenied: "Permita o microfone para ditar, ou escreva suas tarefas abaixo.",
     voiceNothing: "Não consegui ouvir. Tente de novo ou escreva.",
-    homeCTA: "Vai sair? Monte sua lista",
+    homeTitle: "Vou sair",
     homeActive: (n) => `${n === 1 ? "Falta" : "Faltam"} ${n} tarefa${n === 1 ? "" : "s"}`,
     homeDone: "Tarefas completas! Feche sua saída",
     xpLabel: "Tarefas de rua completas",
@@ -1130,6 +1130,7 @@ const pt = {
   },
 
   today: {
+    voiceQuickShort: "Ditar pendência",
     empty: "Você não tem nada pendente por agora — muito bem. Volte quando quiser adicionar algo.",
     stepsPending: (n) => (n === 1 ? "1 etapa pendente do detalhador" : `${n} etapas pendentes do detalhador`),
     stepSuggested: (text) => `Sugerido para sua energia de hoje: ${text}`,

@@ -576,7 +576,7 @@ const en = {
     voiceUnsupported: "This browser can't take dictation. Type your errands below.",
     voiceDenied: "Allow the microphone to dictate, or type your errands below.",
     voiceNothing: "I didn't catch that. Try again or type it.",
-    homeCTA: "Heading out? Make your errand list",
+    homeTitle: "Heading out",
     homeActive: (n) => `${n} errand${n === 1 ? "" : "s"} left`,
     homeDone: "Errands done! Close your trip",
     xpLabel: "Errands complete",
@@ -1125,6 +1125,7 @@ const en = {
   },
 
   today: {
+    voiceQuickShort: "Dictate a to-do",
     empty: "You have nothing pending right now — well done. Come back whenever you want to add something.",
     stepsPending: (n) => (n === 1 ? "1 pending step from the breakdown" : `${n} pending steps from the breakdown`),
     stepSuggested: (text) => `Suggested for your energy today: ${text}`,

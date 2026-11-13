@@ -579,7 +579,7 @@ const fr = {
     voiceUnsupported: "Ce navigateur ne permet pas de dicter. Écris tes courses ci-dessous.",
     voiceDenied: "Autorise le micro pour dicter, ou écris tes courses ci-dessous.",
     voiceNothing: "Je n'ai pas bien entendu. Réessaie ou écris-le.",
-    homeCTA: "Tu sors ? Prépare ta liste de courses",
+    homeTitle: "Je sors",
     homeActive: (n) => `Il te reste ${n} course${n === 1 ? "" : "s"}`,
     homeDone: "Courses terminées ! Ferme ta sortie",
     xpLabel: "Courses terminées",
@@ -1128,6 +1128,7 @@ const fr = {
   },
 
   today: {
+    voiceQuickShort: "Dicter une tâche",
     empty: "Tu n'as rien en attente pour l'instant — bien joué. Reviens quand tu veux ajouter quelque chose.",
     stepsPending: (n) => (n === 1 ? "1 étape en attente du découpage" : `${n} étapes en attente du découpage`),
     stepSuggested: (text) => `Suggéré pour ton énergie d'aujourd'hui : ${text}`,

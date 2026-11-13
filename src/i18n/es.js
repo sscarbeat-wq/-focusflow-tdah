@@ -603,7 +603,7 @@ const es = {
     voiceUnsupported: "Este navegador no permite dictar. Escribe tus mandados abajo.",
     voiceDenied: "Permite el micrófono para dictar, o escribe tus mandados abajo.",
     voiceNothing: "No alcancé a escuchar. Intenta otra vez o escríbelo.",
-    homeCTA: "¿Vas a salir? Arma tu lista de mandados",
+    homeTitle: "Voy a salir",
     homeActive: (n) => `Te ${n === 1 ? "falta" : "faltan"} ${n} mandado${n === 1 ? "" : "s"}`,
     homeDone: "¡Mandados completos! Cierra tu salida",
     xpLabel: "Mandados completos",
@@ -1154,6 +1154,7 @@ const es = {
   },
 
   today: {
+    voiceQuickShort: "Dictar pendiente",
     empty: "No tienes nada pendiente por ahora — bien hecho. Vuelve cuando quieras agregar algo.",
     stepsPending: (n) => (n === 1 ? "1 paso pendiente del desglosador" : `${n} pasos pendientes del desglosador`),
     stepSuggested: (text) => `Sugerido para tu energía de hoy: ${text}`,
