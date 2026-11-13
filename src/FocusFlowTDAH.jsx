@@ -3544,6 +3544,7 @@ export default function FocusFlowTDAH({
               onRemove={handleRemoveScheduleBlock}
               onUpdate={handleUpdateScheduleBlock}
               onMove={handleMoveScheduleBlock}
+              medications={medications}
             />
           </Panel>
         </div>

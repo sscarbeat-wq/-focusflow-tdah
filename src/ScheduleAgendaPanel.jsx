@@ -1,11 +1,13 @@
-// ScheduleAgendaPanel.jsx — Agenda visual v10
-// Calendario colapsable semana/mes + bloques sugeridos en estado vacío
-// + repetir día anterior + entrada por voz.
-// Rediseño aprobado nov 2026.
+// ScheduleAgendaPanel.jsx — Agenda visual v16
+// La agenda es un ESPEJO DEL DÍA, no una lista de tareas.
+// Muestra automáticamente: medicamentos (del módulo de medicamentos).
+// El paciente solo agrega: pendientes externos (citas, mandados, compromisos).
+// Captura rápida por voz con soporte de fechas ("cita el viernes a las 4").
 //
-// Props: C, t, lang, scheduleState, onAdd, onRemove, onUpdate, onMove
+// Props: C, t, lang, scheduleState, onAdd, onRemove, onUpdate, onMove, medications
+// medications: array de medicamentos activos (del módulo medicationLog.js)
 // scheduleState es el array de bloques — cada bloque:
-//   { id, name, icon, startMin, durationMin, day? }
+//   { id, text, icon, startMin, durationMin, day? }
 // scheduleBlocksForDay(scheduleState, date) filtra los de hoy.
 
 import React, { useState, useMemo, useCallback, useRef, useEffect } from "react";
@@ -36,7 +38,7 @@ const CATEGORY_COLORS = {
 };
 
 function guessCategoryColor(block) {
-  const n = (block.name || "").toLowerCase();
+  const n = (block.text || block.name || "").toLowerCase();
   if (n.includes("enfoque") || n.includes("focus") || n.includes("pomodoro") || n.includes("body double"))
     return CATEGORY_COLORS.focus;
   if (n.includes("calma") || n.includes("mindful") || n.includes("respir") || n.includes("burbuja") || n.includes("pausa"))
@@ -50,31 +52,93 @@ function guessCategoryColor(block) {
   return CATEGORY_COLORS.default;
 }
 
-// ---- Bloques sugeridos para estado vacío ----
-const SUGGESTED_BLOCKS = [
-  { nameKey: "sugMedicamento", fallback: "Medicamento",        icon: "💊", startMin: 480,  durationMin: 5,  color: CATEGORY_COLORS.default },
-  { nameKey: "sugEnfoque",     fallback: "Sesión de enfoque",  icon: "🎯", startMin: 540,  durationMin: 25, color: CATEGORY_COLORS.focus },
-  { nameKey: "sugPausa",       fallback: "Pausa activa",       icon: "🧘", startMin: 660,  durationMin: 10, color: CATEGORY_COLORS.calm },
-  { nameKey: "sugAnimo",       fallback: "Registro de ánimo",  icon: "😊", startMin: 780,  durationMin: 3,  color: CATEGORY_COLORS.feel },
-  { nameKey: "sugHabitos",     fallback: "Hábitos del día",    icon: "✅", startMin: 1140, durationMin: 15, color: CATEGORY_COLORS.daily },
-];
+// (Sugerencias predefinidas eliminadas en v16 — la agenda ya no repite cosas
+// que tienen su propio módulo. Solo sirve para pendientes externos del paciente
+// + medicamentos automáticos.)
+
+// ---- Helpers de fecha para el parser de voz ----
+const DAY_NAMES_ES = { lunes: 1, martes: 2, miércoles: 3, miercoles: 3, jueves: 4, viernes: 5, sábado: 6, sabado: 6, domingo: 0 };
+const MONTH_NAMES_ES = { enero: 0, febrero: 1, marzo: 2, abril: 3, mayo: 4, junio: 5, julio: 6, agosto: 7, septiembre: 8, octubre: 9, noviembre: 10, diciembre: 11 };
+
+/** Dado un día de la semana (0=dom), encuentra la próxima fecha con ese día */
+function nextWeekday(targetDay, from = new Date()) {
+  const d = new Date(from.getFullYear(), from.getMonth(), from.getDate());
+  const diff = (targetDay - d.getDay() + 7) % 7;
+  d.setDate(d.getDate() + (diff === 0 ? 7 : diff)); // si es hoy, ir al próximo
+  return d;
+}
+
+/** Extrae una fecha del texto hablado. Retorna { date: Date|null, cleaned: string } */
+function parseDateFromVoice(text, now = new Date()) {
+  let cleaned = text;
+  let date = null;
+
+  // "el 20 de noviembre", "el 5 de diciembre"
+  const absDate = cleaned.match(/(?:el\s+)?(\d{1,2})\s+de\s+(enero|febrero|marzo|abril|mayo|junio|julio|agosto|septiembre|octubre|noviembre|diciembre)/i);
+  if (absDate) {
+    const day = parseInt(absDate[1], 10);
+    const month = MONTH_NAMES_ES[absDate[2].toLowerCase()];
+    if (month != null && day >= 1 && day <= 31) {
+      let year = now.getFullYear();
+      const candidate = new Date(year, month, day);
+      if (candidate < new Date(now.getFullYear(), now.getMonth(), now.getDate())) {
+        year++; // si ya pasó, asumir el del año que viene
+      }
+      date = new Date(year, month, day);
+      cleaned = cleaned.replace(absDate[0], "").trim();
+    }
+  }
+
+  // "mañana"
+  if (!date && /\bmañana\b/i.test(cleaned) && !/\bde\s+la\s+mañana\b/i.test(cleaned)) {
+    // solo si es "mañana" suelto, no "de la mañana" (que es indicador AM)
+    const tmrw = new Date(now.getFullYear(), now.getMonth(), now.getDate() + 1);
+    date = tmrw;
+    cleaned = cleaned.replace(/\bmañana\b/i, "").trim();
+  }
+
+  // "pasado mañana"
+  if (!date && /\bpasado\s+mañana\b/i.test(cleaned)) {
+    date = new Date(now.getFullYear(), now.getMonth(), now.getDate() + 2);
+    cleaned = cleaned.replace(/\bpasado\s+mañana\b/i, "").trim();
+  }
+
+  // "el lunes", "el viernes", "el sábado"
+  if (!date) {
+    const dayMatch = cleaned.match(/(?:el\s+)?(lunes|martes|mi[eé]rcoles|jueves|viernes|s[aá]bado|domingo)/i);
+    if (dayMatch) {
+      const dayKey = dayMatch[1].toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g, "");
+      const targetDay = DAY_NAMES_ES[dayKey];
+      if (targetDay != null) {
+        date = nextWeekday(targetDay, now);
+        cleaned = cleaned.replace(dayMatch[0], "").trim();
+      }
+    }
+  }
+
+  return { date, cleaned };
+}
 
 // ---- Parser de voz → bloque de agenda ----
-// Extrae nombre, hora de inicio y duración de un texto hablado.
-// Soporta español, inglés, francés y portugués.
-function parseVoiceToBlock(raw) {
+// Extrae nombre, hora de inicio, duración y FECHA de un texto hablado.
+// Enfocado en pendientes externos: citas, mandados, compromisos.
+function parseVoiceToBlock(raw, now = new Date()) {
   const text = raw.toLowerCase().trim();
   let startMin = null;
-  let durationMin = 25; // default
+  let durationMin = null;
   let name = text;
 
-  // ── Extraer duración (ej. "por 30 minutos", "for 15 minutes", "pendant 20 minutes", "por 10 minutos") ──
+  // ── Extraer FECHA (ej. "el viernes", "mañana", "el 20 de noviembre") ──
+  const { date: parsedDate, cleaned: afterDate } = parseDateFromVoice(name, now);
+  name = afterDate;
+
+  // ── Extraer duración (ej. "por 30 minutos") ──
   const durPatterns = [
     /(?:por|during|pendant|durante)\s+(\d+)\s*(?:min(?:utos?|utes?)?)/i,
     /(\d+)\s*(?:min(?:utos?|utes?)?)/i,
   ];
   for (const pat of durPatterns) {
-    const m = text.match(pat);
+    const m = name.match(pat);
     if (m) {
       durationMin = parseInt(m[1], 10);
       name = name.replace(m[0], "").trim();
@@ -82,15 +146,11 @@ function parseVoiceToBlock(raw) {
     }
   }
 
-  // ── Extraer hora (ej. "a las 10", "at 3 pm", "à 14h", "às 9") ──
+  // ── Extraer hora (ej. "a las 10", "at 3 pm") ──
   const timePatterns = [
-    // "a las 10 y media", "a las 3 de la tarde", "a las 10:30"
     /a\s+las?\s+(\d{1,2})(?::(\d{2}))?\s*(?:y\s+media)?\s*(?:de\s+la\s+(mañana|tarde|noche))?/i,
-    // "at 3 pm", "at 10:30 am"
     /at\s+(\d{1,2})(?::(\d{2}))?\s*(am|pm)?/i,
-    // "à 14h", "à 9h30"
     /[àa]\s+(\d{1,2})\s*h\s*(\d{2})?/i,
-    // "às 9 horas"
     /[àa]s?\s+(\d{1,2})(?::(\d{2}))?\s*(?:horas?)?/i,
   ];
 
@@ -101,11 +161,9 @@ function parseVoiceToBlock(raw) {
       const mins = m[2] ? parseInt(m[2], 10) : 0;
       const period = m[3] ? m[3].toLowerCase() : null;
 
-      // "y media" dentro del match original
       if (name.match(/a\s+las?\s+\d{1,2}\s+y\s+media/i) && mins === 0) {
         startMin = hour * 60 + 30;
       } else {
-        // am/pm o de la tarde/noche
         if (period === "pm" || period === "tarde") {
           if (hour < 12) hour += 12;
         } else if (period === "noche") {
@@ -113,53 +171,61 @@ function parseVoiceToBlock(raw) {
         } else if (period === "am" || period === "mañana") {
           if (hour === 12) hour = 0;
         } else {
-          // Sin indicador: si es < 7 asumir pm
           if (hour >= 1 && hour <= 6) hour += 12;
         }
         startMin = hour * 60 + mins;
       }
-
       name = name.replace(m[0], "").trim();
       break;
     }
   }
 
   // ── Limpiar nombre ──
-  // Quitar verbos / conectores típicos de voz al inicio
   name = name
-    .replace(/^(?:agendar|agregar|añadir|crear|add|create|ajouter|adicionar|programar|poner|recordar)\s+/i, "")
+    .replace(/^(?:agendar|agregar|añadir|crear|add|create|programar|poner|recordar|recordarme)\s+/i, "")
     .replace(/^(?:tengo|tenemos|hay|necesito|quiero|voy a|i have|i need|i want)\s+/i, "")
-    .replace(/^(?:que\s+)?(?:una?|un|the|le|la|o|mi|my|mon|ma)\s+/i, "")
+    .replace(/^(?:que\s+)?(?:una?|un|the|le|la|o|mi|my)\s+/i, "")
     .replace(/\s+$/g, "")
     .replace(/^[\s,.\-]+|[\s,.\-]+$/g, "");
 
-  // Capitalizar primera letra
   if (name.length > 0) name = name.charAt(0).toUpperCase() + name.slice(1);
+  if (name.length < 2) name = "Pendiente";
 
-  // Si no se extrajo nombre útil, usar fallback
-  if (name.length < 2) name = "Bloque de voz";
-
-  // Asignar ícono según keywords
-  let icon = "🎤";
+  // Asignar ícono inteligente según keywords (solo pendientes externos)
+  let icon = "📌";
+  let smartDuration = 30;
   const nl = name.toLowerCase();
-  if (nl.includes("medica") || nl.includes("pastilla") || nl.includes("pill")) icon = "💊";
-  else if (nl.includes("enfoque") || nl.includes("focus") || nl.includes("pomodoro")) icon = "🎯";
-  else if (nl.includes("pausa") || nl.includes("break") || nl.includes("calma") || nl.includes("respir")) icon = "🧘";
-  else if (nl.includes("ánimo") || nl.includes("mood") || nl.includes("humor")) icon = "😊";
-  else if (nl.includes("hábito") || nl.includes("habit") || nl.includes("rutina")) icon = "✅";
-  else if (nl.includes("comer") || nl.includes("comida") || nl.includes("lunch") || nl.includes("eat")) icon = "🍽️";
-  else if (nl.includes("ejercicio") || nl.includes("exercise") || nl.includes("gym") || nl.includes("correr") || nl.includes("run")) icon = "🏃";
-  else if (nl.includes("dormir") || nl.includes("sleep") || nl.includes("siesta") || nl.includes("nap")) icon = "😴";
-  else if (nl.includes("cita") || nl.includes("doctor") || nl.includes("dentista") || nl.includes("appointment") || nl.includes("consulta")) icon = "🏥";
-  else if (nl.includes("reunión") || nl.includes("reunion") || nl.includes("meeting") || nl.includes("junta") || nl.includes("call") || nl.includes("llamada")) icon = "📞";
-  else if (nl.includes("estudi") || nl.includes("study") || nl.includes("tarea") || nl.includes("homework") || nl.includes("leer") || nl.includes("read")) icon = "📚";
-  else if (nl.includes("compra") || nl.includes("shop") || nl.includes("super") || nl.includes("mercado")) icon = "🛒";
+
+  if (nl.includes("cita") || nl.includes("doctor") || nl.includes("dentista") || nl.includes("consulta") || nl.includes("appointment")) {
+    icon = "🏥"; smartDuration = 60;
+  } else if (nl.includes("reunión") || nl.includes("reunion") || nl.includes("meeting") || nl.includes("junta") || nl.includes("llamada") || nl.includes("call")) {
+    icon = "📞"; smartDuration = 30;
+  } else if (nl.includes("compra") || nl.includes("shop") || nl.includes("super") || nl.includes("mercado") || nl.includes("mandado")) {
+    icon = "🛒"; smartDuration = 45;
+  } else if (nl.includes("recoger") || nl.includes("llevar") || nl.includes("pick up") || nl.includes("dejar")) {
+    icon = "🚗"; smartDuration = 30;
+  } else if (nl.includes("pago") || nl.includes("pagar") || nl.includes("banco") || nl.includes("bank") || nl.includes("trámite")) {
+    icon = "🏦"; smartDuration = 30;
+  } else if (nl.includes("trabaj") || nl.includes("work") || nl.includes("oficina") || nl.includes("chamba")) {
+    icon = "💼"; smartDuration = 60;
+  } else if (nl.includes("clase") || nl.includes("class") || nl.includes("curso") || nl.includes("escuela") || nl.includes("examen")) {
+    icon = "🎓"; smartDuration = 50;
+  } else if (nl.includes("comer") || nl.includes("comida") || nl.includes("restaurante") || nl.includes("desayun") || nl.includes("cena")) {
+    icon = "🍽️"; smartDuration = 45;
+  } else if (nl.includes("ejercicio") || nl.includes("gym") || nl.includes("correr") || nl.includes("caminar")) {
+    icon = "🏃"; smartDuration = 30;
+  } else if (nl.includes("vuelo") || nl.includes("viaje") || nl.includes("aeropuerto") || nl.includes("avión")) {
+    icon = "✈️"; smartDuration = 120;
+  } else if (nl.includes("fiesta") || nl.includes("cumpleaños") || nl.includes("evento") || nl.includes("party")) {
+    icon = "🎉"; smartDuration = 120;
+  }
 
   return {
     name,
     icon,
     startMin: startMin != null ? startMin : null,
-    durationMin,
+    durationMin: durationMin != null ? durationMin : smartDuration,
+    dateKey: parsedDate, // Date object o null (hoy)
   };
 }
 
@@ -238,6 +304,7 @@ export default function ScheduleAgendaPanel({
   onRemove,
   onUpdate,
   onMove,
+  medications,
 }) {
   const [calendarOpen, setCalendarOpen] = useState(false);
   const [calMonth, setCalMonth] = useState(() => {
@@ -298,13 +365,26 @@ export default function ScheduleAgendaPanel({
       const now = new Date();
       const fallbackStart = now.getHours() * 60 + now.getMinutes() + 15;
       try {
+        // Si el parser detectó una fecha ("el viernes", "mañana", "el 20 de nov"),
+        // convertir el Date a dateKey string "YYYY-MM-DD" para scheduleBlocks.js
+        let dateKey = undefined;
+        if (parsed.dateKey instanceof Date) {
+          const dd = parsed.dateKey;
+          dateKey = `${dd.getFullYear()}-${String(dd.getMonth() + 1).padStart(2, "0")}-${String(dd.getDate()).padStart(2, "0")}`;
+          // Auto-navegar al día donde se agendó
+          setSelectedDate(dd);
+        }
         onAdd({
-          text: parsed.name,   // ← addScheduleBlock usa "text", NO "name"
+          text: parsed.name,
           icon: parsed.icon,
           startMin: parsed.startMin != null ? parsed.startMin : fallbackStart,
           durationMin: parsed.durationMin,
+          dateKey,
         });
-        setVoiceText("✅ " + parsed.name);
+        const dateLabel = dateKey && parsed.dateKey
+          ? ` (${parsed.dateKey.toLocaleDateString(lang === "en" ? "en-US" : "es-MX", { weekday: "short", day: "numeric", month: "short" })})`
+          : "";
+        setVoiceText("✅ " + parsed.name + dateLabel);
       } catch (err) {
         setVoiceError("Error al agregar: " + (err.message || "desconocido"));
       }
@@ -362,12 +442,18 @@ export default function ScheduleAgendaPanel({
     const now = new Date();
     const fallbackStart = now.getHours() * 60 + now.getMinutes() + 15;
     const startMin = parsed.startMin != null ? parsed.startMin : fallbackStart;
-    // Agregar el bloque directamente
+    let dateKey = undefined;
+    if (parsed.dateKey instanceof Date) {
+      const dd = parsed.dateKey;
+      dateKey = `${dd.getFullYear()}-${String(dd.getMonth() + 1).padStart(2, "0")}-${String(dd.getDate()).padStart(2, "0")}`;
+      setSelectedDate(dd);
+    }
     onAdd({
-      text: parsed.name,   // addScheduleBlock usa "text"
+      text: parsed.name,
       icon: parsed.icon,
       startMin,
       durationMin: parsed.durationMin,
+      dateKey,
     });
     setVoiceParsed(null);
     setVoiceText("");
@@ -403,11 +489,37 @@ export default function ScheduleAgendaPanel({
     [completedIds, saveCompleted]
   );
 
-  // Bloques del día seleccionado, ordenados por hora
-  const dayBlocks = useMemo(
-    () => scheduleBlocksForDay(scheduleState, selectedDate).sort((a, b) => a.startMin - b.startMin),
-    [scheduleState, selectedDate]
-  );
+  // Generar bloques virtuales de medicamentos a partir del prop medications
+  const medicationBlocks = useMemo(() => {
+    if (!medications || !Array.isArray(medications) || medications.length === 0) return [];
+    const blocks = [];
+    for (const med of medications) {
+      if (med.active === false) continue;
+      for (const time of med.doseTimes || []) {
+        const [hh, mm] = (time || "08:00").split(":").map(Number);
+        blocks.push({
+          id: `med_${med.id}_${time}`,
+          text: med.name || "Medicamento",
+          name: med.name || "Medicamento",
+          icon: "💊",
+          startMin: (hh || 0) * 60 + (mm || 0),
+          durationMin: 5,
+          isMedication: true, // flag para UI: no editable, no borrable
+          medicationId: med.id,
+          doseTime: time,
+        });
+      }
+    }
+    return blocks;
+  }, [medications]);
+
+  // Bloques del día seleccionado + medicamentos virtuales, ordenados por hora
+  const dayBlocks = useMemo(() => {
+    const manual = scheduleBlocksForDay(scheduleState, selectedDate);
+    // Los medicamentos se muestran todos los días (son diarios)
+    const all = [...manual, ...medicationBlocks];
+    return all.sort((a, b) => a.startMin - b.startMin);
+  }, [scheduleState, selectedDate, medicationBlocks]);
 
   const nowMinutes = useMemo(() => {
     const now = new Date();
@@ -457,15 +569,6 @@ export default function ScheduleAgendaPanel({
     });
     setNewName("");
     setAddingNew(false);
-  };
-
-  const handleSuggestedAdd = (sug) => {
-    onAdd({
-      text: labels[sug.nameKey] || sug.fallback,
-      icon: sug.icon,
-      startMin: sug.startMin,
-      durationMin: sug.durationMin,
-    });
   };
 
   // Semana visible (para el strip colapsado)
@@ -653,7 +756,9 @@ export default function ScheduleAgendaPanel({
       {nextBlock && isToday && (
         <div
           style={{
-            background: `linear-gradient(135deg, ${guessCategoryColor(nextBlock)}, ${tint(guessCategoryColor(nextBlock), 0.7)})`,
+            background: nextBlock.isMedication
+              ? `linear-gradient(135deg, #7C4DFF, ${tint("#7C4DFF", 0.7)})`
+              : `linear-gradient(135deg, ${guessCategoryColor(nextBlock)}, ${tint(guessCategoryColor(nextBlock), 0.7)})`,
             borderRadius: "18px",
             padding: "18px",
             marginBottom: "14px",
@@ -685,35 +790,50 @@ export default function ScheduleAgendaPanel({
               {nextBlock.icon || "📋"}
             </div>
             <div style={{ flex: 1 }}>
-              <div style={{ fontSize: "16px", fontWeight: 700, color: "white" }}>{nextBlock.name}</div>
+              <div style={{ fontSize: "16px", fontWeight: 700, color: "white" }}>{nextBlock.text || nextBlock.name}</div>
               <div style={{ fontSize: "12px", color: "rgba(255,255,255,0.85)", marginTop: "2px" }}>
-                {formatMinutesAsTime(nextBlock.startMin)}
-                {nextBlock.durationMin ? ` — ${nextBlock.durationMin} min` : ""}
+                {nextBlock.startMin != null ? formatMinutesAsTime(nextBlock.startMin) : (labels.pendingToday || "Pendiente de hoy")}
               </div>
             </div>
           </div>
-          <button
-            onClick={() => toggleComplete(nextBlock.id)}
-            style={{
+          {nextBlock.isMedication ? (
+            <div style={{
               marginTop: "14px",
               width: "100%",
-              border: "none",
-              background: "rgba(255,255,255,0.2)",
-              color: "white",
-              fontSize: "13px",
-              fontWeight: 600,
-              padding: "10px",
+              background: "rgba(255,255,255,0.15)",
+              color: "rgba(255,255,255,0.9)",
+              fontSize: "12px",
+              fontWeight: 500,
+              padding: "8px",
               borderRadius: "12px",
-              cursor: "pointer",
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-              gap: "6px",
-            }}
-          >
-            <Check size={16} />
-            {labels.markDone || "Marcar como hecho"}
-          </button>
+              textAlign: "center",
+            }}>
+              💊 {labels.medHeroHint || "Regístralo en tu módulo de medicamentos"}
+            </div>
+          ) : (
+            <button
+              onClick={() => toggleComplete(nextBlock.id)}
+              style={{
+                marginTop: "14px",
+                width: "100%",
+                border: "none",
+                background: "rgba(255,255,255,0.2)",
+                color: "white",
+                fontSize: "13px",
+                fontWeight: 600,
+                padding: "10px",
+                borderRadius: "12px",
+                cursor: "pointer",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                gap: "6px",
+              }}
+            >
+              <Check size={16} />
+              {labels.markDone || "Marcar como hecho"}
+            </button>
+          )}
         </div>
       )}
 
@@ -723,7 +843,7 @@ export default function ScheduleAgendaPanel({
         <div>
           <div style={{ textAlign: "center", marginBottom: "12px" }}>
             <div style={{ fontSize: "14px", fontWeight: 700, color: C.text }}>
-              {labels.buildYourDay || "Arma tu día con un toque"}
+              {labels.buildYourDay || "Tu agenda del día"}
             </div>
             <div style={{ fontSize: "12px", color: C.textMuted, marginTop: "3px" }}>
               {labels.chooseSuggested || "Elige los bloques que necesitas"}
@@ -775,69 +895,50 @@ export default function ScheduleAgendaPanel({
               </button>
             )}
 
-            {SUGGESTED_BLOCKS.map((sug) => (
-              <button
-                key={sug.nameKey}
-                onClick={() => handleSuggestedAdd(sug)}
-                style={{
-                  width: "100%",
-                  background: C.surface,
-                  border: "none",
-                  borderRadius: "14px",
-                  padding: "12px 14px",
-                  display: "flex",
-                  alignItems: "center",
-                  gap: "12px",
-                  cursor: "pointer",
-                  boxShadow: "0 1px 3px rgba(0,0,0,0.04)",
-                  transition: "transform 0.15s, box-shadow 0.15s",
-                  textAlign: "left",
-                }}
-              >
-                {/* Color bar */}
-                <div style={{ width: "4px", height: "36px", borderRadius: "2px", background: sug.color, flexShrink: 0 }} />
-                {/* Icon */}
-                <div
-                  style={{
-                    width: "36px",
-                    height: "36px",
-                    borderRadius: "10px",
-                    background: `${sug.color}15`,
-                    display: "flex",
-                    alignItems: "center",
-                    justifyContent: "center",
-                    flexShrink: 0,
-                    fontSize: "18px",
-                  }}
-                >
-                  {sug.icon}
+            {/* Medicamentos del día (automáticos del módulo de medicamentos) */}
+            {medicationBlocks.length > 0 && (
+              <div style={{
+                background: `${tint(accent, 0.08)}`,
+                borderRadius: "14px",
+                padding: "12px 14px",
+              }}>
+                <div style={{ fontSize: "12px", fontWeight: 700, color: accent, marginBottom: "8px", display: "flex", alignItems: "center", gap: "6px" }}>
+                  <span>💊</span>
+                  <span>{labels.autoMedications || "Tus medicamentos de hoy"}</span>
                 </div>
-                {/* Text */}
-                <div style={{ flex: 1, minWidth: 0 }}>
-                  <div style={{ fontSize: "13px", fontWeight: 600, color: C.text }}>
-                    {labels[sug.nameKey] || sug.fallback}
+                {medicationBlocks.map((mb) => (
+                  <div key={mb.id} style={{
+                    display: "flex", alignItems: "center", gap: "10px",
+                    padding: "6px 0",
+                    borderBottom: `1px solid ${tint(accent, 0.08)}`,
+                  }}>
+                    <span style={{ fontSize: "16px" }}>💊</span>
+                    <span style={{ fontSize: "13px", fontWeight: 500, color: C.text, flex: 1 }}>{mb.text}</span>
+                    <span style={{ fontSize: "11px", color: C.textMuted }}>{formatMinutesAsTime(mb.startMin)}</span>
                   </div>
-                  <div style={{ fontSize: "11px", color: C.textMuted, marginTop: "1px" }}>
-                    {formatMinutesAsTime(sug.startMin)} · {sug.durationMin} min
-                  </div>
+                ))}
+                <div style={{ fontSize: "11px", color: C.textMuted, marginTop: "6px", textAlign: "center" }}>
+                  {labels.autoMedicationsHint || "Se agregan automáticamente desde tu módulo de medicamentos"}
                 </div>
-                {/* + icon */}
-                <div
-                  style={{
-                    width: "28px",
-                    height: "28px",
-                    borderRadius: "50%",
-                    background: `${sug.color}20`,
-                    display: "flex",
-                    alignItems: "center",
-                    justifyContent: "center",
-                    flexShrink: 0,
-                  }}
-                >
-                  <Plus size={14} color={sug.color} />
-                </div>
-              </button>
-            ))}
+              </div>
+            )}
+
+            {/* Mensaje de estado vacío para pendientes */}
+            <div style={{
+              textAlign: "center",
+              padding: "16px 12px",
+              background: C.surface,
+              borderRadius: "14px",
+              boxShadow: "0 1px 3px rgba(0,0,0,0.04)",
+            }}>
+              <div style={{ fontSize: "28px", marginBottom: "8px" }}>📌</div>
+              <div style={{ fontSize: "13px", fontWeight: 600, color: C.text, marginBottom: "4px" }}>
+                {labels.emptyPendientes || "¿Tienes pendientes externos?"}
+              </div>
+              <div style={{ fontSize: "12px", color: C.textMuted, lineHeight: 1.4 }}>
+                {labels.emptyPendientesHint || "Agrega citas, mandados o compromisos. Usa el micrófono para decirlo con voz."}
+              </div>
+            </div>
 
             {/* Fila: bloque personalizado + voz */}
             <div style={{ display: "flex", gap: "8px" }}>
@@ -959,8 +1060,8 @@ export default function ScheduleAgendaPanel({
                     <div style={{ fontSize: "14px", fontWeight: 700, color: C.text }}>{voiceParsed.name}</div>
                     <div style={{ fontSize: "12px", color: C.textMuted, marginTop: "2px" }}>
                       {voiceParsed.startMin != null
-                        ? `${formatMinutesAsTime(voiceParsed.startMin)} · ${voiceParsed.durationMin} min`
-                        : `${voiceParsed.durationMin} min`}
+                        ? formatMinutesAsTime(voiceParsed.startMin)
+                        : (labels.pendingToday || "Pendiente de hoy")}
                     </div>
                   </div>
                 </div>
@@ -1020,7 +1121,7 @@ export default function ScheduleAgendaPanel({
           {dayBlocks.map((block) => {
             const isDone = completedIds.has(block.id);
             const isNext = nextBlock && block.id === nextBlock.id;
-            const catColor = guessCategoryColor(block);
+            const catColor = block.isMedication ? "#7C4DFF" : guessCategoryColor(block);
 
             // No mostrar el hero de nuevo como tarjeta normal
             if (isNext && isToday) return null;
@@ -1029,7 +1130,7 @@ export default function ScheduleAgendaPanel({
               <div
                 key={block.id}
                 style={{
-                  background: C.surface,
+                  background: block.isMedication ? `${tint("#7C4DFF", 0.06)}` : C.surface,
                   borderRadius: "14px",
                   padding: "12px 14px",
                   display: "flex",
@@ -1038,32 +1139,44 @@ export default function ScheduleAgendaPanel({
                   opacity: isDone ? 0.6 : (isToday && block.startMin < nowMinutes && !isDone ? 0.8 : 1),
                   transition: "all 0.2s",
                   boxShadow: "0 1px 3px rgba(0,0,0,0.04)",
+                  borderLeft: block.isMedication ? "3px solid #7C4DFF" : "none",
                 }}
               >
-                {/* Check circle */}
-                <button
-                  onClick={() => toggleComplete(block.id)}
-                  aria-label={isDone ? "Desmarcar" : "Completar"}
-                  style={{
-                    width: "36px",
-                    height: "36px",
-                    borderRadius: "10px",
-                    background: isDone ? `${catColor}15` : tint(C.text, 0.04),
-                    border: "none",
-                    display: "flex",
-                    alignItems: "center",
-                    justifyContent: "center",
-                    cursor: "pointer",
-                    flexShrink: 0,
-                    transition: "all 0.2s",
-                  }}
-                >
-                  {isDone ? (
-                    <Check size={18} color="#22c55e" strokeWidth={2.5} />
-                  ) : (
-                    <span style={{ fontSize: "18px" }}>{block.icon || "📋"}</span>
-                  )}
-                </button>
+                {/* Check circle / Med icon */}
+                {block.isMedication ? (
+                  <div style={{
+                    width: "36px", height: "36px", borderRadius: "10px",
+                    background: `${tint("#7C4DFF", 0.12)}`,
+                    display: "flex", alignItems: "center", justifyContent: "center",
+                    flexShrink: 0, fontSize: "18px",
+                  }}>
+                    💊
+                  </div>
+                ) : (
+                  <button
+                    onClick={() => toggleComplete(block.id)}
+                    aria-label={isDone ? "Desmarcar" : "Completar"}
+                    style={{
+                      width: "36px",
+                      height: "36px",
+                      borderRadius: "10px",
+                      background: isDone ? `${catColor}15` : tint(C.text, 0.04),
+                      border: "none",
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "center",
+                      cursor: "pointer",
+                      flexShrink: 0,
+                      transition: "all 0.2s",
+                    }}
+                  >
+                    {isDone ? (
+                      <Check size={18} color="#22c55e" strokeWidth={2.5} />
+                    ) : (
+                      <span style={{ fontSize: "18px" }}>{block.icon || "📋"}</span>
+                    )}
+                  </button>
+                )}
 
                 {/* Content */}
                 <div style={{ flex: 1, minWidth: 0 }}>
@@ -1075,26 +1188,28 @@ export default function ScheduleAgendaPanel({
                       textDecoration: isDone ? "line-through" : "none",
                     }}
                   >
-                    {block.name}
+                    {block.text || block.name}
                   </div>
-                  <div style={{ fontSize: "11px", color: isDone ? "#22c55e" : C.textMuted, fontWeight: isDone ? 500 : 400, marginTop: "1px" }}>
-                    {formatMinutesAsTime(block.startMin)}
-                    {block.durationMin ? ` · ${block.durationMin} min` : ""}
-                    {isDone ? ` · ${labels.completedLabel || "Completado"}` : ""}
+                  <div style={{ fontSize: "11px", color: block.isMedication ? "#7C4DFF" : (isDone ? "#22c55e" : C.textMuted), fontWeight: block.isMedication ? 600 : (isDone ? 500 : 400), marginTop: "1px" }}>
+                    {block.startMin != null ? formatMinutesAsTime(block.startMin) : (labels.pendingToday || "Pendiente de hoy")}
+                    {block.isMedication ? ` · ${labels.autoLabel || "Automático"}` : ""}
+                    {isDone && !block.isMedication ? ` · ${labels.completedLabel || "Completado"}` : ""}
                   </div>
                 </div>
 
                 {/* Color accent bar */}
                 <div style={{ width: "4px", height: "28px", borderRadius: "2px", background: catColor, flexShrink: 0 }} />
 
-                {/* Delete */}
-                <button
-                  onClick={() => onRemove(block.id)}
-                  aria-label={labels.deleteBlockTitle || "Eliminar bloque"}
-                  style={{ background: "none", border: "none", cursor: "pointer", color: C.textMuted, padding: "4px", display: "flex", opacity: 0.4 }}
-                >
-                  <Trash2 size={14} />
-                </button>
+                {/* Delete — solo para bloques manuales, NO medicamentos */}
+                {!block.isMedication && (
+                  <button
+                    onClick={() => onRemove(block.id)}
+                    aria-label={labels.deleteBlockTitle || "Eliminar bloque"}
+                    style={{ background: "none", border: "none", cursor: "pointer", color: C.textMuted, padding: "4px", display: "flex", opacity: 0.4 }}
+                  >
+                    <Trash2 size={14} />
+                  </button>
+                )}
               </div>
             );
           })}
@@ -1114,7 +1229,7 @@ export default function ScheduleAgendaPanel({
         >
           <input
             type="text"
-            placeholder={labels.newBlockPlaceholder || "Nombre del bloque (ej. Trabajo profundo)..."}
+            placeholder={labels.newBlockPlaceholder || "Tu pendiente (ej. Cita con el dentista)..."}
             value={newName}
             onChange={(e) => setNewName(e.target.value)}
             onKeyDown={(e) => e.key === "Enter" && handleAdd()}
@@ -1309,7 +1424,7 @@ export default function ScheduleAgendaPanel({
             <div>
               <div style={{ fontSize: "14px", fontWeight: 700, color: C.text }}>{voiceParsed.name}</div>
               <div style={{ fontSize: "12px", color: C.textMuted, marginTop: "2px" }}>
-                {voiceParsed.startMin != null ? `${formatMinutesAsTime(voiceParsed.startMin)} · ${voiceParsed.durationMin} min` : `${voiceParsed.durationMin} min`}
+                {voiceParsed.startMin != null ? formatMinutesAsTime(voiceParsed.startMin) : (labels.pendingToday || "Pendiente de hoy")}
               </div>
             </div>
           </div>
@@ -1326,6 +1441,8 @@ export default function ScheduleAgendaPanel({
       {voiceError && dayBlocks.length > 0 && (
         <div style={{ fontSize: "12px", color: "#E53935", textAlign: "center", padding: "8px" }}>{voiceError}</div>
       )}
+
+      {/* (Ideas rápidas eliminadas en v16 — la agenda solo es para pendientes externos) */}
     </div>
   );
 }
