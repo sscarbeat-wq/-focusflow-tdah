@@ -291,6 +291,25 @@ export default function ScheduleAgendaPanel({
     setVoiceParsed(null);
     latestTranscriptRef.current = "";
 
+    // Helper interno: parsear y agregar bloque DIRECTO (sin pasar por estado)
+    const addBlockFromVoice = (transcript) => {
+      const parsed = parseVoiceToBlock(transcript);
+      if (!parsed || !parsed.name) return;
+      const now = new Date();
+      const fallbackStart = now.getHours() * 60 + now.getMinutes() + 15;
+      try {
+        onAdd({
+          name: parsed.name,
+          icon: parsed.icon,
+          startMin: parsed.startMin != null ? parsed.startMin : fallbackStart,
+          durationMin: parsed.durationMin,
+        });
+        setVoiceText("✅ " + parsed.name);
+      } catch (err) {
+        setVoiceError("Error al agregar: " + (err.message || "desconocido"));
+      }
+    };
+
     const rec = new SpeechRecognitionAPI();
     rec.lang = SPEECH_LANG[lang] || "es-MX";
     rec.interimResults = true;
@@ -305,11 +324,9 @@ export default function ScheduleAgendaPanel({
         .join("");
       setVoiceText(transcript);
       latestTranscriptRef.current = transcript;
-      // Si es resultado final, parsear
       if (e.results[e.results.length - 1].isFinal) {
         gotFinal = true;
-        const parsed = parseVoiceToBlock(transcript);
-        setVoiceParsed(parsed);
+        addBlockFromVoice(transcript);
         stopVoice();
       }
     };
@@ -325,18 +342,16 @@ export default function ScheduleAgendaPanel({
 
     rec.onend = () => {
       setVoiceListening(false);
-      // Fallback: si el navegador terminó sin marcar isFinal pero sí captó texto,
-      // parsear lo que tengamos (Chrome a veces cierra sin final result)
+      // Fallback: si Chrome terminó sin isFinal pero captó texto
       if (!gotFinal && latestTranscriptRef.current.length > 0) {
-        const parsed = parseVoiceToBlock(latestTranscriptRef.current);
-        setVoiceParsed(parsed);
+        addBlockFromVoice(latestTranscriptRef.current);
       }
     };
 
     recognitionRef.current = rec;
     setVoiceListening(true);
     rec.start();
-  }, [lang, labels, stopVoice]);
+  }, [lang, labels, stopVoice, onAdd]);
 
   // Limpiar al desmontar
   useEffect(() => () => stopVoice(), [stopVoice]);
@@ -357,13 +372,6 @@ export default function ScheduleAgendaPanel({
     setVoiceParsed(null);
     setVoiceText("");
   }, [onAdd]);
-
-  // AUTO-AGREGAR: cuando voiceParsed cambia, agregar el bloque automáticamente
-  useEffect(() => {
-    if (voiceParsed) {
-      applyVoiceParsed(voiceParsed);
-    }
-  }, [voiceParsed, applyVoiceParsed]);
 
   const handleVoiceConfirm = useCallback(() => {
     applyVoiceParsed(voiceParsed);
