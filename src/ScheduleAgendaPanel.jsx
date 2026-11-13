@@ -299,7 +299,7 @@ export default function ScheduleAgendaPanel({
       const fallbackStart = now.getHours() * 60 + now.getMinutes() + 15;
       try {
         onAdd({
-          name: parsed.name,
+          text: parsed.name,   // ← addScheduleBlock usa "text", NO "name"
           icon: parsed.icon,
           startMin: parsed.startMin != null ? parsed.startMin : fallbackStart,
           durationMin: parsed.durationMin,
@@ -364,7 +364,7 @@ export default function ScheduleAgendaPanel({
     const startMin = parsed.startMin != null ? parsed.startMin : fallbackStart;
     // Agregar el bloque directamente
     onAdd({
-      name: parsed.name,
+      text: parsed.name,   // addScheduleBlock usa "text"
       icon: parsed.icon,
       startMin,
       durationMin: parsed.durationMin,
@@ -450,7 +450,7 @@ export default function ScheduleAgendaPanel({
   const handleAdd = () => {
     if (!newName.trim()) return;
     onAdd({
-      name: newName.trim(),
+      text: newName.trim(),
       icon: "📋",
       startMin: newStartHour * 60 + newStartMinute,
       durationMin: newDuration,
@@ -461,7 +461,7 @@ export default function ScheduleAgendaPanel({
 
   const handleSuggestedAdd = (sug) => {
     onAdd({
-      name: labels[sug.nameKey] || sug.fallback,
+      text: labels[sug.nameKey] || sug.fallback,
       icon: sug.icon,
       startMin: sug.startMin,
       durationMin: sug.durationMin,
@@ -484,7 +484,7 @@ export default function ScheduleAgendaPanel({
   const handleRepeatYesterday = useCallback(() => {
     yesterdayBlocks.forEach((b) => {
       onAdd({
-        name: b.name,
+        text: b.name,
         icon: b.icon || "📋",
         startMin: b.startMin,
         durationMin: b.durationMin,
