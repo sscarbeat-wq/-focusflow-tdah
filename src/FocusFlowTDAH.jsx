@@ -1583,6 +1583,23 @@ export default function FocusFlowTDAH({
     [grantXp, t]
   );
 
+  // Abrir algo desde Inicio (tarjeta "Te puede servir ahora", mensaje del
+  // día, "Tus más usadas"). Las herramientas de la pestaña Herramientas se
+  // abren DENTRO de Inicio (12 de noviembre de 2026). Lo que vive en otra
+  // pestaña — Agenda visual, línea de tiempo, Progreso, Perfil — no tiene
+  // panel que mostrar dentro de Inicio, así que se navega a su pestaña.
+  // Corrección del 13 de noviembre de 2026: antes todo iba por
+  // setInicioToolKey, y la tarjeta "Agenda visual — tu día no tiene plan
+  // todavía" dejaba la pantalla en blanco con solo "Volver al inicio".
+  const openFromHome = (key) => {
+    if (SECTION_TABS[key] === "herramientas") {
+      setInicioToolKey(key);
+      window.scrollTo({ top: 0, behavior: "smooth" });
+      return;
+    }
+    scrollToCompanionSection(key);
+  };
+
   // Tarjeta de Inicio cuando hay una salida activa (13 de noviembre de
   // 2026): va arriba de todo con lo que falta. Sin salida activa no pinta
   // nada — para empezar una está el botón redondo "Voy a salir" (ver
@@ -2450,10 +2467,7 @@ export default function FocusFlowTDAH({
                 const Wrapper = tipTool ? "button" : "div";
                 const wrapperProps = tipTool ? {
                   type: "button",
-                  onClick: () => {
-                    setInicioToolKey(tipTool);
-                    window.scrollTo({ top: 0, behavior: "smooth" });
-                  },
+                  onClick: () => openFromHome(tipTool),
                 } : {};
                 return (
                   <div style={{
@@ -2512,12 +2526,7 @@ export default function FocusFlowTDAH({
                   <div style={{ padding: isNarrow ? "6px 12px 0" : "6px 18px 0", maxWidth: isWide ? "600px" : "420px", width: "100%", margin: "0 auto", boxSizing: "border-box" }}>
                     <button
                       type="button"
-                      onClick={() => {
-                        // 12 de noviembre de 2026: abre la herramienta
-                        // DENTRO de Inicio, sin navegar a Herramientas.
-                        setInicioToolKey(contextualNudge.key);
-                        window.scrollTo({ top: 0, behavior: "smooth" });
-                      }}
+                      onClick={() => openFromHome(contextualNudge.key)}
                       style={{
                         display: "flex",
                         alignItems: "center",
@@ -2570,12 +2579,7 @@ export default function FocusFlowTDAH({
                         <button
                           key={key}
                           type="button"
-                          onClick={() => {
-                            // 12 de noviembre de 2026: abre la herramienta
-                            // DENTRO de Inicio, sin navegar a Herramientas.
-                            setInicioToolKey(key);
-                            window.scrollTo({ top: 0, behavior: "smooth" });
-                          }}
+                          onClick={() => openFromHome(key)}
                           style={{
                             display: "flex",
                             flexDirection: "column",

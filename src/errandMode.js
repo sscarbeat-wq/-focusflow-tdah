@@ -75,9 +75,31 @@ const LEAD_IN =
 const CONNECTORS =
   /\s*(?:[,;.\n]+|\s+(?:y|e|and|et)\s+(?:luego|despu[eé]s|tambi[eé]n|then|also|puis|depois)\s+|\s+(?:luego|despu[eé]s|tambi[eé]n|then|also|puis|depois)\s+|\s+(?:y|e|and|et)\s+)\s*/i;
 
+// Al dictar de corrido nadie dice las comas, y muchas veces tampoco la "y":
+// "comprar mi líquido de lentes pasar a cargar gasolina pasar por pan" llega
+// como una sola frase (visto en una grabación real del 13 de noviembre de
+// 2026: quedó como UN mandado). Por eso también se corta cuando empieza un
+// verbo típico de mandado, salvo que venga pegado a la frase anterior
+// ("pasar A cargar", "comida PARA llevar", "tengo QUE pagar").
+const ERRAND_VERB =
+  /^(?:comprar|pasar|cargar|recargar|recoger|pagar|llevar|dejar|sacar|depositar|retirar|buscar|entregar|mandar|enviar|cambiar|devolver|imprimir|lavar|surtir|echar|poner|cobrar|traer|ir)$/;
+const GLUE_WORD =
+  /^(?:a|al|para|de|del|que|por|sin|y|e|o|u|ni|no|en|con|como|luego|después|despues|también|tambien|voy|vamos|quiero|necesito|necesitamos|debo|puedo|poder|hay|tengo|tenemos|olvidar|olvides|olvide)$/;
+const bareWord = (w) => w.toLowerCase().replace(/[^a-záéíóúñü]/g, "");
+
+function splitAtErrandVerbs(text) {
+  const words = text.split(" ");
+  for (let i = 1; i < words.length; i += 1) {
+    if (!ERRAND_VERB.test(bareWord(words[i]))) continue;
+    if (/[,;.]$/.test(words[i - 1]) || GLUE_WORD.test(bareWord(words[i - 1]))) continue;
+    words[i - 1] += ",";
+  }
+  return words.join(" ");
+}
+
 export function parseErrandText(raw) {
   if (typeof raw !== "string") return [];
-  const text = raw.replace(/\s+/g, " ").trim().replace(LEAD_IN, "");
+  const text = splitAtErrandVerbs(raw.replace(/\s+/g, " ").trim().replace(LEAD_IN, ""));
   if (!text) return [];
 
   const seen = new Set();
