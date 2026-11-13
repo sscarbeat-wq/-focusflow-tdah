@@ -36,15 +36,20 @@ const SpeechRecognitionAPI =
 const SPEECH_LANG = { es: "es-MX", en: "en-US", fr: "fr-FR", pt: "pt-BR" };
 const DATE_LOCALE = { es: "es-MX", en: "en-US", fr: "fr-FR", pt: "pt-BR" };
 const DONE_COLOR = "#1E9E6E";
+// El micrófono se cierra solo tras este silencio (da tiempo de pensar el
+// siguiente mandado) y, por seguridad, nunca pasa de SESSION_MAX_MS abierto.
+const SILENCE_LIMIT_MS = 8000;
+const SESSION_MAX_MS = 120000;
 
 // Respaldo por si a un idioma le falta alguna llave de t.errandMode.
 const FALLBACK = {
   intro: "Antes de salir, di todo lo que vas a hacer afuera. ANRO guarda la lista y te avisa mientras falte algo.",
   voiceCTA: "Dicta tus mandados",
-  voiceHint: "“Comprar líquido de lentes, cargar gasolina y pasar por pan”",
-  voiceAddMore: "Dictar otro",
-  listening: "Te escucho…",
-  tapToStop: "Toca para terminar",
+  voiceHint: "Dilos todos seguidos: “comprar líquido de lentes, cargar gasolina, pasar por pan”",
+  voiceAddMore: "Dictar más mandados",
+  listening: "Te escucho… dilos todos",
+  listeningMore: "Te escucho… sigue con el siguiente",
+  tapToStop: "Toca aquí cuando termines",
   typePlaceholder: "O escríbelos: farmacia, gasolina, pan",
   typeMorePlaceholder: "Agregar otro mandado",
   addAria: "Agregar a la lista",
@@ -130,7 +135,9 @@ export default function ErrandModePanel({
   const [showArchive, setShowArchive] = useState(false);
   const [justDone, setJustDone] = useState(false);
   const recRef = useRef(null);
-  const heardRef = useRef("");
+  const sessionRef = useRef(null);
+  const txRef = useRef(tx);
+  txRef.current = tx;
   const justDoneTimer = useRef(null);
 
   const addFromText = useCallback(
@@ -147,14 +154,30 @@ export default function ErrandModePanel({
     if (addFromText(draft)) setDraft("");
   };
 
-  // ---- Voz ----
-  // Mismo patrón que la Agenda (ScheduleAgendaPanel.jsx): una frase por
-  // toque, con respaldo en onend porque Chrome en Android a veces termina
-  // sin marcar el resultado como final.
-  const stopVoice = useCallback(() => {
+  // ---- Voz: dictado corrido ----
+  // 13 de noviembre de 2026 (pedido de la doctora: "solo digo uno y apaga
+  // el micrófono"): el micrófono se queda abierto para decir TODOS los
+  // mandados seguidos. Cada frase que el navegador da por terminada se
+  // parte y se agrega a la lista en el momento, y se sigue escuchando hasta
+  // que la persona toca para terminar o pasan SILENCE_LIMIT_MS sin voz.
+  // Cómo se sostiene abierto: `continuous = true` y, si el navegador de
+  // todos modos corta tras una frase (pasa en Android), se vuelve a
+  // arrancar solo mientras la sesión siga viva. Algunos Android repiten en
+  // cada resultado todo lo dicho antes; por eso de cada resultado solo se
+  // toma lo NUEVO (y addErrands ignora mandados repetidos, por si acaso).
+  const finishSession = useCallback((message) => {
+    const ses = sessionRef.current;
+    sessionRef.current = null;
+    if (ses) {
+      clearInterval(ses.watchdog);
+      clearTimeout(ses.restartTimer);
+    }
     const rec = recRef.current;
     recRef.current = null;
     if (rec) {
+      rec.onresult = null;
+      rec.onerror = null;
+      rec.onend = null;
       try {
         rec.stop();
       } catch (err) {
@@ -162,64 +185,113 @@ export default function ErrandModePanel({
       }
     }
     setListening(false);
+    setHeard("");
+    if (message) setVoiceError(message);
   }, []);
+
+  // Cierra la sesión guardando lo último que se alcanzó a oír (aunque el
+  // navegador no lo haya marcado como final).
+  const stopVoice = useCallback(() => {
+    const ses = sessionRef.current;
+    if (!ses) {
+      finishSession();
+      return;
+    }
+    if (ses.pending.trim() && addFromText(ses.pending)) ses.added += 1;
+    finishSession(ses.fatal || (ses.added === 0 ? txRef.current.voiceNothing : ""));
+  }, [finishSession, addFromText]);
+
+  const startInstance = useCallback(
+    (ses) => {
+      const rec = new SpeechRecognitionAPI();
+      rec.lang = SPEECH_LANG[lang] || "es-MX";
+      rec.interimResults = true;
+      rec.maxAlternatives = 1;
+      rec.continuous = true;
+      const done = []; // por índice de resultado: texto final ya procesado
+      const startedAt = Date.now();
+
+      rec.onresult = (e) => {
+        if (sessionRef.current !== ses) return;
+        ses.lastHeardAt = Date.now();
+        let interim = "";
+        for (let i = 0; i < e.results.length; i += 1) {
+          const text = String(e.results[i][0].transcript || "").trim();
+          if (!e.results[i].isFinal) {
+            interim += (interim ? " " : "") + text;
+            continue;
+          }
+          const prev = done[i] || "";
+          if (text === prev) continue;
+          let fresh = prev && text.toLowerCase().startsWith(prev.toLowerCase()) ? text.slice(prev.length) : text;
+          const before = i > 0 ? done[i - 1] || "" : "";
+          if (!prev && before && fresh.toLowerCase().startsWith(before.toLowerCase())) fresh = fresh.slice(before.length);
+          done[i] = text;
+          if (fresh.trim() && addFromText(fresh)) ses.added += 1;
+        }
+        ses.pending = interim;
+        setHeard(interim);
+      };
+      rec.onerror = (e) => {
+        if (e.error === "not-allowed" || e.error === "service-not-allowed") ses.fatal = txRef.current.voiceDenied;
+        else if (e.error === "audio-capture" || e.error === "network") ses.fatal = txRef.current.voiceNothing;
+      };
+      rec.onend = () => {
+        if (sessionRef.current !== ses) return;
+        if (ses.pending.trim()) {
+          if (addFromText(ses.pending)) ses.added += 1;
+          ses.pending = "";
+          setHeard("");
+        }
+        const now = Date.now();
+        ses.quickEnds = now - startedAt < 400 ? ses.quickEnds + 1 : 0;
+        const keepListening =
+          !ses.fatal &&
+          ses.quickEnds < 3 &&
+          now - ses.lastHeardAt < SILENCE_LIMIT_MS &&
+          now - ses.startedAt < SESSION_MAX_MS;
+        if (keepListening) {
+          ses.restartTimer = setTimeout(() => {
+            if (sessionRef.current === ses) startInstance(ses);
+          }, 200);
+          return;
+        }
+        finishSession(ses.fatal || (ses.added === 0 ? txRef.current.voiceNothing : ""));
+      };
+
+      recRef.current = rec;
+      try {
+        rec.start();
+      } catch (err) {
+        finishSession(txRef.current.voiceNothing);
+      }
+    },
+    [lang, addFromText, finishSession]
+  );
 
   const startVoice = useCallback(() => {
     if (!SpeechRecognitionAPI) {
-      setVoiceError(tx.voiceUnsupported);
+      setVoiceError(txRef.current.voiceUnsupported);
       return;
     }
+    if (sessionRef.current) return;
     setVoiceError("");
     setHeard("");
-    heardRef.current = "";
-    let handled = false;
-    const finish = (transcript) => {
-      if (handled) return;
-      handled = true;
-      if (!addFromText(transcript)) setVoiceError(tx.voiceNothing);
-      setHeard("");
-    };
-
-    const rec = new SpeechRecognitionAPI();
-    rec.lang = SPEECH_LANG[lang] || "es-MX";
-    rec.interimResults = true;
-    rec.maxAlternatives = 1;
-    rec.continuous = false;
-    rec.onresult = (e) => {
-      const transcript = Array.from(e.results)
-        .map((r) => r[0].transcript)
-        .join("");
-      heardRef.current = transcript;
-      setHeard(transcript);
-      if (e.results[e.results.length - 1].isFinal) {
-        finish(transcript);
-        stopVoice();
-      }
-    };
-    rec.onerror = (e) => {
-      if (e.error === "not-allowed" || e.error === "service-not-allowed") {
-        handled = true;
-        setVoiceError(tx.voiceDenied);
-      }
-      stopVoice();
-    };
-    rec.onend = () => {
-      setListening(false);
-      if (!handled) finish(heardRef.current);
-    };
-    recRef.current = rec;
+    const now = Date.now();
+    const ses = { startedAt: now, lastHeardAt: now, pending: "", added: 0, quickEnds: 0, fatal: "", watchdog: null, restartTimer: null };
+    // En escritorio el navegador puede quedarse escuchando indefinidamente:
+    // este reloj es el que cierra la sesión por silencio o por duración.
+    ses.watchdog = setInterval(() => {
+      if (sessionRef.current !== ses) return;
+      const nowMs = Date.now();
+      if (nowMs - ses.lastHeardAt >= SILENCE_LIMIT_MS || nowMs - ses.startedAt >= SESSION_MAX_MS) stopVoice();
+    }, 500);
+    sessionRef.current = ses;
     setListening(true);
-    try {
-      rec.start();
-    } catch (err) {
-      setListening(false);
-      setVoiceError(tx.voiceNothing);
-    }
-    // tx cambia de identidad en cada render; solo importan lang y addFromText.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [lang, addFromText, stopVoice]);
+    startInstance(ses);
+  }, [startInstance, stopVoice]);
 
-  useEffect(() => () => stopVoice(), [stopVoice]);
+  useEffect(() => () => finishSession(), [finishSession]);
   useEffect(() => () => clearTimeout(justDoneTimer.current), []);
 
   // ---- Aviso fijo en la bandeja ----
@@ -586,7 +658,37 @@ export default function ErrandModePanel({
         </div>
       ) : (
         <>
-          <div style={{ display: "flex", gap: "8px" }}>
+          {listening && (
+            <button
+              type="button"
+              onClick={stopVoice}
+              style={{
+                display: "flex",
+                alignItems: "center",
+                gap: "12px",
+                width: "100%",
+                padding: "14px 16px",
+                borderRadius: "14px",
+                border: "none",
+                background: "linear-gradient(135deg, #EF4444, #DC2626)",
+                color: "#fff",
+                cursor: "pointer",
+                textAlign: "left",
+                boxShadow: "0 4px 18px rgba(239,68,68,0.3)",
+              }}
+            >
+              <span className="errand-pulse" style={{ display: "flex", flexShrink: 0, animation: "errandPulse 1.4s ease-in-out infinite" }}>
+                <Mic size={22} color="#fff" />
+              </span>
+              <span style={{ flex: 1, minWidth: 0 }}>
+                <span style={{ display: "block", fontSize: "14px", fontWeight: 700 }}>{tx.listeningMore}</span>
+                <span style={{ display: "block", fontSize: "12px", opacity: 0.92, marginTop: "2px", lineHeight: 1.4 }}>
+                  {heard ? `“${heard}”` : tx.tapToStop}
+                </span>
+              </span>
+            </button>
+          )}
+          <div style={{ display: listening ? "none" : "flex", gap: "8px" }}>
             {SpeechRecognitionAPI && (
               <button
                 type="button"
@@ -615,10 +717,7 @@ export default function ErrandModePanel({
             )}
             <div style={{ flex: 1, minWidth: 0 }}>{inputRow(tx.typeMorePlaceholder)}</div>
           </div>
-          {listening && !heard && (
-            <div aria-live="polite" style={{ fontSize: "13px", fontWeight: 600, color: C.text }}>🎙️ {tx.listening}</div>
-          )}
-          {voiceFeedback}
+          {!listening && voiceFeedback}
 
           {/* Avisos: decir claro si van a llegar o no */}
           {notificationsGranted() ? (
