@@ -400,6 +400,20 @@ export default function Mascot({
   // anillo, en vez de quedar chicos y perdidos (o, al revés, más grandes
   // de lo necesario) frente a un anillo que cambia de tamaño.
   const heroScale = isHero ? heroRingSize / HERO_RING_SIZE : 1;
+  // 15 de noviembre de 2026 ("Y LOS ACCESORIOS, APARECEN AFUERA"): el
+  // tamaño de la CAJA del anillo (ringSize) siempre fue más grande que el
+  // círculo PINTADO adentro (ringRadius) — queda un margen invisible de
+  // 13-15px entre el aro de color y el borde de la caja (nunca se nota
+  // porque esa caja no tiene fondo ni borde propio). El accesorio viejo
+  // se anclaba a ESE borde invisible (top:-2px, right:-2px de la caja),
+  // así que quedaba flotando en ese margen vacío — se notó recién ahora
+  // porque la corona (50 XP) es el primer accesorio que la doctora
+  // desbloqueó y vio de cerca. Acá se recalcula el accesorio para que su
+  // CENTRO quede sobre el aro mismo (a 45°, arriba-derecha, la misma
+  // esquina de siempre) en vez de sobre el borde vacío de la caja.
+  const accessorySize = (isHero ? 30 : 26) * heroScale;
+  const accessoryCenterX = ringSize / 2 + ringRadius * Math.cos(Math.PI / 4);
+  const accessoryCenterY = ringSize / 2 - ringRadius * Math.sin(Math.PI / 4);
   // Hero: el anillo muestra el % real de enfoque de hoy, no el avance de
   // racha — son dos cosas distintas (ver comentario arriba de HERO_RING_SIZE).
   const ringFraction = isHero ? Math.max(0, Math.min(1, (focusPercent || 0) / 100)) : fraction;
@@ -876,9 +890,9 @@ export default function Mascot({
           aria-hidden="true"
           style={{
             position: "absolute",
-            top: "-2px",
-            right: "-2px",
-            fontSize: isHero ? "30px" : "26px",
+            top: `${accessoryCenterY - accessorySize / 2}px`,
+            left: `${accessoryCenterX - accessorySize / 2}px`,
+            fontSize: `${accessorySize}px`,
             lineHeight: 1,
             filter: "drop-shadow(0 2px 3px rgba(0,0,0,0.25))",
           }}
