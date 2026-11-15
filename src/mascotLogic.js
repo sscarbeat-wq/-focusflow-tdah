@@ -84,6 +84,8 @@ export const IMAGE_SPECIES = [
   "tigre",
   "leon",
   "aguila",
+  "dragon",
+  "pez",
 ];
 const IMAGE_SPECIES_SET = new Set(IMAGE_SPECIES);
 
@@ -92,9 +94,14 @@ const IMAGE_SPECIES_SET = new Set(IMAGE_SPECIES);
 // mismo estilo de sticker y las mismas 5 poses, y viven igual en
 // /public/mascots/<especie>.webp. Siguen GRATIS — solo cambia cómo se
 // dibujan, no el desbloqueo. SPECIES_EMOJI se queda como respaldo (y como
-// referencia de qué es cada etapa). Las que todavía no tienen su imagen
-// (Dragón, Perro, Pez) siguen con emoji hasta que se agreguen aquí.
-const ILLUSTRATED_FREE_SPECIES = ["ave", "gato", "planta"];
+// referencia de qué es cada etapa).
+//
+// 15 de noviembre de 2026 — se agregó la ilustración de Dragón y Pez
+// (arriba, en IMAGE_SPECIES: ya traían su desbloqueo por XP desde antes,
+// solo les faltaba el dibujo) y la de Perro (abajo: este sigue gratis
+// desde el inicio, igual que Ave/Gato/Planta, por eso va en
+// ILLUSTRATED_FREE_SPECIES y no en IMAGE_SPECIES).
+const ILLUSTRATED_FREE_SPECIES = ["ave", "gato", "planta", "perro"];
 const ART_SPECIES_SET = new Set([...IMAGE_SPECIES, ...ILLUSTRATED_FREE_SPECIES]);
 
 // Gratis desde el inicio (10 de noviembre de 2026, decisión de la doctora):
