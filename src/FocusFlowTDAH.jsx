@@ -419,6 +419,23 @@ export default function FocusFlowTDAH({
   // ANTES que los del padre, en el teléfono la veían todavía en `false` —
   // con bottomOffset 0 — y nacían encimadas sobre la barra de pestañas de
   // abajo (tapando "Inicio" y "Perfil"). Verificado con Playwright a 390px.
+  // 15 de noviembre de 2026: si el recorrido de bienvenida (OnboardingTour)
+  // está abierto, se oculta la tarjeta "Antes de empezar" de Modo enfoque
+  // (DeskReady) para que no coincidan las dos explicaciones en pantalla a
+  // la vez — ver OnboardingTour.jsx (onOpenChange) y el render de
+  // <DeskReady> más abajo.
+  const [tourOpen, setTourOpen] = useState(false);
+  // 15 de noviembre de 2026 ("la información del recorrido la podría ver
+  // el paciente en cualquier momento en algún espacio de ayuda"): antes el
+  // recorrido solo se podía ver UNA vez en la vida del dispositivo (se
+  // guarda en localStorage al cerrarlo). Ahora, además, hay un botón en
+  // Perfil ("Ayuda" → "Ver recorrido de nuevo") que lo vuelve a abrir
+  // desde el paso 1 cuantas veces se quiera — sin tocar esa lógica de
+  // "solo una vez" para la apertura automática de un paciente nuevo, que
+  // sigue igual. reopenTourSignal es un contador (no un booleano) para que
+  // dos toques seguidos también funcionen aunque el recorrido ya esté
+  // abierto.
+  const [reopenTourSignal, setReopenTourSignal] = useState(0);
   const [isNarrow, setIsNarrow] = useState(() => typeof window !== "undefined" && window.innerWidth < 760);
   // Pantalla ancha (computadora) y pantalla bajita (celular chico) — las
   // usa la franja de hábitos de Inicio: en pantalla ancha va A UN LADO de
@@ -2117,7 +2134,14 @@ export default function FocusFlowTDAH({
           de "spotlight" puedan cambiar de pestaña/herramienta (ej. abrir
           Modo Enfoque) reutilizando la misma navegación que ya usan el
           menú "Ir a..." y los atajos — no una ruta paralela. */}
-      <OnboardingTour C={C} t={t} accent={personalAccent} onNavigate={scrollToCompanionSection} />
+      <OnboardingTour
+        C={C}
+        t={t}
+        accent={personalAccent}
+        onNavigate={scrollToCompanionSection}
+        onOpenChange={setTourOpen}
+        reopenSignal={reopenTourSignal}
+      />
       <div style={{ maxWidth: "1000px", margin: "0 auto" }}>
         {/* id usado por el recorrido de bienvenida (OnboardingTour.jsx) para
             señalar la mascota con un spotlight — sigue apuntando aquí, solo
@@ -2546,11 +2570,24 @@ export default function FocusFlowTDAH({
                         {nudgeItem.icon}
                       </span>
                       <span style={{ flex: 1, minWidth: 0 }}>
-                        <span style={{ display: "block", fontSize: "11px", fontWeight: 800, color: nudgeColor, textTransform: "uppercase", letterSpacing: "0.04em" }}>
+                        {/* 15 de noviembre de 2026 ("la función de que te
+                            podría funcionar no se ve por el contraste de
+                            colores"): esta etiqueta y la frase de abajo
+                            usaban colores fijos (nudgeColor / C.textMuted)
+                            pensados para el tema oscuro de siempre, no para
+                            el fondo de Inicio que cambia con la hora del
+                            día (ver timeOfDayPalette.js). Igual que el
+                            resto de esta misma tarjeta (palette.textHi en
+                            la línea de arriba), ahora usan palette.text/
+                            palette.textMuted para quedar legibles en
+                            mañana/tarde/noche. nudgeColor se queda solo en
+                            el cuadrito del ícono, que siempre tiene buen
+                            contraste (ícono blanco sobre color sólido). */}
+                        <span style={{ display: "block", fontSize: "11px", fontWeight: 800, color: palette.text || C.text, textTransform: "uppercase", letterSpacing: "0.04em" }}>
                           ✨ {t.today.nudgeTitle}
                         </span>
                         <span style={{ display: "block", fontSize: "14px", fontWeight: 700, margin: "1px 0" }}>{nudgeItem.label}</span>
-                        <span style={{ display: "block", fontSize: "12px", color: C.textMuted, lineHeight: 1.3 }}>
+                        <span style={{ display: "block", fontSize: "12px", color: palette.textMuted || C.textMuted, lineHeight: 1.3 }}>
                           {t.tools.suggestReasons[contextualNudge.reason]}
                         </span>
                       </span>
@@ -2565,11 +2602,33 @@ export default function FocusFlowTDAH({
                   Se muestra si hay al menos 1 herramienta reciente
                   guardada en localStorage. */}
               {recentToolKeys.length > 0 && (
-                <div style={{ padding: isNarrow ? "8px 12px 0" : "8px 18px 0", maxWidth: isWide ? "600px" : "420px", width: "100%", margin: "0 auto", boxSizing: "border-box" }}>
+                <div style={{ padding: isNarrow ? "8px 12px 14px" : "8px 18px 14px", maxWidth: isWide ? "600px" : "420px", width: "100%", margin: "0 auto", boxSizing: "border-box" }}>
                   <h3 style={{ fontSize: "12px", fontWeight: 800, color: C.textMuted, margin: "0 0 6px", textTransform: "uppercase", letterSpacing: "0.04em" }}>
                     ⚡ {t.today.frequentTitle}
                   </h3>
-                  <div style={{ display: "flex", gap: "8px", overflowX: "auto", paddingBottom: "4px", scrollbarWidth: "thin" }}>
+                  {/* 15 de noviembre de 2026 ("esta barra la podrías
+                      distribuir de otra forma, mi esposo dice que es
+                      confusa"): antes cada nombre se cortaba a la fuerza en
+                      una sola línea ("Cuerpo d...", "El desglo...",
+                      "Rutinas v..."), así que no se alcanzaba a leer qué
+                      herramienta era cada una. Ahora el nombre completo
+                      cabe en hasta 2 líneas (solo se recorta si de plano
+                      no entra en 2 líneas, en vez de 1). También se
+                      envuelve todo en una tarjeta con su propio fondo —
+                      antes los iconitos quedaban sueltos directo sobre el
+                      papel tapiz de puntos de Inicio, que se mezclaba con
+                      ellos. */}
+                  <div
+                    style={{
+                      display: "flex",
+                      gap: "10px",
+                      overflowX: "auto",
+                      padding: "10px 8px",
+                      borderRadius: "16px",
+                      background: palette.chipBg || C.surface,
+                      scrollbarWidth: "thin",
+                    }}
+                  >
                     {recentToolKeys.map((key) => {
                       const item = quickNavSections.find((s) => s.key === key);
                       if (!item) return null;
@@ -2585,20 +2644,32 @@ export default function FocusFlowTDAH({
                             flexDirection: "column",
                             alignItems: "center",
                             gap: "4px",
-                            minWidth: "64px",
+                            minWidth: "76px",
+                            maxWidth: "76px",
                             padding: "8px 6px",
                             borderRadius: "14px",
                             border: `1px solid ${color}22`,
-                            background: `${color}0a`,
+                            background: `${color}14`,
                             color: palette.textHi || C.text,
                             cursor: "pointer",
                             flexShrink: 0,
                           }}
                         >
-                          <span style={{ width: "32px", height: "32px", borderRadius: "10px", background: `${color}22`, color, display: "flex", alignItems: "center", justifyContent: "center" }}>
+                          <span style={{ width: "32px", height: "32px", borderRadius: "10px", background: `${color}22`, color, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
                             {item.icon}
                           </span>
-                          <span style={{ fontSize: "10.5px", fontWeight: 700, lineHeight: 1.2, textAlign: "center", maxWidth: "60px", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                          <span
+                            style={{
+                              fontSize: "10.5px",
+                              fontWeight: 700,
+                              lineHeight: 1.2,
+                              textAlign: "center",
+                              display: "-webkit-box",
+                              WebkitLineClamp: 2,
+                              WebkitBoxOrient: "vertical",
+                              overflow: "hidden",
+                            }}
+                          >
                             {item.label}
                           </span>
                         </button>
@@ -3000,6 +3071,25 @@ export default function FocusFlowTDAH({
                     </span>
                   </div>
                 )}
+                {/* 15 de noviembre de 2026: el recorrido de bienvenida
+                    (OnboardingTour) antes solo se veía una vez en la vida
+                    del dispositivo, sin forma de volver a verlo. Este
+                    botón lo reabre desde el paso 1 cuantas veces haga
+                    falta — misma brújula del logo, para que se reconozca
+                    como "el recorrido de la app". */}
+                <button
+                  type="button"
+                  onClick={() => {
+                    goToTab("inicio");
+                    setReopenTourSignal((n) => n + 1);
+                  }}
+                  style={tileStyle(false)}
+                >
+                  <span aria-hidden="true" style={tileIcon}>
+                    <Compass size={18} />
+                  </span>
+                  {tileText(st.help, st.helpValue)}
+                </button>
               </div>
 
               {accentPickerOpen && (
@@ -4423,12 +4513,14 @@ export default function FocusFlowTDAH({
               title={t.app.panels.focusMode.title}
               subtitle={t.app.panels.focusMode.subtitle}
             >
-              <DeskReady
-                C={C}
-                t={t}
-                done={deskCleared}
-                onDone={() => toggleXp(setDeskCleared, deskCleared, t.app.xpLabels.deskClearedLabel, "deskCleared")}
-              />
+              {!tourOpen && (
+                <DeskReady
+                  C={C}
+                  t={t}
+                  done={deskCleared}
+                  onDone={() => toggleXp(setDeskCleared, deskCleared, t.app.xpLabels.deskClearedLabel, "deskCleared")}
+                />
+              )}
               <FocusMode
                 C={C}
                 t={t}

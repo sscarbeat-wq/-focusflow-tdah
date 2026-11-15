@@ -309,7 +309,16 @@ function SpriteStyles() {
       .anro-sprite-nom { position: absolute; bottom: 4%; left: 50%; font-size: 14px; pointer-events: none; animation: anroSpriteNomPop 1.8s ease-in-out infinite; }
       .anro-sprite-ball { position: absolute; top: 0; right: -8%; font-size: 14px; pointer-events: none; animation: anroSpriteBall 1.8s ease-in-out infinite; }
       @keyframes anroSpriteBob { 0%,100% { transform: translateY(0); } 50% { transform: translateY(-5%); } }
-      @keyframes anroSpriteBobSlow { 0%,100% { transform: translateY(0) rotate(0deg); } 50% { transform: translateY(2%) rotate(-3deg); } }
+      {/* 15 de noviembre de 2026 ("luego la figura aparece chueca en el
+          círculo"): la respiración de "dormido" incluía una rotación de
+          -3° a la mitad del ciclo — si la paciente tomaba una captura
+          justo en ese instante (de noche se duerme a los 9s de quietud),
+          se veía como si la mascota estuviera chueca/rota en vez de
+          dormida. El dibujo del sprite en sí está perfectamente derecho
+          (sin esto no era un problema de la imagen). Se quita la rotación
+          y se deja solo el vaivén vertical, igual que la respiración
+          despierta (anroSpriteBob, arriba), que nunca rota. */}
+      @keyframes anroSpriteBobSlow { 0%,100% { transform: translateY(0); } 50% { transform: translateY(2%); } }
       @keyframes anroSpriteShowA { 0%,49% { opacity: 1; } 50%,100% { opacity: 0; } }
       @keyframes anroSpriteShowB { 0%,49% { opacity: 0; } 50%,100% { opacity: 1; } }
       @keyframes anroSpriteStepA { 0% { transform: translateY(0); } 50% { transform: translateY(-3%); } }

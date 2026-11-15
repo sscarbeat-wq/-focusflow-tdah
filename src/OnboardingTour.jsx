@@ -67,12 +67,40 @@ const STEP_META = [
 // cerrarse el foco regresa a donde estaba antes de que se abriera — mismo
 // patrón en los pasos "modal" y en los "spotlight" (el globo de texto ES
 // el diálogo en ambos casos, solo cambia dónde y cómo se dibuja alrededor).
-export default function OnboardingTour({ C, t, accent, onNavigate }) {
+export default function OnboardingTour({ C, t, accent, onNavigate, onOpenChange, reopenSignal = 0 }) {
   const [open, setOpen] = useState(() => !readSeen());
   const [step, setStep] = useState(0);
   const [layout, setLayout] = useState(null);
   const dialogRef = useRef(null);
   const previouslyFocused = useRef(null);
+
+  // 15 de noviembre de 2026 ("aparecen dos explicaciones" — el esposo de
+  // la doctora llegó al último paso del recorrido, que señala el panel de
+  // Modo enfoque, y vio ESTE globo de texto montado a la vez que la
+  // tarjeta "Antes de empezar" (DeskReady.jsx) que ya vive ahí dentro
+  // siempre). onOpenChange avisa a FocusFlowTDAH.jsx si el recorrido está
+  // abierto o no, para que pueda ocultar esa tarjeta nada más mientras
+  // dura el recorrido — no toca DeskReady.jsx ni el recorrido mismo, solo
+  // evita que coincidan en pantalla.
+  useEffect(() => {
+    onOpenChange?.(open);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [open]);
+
+  // 15 de noviembre de 2026 ("la información del recorrido la podría ver
+  // el paciente en cualquier momento en algún espacio de ayuda"): el botón
+  // "Ayuda" de Perfil (FocusFlowTDAH.jsx) sube este contador cada vez que
+  // se toca. No se dispara al montar (reopenSignal arranca en 0), solo
+  // cuando de verdad cambia — así sigue intacta la regla de "solo se abre
+  // sola la primera vez" (readSeen arriba); esto es una reapertura MANUAL,
+  // aparte de esa.
+  useEffect(() => {
+    if (reopenSignal > 0) {
+      setStep(0);
+      setOpen(true);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [reopenSignal]);
 
   const steps = t.onboarding.steps;
   const isLast = step === steps.length - 1;
