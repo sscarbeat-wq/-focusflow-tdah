@@ -2198,6 +2198,24 @@ export default function FocusFlowTDAH({
                 chipBg: `color-mix(in srgb, ${plusTheme.haloBg} 86%, transparent)`,
               }
             : timeOfDayPalette(now);
+          // 15 de noviembre de 2026 ("quiero que los botones cambien de
+          // color dependiendo del fondo de pantalla, que resalten el
+          // tono"): acerca el color fijo de cada categoría de herramienta
+          // hacia accent2 — el tono que sí cambia con la hora del día (o
+          // se queda igual si hay un tema Plus, que no lo pisa; accent es
+          // el mismo azul-verde ancla en las 3 franjas, ver
+          // timeOfDayPalette.js) — así cada botón se sigue reconociendo
+          // por su color de categoría, pero se nota que "pertenece" al
+          // fondo del momento en vez de quedarse plano. Solo en los 2
+          // lugares que pidió: la tarjeta "Te puede servir ahora" y "Tus
+          // más usadas".
+          const toneTint = (base) => `color-mix(in srgb, ${base} 72%, ${palette.accent2 || base} 28%)`;
+          // El resultado de toneTint() es un color-mix(), no un hex — no se
+          // le puede pegar un sufijo de alfa como "${color}66" (eso solo
+          // funciona con hex de siempre). Este helper hace lo mismo pero
+          // vía color-mix, para los tintes semitransparentes de borde/
+          // fondo/sombra que ya usaban esa tarjeta y "Tus más usadas".
+          const toneAlpha = (base, pct) => `color-mix(in srgb, ${toneTint(base)} ${pct}%, transparent)`;
           const todayItems = buildTodayItems({
             steps,
             moodLog,
@@ -2546,6 +2564,7 @@ export default function FocusFlowTDAH({
                 if (!nudgeItem) return null;
                 const nudgeGroup = TOOL_GROUPS.find((g) => g.tools.includes(contextualNudge.key));
                 const nudgeColor = nudgeGroup ? nudgeGroup.color : personalAccent;
+                const nudgeTone = toneTint(nudgeColor);
                 return (
                   <div style={{ padding: isNarrow ? "6px 12px 0" : "6px 18px 0", maxWidth: isWide ? "600px" : "420px", width: "100%", margin: "0 auto", boxSizing: "border-box" }}>
                     {/* 15 de noviembre de 2026 ("podrías hacer esto más
@@ -2569,16 +2588,28 @@ export default function FocusFlowTDAH({
                         width: "100%",
                         padding: "14px 16px",
                         borderRadius: "16px",
-                        border: `2px solid ${nudgeColor}66`,
-                        background: `linear-gradient(135deg, ${nudgeColor}3d 0%, ${nudgeColor}1f 100%), ${palette.chipBg || C.surface}`,
-                        boxShadow: `0 4px 14px ${nudgeColor}26`,
-                        color: palette.textHi || C.text,
+                        border: `2px solid ${toneAlpha(nudgeColor, 40)}`,
+                        background: `linear-gradient(135deg, ${toneAlpha(nudgeColor, 24)} 0%, ${toneAlpha(nudgeColor, 12)} 100%), ${palette.chipBg || C.surface}`,
+                        boxShadow: `0 4px 14px ${toneAlpha(nudgeColor, 15)}`,
+                        // 15 de noviembre de 2026 ("estas otra vez no se
+                        // ven"): "palette.textHi" nunca existe (ni en la
+                        // paleta por hora ni en los temas Plus) — siempre
+                        // caía directo a C.text, el color ESTÁTICO de
+                        // tema claro/oscuro, que no tiene nada que ver con
+                        // el fondo real de esta tarjeta cuando hay un tema
+                        // Plus activo (palette.chipBg/palette.text SÍ
+                        // vienen pareados entre sí, ver PLUS_THEMES). Con
+                        // modo oscuro + un Plus de fondo claro (ej.
+                        // "clouds"), salía texto claro sobre tarjeta clara.
+                        // Mismo patrón ya correcto en renderHomeQuickActions
+                        // (labelColor, más arriba en este archivo).
+                        color: palette.textHi || palette.text || C.text,
                         cursor: "pointer",
                         textAlign: "left",
                         boxSizing: "border-box",
                       }}
                     >
-                      <span style={{ width: "40px", height: "40px", borderRadius: "12px", background: nudgeColor, color: "#fff", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
+                      <span style={{ width: "40px", height: "40px", borderRadius: "12px", background: nudgeTone, color: "#fff", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
                         {nudgeItem.icon}
                       </span>
                       <span style={{ flex: 1, minWidth: 0 }}>
@@ -2592,9 +2623,11 @@ export default function FocusFlowTDAH({
                             resto de esta misma tarjeta (palette.textHi en
                             la línea de arriba), ahora usan palette.text/
                             palette.textMuted para quedar legibles en
-                            mañana/tarde/noche. nudgeColor se queda solo en
-                            el cuadrito del ícono, que siempre tiene buen
-                            contraste (ícono blanco sobre color sólido). */}
+                            mañana/tarde/noche. nudgeColor (vía nudgeTone,
+                            ver nota de toneTint más arriba) se queda solo
+                            en el cuadrito del ícono y la flechita, que
+                            siempre tienen buen contraste (ícono blanco /
+                            color sólido). */}
                         <span style={{ display: "block", fontSize: "11px", fontWeight: 800, color: palette.text || C.text, textTransform: "uppercase", letterSpacing: "0.04em" }}>
                           ✨ {t.today.nudgeTitle}
                         </span>
@@ -2603,7 +2636,7 @@ export default function FocusFlowTDAH({
                           {t.tools.suggestReasons[contextualNudge.reason]}
                         </span>
                       </span>
-                      <span style={{ fontSize: "18px", color: nudgeColor, fontWeight: 800 }}>›</span>
+                      <span style={{ fontSize: "18px", color: nudgeTone, fontWeight: 800 }}>›</span>
                     </button>
                   </div>
                 );
@@ -2646,6 +2679,11 @@ export default function FocusFlowTDAH({
                       if (!item) return null;
                       const grp = TOOL_GROUPS.find((g) => g.tools.includes(key));
                       const color = grp ? grp.color : personalAccent;
+                      // Ver nota de toneTint más arriba ("que resalten el
+                      // tono"): mismo tratamiento que la tarjeta de
+                      // sugerencia, para que estos botones también se
+                      // sientan del fondo del momento y no planos.
+                      const tone = toneTint(color);
                       return (
                         <button
                           key={key}
@@ -2660,14 +2698,20 @@ export default function FocusFlowTDAH({
                             maxWidth: "76px",
                             padding: "8px 6px",
                             borderRadius: "14px",
-                            border: `1px solid ${color}22`,
-                            background: `${color}14`,
-                            color: palette.textHi || C.text,
+                            border: `1px solid ${toneAlpha(color, 13)}`,
+                            background: toneAlpha(color, 8),
+                            // Mismo arreglo que en la nudge card de arriba:
+                            // "palette.textHi" no existe, así que esto
+                            // siempre caía a C.text (estático) en vez de
+                            // palette.text (el que de verdad hace pareja
+                            // con el fondo de esta tarjeta, palette.chipBg,
+                            // cuando hay un tema Plus activo).
+                            color: palette.textHi || palette.text || C.text,
                             cursor: "pointer",
                             flexShrink: 0,
                           }}
                         >
-                          <span style={{ width: "32px", height: "32px", borderRadius: "10px", background: `${color}22`, color, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
+                          <span style={{ width: "32px", height: "32px", borderRadius: "10px", background: toneAlpha(color, 13), color: tone, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
                             {item.icon}
                           </span>
                           <span
