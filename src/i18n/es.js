@@ -1320,6 +1320,9 @@ const es = {
     groups: { start: "Empezar y organizarme", focus: "Concentrarme", calm: "Calmarme", feel: "Cómo me siento", daily: "Mi día a día" },
     gridLabel: "Herramientas disponibles",
     backButton: "Volver a Herramientas",
+    browseTitle: "O explora por categoría",
+    seeMore: (n) => `Ver ${n} más`,
+    seeLess: "Ver menos",
   },
 
   weeklyInsights: {
@@ -1386,6 +1389,8 @@ const es = {
       soundOn: "Activados",
       soundOff: "Silenciados",
       language: "Idioma",
+      help: "Ayuda",
+      helpValue: "Ver recorrido de nuevo",
     },
     accentPicker: {
       label: "Elige tu color",

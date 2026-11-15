@@ -1281,6 +1281,9 @@ const en = {
     groups: { start: "Get started & organized", focus: "Focus", calm: "Calm down", feel: "How I feel", daily: "My day-to-day" },
     gridLabel: "Available tools",
     backButton: "Back to Tools",
+    browseTitle: "Or browse by category",
+    seeMore: (n) => `See ${n} more`,
+    seeLess: "See less",
   },
 
   weeklyInsights: {
@@ -1341,6 +1344,8 @@ const en = {
       soundOn: "On",
       soundOff: "Muted",
       language: "Language",
+      help: "Help",
+      helpValue: "Watch the tour again",
     },
     accentPicker: {
       label: "Choose your color",

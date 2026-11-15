@@ -1286,6 +1286,9 @@ const pt = {
     groups: { start: "Começar e me organizar", focus: "Me concentrar", calm: "Me acalmar", feel: "Como me sinto", daily: "Meu dia a dia" },
     gridLabel: "Ferramentas disponíveis",
     backButton: "Voltar para Ferramentas",
+    browseTitle: "Ou explore por categoria",
+    seeMore: (n) => `Ver mais ${n}`,
+    seeLess: "Ver menos",
   },
 
   weeklyInsights: {
@@ -1346,6 +1349,8 @@ const pt = {
       soundOn: "Ativados",
       soundOff: "Silenciados",
       language: "Idioma",
+      help: "Ajuda",
+      helpValue: "Ver o tour novamente",
     },
     accentPicker: {
       label: "Escolha sua cor",
