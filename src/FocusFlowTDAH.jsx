@@ -2548,6 +2548,17 @@ export default function FocusFlowTDAH({
                 const nudgeColor = nudgeGroup ? nudgeGroup.color : personalAccent;
                 return (
                   <div style={{ padding: isNarrow ? "6px 12px 0" : "6px 18px 0", maxWidth: isWide ? "600px" : "420px", width: "100%", margin: "0 auto", boxSizing: "border-box" }}>
+                    {/* 15 de noviembre de 2026 ("podrías hacer esto más
+                        visible?"): ya se leía bien (contraste arreglado
+                        arriba), pero el fondo era un tinte casi
+                        transparente (6-9% de opacidad) que se perdía
+                        contra el papel tapiz de puntos de Inicio. Ahora
+                        lleva un fondo sólido de base (palette.chipBg,
+                        igual que usa "Tus más usadas" más abajo, para no
+                        mezclarse con el papel tapiz), un tinte de color
+                        más marcado encima, borde más grueso y una sombra
+                        suave — se nota como tarjeta en vez de solo un
+                        tinte de color. */}
                     <button
                       type="button"
                       onClick={() => openFromHome(contextualNudge.key)}
@@ -2556,10 +2567,11 @@ export default function FocusFlowTDAH({
                         alignItems: "center",
                         gap: "12px",
                         width: "100%",
-                        padding: "12px 14px",
+                        padding: "14px 16px",
                         borderRadius: "16px",
-                        border: `1.5px solid ${nudgeColor}33`,
-                        background: `linear-gradient(135deg, ${nudgeColor}18 0%, ${nudgeColor}08 100%)`,
+                        border: `2px solid ${nudgeColor}66`,
+                        background: `linear-gradient(135deg, ${nudgeColor}3d 0%, ${nudgeColor}1f 100%), ${palette.chipBg || C.surface}`,
+                        boxShadow: `0 4px 14px ${nudgeColor}26`,
                         color: palette.textHi || C.text,
                         cursor: "pointer",
                         textAlign: "left",
