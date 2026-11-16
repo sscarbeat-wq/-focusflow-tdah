@@ -1,6 +1,7 @@
 import React from "react";
 import { Clock, Pencil } from "lucide-react";
 import { tint } from "./theme";
+import { bodyDoublePresenceText, bodyDoubleHintText } from "./bodyDoublePure";
 
 // Encabezado de Inicio del mockup "Opción K" (9 de noviembre de 2026):
 // aviso de la próxima actividad de la agenda (si hay una cerca) + saludo
@@ -23,7 +24,7 @@ const UPCOMING_WINDOW_MIN = 120;
 // `onEditClick` (9 de noviembre de 2026 — botón "✏️ Editar" del mockup
 // original, ver CompassEditSheet.jsx): opcional, así este encabezado sigue
 // funcionando igual si algún día se usa sin brújula editable debajo.
-export default function HomeHeader({ C, t, palette, period, nextBlock, nowMinutes, onEditClick }) {
+export default function HomeHeader({ C, t, palette, period, nextBlock, nowMinutes, onEditClick, bodyDouble, onOpenBodyDouble }) {
   const greeting =
     period === "morning"
       ? t.today.greetingMorning
@@ -142,6 +143,100 @@ export default function HomeHeader({ C, t, palette, period, nextBlock, nowMinute
             return t.today.motivationalQuote || "";
           })()}"
         </div>
+        {/* 16 de noviembre de 2026 ("solo quiero que quede esteeee"): el
+            chip con los avatares de quién está en el Cuerpo doble virtual
+            AHORA MISMO, junto al saludo. Pasó por varios lugares (pestaña
+            aparte debajo de hábitos, acceso dentro de "Mis hábitos") y
+            este chip terminó siendo la única entrada. No hace falta
+            unirse para ver quién hay (bodyDouble.js escucha presencia
+            desde que existe esta pantalla); tocar el chip lleva a la
+            tarjeta real en Herramientas (ver onOpenBodyDouble en
+            FocusFlowTDAH.jsx). Opcional: si no se pasan
+            `bodyDouble`/`onOpenBodyDouble`, no se pinta nada (mismo
+            patrón que onEditClick arriba). */}
+        {bodyDouble && onOpenBodyDouble && (() => {
+          const bd = t.bodyDouble;
+          const participants = bodyDouble.participants || [];
+          const count = participants.length;
+          const joined = bodyDouble.joined;
+          const statusText = bodyDoublePresenceText(bd, joined, count);
+          const hintText = bodyDoubleHintText(bd, joined, count);
+          const shownAvatars = participants.slice(0, 4);
+          const extra = count - shownAvatars.length;
+          return (
+            <button
+              type="button"
+              onClick={onOpenBodyDouble}
+              style={{
+                display: "inline-flex",
+                alignItems: "center",
+                gap: "8px",
+                marginTop: "12px",
+                background: palette.chipBg || `color-mix(in srgb, ${palette.bg} 90%, transparent)`,
+                border: `1px solid color-mix(in srgb, ${palette.text} 18%, transparent)`,
+                borderRadius: "22px",
+                padding: count > 0 ? "6px 14px 6px 8px" : "6px 14px",
+                cursor: "pointer",
+              }}
+            >
+              {count > 0 ? (
+                <span style={{ display: "flex" }}>
+                  {shownAvatars.map((p, i) => (
+                    <span
+                      key={i}
+                      aria-hidden="true"
+                      style={{
+                        width: "26px",
+                        height: "26px",
+                        borderRadius: "50%",
+                        background: C.surfaceAlt,
+                        border: "2px solid #fff",
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "center",
+                        fontSize: "13px",
+                        marginLeft: i === 0 ? 0 : "-8px",
+                        boxShadow: "0 1px 3px rgba(0,0,0,0.15)",
+                      }}
+                    >
+                      {p.avatar}
+                    </span>
+                  ))}
+                  {extra > 0 && (
+                    <span
+                      aria-hidden="true"
+                      style={{
+                        width: "26px",
+                        height: "26px",
+                        borderRadius: "50%",
+                        background: C.surfaceAlt,
+                        border: "2px solid #fff",
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "center",
+                        fontSize: "10.5px",
+                        fontWeight: 800,
+                        marginLeft: "-8px",
+                        color: palette.textMuted,
+                      }}
+                    >
+                      +{extra}
+                    </span>
+                  )}
+                </span>
+              ) : (
+                <span aria-hidden="true" style={{ fontSize: "18px" }}>🧑‍🤝‍🧑</span>
+              )}
+              <span style={{ textAlign: "left" }}>
+                <span style={{ display: "block", fontSize: "12.5px", fontWeight: 700, color: palette.text }}>{bd.tabTitle}</span>
+                <span style={{ display: "block", fontSize: "10.5px", fontWeight: 700, color: count > 0 ? (palette.accent || "#2E7FD9") : palette.textMuted }}>
+                  {statusText}
+                  {hintText ? ` · ${hintText}` : ""}
+                </span>
+              </span>
+            </button>
+          );
+        })()}
       </div>
     </div>
   );

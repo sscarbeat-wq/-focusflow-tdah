@@ -391,8 +391,6 @@ export default function FocusFlowTDAH({
   // color con candado (UNLOCKABLE_ACCENT_OPTIONS, ver theme.js) ya está
   // desbloqueado — ver ese bloque para los detalles.
 
-  const bodyDouble = useBodyDouble(userId);
-
   // Fase 4, función #2 (31 de octubre de 2026 — "la mascota reacciona en
   // vivo durante el enfoque"): "idle" | "focusing" | "distracted", viene de
   // FocusMode.jsx (directo o a través de OneThingPanel) exactamente igual
@@ -683,6 +681,12 @@ export default function FocusFlowTDAH({
       requestAnimationFrame(() => ref.current?.scrollIntoView({ behavior, block: "center" }));
     });
   };
+  // 16 de noviembre de 2026 — después de probar la pestaña aparte
+  // (BodyDoubleStrip.jsx) y el acceso dentro de "Mis hábitos", los dos se
+  // quitaron: la única entrada que se quedó es el chip del encabezado de
+  // Inicio (ver HomeHeader.jsx). Igual que onDesk/onBreak arriba, lleva a
+  // la tarjeta real de Cuerpo doble en Herramientas.
+  const onOpenBodyDouble = () => scrollToCompanionSection("bodyDouble");
   // Oculta (sin desmontar) cada sección que no sea de la pestaña activa —
   // ver la nota de arriba sobre por qué no se desmonta: ningún temporizador
   // ni estado interno de un panel se pierde al cambiar de pestaña.
@@ -933,6 +937,14 @@ export default function FocusFlowTDAH({
     (isPlusSpecies(chosenSpecies) && !isPlus) ||
     (isUnlockableSpecies(chosenSpecies) && !isUnlocked(chosenSpecies, "species", xp));
   const resolvedSpecies = speciesLocked ? DEFAULT_SPECIES : chosenSpecies;
+
+  // 15 de noviembre de 2026 ("solo sale una planta, podria ser el animal
+  // que elija"): `resolvedSpecies` — la misma mascota que ve dibujada en
+  // su propia brújula, ya resuelto el caso de una especie Plus/bloqueada
+  // (ahí se usa el animal por defecto, igual que en su propia pantalla,
+  // nunca una que no puede ver) — decide su avatar en la sala de Cuerpo
+  // doble. Ver avatarFor en bodyDoublePure.js.
+  const bodyDouble = useBodyDouble(userId, resolvedSpecies);
 
   const firstRender = useRef(true);
   useEffect(() => {
@@ -2383,6 +2395,8 @@ export default function FocusFlowTDAH({
                 nowMinutes={nowMinutes}
                 // "✏️ Editar" desactivado: los 5 planetas de categoría son
                 // fijos. CompassEditSheet sigue disponible si se reactiva.
+                bodyDouble={bodyDouble}
+                onOpenBodyDouble={onOpenBodyDouble}
               />
               {/* `flex: 1` + `justifyContent: "center"` (igual, cuarta
                   corrección): con el fondo ahora ocupando toda la
@@ -2754,6 +2768,13 @@ export default function FocusFlowTDAH({
                   />
                 </div>
               )}
+              {/* "Cuerpo doble" pasó por aquí dos veces y las dos se
+                  quitaron (15–16 de noviembre de 2026): primero una
+                  pestaña aparte debajo de hábitos (BodyDoubleStrip.jsx),
+                  luego un tercer acceso dentro de "Mis hábitos" junto a
+                  Despejar espacio y Pausa activa. La única entrada que se
+                  quedó es el chip del encabezado de Inicio (ver
+                  HomeHeader.jsx y onOpenBodyDouble más arriba). */}
               {/* Tarjeta compacta de ánimo ELIMINADA (12 de noviembre de
                   2026, rediseño brújula): el registro de ánimo ahora solo
                   aparece como sugerencia contextual (nudge card arriba)
