@@ -3,15 +3,56 @@
 
 const AVATARS = ["🌱", "🪴", "🌾", "🍃", "🦋", "🐢", "🐝", "🦔", "🐌", "🌙", "⭐", "🔵", "🟢", "🟣", "🟠"];
 
+// 15 de noviembre de 2026 ("quisiera que los dibujos de las personas
+// pudieran elegirlos ellos... podría ser el animal que elija"): antes el
+// avatar de la sala era SIEMPRE el hash anónimo de arriba (un emoji fijo
+// de una lista genérica, sin relación con el personaje elegido — por eso
+// "solo sale una planta"). Ahora, si la paciente ya tiene una mascota
+// elegida (species, lo mismo que ve en su propia brújula), el avatar en
+// la sala es ese animal — un vistazo reconoce "ah, alguien con dragón está
+// aquí" en vez de un emoji sin sentido. Nota de diseño para la doctora:
+// esto baja un poco el anonimato de antes (alguien que conozca qué
+// mascota eligió otra paciente podría reconocerla en la sala por el
+// animal, aunque nunca su nombre ni nada identificable) — si en algún
+// momento prefieres volver al anónimo puro, es solo cambiar
+// `avatarFor(userId, species)` de vuelta a `avatarFor(userId)` donde se
+// llama, en bodyDouble.js.
+const SPECIES_AVATARS = {
+  ave: "🐦",
+  gato: "🐱",
+  planta: "🌱",
+  dragon: "🐉",
+  perro: "🐶",
+  pez: "🐠",
+  panda: "🐼",
+  zorro: "🦊",
+  koala: "🐨",
+  pulpo: "🐙",
+  ajolote: "🦎",
+  buho: "🦉",
+  tortuga: "🐢",
+  dinosaurio: "🦖",
+  mariposa: "🦋",
+  tigre: "🐯",
+  leon: "🦁",
+  aguila: "🦅",
+};
+
 // Hash simple y determinístico: la misma cuenta siempre cae en el mismo
 // emoji anónimo (para poder distinguir "cuántas personas distintas" hay en
-// la sala), pero no hay forma de ir del emoji de vuelta al userId.
-export function avatarFor(userId) {
+// la sala), pero no hay forma de ir del emoji de vuelta al userId. Sigue
+// siendo el respaldo cuando no hay `species` (cuenta nueva, sin mascota
+// elegida todavía) o cuando la especie no está en SPECIES_AVATARS.
+function anonymousAvatarFor(userId) {
   let hash = 0;
   for (let i = 0; i < userId.length; i++) {
     hash = (hash * 31 + userId.charCodeAt(i)) >>> 0;
   }
   return AVATARS[hash % AVATARS.length];
+}
+
+export function avatarFor(userId, species) {
+  return (species && SPECIES_AVATARS[species]) || anonymousAvatarFor(userId);
 }
 
 // Convierte el objeto crudo que regresa channel.presenceState() de Supabase
@@ -21,6 +62,22 @@ export function participantsFromPresenceState(state, userId) {
   return Object.values(state)
     .flat()
     .map((p) => ({ avatar: p.avatar, status: p.status, isMe: p.userId === userId }));
+}
+
+// 15 de noviembre de 2026 — mismo texto de estatus corto para el chip del
+// encabezado de Inicio y la pestañita junto a "Mis hábitos" (ver
+// HomeHeader.jsx y BodyDoubleStrip.jsx), para no repetir la misma lógica
+// en dos componentes. `bd` es `t.bodyDouble` (las cadenas de ese idioma).
+// Desde que el canal se abre en modo "solo mirar" sin unirse (ver
+// bodyDouble.js), `count` puede ser mayor a 0 incluso sin haberte unido.
+export function bodyDoublePresenceText(bd, joined, count) {
+  if (joined) return count <= 1 ? bd.tabAlone : bd.tabCount(count);
+  return count > 0 ? bd.tabCount(count) : bd.tabEmpty;
+}
+
+export function bodyDoubleHintText(bd, joined, count) {
+  if (joined) return "";
+  return count > 0 ? bd.tabIdle : bd.tabEmptyHint;
 }
 
 // Reacciones sin texto dentro de la sala — vocabulario fijo y pequeño, a

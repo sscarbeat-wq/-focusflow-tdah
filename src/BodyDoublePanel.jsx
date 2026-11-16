@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useState } from "react";
 import { Users, LogOut } from "lucide-react";
 import { REACTIONS } from "./bodyDoublePure";
 
@@ -25,16 +25,46 @@ export default function BodyDoublePanel({
   leave,
   sendReaction,
 }) {
+  // 16 de noviembre de 2026 ("no podría quedarse como implícito, solo en
+  // caso de saber que hace"): el texto de qué es esto ya no se ve siempre
+  // — ahora el botón de unirse va primero, y la explicación queda oculta
+  // detrás de un enlace pequeño ("¿Qué es esto?"), para quien de verdad no
+  // sabe y la busca. `showInfo` es estado local: no necesita recordarse de
+  // una vez a otra, cada vez que se abre esta pantalla puede o no
+  // interesarle leerlo.
+  const [showInfo, setShowInfo] = useState(false);
+
   if (!joined) {
     return (
       <>
-        <p style={{ fontSize: "13px", color: C.textMuted, lineHeight: 1.6, margin: "0 0 14px" }}>
-          {t.bodyDouble.intro}
-        </p>
-        <button onClick={join} style={btnStyle(C.mint, C.mintText)}>
+        <button onClick={join} style={{ ...btnStyle(C.mint, C.mintText), marginBottom: "10px" }}>
           <Users size={16} style={{ marginRight: "8px", verticalAlign: "-3px" }} />
           {t.bodyDouble.joinButton}
         </button>
+        <div>
+          <button
+            type="button"
+            onClick={() => setShowInfo((v) => !v)}
+            aria-expanded={showInfo}
+            style={{
+              background: "none",
+              border: "none",
+              padding: 0,
+              color: C.textMuted,
+              fontSize: "12px",
+              fontWeight: 700,
+              textDecoration: "underline",
+              cursor: "pointer",
+            }}
+          >
+            {t.bodyDouble.whatIsThis}
+          </button>
+          {showInfo && (
+            <p style={{ fontSize: "13px", color: C.textMuted, lineHeight: 1.6, margin: "8px 0 0" }}>
+              {t.bodyDouble.intro}
+            </p>
+          )}
+        </div>
       </>
     );
   }
