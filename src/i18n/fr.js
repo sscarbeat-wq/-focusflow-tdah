@@ -99,7 +99,8 @@ const fr = {
   },
 
   bodyDouble: {
-    intro: "Rejoins une salle en direct et travaille en silence en même temps que d'autres personnes — personne ne te voit, personne ne t'écrit, mais tu sens que tu n'es pas seul·e. C'est la technique du « corps double », qui aide beaucoup de personnes avec un TDAH à maintenir leur concentration.",
+    intro: "Travaille en silence avec d'autres personnes, dans une salle en direct — personne ne te voit ni ne t'écrit. C'est la technique du « corps double ».",
+    whatIsThis: "Qu'est-ce que c'est ?",
     joinButton: "Rejoindre la salle",
     aloneInRoom: "Tu es seul·e dans la salle pour l'instant — elle reste ouverte, quelqu'un d'autre peut arriver.",
     roomCount: (n) => `${n} personnes dans la salle en ce moment, toi inclus·e.`,
@@ -109,6 +110,14 @@ const fr = {
     hereTitle: "Présent·e",
     leaveButton: "Quitter la salle",
     reactionLabels: { "👋": "Ici avec toi", "💪": "Courage", "🎉": "J'ai réussi !" },
+    tabTitle: "Corps double",
+    openAria: "Ouvrir le corps double virtuel",
+    closeAria: "Fermer le corps double virtuel",
+    tabIdle: "touche pour rejoindre",
+    tabAlone: "tu es dans la salle",
+    tabCount: (n) => `${n} dans la salle`,
+    tabEmpty: "personne de connecté",
+    tabEmptyHint: "touche pour ouvrir la salle",
   },
 
   calendar: {
@@ -1000,6 +1009,7 @@ const fr = {
     subtitle: "Touche chacune quand tu l'as faite. C'est la base pour te concentrer et te sentir mieux.",
     deskSub: "Avant de travailler",
     activeBreakSub: "2 à 5 min de mouvement",
+    bodyDoubleTitle: "Corps double",
   },
   progressSummary: {
     viewsLabel: "Sections de Progrès",

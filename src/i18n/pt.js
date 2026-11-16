@@ -102,7 +102,8 @@ const pt = {
   },
 
   bodyDouble: {
-    intro: 'Entre em uma sala em tempo real e trabalhe em silêncio ao mesmo tempo que outras pessoas — ninguém te vê, ninguém te escreve, mas você sente que não está só. É a técnica do "corpo duplo", que ajuda muitas pessoas com TDAH a manter o foco.',
+    intro: 'Trabalhe em silêncio junto com outras pessoas, em uma sala em tempo real — ninguém te vê nem te escreve. É a técnica do "corpo duplo".',
+    whatIsThis: "O que é isso?",
     joinButton: "Entrar na sala",
     aloneInRoom: "Você está só na sala por enquanto — ela continua aberta, outra pessoa pode chegar.",
     roomCount: (n) => `${n} pessoas na sala agora, incluindo você.`,
@@ -112,6 +113,14 @@ const pt = {
     hereTitle: "Presente",
     leaveButton: "Sair da sala",
     reactionLabels: { "👋": "Aqui com você", "💪": "Força", "🎉": "Consegui!" },
+    tabTitle: "Corpo duplo",
+    openAria: "Abrir corpo duplo virtual",
+    closeAria: "Fechar corpo duplo virtual",
+    tabIdle: "toque para entrar",
+    tabAlone: "você está na sala",
+    tabCount: (n) => `${n} na sala`,
+    tabEmpty: "ninguém conectado",
+    tabEmptyHint: "toque para abrir a sala",
   },
 
   calendar: {
@@ -1002,6 +1011,7 @@ const pt = {
     subtitle: "Toque em cada um quando fizer. São a base para se concentrar e se sentir melhor.",
     deskSub: "Antes de trabalhar",
     activeBreakSub: "2 a 5 min de movimento",
+    bodyDoubleTitle: "Corpo duplo",
   },
   progressSummary: {
     viewsLabel: "Seções de Progresso",

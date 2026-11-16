@@ -97,7 +97,8 @@ const en = {
   },
 
   bodyDouble: {
-    intro: 'Join a live room and work in silence alongside other people — no one sees you, no one messages you, but you feel like you\'re not alone. It\'s the "body double" technique, which helps many people with ADHD sustain focus.',
+    intro: 'Work in silence alongside other people, in a live room — no one sees or messages you. It\'s the "body double" technique.',
+    whatIsThis: "What is this?",
     joinButton: "Join the room",
     aloneInRoom: "You're alone in the room for now — it stays open, someone else may join.",
     roomCount: (n) => `${n} people in the room right now, including you.`,
@@ -107,6 +108,14 @@ const en = {
     hereTitle: "Here",
     leaveButton: "Leave the room",
     reactionLabels: { "👋": "Here with you", "💪": "You've got this", "🎉": "I did it!" },
+    tabTitle: "Body double",
+    openAria: "Open virtual body double",
+    closeAria: "Close virtual body double",
+    tabIdle: "tap to join",
+    tabAlone: "you're in the room",
+    tabCount: (n) => `${n} in the room`,
+    tabEmpty: "no one connected",
+    tabEmptyHint: "tap to open the room",
   },
 
   calendar: {
@@ -997,6 +1006,7 @@ const en = {
     subtitle: "Tap each one when you do it. They're the foundation for focusing and feeling better.",
     deskSub: "Before working",
     activeBreakSub: "2 to 5 min of movement",
+    bodyDoubleTitle: "Body double",
   },
   progressSummary: {
     viewsLabel: "Progress sections",

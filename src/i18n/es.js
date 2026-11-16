@@ -120,7 +120,15 @@ const es = {
   },
 
   bodyDouble: {
-    intro: 'Únete a una sala en vivo y trabaja en silencio al mismo tiempo que otras personas — nadie te ve, nadie te escribe, pero sientes que no estás solo. Es la técnica de "cuerpo doble", que a muchas personas con TDAH les ayuda a sostener el enfoque.',
+    // 16 de noviembre de 2026 ("como que se ve mucho texto"): el párrafo
+    // de bienvenida era el doble de largo (explicaba también la técnica
+    // y a quién ayuda) — se acortó a una sola oración, dejando ese
+    // contexto para quien lo busque en otro lado.
+    intro: 'Trabaja en silencio junto a otras personas, en una sala en vivo — nadie te ve ni te escribe. Es la técnica de "cuerpo doble".',
+    // 16 de noviembre de 2026: enlace que destapa `intro` (ver
+    // BodyDoublePanel.jsx) — así ya no se ve de entrada, solo para quien
+    // de verdad no sabe qué es esto y lo busca.
+    whatIsThis: "¿Qué es esto?",
     joinButton: "Unirme a la sala",
     aloneInRoom: "Estás solo en la sala por ahora — queda abierta, alguien más puede llegar.",
     roomCount: (n) => `${n} personas en la sala ahora mismo, incluyéndote.`,
@@ -130,6 +138,16 @@ const es = {
     hereTitle: "Aquí",
     leaveButton: "Salir de la sala",
     reactionLabels: { "👋": "Aquí contigo", "💪": "Ánimo", "🎉": "¡Lo logré!" },
+    // 15 de noviembre de 2026 — pestaña fija en Inicio (BodyDoubleStrip.jsx,
+    // mismo patrón que "Mis hábitos" en todayStrip).
+    tabTitle: "Cuerpo doble",
+    openAria: "Abrir cuerpo doble virtual",
+    closeAria: "Cerrar cuerpo doble virtual",
+    tabIdle: "toca para unirte",
+    tabAlone: "estás en la sala",
+    tabCount: (n) => `${n} en la sala`,
+    tabEmpty: "nadie conectado",
+    tabEmptyHint: "toca para abrir la sala",
   },
 
   calendar: {
@@ -1026,6 +1044,11 @@ const es = {
     subtitle: "Toca cada uno cuando lo hagas. Son la base para concentrarte y sentirte mejor.",
     deskSub: "Antes de trabajar",
     activeBreakSub: "2 a 5 min de movimiento",
+    // 16 de noviembre de 2026: tercer acceso junto a "Despejar espacio" y
+    // "Pausa activa" (ver TodayHabitsStrip.jsx) — el renglón de abajo
+    // (estado "2 en la sala" / "toca para unirte") sale de
+    // bodyDoublePresenceText, no de aquí.
+    bodyDoubleTitle: "Cuerpo doble",
   },
   progressSummary: {
     viewsLabel: "Secciones de Progreso",
