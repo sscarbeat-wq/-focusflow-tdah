@@ -38,15 +38,26 @@ const FLOAT = [
 // por posición, como ya hace CalmBubbles.jsx con --sway). Respeta
 // prefers-reduced-motion (ver el <style> de abajo): ahí se queda quieta
 // en el offset de siempre, sin animación.
-function AvatarBubble({ C, accent, avatar, isMe, status, title, size = 52, index = 0 }) {
+// 17 de noviembre de 2026 ("el reacción se quita, quisiera que se
+// quedara pero en la burbuja"): antes la reacción aparecía en un avisito
+// aparte debajo, que se autoborraba a los 4 segundos (ver bodyDouble.js).
+// Ahora se pinta pegada a la esquina de la burbuja de quien la mandó —
+// bodyDouble.js ya no la borra sola, así que se queda hasta que esa
+// persona mande otra (la reemplaza) o salga de la sala (ver
+// AvatarCluster: solo se busca reacción entre quienes siguen en
+// `participants`, así que si alguien se va, su reacción deja de
+// encontrar burbuja y desaparece con ella).
+function AvatarBubble({ C, accent, avatar, isMe, status, title, size = 52, index = 0, reactionEmoji }) {
   const f = FLOAT[index % FLOAT.length];
   const duration = 3.2 + (index % 4) * 0.55;
   const delay = -((index % 5) * 0.6);
+  const badgeSize = Math.max(18, Math.round(size * 0.4));
   return (
     <div
       title={title}
       className="anro-bd-bubble"
       style={{
+        position: "relative",
         "--bd-y": `${f.dy}px`,
         "--bd-rot": `${f.rot}deg`,
         animationDuration: `${duration}s`,
@@ -65,6 +76,28 @@ function AvatarBubble({ C, accent, avatar, isMe, status, title, size = 52, index
       }}
     >
       {avatar}
+      {reactionEmoji && (
+        <span
+          aria-hidden="true"
+          style={{
+            position: "absolute",
+            bottom: "-4px",
+            right: "-4px",
+            width: `${badgeSize}px`,
+            height: `${badgeSize}px`,
+            borderRadius: "50%",
+            background: C.surface,
+            border: `1.5px solid ${C.surface}`,
+            boxShadow: "0 2px 5px rgba(0,0,0,0.2)",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            fontSize: `${Math.round(badgeSize * 0.62)}px`,
+          }}
+        >
+          {reactionEmoji}
+        </span>
+      )}
     </div>
   );
 }
@@ -105,25 +138,34 @@ function ExtraBubble({ C, accent, count, size = 52 }) {
   );
 }
 
-function AvatarCluster({ C, accent, participants, bd, size = 52 }) {
+function AvatarCluster({ C, accent, participants, bd, size = 52, incomingReactions = [] }) {
   const max = size < 50 ? MAX_AVATARS_PEEK : MAX_AVATARS_JOINED;
   const shown = participants.slice(0, max);
   const extra = participants.length - shown.length;
   return (
     <>
-      {shown.map((p, i) => (
-        <AvatarBubble
-          key={i}
-          index={i}
-          C={C}
-          accent={accent}
-          avatar={p.avatar}
-          isMe={p.isMe}
-          status={p.status}
-          title={p.isMe ? bd.youTitle : p.status === "enfocando" ? bd.focusingTitle : bd.hereTitle}
-          size={size}
-        />
-      ))}
+      {shown.map((p, i) => {
+        // Único vínculo que existe entre una reacción y quien la mandó es
+        // el avatar (ver nota de privacidad en bodyDoublePure.js: nadie ve
+        // quién es quién más allá de ese avatar) — si dos personas
+        // comparten el mismo animal, la reacción se pega a la primera que
+        // aparece en la lista, nunca a las dos a la vez.
+        const reaction = incomingReactions.find((r) => r.avatar === p.avatar);
+        return (
+          <AvatarBubble
+            key={i}
+            index={i}
+            C={C}
+            accent={accent}
+            avatar={p.avatar}
+            isMe={p.isMe}
+            status={p.status}
+            title={p.isMe ? bd.youTitle : p.status === "enfocando" ? bd.focusingTitle : bd.hereTitle}
+            size={size}
+            reactionEmoji={reaction?.emoji}
+          />
+        );
+      })}
       {extra > 0 && <ExtraBubble C={C} accent={accent} count={extra} size={size} />}
     </>
   );
@@ -272,7 +314,7 @@ export default function BodyDoublePanel({
   return (
     <>
       <RoomScene C={C} accent={accent}>
-        <AvatarCluster C={C} accent={accent} participants={participants} bd={bd} />
+        <AvatarCluster C={C} accent={accent} participants={participants} bd={bd} incomingReactions={incomingReactions} />
       </RoomScene>
 
       <p style={{ fontSize: "13px", fontWeight: 700, color: accent, marginBottom: "4px" }}>
@@ -281,25 +323,6 @@ export default function BodyDoublePanel({
       <p style={{ fontSize: "12px", color: C.textMuted, marginBottom: "14px", lineHeight: 1.5 }}>
         {bd.privacyNote}
       </p>
-
-      {incomingReactions.length > 0 && (
-        <div style={{ display: "flex", flexWrap: "wrap", gap: "8px", marginBottom: "10px" }}>
-          {incomingReactions.map((r) => (
-            <div
-              key={r.id}
-              style={{
-                fontSize: "13px",
-                background: C.surfaceAlt,
-                border: `1px solid ${C.border}`,
-                borderRadius: "999px",
-                padding: "4px 10px",
-              }}
-            >
-              {r.avatar} {r.emoji}
-            </div>
-          ))}
-        </div>
-      )}
 
       {/* 17 de noviembre de 2026 ("añade más reacciones"): de 3 a 6 —
           siguen sin texto libre (mismo vocabulario fijo y chico de

@@ -40,14 +40,12 @@ import { supabase } from "./supabaseClient";
 import { avatarFor, participantsFromPresenceState, isValidReaction } from "./bodyDoublePure";
 
 const ROOM = "senda-cuerpo-doble";
-const REACTION_TOAST_MS = 4000;
 
 export function useBodyDouble(userId, species) {
   const [joined, setJoined] = useState(false);
   const [participants, setParticipants] = useState([]);
   const [incomingReactions, setIncomingReactions] = useState([]);
   const channelRef = useRef(null);
-  const reactionTimers = useRef([]);
   // `species` cambia con el tiempo (la paciente puede cambiar de mascota
   // mientras está en la sala) — una ref para que join()/setStatus() de
   // abajo siempre lean el valor más nuevo sin tener que reabrir el canal
@@ -62,23 +60,19 @@ export function useBodyDouble(userId, species) {
     [userId]
   );
 
-  const clearReactionTimers = useCallback(() => {
-    reactionTimers.current.forEach(clearTimeout);
-    reactionTimers.current = [];
-  }, []);
-
-  // Agrega una reacción a la lista visible (se usa tanto para las que
-  // llegan de alguien más por broadcast, como para la propia al presionar
-  // un botón — Supabase Realtime Broadcast, por default, NO le regresa su
-  // propio mensaje a quien lo manda, así que sin esto, presionar un emoji
-  // estando solo en la sala no mostraba ningún cambio.
+  // 17 de noviembre de 2026 ("el reacción se quita, quisiera que se
+  // quedara pero en la burbuja"): antes esto era una lista que crecía con
+  // cada reacción y se autoborraba sola a los 4 segundos (REACTION_TOAST_MS,
+  // ver el diff de abajo) — se pintaba como un avisito aparte que
+  // desaparecía. Ahora BodyDoublePanel.jsx la pinta pegada al avatar de
+  // quien la mandó (no hay más lista aparte), así que aquí solo hace
+  // falta UNA entrada por avatar — la última reacción de esa persona
+  // reemplaza a la anterior — y nunca se borra sola: se queda hasta que
+  // esa persona mande otra, o hasta que salga de la sala (en ese caso
+  // BodyDoublePanel.jsx ya no tiene dónde pegarla, porque solo busca
+  // reacciones entre quienes siguen en `participants`).
   const pushReactionToast = useCallback((avatar, emoji) => {
-    const id = `${Date.now()}-${Math.random().toString(36).slice(2)}`;
-    setIncomingReactions((prev) => [...prev, { id, avatar, emoji }]);
-    const timer = setTimeout(() => {
-      setIncomingReactions((prev) => prev.filter((r) => r.id !== id));
-    }, REACTION_TOAST_MS);
-    reactionTimers.current.push(timer);
+    setIncomingReactions((prev) => [...prev.filter((r) => r.avatar !== avatar), { id: `${Date.now()}-${Math.random().toString(36).slice(2)}`, avatar, emoji }]);
   }, []);
 
   // Abre el canal en modo "solo mirar" (sin track todavía) apenas hay
@@ -103,10 +97,9 @@ export function useBodyDouble(userId, species) {
     if (channelRef.current) {
       channelRef.current.untrack();
     }
-    clearReactionTimers();
     setJoined(false);
     setIncomingReactions([]);
-  }, [clearReactionTimers]);
+  }, []);
 
   const join = useCallback(() => {
     if (!userId) return;
@@ -174,7 +167,6 @@ export function useBodyDouble(userId, species) {
         supabase.removeChannel(channelRef.current);
         channelRef.current = null;
       }
-      clearReactionTimers();
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [userId]);
