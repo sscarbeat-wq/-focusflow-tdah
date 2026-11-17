@@ -85,10 +85,19 @@ export function bodyDoubleHintText(bd, joined, count) {
 // moderación. Se transmiten por un broadcast efímero de Supabase Realtime
 // (nunca se guardan), igual de anónimo que la presencia: solo viaja el
 // emoji de reacción junto con el avatar anónimo de quien la mandó.
+//
+// 17 de noviembre de 2026 ("añade más reacciones"): de 3 a 6 — se eligieron
+// para no repetir el sentido de ninguna de las 3 originales (saludo,
+// ánimo, celebración) en vez de solo variar el dibujo: cariño/apoyo
+// emocional, racha/energía, y calma — así cubren registros distintos en
+// vez de 3 formas distintas de decir lo mismo.
 export const REACTIONS = [
   { emoji: "👋", label: "Aquí contigo" },
   { emoji: "💪", label: "Ánimo" },
   { emoji: "🎉", label: "¡Lo logré!" },
+  { emoji: "❤️", label: "Con cariño" },
+  { emoji: "🔥", label: "¡Qué racha!" },
+  { emoji: "😌", label: "Con calma" },
 ];
 
 export function isValidReaction(emoji) {
