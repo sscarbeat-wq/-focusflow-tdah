@@ -107,7 +107,7 @@ const en = {
     focusingTitle: "Focusing",
     hereTitle: "Here",
     leaveButton: "Leave the room",
-    reactionLabels: { "👋": "Here with you", "💪": "You've got this", "🎉": "I did it!" },
+    reactionLabels: { "👋": "Here with you", "💪": "You've got this", "🎉": "I did it!", "❤️": "Sending love", "🔥": "On a roll!", "😌": "Staying calm" },
     tabTitle: "Body double",
     openAria: "Open virtual body double",
     closeAria: "Close virtual body double",

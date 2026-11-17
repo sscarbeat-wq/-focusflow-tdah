@@ -112,7 +112,7 @@ const pt = {
     focusingTitle: "Focando",
     hereTitle: "Presente",
     leaveButton: "Sair da sala",
-    reactionLabels: { "👋": "Aqui com você", "💪": "Força", "🎉": "Consegui!" },
+    reactionLabels: { "👋": "Aqui com você", "💪": "Força", "🎉": "Consegui!", "❤️": "Com carinho", "🔥": "Que sequência!", "😌": "Com calma" },
     tabTitle: "Corpo duplo",
     openAria: "Abrir corpo duplo virtual",
     closeAria: "Fechar corpo duplo virtual",

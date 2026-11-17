@@ -137,7 +137,7 @@ const es = {
     focusingTitle: "Enfocándose",
     hereTitle: "Aquí",
     leaveButton: "Salir de la sala",
-    reactionLabels: { "👋": "Aquí contigo", "💪": "Ánimo", "🎉": "¡Lo logré!" },
+    reactionLabels: { "👋": "Aquí contigo", "💪": "Ánimo", "🎉": "¡Lo logré!", "❤️": "Con cariño", "🔥": "¡Qué racha!", "😌": "Con calma" },
     // 15 de noviembre de 2026 — pestaña fija en Inicio (BodyDoubleStrip.jsx,
     // mismo patrón que "Mis hábitos" en todayStrip).
     tabTitle: "Cuerpo doble",

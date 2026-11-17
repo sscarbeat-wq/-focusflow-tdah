@@ -109,7 +109,7 @@ const fr = {
     focusingTitle: "En concentration",
     hereTitle: "Présent·e",
     leaveButton: "Quitter la salle",
-    reactionLabels: { "👋": "Ici avec toi", "💪": "Courage", "🎉": "J'ai réussi !" },
+    reactionLabels: { "👋": "Ici avec toi", "💪": "Courage", "🎉": "J'ai réussi !", "❤️": "Avec tendresse", "🔥": "Quelle série !", "😌": "En toute calme" },
     tabTitle: "Corps double",
     openAria: "Ouvrir le corps double virtuel",
     closeAria: "Fermer le corps double virtuel",
