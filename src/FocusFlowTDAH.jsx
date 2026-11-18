@@ -1467,7 +1467,7 @@ export default function FocusFlowTDAH({
   // (ej. mostrar un aviso) sin tener que repetir la validación.
   const addStepFromText = (text, min = 5, energy = null) => {
     const trimmed = (text || "").trim();
-    if (!trimmed || steps.length >= 5) return false;
+    if (!trimmed || steps.length >= 10) return false;
     const newStep = { id: Date.now(), text: trimmed, min, done: false, energy: energy || null };
     const offsetMin = steps.reduce((sum, s) => sum + (s.min || 0), 0);
     scheduleStepsOnCalendar(userId, [newStep], { startOffsetMinutes: offsetMin, kind: "step" });
@@ -1509,6 +1509,72 @@ export default function FocusFlowTDAH({
   // el mismo arreglo `steps` de arriba, así que no hace falta persistirlo
   // (los pasos del desglosador tampoco persisten entre sesiones).
   const [desglosadorView, setDesglosadorView] = useState("list");
+
+  // 18 de noviembre de 2026 ("puedes hacer más interactiva esta
+  // herramienta?" — eligió las 3 opciones: que se sienta viva desde que
+  // se abre, que el progreso se sienta como un juego, y que guíe más paso
+  // a paso como una conversación): 3 agregados, todos opcionales, sin
+  // tocar el formulario clásico ni el desglose con IA que ya funcionaban.
+  //
+  // (a) Ejemplos que rotan solos mientras el cuadro de la tarea está
+  // vacío — para cuando no se sabe ni por dónde empezar a escribir. Se
+  // detiene solo (el intervalo no se crea) en cuanto hay texto.
+  const [dismantlerExampleIdx, setDismantlerExampleIdx] = useState(0);
+  useEffect(() => {
+    if (bigTask.trim()) return;
+    const id = setInterval(() => setDismantlerExampleIdx((i) => i + 1), 4000);
+    return () => clearInterval(id);
+  }, [bigTask]);
+
+  // (b) Progreso tipo juego: además del XP que ya daba CADA paso por
+  // separado (toggleStep, arriba), un empujón extra de XP + celebración
+  // la primera vez que TODOS los pasos de la tarea quedan marcados como
+  // hechos. El ref evita que se repita en cada re-render mientras sigan
+  // completos (solo se reinicia cuando deja de estar completo, ej. si se
+  // desmarca un paso o se agrega uno nuevo).
+  const dismantlerAllDoneRef = useRef(false);
+  useEffect(() => {
+    const total = steps.length;
+    const done = steps.filter((s) => s.done).length;
+    if (total > 0 && done === total) {
+      if (!dismantlerAllDoneRef.current) {
+        dismantlerAllDoneRef.current = true;
+        grantXp(t.app.xpLabels.dismantlerCompleted(bigTask.trim() || t.app.panels.dismantler.title));
+      }
+    } else {
+      dismantlerAllDoneRef.current = false;
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [steps]);
+
+  // (c) Modo guiado: agrega los pasos de uno en uno, como una
+  // conversación corta, en vez del formulario con 3 campos a la vez.
+  // Preferencia por dispositivo (igual que oneStepMode, arriba) — el
+  // desglose con IA y el formulario clásico siguen disponibles apagando
+  // el modo guiado. Empieza encendido: es justo lo que se pidió.
+  const [guidedMode, setGuidedMode] = useState(() => {
+    try {
+      return window.localStorage.getItem("anro-dismantler-guided") !== "off";
+    } catch (e) {
+      return true;
+    }
+  });
+  const toggleGuidedMode = () => {
+    setGuidedMode((prev) => {
+      const next = !prev;
+      try {
+        window.localStorage.setItem("anro-dismantler-guided", next ? "on" : "off");
+      } catch (e) {
+        /* localStorage no disponible (modo privado, etc.) */
+      }
+      return next;
+    });
+  };
+  // Fase de la conversación guiada: "text" (escribiendo el paso) → "min"
+  // (cuánto tiempo) → "energy" (qué energía) → "added" (confirmación, con
+  // botón para agregar otro o terminar) → "idle" (ya terminó, colapsado).
+  const [guidedPhase, setGuidedPhase] = useState("text");
+  const [guidedLastAdded, setGuidedLastAdded] = useState("");
 
   // ---- Mapa mental (Fase 4, función #4 — 31 de octubre de 2026, inspirada
   // en MindNode, gratis según lo confirmado con la doctora) ----
@@ -1816,7 +1882,7 @@ export default function FocusFlowTDAH({
   // tocó "Sí, agrégalo" en la tarjeta de confirmación, nunca antes.
   const handleConfirmQuickStep = useCallback(
     (fields) => {
-      if (steps.length >= 5) return; // defensivo — el panel ya no ofrece este botón al tope de pasos
+      if (steps.length >= 10) return; // defensivo — el panel ya no ofrece este botón al tope de pasos
       const text = String(fields?.text || "").trim().slice(0, 200);
       if (!text) return;
       const minValue = Number(fields?.min);
@@ -4151,7 +4217,7 @@ export default function FocusFlowTDAH({
             userId={userId}
             quickNotes={quickNotes}
             oldForgottenNoteId={forgottenNoteId}
-            canAddStep={steps.length < 5}
+            canAddStep={steps.length < 10}
             onAddNote={handleAddQuickNote}
             onResolveNote={handleResolveQuickNote}
             onRemoveNote={handleRemoveQuickNote}
@@ -4267,8 +4333,43 @@ export default function FocusFlowTDAH({
                 value={bigTask}
                 onChange={(e) => setBigTask(e.target.value)}
                 placeholder={t.app.dismantler.taskPlaceholder}
-                style={{ ...inputStyle, marginBottom: "14px" }}
+                style={{ ...inputStyle, marginBottom: bigTask.trim() ? "14px" : "8px" }}
               />
+              {(() => {
+                // (a) Ejemplos tocables mientras no hay nada escrito — tres a
+                // la vez, rotando solos cada 4s (dismantlerExampleIdx, arriba).
+                if (bigTask.trim()) return null;
+                const examples = t.app.dismantler.examples || [];
+                if (!examples.length) return null;
+                const shown = [0, 1, 2].map((o) => examples[(dismantlerExampleIdx + o) % examples.length]);
+                return (
+                  <div style={{ marginBottom: "14px" }}>
+                    <p style={{ fontSize: "11px", color: C.textMuted, margin: "0 0 6px" }}>
+                      {t.app.dismantler.examplesLabel}
+                    </p>
+                    <div style={{ display: "flex", gap: "6px", flexWrap: "wrap" }}>
+                      {shown.map((ex) => (
+                        <button
+                          key={ex}
+                          type="button"
+                          onClick={() => setBigTask(ex)}
+                          style={{
+                            fontSize: "12px",
+                            padding: "6px 12px",
+                            borderRadius: "999px",
+                            border: `1px solid ${C.border}`,
+                            background: C.surfaceAlt,
+                            color: C.text,
+                            cursor: "pointer",
+                          }}
+                        >
+                          {ex}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                );
+              })()}
               {bigTask.trim() && (
                 <>
                   {/* Fase 3 (30 de octubre de 2026) — el desglosador manual (lo
@@ -4328,55 +4429,244 @@ export default function FocusFlowTDAH({
                       <PlusUpsellInline C={C} t={t} label={t.upsell.aiBreakdown} onRequestUpgrade={onRequestUpgrade} />
                     </div>
                   )}
-                  <div style={{ display: "flex", gap: "8px", marginBottom: "14px", flexWrap: "wrap" }}>
-                    <input
-                      type="text"
-                      value={stepDraft}
-                      onChange={(e) => setStepDraft(e.target.value)}
-                      placeholder={t.app.dismantler.stepPlaceholder(steps.length + 1)}
-                      disabled={steps.length >= 5}
-                      style={{ ...inputStyle, flex: "1 1 140px" }}
-                    />
-                    <select
-                      value={stepMin}
-                      onChange={(e) => setStepMin(Number(e.target.value))}
-                      style={{ ...inputStyle, width: "auto" }}
-                    >
-                      {[2, 5, 10, 15, 20].map((m) => (
-                        <option key={m} value={m}>
-                          {m} min
-                        </option>
-                      ))}
-                    </select>
-                    <select
-                      value={stepEnergy}
-                      onChange={(e) => setStepEnergy(e.target.value)}
-                      title={t.app.dismantler.stepEnergyTooltip}
-                      style={{ ...inputStyle, width: "auto" }}
-                    >
-                      <option value="">{t.app.dismantler.anyEnergy}</option>
-                      <option value="baja">{t.app.dismantler.lowEnergy}</option>
-                      <option value="media">{t.app.dismantler.midEnergy}</option>
-                      <option value="alta">{t.app.dismantler.highEnergy}</option>
-                    </select>
+                  <div style={{ display: "flex", justifyContent: "flex-end", marginBottom: "6px" }}>
                     <button
-                      onClick={addStep}
-                      disabled={steps.length >= 5 || !stepDraft.trim()}
+                      type="button"
+                      onClick={toggleGuidedMode}
                       style={{
-                        ...btnPrimary(C.mint, C.mintText),
+                        background: "transparent",
+                        border: "none",
+                        color: C.textMuted,
+                        fontSize: "11px",
+                        cursor: "pointer",
+                        padding: 0,
                         display: "flex",
                         alignItems: "center",
                         gap: "4px",
-                        opacity: steps.length >= 5 ? 0.5 : 1,
                       }}
                     >
-                      <Plus size={14} /> {t.app.dismantler.addButton}
+                      <MessageCircle size={12} />
+                      {guidedMode ? t.app.dismantler.guidedToggleToClassic : t.app.dismantler.guidedToggleToGuided}
                     </button>
                   </div>
-                  {steps.length >= 5 && (
-                    <p style={{ fontSize: "11px", color: C.textMuted, margin: "-6px 0 10px" }}>
-                      {t.app.dismantler.maxStepsNotice}
-                    </p>
+                  {guidedMode ? (
+                    <div style={{ marginBottom: "14px" }}>
+                      {steps.length >= 10 ? (
+                        <p style={{ fontSize: "11px", color: C.textMuted, margin: "0 0 10px" }}>
+                          {t.app.dismantler.maxStepsNotice}
+                        </p>
+                      ) : guidedPhase === "text" ? (
+                        <div>
+                          <p style={{ fontSize: "13px", fontWeight: 700, color: C.text, margin: "0 0 8px", display: "flex", alignItems: "center", gap: "6px" }}>
+                            <MessageCircle size={14} />
+                            {t.app.dismantler.guidedStep1Label}
+                          </p>
+                          <div style={{ display: "flex", gap: "8px", flexWrap: "wrap" }}>
+                            <input
+                              type="text"
+                              value={stepDraft}
+                              onChange={(e) => setStepDraft(e.target.value)}
+                              placeholder={t.app.dismantler.guidedStep1Placeholder}
+                              onKeyDown={(e) => {
+                                if (e.key === "Enter" && stepDraft.trim()) setGuidedPhase("min");
+                              }}
+                              style={{ ...inputStyle, flex: "1 1 160px" }}
+                            />
+                            <button
+                              type="button"
+                              onClick={() => stepDraft.trim() && setGuidedPhase("min")}
+                              disabled={!stepDraft.trim()}
+                              style={{
+                                ...btnPrimary(C.mint, C.mintText),
+                                opacity: stepDraft.trim() ? 1 : 0.5,
+                                cursor: stepDraft.trim() ? "pointer" : "default",
+                              }}
+                            >
+                              {t.app.dismantler.guidedNextButton}
+                            </button>
+                          </div>
+                        </div>
+                      ) : guidedPhase === "min" ? (
+                        <div>
+                          <p style={{ fontSize: "13px", fontWeight: 700, color: C.text, margin: "0 0 8px" }}>
+                            {t.app.dismantler.guidedStep2Label}
+                          </p>
+                          <div style={{ display: "flex", gap: "6px", flexWrap: "wrap" }}>
+                            {[2, 5, 10, 15, 20].map((m) => (
+                              <button
+                                key={m}
+                                type="button"
+                                onClick={() => {
+                                  setStepMin(m);
+                                  setGuidedPhase("energy");
+                                }}
+                                style={{
+                                  padding: "8px 14px",
+                                  borderRadius: "999px",
+                                  border: `1px solid ${C.border}`,
+                                  background: C.surfaceAlt,
+                                  color: C.text,
+                                  fontSize: "13px",
+                                  fontWeight: 600,
+                                  cursor: "pointer",
+                                }}
+                              >
+                                {m} min
+                              </button>
+                            ))}
+                          </div>
+                          <button
+                            type="button"
+                            onClick={() => setGuidedPhase("text")}
+                            style={{ background: "transparent", border: "none", color: C.textMuted, fontSize: "11px", marginTop: "8px", cursor: "pointer", padding: 0 }}
+                          >
+                            ← {t.app.dismantler.guidedBackButton}
+                          </button>
+                        </div>
+                      ) : guidedPhase === "energy" ? (
+                        <div>
+                          <p style={{ fontSize: "13px", fontWeight: 700, color: C.text, margin: "0 0 8px" }}>
+                            {t.app.dismantler.guidedStep3Label}
+                          </p>
+                          <div style={{ display: "flex", gap: "6px", flexWrap: "wrap" }}>
+                            {[
+                              { value: "", label: t.app.dismantler.anyEnergy },
+                              { value: "baja", label: t.app.dismantler.lowEnergy },
+                              { value: "media", label: t.app.dismantler.midEnergy },
+                              { value: "alta", label: t.app.dismantler.highEnergy },
+                            ].map((opt) => (
+                              <button
+                                key={opt.value || "any"}
+                                type="button"
+                                onClick={() => {
+                                  const added = addStepFromText(stepDraft, stepMin, opt.value || null);
+                                  if (added) {
+                                    setGuidedLastAdded(stepDraft.trim());
+                                    setStepDraft("");
+                                    setStepMin(5);
+                                    setStepEnergy("");
+                                    setGuidedPhase("added");
+                                  }
+                                }}
+                                style={{
+                                  padding: "8px 14px",
+                                  borderRadius: "999px",
+                                  border: `1px solid ${C.border}`,
+                                  background: C.surfaceAlt,
+                                  color: C.text,
+                                  fontSize: "13px",
+                                  fontWeight: 600,
+                                  cursor: "pointer",
+                                }}
+                              >
+                                {opt.label}
+                              </button>
+                            ))}
+                          </div>
+                          <button
+                            type="button"
+                            onClick={() => setGuidedPhase("min")}
+                            style={{ background: "transparent", border: "none", color: C.textMuted, fontSize: "11px", marginTop: "8px", cursor: "pointer", padding: 0 }}
+                          >
+                            ← {t.app.dismantler.guidedBackButton}
+                          </button>
+                        </div>
+                      ) : guidedPhase === "added" ? (
+                        <div style={{ padding: "12px 14px", borderRadius: "12px", background: C.surfaceAlt, border: `1px solid ${C.border}` }}>
+                          <p style={{ fontSize: "13px", fontWeight: 700, color: C.text, margin: "0 0 10px" }}>
+                            {t.app.dismantler.guidedAddedTitle(guidedLastAdded)}
+                          </p>
+                          <div style={{ display: "flex", gap: "8px", flexWrap: "wrap" }}>
+                            <button
+                              type="button"
+                              onClick={() => setGuidedPhase("text")}
+                              style={{ ...btnPrimary(C.mint, C.mintText), display: "flex", alignItems: "center", gap: "4px" }}
+                            >
+                              <Plus size={14} /> {t.app.dismantler.guidedAddAnotherButton}
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => setGuidedPhase("idle")}
+                              style={{ background: "transparent", border: `1px solid ${C.border}`, borderRadius: "10px", padding: "8px 14px", color: C.textMuted, fontSize: "13px", cursor: "pointer" }}
+                            >
+                              {t.app.dismantler.guidedFinishButton}
+                            </button>
+                          </div>
+                        </div>
+                      ) : (
+                        <button
+                          type="button"
+                          onClick={() => setGuidedPhase("text")}
+                          style={{
+                            background: "transparent",
+                            border: `1px dashed ${C.border}`,
+                            borderRadius: "10px",
+                            padding: "8px 14px",
+                            color: C.textMuted,
+                            fontSize: "13px",
+                            cursor: "pointer",
+                            display: "flex",
+                            alignItems: "center",
+                            gap: "6px",
+                          }}
+                        >
+                          <Plus size={14} /> {t.app.dismantler.guidedAddAnotherButton}
+                        </button>
+                      )}
+                    </div>
+                  ) : (
+                    <>
+                      <div style={{ display: "flex", gap: "8px", marginBottom: "14px", flexWrap: "wrap" }}>
+                        <input
+                          type="text"
+                          value={stepDraft}
+                          onChange={(e) => setStepDraft(e.target.value)}
+                          placeholder={t.app.dismantler.stepPlaceholder(steps.length + 1)}
+                          disabled={steps.length >= 10}
+                          style={{ ...inputStyle, flex: "1 1 140px" }}
+                        />
+                        <select
+                          value={stepMin}
+                          onChange={(e) => setStepMin(Number(e.target.value))}
+                          style={{ ...inputStyle, width: "auto" }}
+                        >
+                          {[2, 5, 10, 15, 20].map((m) => (
+                            <option key={m} value={m}>
+                              {m} min
+                            </option>
+                          ))}
+                        </select>
+                        <select
+                          value={stepEnergy}
+                          onChange={(e) => setStepEnergy(e.target.value)}
+                          title={t.app.dismantler.stepEnergyTooltip}
+                          style={{ ...inputStyle, width: "auto" }}
+                        >
+                          <option value="">{t.app.dismantler.anyEnergy}</option>
+                          <option value="baja">{t.app.dismantler.lowEnergy}</option>
+                          <option value="media">{t.app.dismantler.midEnergy}</option>
+                          <option value="alta">{t.app.dismantler.highEnergy}</option>
+                        </select>
+                        <button
+                          onClick={addStep}
+                          disabled={steps.length >= 10 || !stepDraft.trim()}
+                          style={{
+                            ...btnPrimary(C.mint, C.mintText),
+                            display: "flex",
+                            alignItems: "center",
+                            gap: "4px",
+                            opacity: steps.length >= 10 ? 0.5 : 1,
+                          }}
+                        >
+                          <Plus size={14} /> {t.app.dismantler.addButton}
+                        </button>
+                      </div>
+                      {steps.length >= 10 && (
+                        <p style={{ fontSize: "11px", color: C.textMuted, margin: "-6px 0 10px" }}>
+                          {t.app.dismantler.maxStepsNotice}
+                        </p>
+                      )}
+                    </>
                   )}
                   {steps.length > 0 && (
                     <div style={{ display: "flex", alignItems: "center", gap: "6px", marginBottom: "10px" }}>
@@ -4414,6 +4704,62 @@ export default function FocusFlowTDAH({
                       </button>
                     </div>
                   )}
+                  {steps.length > 0 && (() => {
+                    // (b) Progreso tipo juego: barra de X/Y pasos hechos
+                    // (se ve igual en lista o tablero) y una tarjeta de
+                    // felicitación cuando ya están todos — el XP extra por
+                    // completar TODO el desglose se otorga aparte, en el
+                    // useEffect de dismantlerAllDoneRef (arriba), no aquí
+                    // (aquí solo se DIBUJA, nunca se cambia estado).
+                    const totalSteps = steps.length;
+                    const doneSteps = steps.filter((s) => s.done).length;
+                    const allDone = doneSteps === totalSteps;
+                    return (
+                      <div style={{ marginBottom: "12px" }}>
+                        <div style={{ fontSize: "11px", color: C.textMuted, marginBottom: "4px" }}>
+                          {t.app.dismantler.progressLabel(doneSteps, totalSteps)}
+                        </div>
+                        <div style={{ height: "8px", borderRadius: "999px", background: C.surfaceAlt, overflow: "hidden" }}>
+                          <div
+                            style={{
+                              height: "100%",
+                              width: `${(doneSteps / totalSteps) * 100}%`,
+                              background: C.mint,
+                              transition: "width 0.3s ease",
+                            }}
+                          />
+                        </div>
+                        {allDone && (
+                          <div style={{ marginTop: "10px", padding: "12px 14px", borderRadius: "12px", background: C.mint, color: C.mintText }}>
+                            <p style={{ margin: 0, fontSize: "13px", fontWeight: 800 }}>{t.app.dismantler.allDoneTitle}</p>
+                            <p style={{ margin: "2px 0 8px", fontSize: "12px", fontWeight: 500 }}>
+                              {t.app.dismantler.allDoneBody(bigTask.trim() || t.app.panels.dismantler.title)}
+                            </p>
+                            <button
+                              type="button"
+                              onClick={() => {
+                                setSteps([]);
+                                setBigTask("");
+                                setGuidedPhase("text");
+                              }}
+                              style={{
+                                background: "rgba(255,255,255,0.35)",
+                                border: "none",
+                                borderRadius: "8px",
+                                padding: "6px 12px",
+                                fontSize: "12px",
+                                fontWeight: 700,
+                                cursor: "pointer",
+                                color: C.mintText,
+                              }}
+                            >
+                              {t.app.dismantler.startNewTaskButton}
+                            </button>
+                          </div>
+                        )}
+                      </div>
+                    );
+                  })()}
                   {steps.length > 0 && desglosadorView === "list" && (
                     <div style={{ display: "flex", alignItems: "center", gap: "14px", flexWrap: "wrap", marginBottom: "8px" }}>
                       <button
@@ -5391,7 +5737,7 @@ export default function FocusFlowTDAH({
         accent={personalAccent}
         quickNotes={quickNotes}
         oldForgottenNoteId={forgottenNoteId}
-        canAddStep={steps.length < 5}
+        canAddStep={steps.length < 10}
         onAddNote={handleAddQuickNote}
         onResolveNote={handleResolveQuickNote}
         onRemoveNote={handleRemoveQuickNote}
