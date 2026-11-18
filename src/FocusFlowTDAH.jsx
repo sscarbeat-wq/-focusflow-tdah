@@ -68,7 +68,6 @@ import OnboardingTour from "./OnboardingTour";
 import InstallBanner from "./InstallBanner";
 import PostDiagnosisCard from "./PostDiagnosisCard";
 import ScienceCapsulePanel from "./ScienceCapsulePanel";
-import ScienceCapsuleTeaser from "./ScienceCapsuleTeaser";
 import MindfulnessPanel from "./MindfulnessPanel";
 import FocusMode from "./FocusMode";
 import OneThingPanel from "./OneThingPanel";
@@ -435,6 +434,14 @@ export default function FocusFlowTDAH({
   // dos toques seguidos también funcionen aunque el recorrido ya esté
   // abierto.
   const [reopenTourSignal, setReopenTourSignal] = useState(0);
+  // 18 de noviembre de 2026 ("quiero que saques esa sección de
+  // progresos" / "en realidad podría ser como un acceso rápido, como un
+  // foco"): la cápsula completa de "Dato del día" ya no vive en Progreso
+  // → "Mi semana" (se quitó ese bloque) ni en un chip aparte debajo del
+  // saludo (ScienceCapsuleTeaser, ya no se usa) — ahora la única entrada
+  // es el planeta 💡 de la brújula de Inicio (ver compassItems más abajo):
+  // al tocarlo, abre/cierra ScienceCapsulePanel como tarjeta flotante.
+  const [scienceCapsuleOpen, setScienceCapsuleOpen] = useState(false);
   const [isNarrow, setIsNarrow] = useState(() => typeof window !== "undefined" && window.innerWidth < 760);
   // Pantalla ancha (computadora) y pantalla bajita (celular chico) — las
   // usa la franja de hábitos de Inicio: en pantalla ancha va A UN LADO de
@@ -780,6 +787,15 @@ export default function FocusFlowTDAH({
 
   // Los 5 planetas de categoría para la brújula rediseñada:
   const CATEGORY_PLANET_COLORS = TOOL_GROUPS.map((g) => g.color);
+  // 18 de noviembre de 2026 ("en realidad podría ser como un acceso
+  // rápido, como un foco"): el dato del día pasa de ser un chip aparte
+  // (ScienceCapsuleTeaser, debajo del saludo) a ser un 6to planeta de la
+  // brújula. Dorado claro (no el naranja/ámbar de "Sentir" 💛 #D98A0B —
+  // se eligió uno más amarillo/claro para que el ícono de letra oscura
+  // (luminancia alta → texto oscuro, ver planetCircleStyle en
+  // QuickAccessCompass.jsx) se note como un planeta distinto a simple
+  // vista, no solo por el ícono.
+  const SCIENCE_CAPSULE_PLANET_COLOR = "#E6B94D";
 
   // Los 6 accesos de la brújula de Inicio (reemplaza a los 4 anteriores —
   // ver nota larga del 9 de noviembre de 2026 más abajo, junto a
@@ -2332,17 +2348,41 @@ export default function FocusFlowTDAH({
           // Rediseño de la brújula (12 de noviembre de 2026): 5 planetas
           // fijos de categoría en vez de los 6 editables de antes. Cada
           // planeta es un grupo de TOOL_GROUPS (emoji + nombre del grupo).
-          const compassItems = TOOL_GROUPS.map((g) => ({
-            key: `cat_${g.key}`,
-            icon: <span style={{ fontSize: "20px", lineHeight: 1 }}>{g.emoji}</span>,
-            label: t.tools.groups[g.key],
-            variant: "accent-solid",
-          }));
+          //
+          // 18 de noviembre de 2026 ("en realidad podría ser como un
+          // acceso rápido, como un foco"): se agrega un 6to planeta, el
+          // dato del día sobre TDAH (💡), con su propia key
+          // "sciencecapsule" (no "cat_...", para distinguirlo de los
+          // grupos de herramientas en handleCompassSelect). Reemplaza al
+          // chip aparte que vivía debajo del saludo (ScienceCapsuleTeaser)
+          // — la cápsula completa (ScienceCapsulePanel) sigue abriéndose
+          // igual, como tarjeta flotante, solo que ahora el disparador es
+          // este planeta en vez del chip.
+          const compassItems = [
+            ...TOOL_GROUPS.map((g) => ({
+              key: `cat_${g.key}`,
+              icon: <span style={{ fontSize: "20px", lineHeight: 1 }}>{g.emoji}</span>,
+              label: t.tools.groups[g.key],
+              variant: "accent-solid",
+            })),
+            {
+              key: "sciencecapsule",
+              icon: <span style={{ fontSize: "20px", lineHeight: 1 }}>💡</span>,
+              label: t.scienceCapsule.compassLabel,
+              variant: "accent-solid",
+            },
+          ];
 
           // Al tocar un planeta de categoría, se abre Herramientas con ese
           // grupo ya seleccionado. Las claves empiezan con "cat_" para
-          // distinguirlas del catálogo anterior.
+          // distinguirlas del catálogo anterior. El planeta del dato del
+          // día ("sciencecapsule") no navega a Herramientas: abre/cierra
+          // la misma tarjeta flotante de siempre.
           const handleCompassSelect = (key) => {
+            if (key === "sciencecapsule") {
+              setScienceCapsuleOpen((v) => !v);
+              return;
+            }
             const groupKey = key.replace("cat_", "");
             setHerramientasGroup(groupKey);
             setActiveTool(null);
@@ -2437,15 +2477,75 @@ export default function FocusFlowTDAH({
                 onOpenBodyDouble={onOpenBodyDouble}
               />
               {/* 17 de noviembre de 2026 ("los datos sobre TDAH quiero que
-                  este más a la vista... la opcion 3 me gusta"): chip-resumen
-                  del dato del día, justo debajo del saludo — toca y lleva a
-                  la cápsula completa (con diagrama, idea clave y fuente) en
-                  Progreso → "Mi semana". Solo en la vista "hoy" de la
-                  brújula (no tiene sentido duplicarlo si ya se abrió una
-                  herramienta). */}
+                  este más a la vista... la opcion 3 me gusta"): la cápsula
+                  completa (ScienceCapsulePanel) se abre como tarjeta
+                  flotante (modal, fondo oscuro detrás) que aparece encima
+                  de todo y desaparece al tocar fuera o la X, sin mover
+                  nada más de la pantalla — mismo patrón de modal centrado
+                  que ya usan OnboardingTour.jsx y activeUnlock más abajo.
+                  18 de noviembre de 2026 ("en realidad podría ser como un
+                  acceso rápido, como un foco"): el disparador ya NO es un
+                  chip aparte debajo del saludo (ScienceCapsuleTeaser, ya
+                  no se usa) — es el planeta 💡 de la brújula de abajo (ver
+                  compassItems/handleCompassSelect más arriba), para que se
+                  vea como un acceso más en vez de una sección extra. Esto
+                  solo monta el modal cuando scienceCapsuleOpen es true. */}
               {!inicioToolKey && (
                 <div style={{ padding: "0 4px" }}>
-                  <ScienceCapsuleTeaser C={C} t={t} onOpen={() => scrollToCompanionSection("insights")} />
+                  {scienceCapsuleOpen && (
+                    <div
+                      role="dialog"
+                      aria-label={t.scienceCapsule.title}
+                      style={{
+                        position: "fixed",
+                        inset: 0,
+                        background: "rgba(0,0,0,0.5)",
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "center",
+                        padding: "18px",
+                        zIndex: 95,
+                      }}
+                      onMouseDown={(e) => {
+                        if (e.target === e.currentTarget) setScienceCapsuleOpen(false);
+                      }}
+                    >
+                      <div
+                        style={{
+                          background: C.surface,
+                          borderRadius: "20px",
+                          padding: "14px 20px 20px",
+                          width: "min(420px, 100%)",
+                          maxHeight: "calc(100vh - 48px)",
+                          overflowY: "auto",
+                          boxShadow: "0 12px 32px rgba(0,0,0,0.3)",
+                        }}
+                      >
+                        <div style={{ display: "flex", justifyContent: "flex-end" }}>
+                          <button
+                            type="button"
+                            onClick={() => setScienceCapsuleOpen(false)}
+                            aria-label={t.common.close}
+                            style={{
+                              width: "36px",
+                              height: "36px",
+                              display: "flex",
+                              alignItems: "center",
+                              justifyContent: "center",
+                              background: "transparent",
+                              border: "none",
+                              color: C.textMuted,
+                              cursor: "pointer",
+                              borderRadius: "8px",
+                            }}
+                          >
+                            <X size={16} />
+                          </button>
+                        </div>
+                        <ScienceCapsulePanel C={C} t={t} />
+                      </div>
+                    </div>
+                  )}
                 </div>
               )}
               {/* `flex: 1` + `justifyContent: "center"` (igual, cuarta
@@ -2511,7 +2611,7 @@ export default function FocusFlowTDAH({
                   // Planetas de categoría: cada uno con el color fijo de su
                   // grupo (TOOL_GROUPS), ya no del acento personal — así se
                   // reconocen de un vistazo, independiente del color elegido.
-                  planetColors={CATEGORY_PLANET_COLORS}
+                  planetColors={[...CATEGORY_PLANET_COLORS, SCIENCE_CAPSULE_PLANET_COLOR]}
                   // Explicaciones del centro (10 de noviembre de 2026): qué
                   // mide el %, qué son los XP y cuánto falta para el
                   // siguiente premio.
@@ -3883,8 +3983,10 @@ export default function FocusFlowTDAH({
                   focusSessionLog={focusSessionLog}
                 />
               </PlusLockedPanel>
-              <div style={{ borderTop: `1px solid ${C.border}`, margin: "20px 0 18px" }} />
-              <ScienceCapsulePanel C={C} t={t} />
+              {/* 18 de noviembre de 2026 ("saca esa sección de progresos"):
+                  la cápsula del día se quitó de aquí — ahora vive solo en
+                  Inicio, como el planeta 💡 de la brújula (ver
+                  FocusFlowTDAH.jsx más arriba, compassItems). */}
             </div>
 
             <div ref={goodMomentsSectionRef} style={{ display: progressView === "momentos" ? undefined : "none" }}>
