@@ -1059,6 +1059,10 @@ const es = {
 
   scienceCapsule: {
     title: "Dato del día sobre TDAH",
+    // 18 de noviembre de 2026: etiqueta corta para el planeta 💡 de la
+    // brújula de Inicio (el título completo de arriba no entra bien
+    // debajo del ícono, igual que ya le pasaba al chip "muy largo").
+    compassLabel: "Dato del día",
     readMore: "Leer más",
     readLess: "Leer menos",
     sourceLabel: (source) => `Fuente: ${source}`,

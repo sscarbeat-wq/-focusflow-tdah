@@ -1022,6 +1022,7 @@ const pt = {
 
   scienceCapsule: {
     title: "Fato do dia sobre TDAH",
+    compassLabel: "Fato do dia",
     readMore: "Ler mais",
     readLess: "Ler menos",
     sourceLabel: (source) => `Fonte: ${source}`,

@@ -1020,6 +1020,7 @@ const fr = {
 
   scienceCapsule: {
     title: "Info du jour sur le TDAH",
+    compassLabel: "Info du jour",
     readMore: "Lire la suite",
     readLess: "Réduire",
     sourceLabel: (source) => `Source : ${source}`,

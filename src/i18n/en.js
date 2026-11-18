@@ -1017,6 +1017,7 @@ const en = {
 
   scienceCapsule: {
     title: "ADHD fact of the day",
+    compassLabel: "Fact of the day",
     readMore: "Read more",
     readLess: "Read less",
     sourceLabel: (source) => `Source: ${source}`,
