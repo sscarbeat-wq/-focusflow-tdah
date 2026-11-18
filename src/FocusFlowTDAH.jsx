@@ -65,6 +65,7 @@ import AppTabBar from "./AppTabBar";
 import QuickAccessCompass from "./QuickAccessCompass";
 import ToolsGrid, { TOOL_GROUPS } from "./ToolsGrid";
 import OnboardingTour from "./OnboardingTour";
+import HelpGuide from "./HelpGuide";
 import InstallBanner from "./InstallBanner";
 import PostDiagnosisCard from "./PostDiagnosisCard";
 import ScienceCapsulePanel from "./ScienceCapsulePanel";
@@ -434,6 +435,12 @@ export default function FocusFlowTDAH({
   // dos toques seguidos también funcionen aunque el recorrido ya esté
   // abierto.
   const [reopenTourSignal, setReopenTourSignal] = useState(0);
+  // 18 de noviembre de 2026 ("hay un link de ayuda que diga todo lo que
+  // dicen esos cuadros iniciales"): página de ayuda sencilla con todo el
+  // contenido del recorrido (t.onboarding.steps) de corrido — ver
+  // HelpGuide.jsx y el botón nuevo en Perfil, junto al de "Ver recorrido
+  // de nuevo".
+  const [helpGuideOpen, setHelpGuideOpen] = useState(false);
   // 18 de noviembre de 2026 ("quiero que saques esa sección de
   // progresos" / "en realidad podría ser como un acceso rápido, como un
   // foco"): la cápsula completa de "Dato del día" ya no vive en Progreso
@@ -2185,6 +2192,10 @@ export default function FocusFlowTDAH({
         onOpenChange={setTourOpen}
         reopenSignal={reopenTourSignal}
       />
+      {/* 18 de noviembre de 2026: la página de "todo junto" (ver el botón
+          nuevo en Perfil, junto a "Ver recorrido de nuevo"). Vive aquí,
+          al nivel de toda la app, igual que OnboardingTour arriba. */}
+      {helpGuideOpen && <HelpGuide C={C} t={t} onClose={() => setHelpGuideOpen(false)} />}
       {/* 17 de noviembre de 2026 ("que haya un boton de ayuda cerca"): el
           recorrido de bienvenida (arriba) ya solo se abre solo una vez por
           dispositivo (localStorage, ver OnboardingTour.jsx) y ya se podía
@@ -3382,6 +3393,21 @@ export default function FocusFlowTDAH({
                     <Compass size={18} />
                   </span>
                   {tileText(st.help, st.helpValue)}
+                </button>
+                {/* 18 de noviembre de 2026 ("hay un link de ayuda que diga
+                    todo lo que dicen esos cuadros iniciales"): ADEMÁS del
+                    botón de arriba (que vuelve a reproducir el recorrido
+                    tarjeta por tarjeta), este abre una página sencilla con
+                    el mismo contenido de las 7 tarjetas TODO JUNTO, para
+                    leerlo de corrido sin dar clic en "Siguiente" varias
+                    veces — ver HelpGuide.jsx. Mismo texto de siempre
+                    (t.onboarding.steps), no se duplica contenido en los
+                    4 idiomas. */}
+                <button type="button" onClick={() => setHelpGuideOpen(true)} style={tileStyle(false)}>
+                  <span aria-hidden="true" style={tileIcon}>
+                    <Info size={18} />
+                  </span>
+                  {tileText(st.helpGuide, st.helpGuideValue)}
                 </button>
               </div>
 
