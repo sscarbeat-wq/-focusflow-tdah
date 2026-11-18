@@ -1706,7 +1706,7 @@ const es = {
       midEnergy: "Energía media",
       highEnergy: "Energía alta",
       addButton: "Añadir",
-      maxStepsNotice: "Ya tienes 5 pasos — es el máximo a la vez. Borra uno (el bote de basura) para poder agregar otro.",
+      maxStepsNotice: "Ya tienes 10 pasos — es el máximo a la vez. Borra uno (el bote de basura) para poder agregar otro.",
       viewAllSteps: "Ver todos los pasos",
       viewOneStep: "Ver un paso a la vez",
       pickForMeTitle: "Escoge al azar uno de tus pasos pendientes — para cuando no sabes por cuál empezar",
@@ -1719,6 +1719,36 @@ const es = {
       morePendingSteps: (n) => `+${n} paso${n === 1 ? "" : "s"} más esperando — se irán mostrando uno a la vez.`,
       energyTagTitle: (energy) => `Pensado para energía ${energy}`,
       stepEnergyTooltip: "Energía que requiere este paso (opcional) — se usa para sugerirlo en 'Hoy' según tu check-in de energía",
+      // 18 de noviembre de 2026 ("puedes hacer más interactiva esta
+      // herramienta?") — ejemplos tocables mientras el cuadro de la tarea
+      // está vacío (rotan solos cada 4s, ver dismantlerExampleIdx).
+      examplesLabel: "O prueba con una de estas:",
+      examples: [
+        "Limpiar mi cuarto",
+        "Responder ese correo pendiente",
+        "Llamar al banco",
+        "Organizar el clóset",
+        "Pagar un recibo",
+        "Avanzar la tarea de la escuela",
+      ],
+      // Progreso tipo juego (barra + tarjeta al completar todo).
+      progressLabel: (done, total) => `${done} de ${total} paso${total === 1 ? "" : "s"}`,
+      allDoneTitle: "¡Desglose completo! 🎉",
+      allDoneBody: (text) => `Terminaste todos los pasos de "${text}".`,
+      startNewTaskButton: "Empezar otra tarea",
+      // Modo guiado: agrega los pasos de uno en uno, como una conversación
+      // corta, en vez del formulario de 3 campos a la vez.
+      guidedToggleToClassic: "Prefiero el formulario clásico",
+      guidedToggleToGuided: "Prefiero que me guíe paso a paso",
+      guidedStep1Label: "¿Cuál es tu próximo paso?",
+      guidedStep1Placeholder: "Escribe un paso chiquito...",
+      guidedNextButton: "Siguiente",
+      guidedBackButton: "Atrás",
+      guidedStep2Label: "¿Cuánto crees que te tome?",
+      guidedStep3Label: "¿Qué energía te pide?",
+      guidedAddedTitle: (text) => `✅ Agregaste: "${text}"`,
+      guidedAddAnotherButton: "Agregar otro paso",
+      guidedFinishButton: "Ya terminé de agregar pasos",
       kanban: {
         viewListLabel: "Lista",
         viewBoardLabel: "Tablero",
@@ -1876,6 +1906,7 @@ const es = {
       paymentMarked: "pago marcado como hecho",
       lessonCompleted: (title) => `lección completada — ${title}`,
       stepCompleted: (text) => `paso completado — ${text}`,
+      dismantlerCompleted: (text) => `desglose completo — ${text}`,
       stopThinkPurchase: "usaste el freno antes de una compra",
       stopThinkGeneral: "usaste el freno de impulsividad",
       breathingCompleted: "completaste tu minuto de respiración",
