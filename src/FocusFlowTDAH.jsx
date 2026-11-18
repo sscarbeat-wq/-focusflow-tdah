@@ -1404,9 +1404,41 @@ export default function FocusFlowTDAH({
   useEffect(() => () => xpTimeout.current && clearTimeout(xpTimeout.current), []);
   useEffect(() => () => celebrateMsgTimeout.current && clearTimeout(celebrateMsgTimeout.current), []);
 
-  // ---- Dismantler (no persiste entre sesiones) ----
-  const [bigTask, setBigTask] = useState("");
-  const [steps, setSteps] = useState([]);
+  // ---- Dismantler ----
+  // 18 de noviembre de 2026 ("el desglosador desaparece cuando cambia de
+  // pantalla"): bigTask/steps vivían solo en memoria (useState sin
+  // persistencia) — al cambiar a otra pestaña del navegador y volver,
+  // Chrome a veces descarga en segundo plano las pestañas inactivas para
+  // ahorrar memoria, y al volver a cargar la página se perdía toda la
+  // tarea desglosada, incluidos los pasos que acababa de armar la IA.
+  // Ahora se guardan en localStorage cada vez que cambian y se recuperan
+  // al abrir la app — sigue sin guardarse en Supabase ni sincronizarse
+  // entre dispositivos (eso sería un cambio mucho más grande), pero ya no
+  // se pierden por un refresh o un cambio de pestaña en el mismo aparato.
+  const DISMANTLER_STORAGE_KEY = "anro-dismantler-state";
+  const loadDismantlerState = () => {
+    try {
+      const raw = window.localStorage.getItem(DISMANTLER_STORAGE_KEY);
+      return raw ? JSON.parse(raw) : null;
+    } catch (e) {
+      return null;
+    }
+  };
+  const [bigTask, setBigTask] = useState(() => {
+    const saved = loadDismantlerState();
+    return (saved && saved.bigTask) || "";
+  });
+  const [steps, setSteps] = useState(() => {
+    const saved = loadDismantlerState();
+    return saved && Array.isArray(saved.steps) ? saved.steps : [];
+  });
+  useEffect(() => {
+    try {
+      window.localStorage.setItem(DISMANTLER_STORAGE_KEY, JSON.stringify({ bigTask, steps }));
+    } catch (e) {
+      /* localStorage no disponible (modo privado, etc.) */
+    }
+  }, [bigTask, steps]);
   const [stepDraft, setStepDraft] = useState("");
   const [stepMin, setStepMin] = useState(5);
   // Energía sugerida para el paso que se está agregando a mano (inspirado
@@ -1460,7 +1492,7 @@ export default function FocusFlowTDAH({
 
   // Extraído de addStep (31 de octubre de 2026, función #4 — mapa mental)
   // para que "Convertir en paso" del mapa mental use exactamente la misma
-  // lógica que ya tenía el botón "Añadir" de abajo (mismo tope de 5 pasos,
+  // lógica que ya tenía el botón "Añadir" de abajo (mismo tope de 10 pasos,
   // misma forma del objeto, mismo agendado en calendario) en vez de
   // duplicarla. Devuelve true si el paso se agregó, false si no (lista ya
   // llena o texto vacío) — para que quien llame pueda decidir qué hacer
@@ -1506,8 +1538,10 @@ export default function FocusFlowTDAH({
   // Fase 4, función #3 (31 de octubre de 2026 — tablero tipo Kanban,
   // gratis, decisión confirmada con la doctora: "AH GRATIS"): "list" |
   // "board", solo decide cuál vista se dibuja debajo — ambas leen/escriben
-  // el mismo arreglo `steps` de arriba, así que no hace falta persistirlo
-  // (los pasos del desglosador tampoco persisten entre sesiones).
+  // el mismo arreglo `steps` de arriba. Esto sí se queda sin persistir
+  // (es solo una preferencia de vista, no el trabajo ya hecho): si se
+  // pierde, vuelve a "list" sin consecuencia, a diferencia de `steps`
+  // mismo (ver nota del 18 de noviembre de 2026, arriba).
   const [desglosadorView, setDesglosadorView] = useState("list");
 
   // 18 de noviembre de 2026 ("puedes hacer más interactiva esta
@@ -1580,11 +1614,14 @@ export default function FocusFlowTDAH({
   // en MindNode, gratis según lo confirmado con la doctora) ----
   // Pensado como el paso ANTERIOR al desglosador: soltar ideas sueltas sin
   // compromiso de orden, y solo cuando una ya convence, mandarla al
-  // desglosador con addStepFromText (arriba) — mismo tope de 5 pasos,
+  // desglosador con addStepFromText (arriba) — mismo tope de 10 pasos,
   // mismo dato, nada nuevo que sincronizar. Comparte `bigTask`/`setBigTask`
   // con el desglosador a propósito: es el mismo "de qué tarea estamos
-  // hablando" en las dos herramientas. Igual que `steps`, no persiste entre
-  // sesiones (es una libreta de ideas de un solo uso, no un historial).
+  // hablando" en las dos herramientas. A diferencia de `steps` (ver nota
+  // del 18 de noviembre de 2026, arriba), las ideas del mapa mental SÍ
+  // siguen sin persistir entre sesiones — es una libreta de un solo uso,
+  // no un historial, y perderla al cambiar de pestaña es menos grave que
+  // perder un desglose ya armado (con pasos, minutos y energía puestos).
   const [mindMapIdeas, setMindMapIdeas] = useState([]);
   const [ideaDraft, setIdeaDraft] = useState("");
   const addIdea = () => {
