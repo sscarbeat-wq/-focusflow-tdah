@@ -42,29 +42,54 @@
 // clínicamente sensible (podría preocupar a alguien o hacer que suspenda su
 // medicación sin consultar) — fue marcada aparte para revisión y aprobada
 // con ese encuadre explícito.
+//
+// 17 de noviembre de 2026 ("quiero que sean incluso más de 22 notas sobre
+// tdah que no se repitan, y si quiero mejores imagenes"): tercera tanda (10
+// cápsulas nuevas, todas investigadas con fuentes reales — ver i18n para
+// title/text/source completos): funciones ejecutivas (no solo atención) →
+// noradrenalina y corteza prefrontal → maduración cortical tardía (Shaw et
+// al., neuroimagen) → TDAH y CI (no están relacionados) → medicación y
+// menor riesgo de repetir un episodio de mal uso de sustancias →
+// no-estimulantes como alternativa → percepción del tiempo ("ceguera al
+// tiempo") → desregulación emocional → dietas de eliminación y colorantes
+// (evidencia mixta) → impulsividad financiera. Cada cápsula ahora también
+// trae `diagram` (qué ilustración de scienceDiagrams.jsx usar) y `evidence`
+// (nivel honesto de evidencia, traducido en t.scienceCapsule.evidenceLabels
+// — ver ScienceCapsulePanel.jsx). El campo `tldr` ("idea clave") vive junto
+// al resto del contenido en i18n, no aquí.
 export const SCIENCE_CAPSULES = [
-  { id: "herencia-genetica" },
-  { id: "ejercicio-control-inhibitorio" },
-  { id: "medicacion-mortalidad" },
-  { id: "sueno-tdah" },
-  { id: "mindfulness-evidencia" },
-  { id: "perimenopausia" },
-  { id: "redes-sociales-atencion" },
-  { id: "body-doubling-ojo-con-la-evidencia" },
-  { id: "comorbilidad-ansiedad-depresion" },
-  { id: "disforia-rechazo-honestidad" },
-  { id: "omega-3-modesto" },
-  { id: "tdah-mujeres-diagnostico-tardio" },
-  { id: "tdah-no-es-falta-de-voluntad" },
-  { id: "tdah-adultos-prevalencia" },
-  { id: "hiperfoco-fortaleza" },
-  { id: "cafeina-no-tratamiento" },
-  { id: "accidentes-transito" },
-  { id: "estimulantes-riesgo-cardiovascular" },
-  { id: "neurofeedback-evidencia" },
-  { id: "tdah-brecha-economica" },
-  { id: "tdah-adicciones" },
-  { id: "coaching-tdah-evidencia" },
+  { id: "herencia-genetica", diagram: "dna-helix", evidence: "strong" },
+  { id: "ejercicio-control-inhibitorio", diagram: "running-figure", evidence: "moderate" },
+  { id: "medicacion-mortalidad", diagram: "pill-balance", evidence: "strong" },
+  { id: "sueno-tdah", diagram: "moon-sleep", evidence: "moderate" },
+  { id: "mindfulness-evidencia", diagram: "breath-wave", evidence: "strong" },
+  { id: "perimenopausia", diagram: "cycle-ring", evidence: "single" },
+  { id: "redes-sociales-atencion", diagram: "phone-wave", evidence: "moderate" },
+  { id: "body-doubling-ojo-con-la-evidencia", diagram: "puzzle-mind", evidence: "weak" },
+  { id: "comorbilidad-ansiedad-depresion", diagram: "puzzle-mind", evidence: "moderate" },
+  { id: "disforia-rechazo-honestidad", diagram: "puzzle-mind", evidence: "weak" },
+  { id: "omega-3-modesto", diagram: "pill-balance", evidence: "mixed" },
+  { id: "tdah-mujeres-diagnostico-tardio", diagram: "puzzle-mind", evidence: "single" },
+  { id: "tdah-no-es-falta-de-voluntad", diagram: "brain-dopamine", evidence: "consensus" },
+  { id: "tdah-adultos-prevalencia", diagram: "puzzle-mind", evidence: "strong" },
+  { id: "hiperfoco-fortaleza", diagram: "brain-dopamine", evidence: "weak" },
+  { id: "cafeina-no-tratamiento", diagram: "pill-balance", evidence: "moderate" },
+  { id: "accidentes-transito", diagram: "alert-sign", evidence: "strong" },
+  { id: "estimulantes-riesgo-cardiovascular", diagram: "heart-pulse", evidence: "moderate" },
+  { id: "neurofeedback-evidencia", diagram: "brain-wave", evidence: "strong" },
+  { id: "tdah-brecha-economica", diagram: "coin-scale", evidence: "single" },
+  { id: "tdah-adicciones", diagram: "brain-dopamine", evidence: "strong" },
+  { id: "coaching-tdah-evidencia", diagram: "puzzle-mind", evidence: "weak" },
+  { id: "funcion-ejecutiva-no-solo-atencion", diagram: "puzzle-mind", evidence: "consensus" },
+  { id: "noradrenalina-corteza-prefrontal", diagram: "brain-norepinephrine", evidence: "consensus" },
+  { id: "maduracion-cortical-tardia", diagram: "brain-timeline", evidence: "strong" },
+  { id: "tdah-no-es-cuestion-de-inteligencia", diagram: "puzzle-mind", evidence: "moderate" },
+  { id: "medicacion-reduce-riesgo-adicciones", diagram: "pill-balance", evidence: "moderate" },
+  { id: "no-estimulantes-alternativa", diagram: "pill-balance", evidence: "moderate" },
+  { id: "percepcion-del-tiempo", diagram: "clock-blur", evidence: "moderate" },
+  { id: "desregulacion-emocional", diagram: "puzzle-mind", evidence: "strong" },
+  { id: "dietas-eliminacion-colorantes", diagram: "food-plate", evidence: "mixed" },
+  { id: "impulsividad-financiera", diagram: "coin-scale", evidence: "moderate" },
 ];
 
 // Índice de "día" determinista a partir de una fecha YYYY-MM-DD local

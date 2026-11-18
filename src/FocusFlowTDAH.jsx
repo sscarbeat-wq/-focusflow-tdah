@@ -68,6 +68,7 @@ import OnboardingTour from "./OnboardingTour";
 import InstallBanner from "./InstallBanner";
 import PostDiagnosisCard from "./PostDiagnosisCard";
 import ScienceCapsulePanel from "./ScienceCapsulePanel";
+import ScienceCapsuleTeaser from "./ScienceCapsuleTeaser";
 import MindfulnessPanel from "./MindfulnessPanel";
 import FocusMode from "./FocusMode";
 import OneThingPanel from "./OneThingPanel";
@@ -2154,6 +2155,43 @@ export default function FocusFlowTDAH({
         onOpenChange={setTourOpen}
         reopenSignal={reopenTourSignal}
       />
+      {/* 17 de noviembre de 2026 ("que haya un boton de ayuda cerca"): el
+          recorrido de bienvenida (arriba) ya solo se abre solo una vez por
+          dispositivo (localStorage, ver OnboardingTour.jsx) y ya se podía
+          reabrir desde Perfil → Ayuda — pero quedaba escondido ahí. Este
+          botón hace lo mismo (reopenTourSignal) sin tener que ir a Perfil:
+          vive fijo arriba a la derecha, SOLO en la brújula de Inicio (que
+          es donde alguien nuevo llega sin saber qué hacer), y se oculta
+          mientras el recorrido mismo está abierto para no estorbar. Mismo
+          ícono de brújula que el botón de Perfil, a propósito — para que
+          se reconozca como "el recorrido de la app" en ambos lugares. */}
+      {inicioCompass && !tourOpen && (
+        <button
+          type="button"
+          onClick={() => setReopenTourSignal((n) => n + 1)}
+          aria-label={t.app.settingsCard.help}
+          title={t.app.settingsCard.help}
+          style={{
+            position: "fixed",
+            top: "calc(14px + env(safe-area-inset-top, 0px))",
+            right: "14px",
+            zIndex: 20,
+            width: "40px",
+            height: "40px",
+            borderRadius: "50%",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            background: C.surface,
+            border: `1px solid ${C.border}`,
+            color: C.textMuted,
+            boxShadow: "0 2px 10px rgba(0,0,0,0.12)",
+            cursor: "pointer",
+          }}
+        >
+          <Compass size={18} />
+        </button>
+      )}
       <div style={{ maxWidth: "1000px", margin: "0 auto" }}>
         {/* id usado por el recorrido de bienvenida (OnboardingTour.jsx) para
             señalar la mascota con un spotlight — sigue apuntando aquí, solo
@@ -2398,6 +2436,18 @@ export default function FocusFlowTDAH({
                 bodyDouble={bodyDouble}
                 onOpenBodyDouble={onOpenBodyDouble}
               />
+              {/* 17 de noviembre de 2026 ("los datos sobre TDAH quiero que
+                  este más a la vista... la opcion 3 me gusta"): chip-resumen
+                  del dato del día, justo debajo del saludo — toca y lleva a
+                  la cápsula completa (con diagrama, idea clave y fuente) en
+                  Progreso → "Mi semana". Solo en la vista "hoy" de la
+                  brújula (no tiene sentido duplicarlo si ya se abrió una
+                  herramienta). */}
+              {!inicioToolKey && (
+                <div style={{ padding: "0 4px" }}>
+                  <ScienceCapsuleTeaser C={C} t={t} onOpen={() => scrollToCompanionSection("insights")} />
+                </div>
+              )}
               {/* `flex: 1` + `justifyContent: "center"` (igual, cuarta
                   corrección): con el fondo ahora ocupando toda la
                   pantalla, la brújula se centra sola en el espacio que
