@@ -110,7 +110,7 @@ import { PlusLockedPanel, PlusUpsellBadge, PlusUpsellInline } from "./PlusUpsell
 import { scheduleStepsOnCalendar } from "./calendarSync";
 import { useBodyDouble } from "./bodyDouble";
 import { celebrate } from "./celebrate";
-import { DEFAULT_STREAK, nextStreak, effectiveStreak } from "./streak";
+import { DEFAULT_STREAK, nextStreak, effectiveStreak, todayKey } from "./streak";
 import { DEFAULT_MOOD_LOG, recordMood, todayEntry as todayMoodEntry } from "./moodLog";
 import {
   DEFAULT_FOCUS_SESSION_LOG,
@@ -442,6 +442,20 @@ export default function FocusFlowTDAH({
   // es el planeta 💡 de la brújula de Inicio (ver compassItems más abajo):
   // al tocarlo, abre/cierra ScienceCapsulePanel como tarjeta flotante.
   const [scienceCapsuleOpen, setScienceCapsuleOpen] = useState(false);
+  // 18 de noviembre de 2026 ("que el foco brille, intermitente cuando
+  // haya una nueva noticia no leída"): se guarda la fecha (todayKey) de
+  // la última vez que se ABRIÓ la cápsula — mientras esa fecha no sea la
+  // de hoy, el planeta 💡 todavía no se vio "la cápsula de hoy" y brilla
+  // intermitente (ver compassItems/handleCompassSelect más abajo). No
+  // hay nada que sincronizar con Supabase: es solo un recordatorio local,
+  // igual que "anro-onboarding-seen" o "anro-tools-recent".
+  const [scienceCapsuleSeenKey, setScienceCapsuleSeenKey] = useState(() => {
+    try {
+      return window.localStorage.getItem("anro-science-capsule-seen") || "";
+    } catch (e) {
+      return "";
+    }
+  });
   const [isNarrow, setIsNarrow] = useState(() => typeof window !== "undefined" && window.innerWidth < 760);
   // Pantalla ancha (computadora) y pantalla bajita (celular chico) — las
   // usa la franja de hábitos de Inicio: en pantalla ancha va A UN LADO de
@@ -2358,6 +2372,14 @@ export default function FocusFlowTDAH({
           // — la cápsula completa (ScienceCapsulePanel) sigue abriéndose
           // igual, como tarjeta flotante, solo que ahora el disparador es
           // este planeta en vez del chip.
+          // 18 de noviembre de 2026 ("que el foco brille, intermitente
+          // cuando haya una nueva noticia no leída"): `todayCapsuleKey`
+          // es la fecha de la cápsula de HOY (misma rotación determinista
+          // que ya usan ScienceCapsulePanel/streak.js) — si todavía no
+          // coincide con `scienceCapsuleSeenKey` (la última vez que se
+          // abrió la cápsula), hay "noticia no leída" y el ícono brilla.
+          const todayCapsuleKey = todayKey();
+          const hasUnreadCapsule = scienceCapsuleSeenKey !== todayCapsuleKey;
           const compassItems = [
             ...TOOL_GROUPS.map((g) => ({
               key: `cat_${g.key}`,
@@ -2367,7 +2389,38 @@ export default function FocusFlowTDAH({
             })),
             {
               key: "sciencecapsule",
-              icon: <span style={{ fontSize: "20px", lineHeight: 1 }}>💡</span>,
+              // Halo que late (no un drop-shadow pegado al glifo, casi
+              // invisible sobre el círculo dorado): un círculo propio,
+              // detrás del ícono y un poco más grande, cuyo box-shadow
+              // crece y se encoge — se asoma por fuera del borde del
+              // planeta y SÍ se nota como un brillo intermitente real.
+              // Mismo truco de siempre (ver anro-quick-halo más arriba),
+              // aplicado aquí porque este círculo lo pinta
+              // QuickAccessCompass.jsx y no se puede tocar desde afuera.
+              icon: (
+                <span style={{ position: "relative", width: "20px", height: "20px", display: "flex", alignItems: "center", justifyContent: "center" }}>
+                  {hasUnreadCapsule && (
+                    <>
+                      <style>{`
+                        @keyframes anroCapsuleGlow {
+                          0%, 100% { box-shadow: 0 0 2px 0px rgba(255,221,130,0); }
+                          50% { box-shadow: 0 0 13px 5px rgba(255,221,130,0.9); }
+                        }
+                        .anro-capsule-blink { animation: anroCapsuleGlow 1.4s ease-in-out infinite; }
+                        @media (prefers-reduced-motion: reduce) {
+                          .anro-capsule-blink { animation: none; box-shadow: 0 0 9px 3px rgba(255,221,130,0.65); }
+                        }
+                      `}</style>
+                      <span
+                        aria-hidden="true"
+                        className="anro-capsule-blink"
+                        style={{ position: "absolute", inset: "-5px", borderRadius: "50%" }}
+                      />
+                    </>
+                  )}
+                  <span style={{ position: "relative", fontSize: "20px", lineHeight: 1 }}>💡</span>
+                </span>
+              ),
               label: t.scienceCapsule.compassLabel,
               variant: "accent-solid",
             },
@@ -2377,10 +2430,23 @@ export default function FocusFlowTDAH({
           // grupo ya seleccionado. Las claves empiezan con "cat_" para
           // distinguirlas del catálogo anterior. El planeta del dato del
           // día ("sciencecapsule") no navega a Herramientas: abre/cierra
-          // la misma tarjeta flotante de siempre.
+          // la misma tarjeta flotante de siempre, y si se está abriendo
+          // (no cerrando) marca la cápsula de hoy como ya vista, para que
+          // el brillo se apague en cuanto se lee.
           const handleCompassSelect = (key) => {
             if (key === "sciencecapsule") {
-              setScienceCapsuleOpen((v) => !v);
+              setScienceCapsuleOpen((wasOpen) => {
+                const next = !wasOpen;
+                if (next) {
+                  try {
+                    window.localStorage.setItem("anro-science-capsule-seen", todayCapsuleKey);
+                  } catch (e) {
+                    /* sin localStorage */
+                  }
+                  setScienceCapsuleSeenKey(todayCapsuleKey);
+                }
+                return next;
+              });
               return;
             }
             const groupKey = key.replace("cat_", "");
