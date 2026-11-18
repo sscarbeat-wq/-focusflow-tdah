@@ -1508,6 +1508,12 @@ const es = {
       language: "Idioma",
       help: "Ayuda",
       helpValue: "Ver recorrido de nuevo",
+      // 18 de noviembre de 2026 ("hay un link de ayuda que diga todo lo
+      // que dicen esos cuadros iniciales"): además del botón de arriba
+      // (que repite el recorrido tarjeta por tarjeta), este abre
+      // HelpGuide.jsx con el mismo contenido todo junto.
+      helpGuide: "Cómo funciona la app",
+      helpGuideValue: "Ver todo junto",
     },
     accentPicker: {
       label: "Elige tu color",

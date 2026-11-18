@@ -1451,6 +1451,8 @@ const fr = {
       language: "Langue",
       help: "Aide",
       helpValue: "Revoir la visite guidée",
+      helpGuide: "Comment fonctionne l'appli",
+      helpGuideValue: "Tout voir d'un coup",
     },
     accentPicker: {
       label: "Choisis ta couleur",

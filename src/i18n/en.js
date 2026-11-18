@@ -1447,6 +1447,8 @@ const en = {
       language: "Language",
       help: "Help",
       helpValue: "Watch the tour again",
+      helpGuide: "How the app works",
+      helpGuideValue: "See it all at once",
     },
     accentPicker: {
       label: "Choose your color",
