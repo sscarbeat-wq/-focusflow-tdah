@@ -1,4 +1,22 @@
-import { PLUS_THEMES, PLUS_THEME_KEYS } from "./plusThemes";
+// 18 de noviembre de 2026 ("el contraste de los colores sigue estando
+// pésimo, mejor solo deja noche, tarde y día, quita los demás fondos"):
+// se quitó la Colección Plus de fondos ilustrados (galaxia, cielo,
+// aurora, atardecer, abismo, algodón, luciérnagas, noche estrellada,
+// trigal, kawaii, fresa, gótico, encaje — antes en plusThemes.js,
+// PLUS_THEMES/PLUS_THEME_KEYS). Cada uno traía su propio par de colores
+// de texto, y combinados con modo claro/oscuro + las tarjetas que no
+// usan esos colores emparejados (ver la nota del 15 de noviembre más
+// abajo en FocusFlowTDAH.jsx sobre "clouds" con texto claro sobre
+// tarjeta clara) seguían dando combinaciones de mal contraste pese a
+// varios intentos de arreglarlo uno por uno. Ahora Inicio usa SIEMPRE
+// los 3 fondos automáticos por hora (día/tarde/noche, ver
+// timeOfDayPalette.js), ya probados y aprobados en los mockups
+// originales — sin opción de reemplazarlos. plusThemes.js se queda sin
+// usar (no se borra del repo, pero nada lo importa). `PLUS_ACCENTS`
+// sigue existiendo (como arreglo vacío) porque varias partes de
+// FocusFlowTDAH.jsx todavía lo recorren/filtran — con 0 elementos esas
+// partes simplemente no muestran nada, que es justo el efecto buscado,
+// sin tener que tocar cada una por separado.
 // Paletas de color para ANRO TDAH — modo oscuro (el original) y modo claro.
 // Tienen exactamente las mismas claves para que cualquier componente que
 // reciba `C` como prop funcione igual sin importar cuál esté activo.
@@ -199,7 +217,6 @@ export function luminance(hex) {
 }
 export function planetColorsFor(accentKey, accentHex) {
   if (accentKey === "solar") return SOLAR_PLANETS;
-  if (PLUS_THEMES[accentKey]) return PLUS_THEMES[accentKey].planets;
   // Base un poco más profunda que el acento (los pastel se veían grises)
   // y 6 tonos alrededor de ella.
   const base = luminance(accentHex) > 0.3 ? shadeColor(accentHex, -0.3) : accentHex;
@@ -216,16 +233,18 @@ export const ACCENT_STORAGE_KEY = "anro-accent";
 // xpMilestones.js (kind: "accent"). No reemplazan ni restringen
 // ACCENT_OPTIONS; se muestran como opciones adicionales en el mismo
 // selector, bloqueadas hasta desbloquearse.
-// Colección Plus (10 de noviembre de 2026): temas con diseño (galaxia,
-// cielo, aurora...) que no se ganan con XP — vienen con ANRO Plus. Ver
-// plusThemes.js. Su color para botones se agrega a DARK_THEME/LIGHT_THEME
-// abajo, para que C[llave] funcione igual que con cualquier acento.
-export const PLUS_ACCENTS = PLUS_THEME_KEYS;
+// Colección Plus (10 de noviembre de 2026, retirada el 18 de noviembre de
+// 2026): existían 13 fondos ilustrados (galaxia, cielo, aurora...) que no se
+// ganaban con XP sino que venían con ANRO Plus. Se quitaron a pedido
+// explícito de la usuaria ("quita los demás fondos") por un problema de
+// contraste recurrente (texto claro sobre tarjeta clara con temas claros en
+// modo oscuro, y viceversa) que no se resolvía de forma confiable tema por
+// tema. Ahora Inicio usa siempre los 3 fondos automáticos de hora del día
+// (mañana/tarde/noche), ya validados. PLUS_ACCENTS queda como arreglo vacío
+// para que el código que lo recorre/filtra en FocusFlowTDAH.jsx siga
+// funcionando sin cambios.
+export const PLUS_ACCENTS = [];
 export const UNLOCKABLE_ACCENT_OPTIONS = ["gold", "jade", "ocean", "violet", "ruby", "sunset", "forest", ...PLUS_ACCENTS];
-PLUS_THEME_KEYS.forEach((key) => {
-  DARK_THEME[key] = PLUS_THEMES[key].accentDark;
-  LIGHT_THEME[key] = PLUS_THEMES[key].accentLight;
-});
 
 // Nota: esto valida que la llave exista en la paleta (libre o
 // desbloqueable), NO que ya esté desbloqueada con los puntos actuales —

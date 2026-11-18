@@ -198,8 +198,10 @@ import { buildTodayItems } from "./todayView";
 import { timeOfDayPeriod, timeOfDayPalette, timeOfDayBackground } from "./timeOfDayPalette";
 import HomeHeader from "./HomeHeader";
 import { tint, shadeColor, luminance, ACCENT_OPTIONS, UNLOCKABLE_ACCENT_OPTIONS, PLUS_ACCENTS, planetColorsFor, SOLAR_PLANETS } from "./theme";
+// 18 de noviembre de 2026: se quitó la importación de PLUS_THEMES
+// (plusThemes.js) al retirar la Colección Plus de fondos ilustrados — ver
+// la nota en theme.js. plusThemes.js se queda sin usar en el repo.
 import { PlusUpsellBadge as PlusMark } from "./PlusUpsellCard";
-import { PLUS_THEMES } from "./plusThemes";
 import {
   matureEmoji,
   DEFAULT_SPECIES,
@@ -2272,29 +2274,16 @@ export default function FocusFlowTDAH({
         {(() => {
           const now = new Date();
           const period = timeOfDayPeriod(now);
-          // Tema con diseño de la Colección Plus (galaxia, cielo...): su
-          // fondo y sus colores de texto reemplazan a los automáticos por
-          // hora (10 de noviembre de 2026).
-          const plusTheme = !accentLocked ? PLUS_THEMES[accentKey] : null;
-          const palette = plusTheme
-            ? {
-                ...timeOfDayPalette(now),
-                bg: plusTheme.haloBg,
-                text: plusTheme.text,
-                textMuted: plusTheme.textMuted,
-                circleFilter: undefined,
-                // Pastilla detrás de cada texto (etiquetas de la brújula,
-                // saludo, pie): el color base del tema casi opaco, para que
-                // las letras se lean sobre cualquier dibujo.
-                chipBg: `color-mix(in srgb, ${plusTheme.haloBg} 86%, transparent)`,
-              }
-            : timeOfDayPalette(now);
+          // 18 de noviembre de 2026: se quitó la Colección Plus de fondos
+          // ilustrados (galaxia, cielo...) por contraste inconsistente —
+          // ver la nota en theme.js. Inicio usa siempre los 3 fondos
+          // automáticos por hora del día.
+          const palette = timeOfDayPalette(now);
           // 15 de noviembre de 2026 ("quiero que los botones cambien de
           // color dependiendo del fondo de pantalla, que resalten el
           // tono"): acerca el color fijo de cada categoría de herramienta
-          // hacia accent2 — el tono que sí cambia con la hora del día (o
-          // se queda igual si hay un tema Plus, que no lo pisa; accent es
-          // el mismo azul-verde ancla en las 3 franjas, ver
+          // hacia accent2 — el tono que sí cambia con la hora del día
+          // (accent es el mismo azul-verde ancla en las 3 franjas, ver
           // timeOfDayPalette.js) — así cada botón se sigue reconociendo
           // por su color de categoría, pero se nota que "pertenece" al
           // fondo del momento en vez de quedarse plano. Solo en los 2
@@ -2502,7 +2491,7 @@ export default function FocusFlowTDAH({
           return (
             <div
               style={{
-                background: plusTheme ? plusTheme.background : timeOfDayBackground(period),
+                background: timeOfDayBackground(period),
                 // 9 de noviembre de 2026, QUINTA corrección de fidelidad —
                 // la cuarta corrección solo sangraba hasta el borde de la
                 // columna de 1000px en escritorio (seguía habiendo un
@@ -3304,8 +3293,6 @@ export default function FocusFlowTDAH({
                           background:
                             accentKey === "solar"
                               ? `conic-gradient(${[...SOLAR_PLANETS, SOLAR_PLANETS[0]].join(", ")})`
-                              : !accentLocked && PLUS_THEMES[accentKey]
-                              ? PLUS_THEMES[accentKey].background
                               : personalAccent,
                           boxShadow: `0 0 0 1px ${C.border}`,
                           display: "block",
@@ -3495,94 +3482,11 @@ export default function FocusFlowTDAH({
                         );
                       })}
                     </div>
-                  {/* Colección Plus con diseño (galaxia, cielo, aurora...) —
-                      muestras grandes con su dibujo, porque un circulito no
-                      deja ver las estrellas ni las nubes. Cambian también el
-                      fondo de Inicio. Sin Plus, tocar una lleva a los planes. */}
-                  <div style={{ marginTop: "16px", display: "flex", alignItems: "center", gap: "8px", flexWrap: "wrap" }}>
-                    <strong style={{ fontSize: "13px" }}>{t.app.accentPicker.plusTitle}</strong>
-                    <PlusMark C={C} t={t} />
-                  </div>
-                  <p style={{ margin: "4px 0 10px", fontSize: "12px", color: C.textMuted }}>{t.app.accentPicker.plusHint}</p>
-                  <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(84px, 1fr))", gap: "10px" }}>
-                    {PLUS_ACCENTS.map((key) => {
-                      const selected = key === accentKey && !accentLocked;
-                      return (
-                        <button
-                          key={key}
-                          type="button"
-                          onClick={() => {
-                            if (!isPlus) {
-                              if (onRequestUpgrade) onRequestUpgrade();
-                              return;
-                            }
-                            onChangeAccent(key);
-                            setAccentPickerOpen(false);
-                          }}
-                          aria-label={isPlus ? t.app.accentPicker.names[key] : `${t.app.accentPicker.names[key]} — ${t.upsell.badge}`}
-                          aria-pressed={selected}
-                          style={{
-                            display: "flex",
-                            flexDirection: "column",
-                            alignItems: "center",
-                            gap: "6px",
-                            padding: 0,
-                            background: "transparent",
-                            border: "none",
-                            cursor: "pointer",
-                            color: C.text,
-                          }}
-                        >
-                          <span
-                            aria-hidden="true"
-                            style={{
-                              position: "relative",
-                              width: "100%",
-                              aspectRatio: "1 / 1",
-                              borderRadius: "16px",
-                              background: PLUS_THEMES[key].background,
-                              boxShadow: selected ? `0 0 0 3px ${C.text}` : `0 0 0 1px ${C.border}`,
-                              display: "flex",
-                              alignItems: "center",
-                              justifyContent: "center",
-                            }}
-                          >
-                            {/* Un planetita con los colores del tema encima del fondo */}
-                            <span
-                              style={{
-                                width: "34%",
-                                aspectRatio: "1 / 1",
-                                borderRadius: "50%",
-                                background: `radial-gradient(circle at 32% 26%, rgba(255,255,255,0.75) 0%, rgba(255,255,255,0) 42%), ${PLUS_THEMES[key].planets[0]}`,
-                                boxShadow: "0 3px 8px rgba(0,0,0,0.3)",
-                              }}
-                            />
-                            {!isPlus && (
-                              <span
-                                style={{
-                                  position: "absolute",
-                                  top: "6px",
-                                  right: "6px",
-                                  width: "20px",
-                                  height: "20px",
-                                  borderRadius: "50%",
-                                  background: "rgba(0,0,0,0.45)",
-                                  display: "flex",
-                                  alignItems: "center",
-                                  justifyContent: "center",
-                                }}
-                              >
-                                <Lock size={11} color="#fff" />
-                              </span>
-                            )}
-                          </span>
-                          <span style={{ fontSize: "11px", fontWeight: 600, textAlign: "center", lineHeight: 1.2 }}>
-                            {t.app.accentPicker.names[key]}
-                          </span>
-                        </button>
-                      );
-                    })}
-                  </div>
+                  {/* 18 de noviembre de 2026: se quitó la sección de la
+                      Colección Plus (galaxia, cielo, aurora... — 13 fondos
+                      ilustrados) por contraste inconsistente — ver la nota
+                      en theme.js. PLUS_ACCENTS queda vacío, así que ya no
+                      hay nada que mostrar aquí. */}
                 </div>
               )}
               {accessoryPickerOpen && (
