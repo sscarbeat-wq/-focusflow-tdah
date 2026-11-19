@@ -717,14 +717,20 @@ export default function Mascot({
               eatSignal={eatSignal}
               walking={focusStatus === "focusing"}
               // 19 de noviembre de 2026 ("que la mascota se mueva y hable
-              // como POU" → "Sonidos tipo Pou"): el brinco contento
-              // espontáneo de MascotSprite ya existía solo visual; ahora
-              // también avisa aquí para que suene la "voz" de caricatura de
-              // la especie (la misma de animalSounds.js que ya se usa al
+              // como POU" → "Sonidos tipo Pou" → "añade los sonidos de
+              // cada animal"): los gestos espontáneos de reposo de
+              // MascotSprite (brinco contento, estirón, mirada de
+              // curiosidad) ya existían solo visuales; ahora también
+              // avisan aquí para que suene la "voz" de caricatura de la
+              // especie (la misma de animalSounds.js que ya se usa al
               // tocarla/jugar/comer/crecer) — respeta el mismo botón de
-              // silencio (soundOnRef) que todos los demás sonidos.
-              onAutoSound={() => {
-                if (soundOnRef.current) playAnimalSound(resolvedSpecies, "play");
+              // silencio (soundOnRef) que todos los demás sonidos. El
+              // brinco (más grande/alegre) usa la voz "jugando" (más
+              // aguda); el estirón y la mirada (más chicos/tranquilos)
+              // usan la voz normal de "saludo".
+              onAutoSound={(gesture) => {
+                if (!soundOnRef.current) return;
+                playAnimalSound(resolvedSpecies, gesture === "happy" ? "play" : "greet");
               }}
             />
           ) : hasArt ? (

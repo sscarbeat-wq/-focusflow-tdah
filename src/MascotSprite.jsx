@@ -98,13 +98,15 @@ export function MascotSprite({
   walking = false,
   dayMood = "neutral",
   hidden = false,
-  // 19 de noviembre de 2026 ("que la mascota... hable como POU"): aviso
-  // opcional hacia Mascot.jsx para que el brinco contento espontáneo (el
-  // de abajo, "Brinquito contento de vez en cuando") también se oiga, no
-  // solo se vea — Mascot.jsx decide si el sonido está activado y qué
-  // sonido poner; aquí solo se avisa CUÁNDO pasa el gesto. A propósito no
-  // se avisa en el gesto chiquito (fidget, cada 7-13s: sonaría demasiado
-  // seguido) ni en la caminata espontánea (es solo visual).
+  // 19 de noviembre de 2026 ("que la mascota... hable como POU", y luego
+  // "añade los sonidos de cada animal"): aviso opcional hacia Mascot.jsx
+  // para que los gestos espontáneos de reposo (el brinco contento, el
+  // estirón y la mirada de curiosidad — "happy" | "stretch" | "peek")
+  // también se oigan, no solo se vean. Mascot.jsx decide si el sonido
+  // está activado y qué sonido de animalSounds.js poner para cada uno;
+  // aquí solo se avisa CUÁL gesto pasó y CUÁNDO. A propósito no se avisa
+  // en el gesto chiquito (fidget, cada 7-13s: sonaría demasiado seguido)
+  // ni en la caminata espontánea (es solo visual).
   onAutoSound = () => {},
 }) {
   const parsed = parseImageVisual(visual);
@@ -119,6 +121,19 @@ export function MascotSprite({
   // de noviembre más abajo en SpriteStyles): solo respira un poco más
   // marcado, nunca se inclina.
   const [fidget, setFidget] = useState(false);
+  // 19 de noviembre de 2026 ("más reacciones, como un tamagochi" — ya sin
+  // el sistema de accesorios, variedad en REPOSO, elegido explícitamente
+  // sobre reaccionar a la racha/XP o a dejarla sola, que quedan para otra
+  // vez): dos gestos más, aparte del fidget y el brinco contento, para que
+  // no se sienta repetitivo. Mismo cuidado de siempre: solo escala o
+  // traslada, nunca rota.
+  // - stretch: una respirada más grande y más lenta, como un estirón.
+  // - peek: se asoma hacia un lado un instante, como si notara algo — en
+  //   las especies con pose "jugando" (ver posesFor en mascotLogic.js) se
+  //   ve además con esa cara más atenta un momento, sin la pelota (esa
+  //   sigue siendo solo del doble toque, ver mode === "play" abajo).
+  const [stretch, setStretch] = useState(false);
+  const [peek, setPeek] = useState(false);
   const timers = useRef({});
   // Un personaje de emoji no tiene poses, pero sí puede "comer" (aparece
   // la fresita junto a él) — ver la rama `!parsed` del render.
@@ -226,6 +241,54 @@ export function MascotSprite({
     };
   }, [mode, visual, reducedMotion]); // eslint-disable-line react-hooks/exhaustive-deps
 
+  // Estirón en reposo (ver nota de `stretch` arriba): a diferencia del
+  // fidget, SÍ aplica también a los personajes de emoji de siempre (igual
+  // que el brinco contento) — no solo a los ilustrados.
+  useEffect(() => {
+    if (reducedMotion || mode !== "idle") return undefined;
+    let t1;
+    let t2;
+    const loop = () => {
+      t1 = setTimeout(() => {
+        setStretch(true);
+        onAutoSound("stretch");
+        t2 = setTimeout(() => {
+          setStretch(false);
+          loop();
+        }, 1100);
+      }, 18000 + Math.random() * 12000);
+    };
+    loop();
+    return () => {
+      clearTimeout(t1);
+      clearTimeout(t2);
+      setStretch(false);
+    };
+  }, [mode, visual, reducedMotion]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Mirada de curiosidad en reposo (ver nota de `peek` arriba).
+  useEffect(() => {
+    if (reducedMotion || mode !== "idle") return undefined;
+    let t1;
+    let t2;
+    const loop = () => {
+      t1 = setTimeout(() => {
+        setPeek(true);
+        onAutoSound("peek");
+        t2 = setTimeout(() => {
+          setPeek(false);
+          loop();
+        }, 900);
+      }, 22000 + Math.random() * 16000);
+    };
+    loop();
+    return () => {
+      clearTimeout(t1);
+      clearTimeout(t2);
+      setPeek(false);
+    };
+  }, [mode, visual, reducedMotion]); // eslint-disable-line react-hooks/exhaustive-deps
+
   // Caminata espontánea de vez en cuando, para que se sienta viva. 19 de
   // noviembre de 2026: más seguido que antes (16-30s → 10-20s).
   useEffect(() => {
@@ -278,7 +341,9 @@ export function MascotSprite({
   if (!parsed) {
     return (
       <span
-        className={`anro-sprite anro-sprite-${mode}${fidget ? " anro-sprite-fidget" : ""}`}
+        className={`anro-sprite anro-sprite-${mode}${fidget ? " anro-sprite-fidget" : ""}${stretch ? " anro-sprite-stretch" : ""}${
+          peek ? " anro-sprite-peek" : ""
+        }`}
         style={{ position: "relative", display: "inline-block", opacity: hidden ? 0 : 1 }}
       >
         <SpriteStyles />
@@ -297,11 +362,14 @@ export function MascotSprite({
   if (mode === "sleep") pose = "sleep";
   else if (mode === "eat") pose = "eat";
   else if (mode === "play") pose = "play";
+  else if (mode === "idle" && peek && has("play")) pose = "play";
   else if (mode === "idle" && blink) pose = "sleep";
 
   return (
     <span
-      className={`anro-sprite anro-sprite-${mode}${reducedMotion ? " anro-sprite-still" : ""}${fidget ? " anro-sprite-fidget" : ""}`}
+      className={`anro-sprite anro-sprite-${mode}${reducedMotion ? " anro-sprite-still" : ""}${fidget ? " anro-sprite-fidget" : ""}${
+        stretch ? " anro-sprite-stretch" : ""
+      }${peek ? " anro-sprite-peek" : ""}`}
       style={{
         position: "relative",
         display: "inline-block",
@@ -362,6 +430,16 @@ function SpriteStyles() {
          la nota de "chueca" de abajo) — así nunca se ve inclinada. */
       .anro-sprite-fidget .anro-mascot-frame { animation: anroSpriteFidget 0.8s ease-in-out; }
       @keyframes anroSpriteFidget { 0%,100% { transform: translateY(0) scale(1,1); } 40% { transform: translateY(-3%) scale(1.04,0.97); } 70% { transform: translateY(0) scale(0.99,1.02); } }
+      /* 19 de noviembre de 2026 ("más reacciones, como un tamagochi"): dos
+         gestos más en reposo, para que no se sienta repetitivo con solo el
+         fidget y el brinco contento. A diferencia del fidget, estos SÍ
+         aplican también a los personajes de emoji de siempre (por eso
+         también tocan .anro-sprite-body, igual que el brinco contento) —
+         mismo cuidado de siempre: solo escala o traslada, nunca rota. */
+      .anro-sprite-stretch .anro-mascot-frame, .anro-sprite-stretch .anro-sprite-body { animation: anroSpriteStretch 1.1s ease-in-out; }
+      @keyframes anroSpriteStretch { 0%,100% { transform: translateY(0) scale(1,1); } 45% { transform: translateY(-6%) scale(0.94,1.08); } 75% { transform: translateY(2%) scale(1.05,0.95); } }
+      .anro-sprite-peek .anro-mascot-frame, .anro-sprite-peek .anro-sprite-body { animation: anroSpritePeek 0.9s ease-in-out; }
+      @keyframes anroSpritePeek { 0%,100% { transform: translateX(0); } 40% { transform: translateX(-7%); } 70% { transform: translateX(4%); } }
       .anro-sprite-zzz { position: absolute; top: 0; right: 4%; font-weight: 800; font-size: 13px; color: #7C6BAE; pointer-events: none; animation: anroSpriteZ 2.4s ease-in infinite; }
       .anro-sprite-spark { position: absolute; font-size: 14px; pointer-events: none; animation: anroSpriteSpark 0.8s ease-out forwards; }
       .anro-sprite-spark-1 { top: 2%; left: -6%; }
