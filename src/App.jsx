@@ -7,7 +7,7 @@ import Paywall from "./Paywall";
 import UpdatePrompt from "./UpdatePrompt";
 import { DARK_THEME, LIGHT_THEME, getStoredTheme, storeTheme, DEFAULT_ACCENT } from "./theme";
 import { getStoredLanguage, storeLanguage, getTranslations } from "./i18n";
-import { getStoredSpecies, storeSpecies, getStoredAccessory, storeAccessory } from "./mascotLogic";
+import { getStoredSpecies, storeSpecies } from "./mascotLogic";
 import { getPlanState, hasPlusAccess } from "./plans";
 
 export default function App() {
@@ -71,18 +71,6 @@ export default function App() {
   const changeSpecies = (next) => {
     setSpecies(next);
     storeSpecies(next);
-  };
-
-  // Accesorio cosmético de la mascota — 8 de noviembre de 2026, mismo
-  // patrón: preferencia de DISPOSITIVO. A diferencia de la especie de
-  // arriba, estos se desbloquean por puntos de "foco acumulado" (ver
-  // XP_MILESTONES en xpMilestones.js) — FocusFlowTDAH.jsx es quien decide
-  // si la elección pedida ya está desbloqueada antes de aplicarla de
-  // verdad, no este componente.
-  const [accessory, setAccessory] = useState(getStoredAccessory);
-  const changeAccessory = (next) => {
-    setAccessory(next);
-    storeAccessory(next);
   };
 
   // Idioma — preferencia de DISPOSITIVO, mismo patrón y mismo motivo que el
@@ -299,8 +287,6 @@ export default function App() {
         accentKey={accentKey}
         species={species}
         onChangeSpecies={changeSpecies}
-        accessory={accessory}
-        onChangeAccessory={changeAccessory}
         t={t}
         lang={lang}
         onChangeLanguage={changeLanguage}

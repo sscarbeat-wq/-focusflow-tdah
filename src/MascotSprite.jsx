@@ -98,11 +98,27 @@ export function MascotSprite({
   walking = false,
   dayMood = "neutral",
   hidden = false,
+  // 19 de noviembre de 2026 ("que la mascota... hable como POU"): aviso
+  // opcional hacia Mascot.jsx para que el brinco contento espontáneo (el
+  // de abajo, "Brinquito contento de vez en cuando") también se oiga, no
+  // solo se vea — Mascot.jsx decide si el sonido está activado y qué
+  // sonido poner; aquí solo se avisa CUÁNDO pasa el gesto. A propósito no
+  // se avisa en el gesto chiquito (fidget, cada 7-13s: sonaría demasiado
+  // seguido) ni en la caminata espontánea (es solo visual).
+  onAutoSound = () => {},
 }) {
   const parsed = parseImageVisual(visual);
   const reducedMotion = useReducedMotion();
-  const [mode, setMode] = useState("idle"); // idle | walk | sleep | greet | eat | play
+  const [mode, setMode] = useState("idle"); // idle | walk | sleep | greet | eat | play | happy | fidget(solo clase extra, no mode)
   const [blink, setBlink] = useState(false);
+  // 19 de noviembre de 2026 ("quiero los animales más movidos, que
+  // reaccionen tipo Pou"): un gesto chiquito e independiente del "brinco
+  // contento" (que es más grande y antes solo pasaba en día bueno) — para
+  // que en reposo se sienta viva más seguido, sin esperar 20-35s a que
+  // pase algo grande. A propósito NO rota (ver la nota de "chueca" del 15
+  // de noviembre más abajo en SpriteStyles): solo respira un poco más
+  // marcado, nunca se inclina.
+  const [fidget, setFidget] = useState(false);
   const timers = useRef({});
   // Un personaje de emoji no tiene poses, pero sí puede "comer" (aparece
   // la fresita junto a él) — ver la rama `!parsed` del render.
@@ -144,19 +160,27 @@ export function MascotSprite({
     return () => Object.keys(timers.current).forEach(clear);
   }, [visual, dayMood]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  // Día que va bien: un brinquito contento de vez en cuando (no cuenta
-  // como interacción, igual que las caminatas: no reinicia la cuenta para
-  // dormirse).
+  // Brinquito contento de vez en cuando (no cuenta como interacción,
+  // igual que las caminatas: no reinicia la cuenta para dormirse). 19 de
+  // noviembre de 2026 ("que reaccionen tipo Pou"): antes solo pasaba en
+  // día bueno — ahora pasa siempre, más seguido si el día va bien, para
+  // que no dependa de tener un buen día para sentirse viva. De noche no
+  // (se deja tranquila, igual que ya se duerme más rápido esa hora).
   useEffect(() => {
-    if (dayMood !== "good" || reducedMotion || mode !== "idle") return undefined;
+    if (dayMood === "night" || reducedMotion || mode !== "idle") return undefined;
+    const [minMs, maxMs] = dayMood === "good" ? [14000, 24000] : [28000, 42000];
     const tm = setTimeout(() => {
       setMode("happy");
+      onAutoSound("happy");
       walkBackToIdle(1400);
-    }, 20000 + Math.random() * 15000);
+    }, minMs + Math.random() * (maxMs - minMs));
     return () => clearTimeout(tm);
   }, [mode, dayMood, reducedMotion]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  // Parpadeo en reposo (no con movimiento reducido: es un destello).
+  // Parpadeo en reposo (no con movimiento reducido: es un destello). 19 de
+  // noviembre de 2026: un poco más seguido que antes (2.6-5.2s → 1.8-3.6s)
+  // para que en reposo ya se note que está despierta, no solo cuando pasa
+  // algo grande.
   useEffect(() => {
     if (!parsed || reducedMotion || mode !== "idle") return undefined;
     let t1;
@@ -168,7 +192,7 @@ export function MascotSprite({
           setBlink(false);
           loop();
         }, 150);
-      }, 2600 + Math.random() * 2600);
+      }, 1800 + Math.random() * 1800);
     };
     loop();
     return () => {
@@ -178,13 +202,38 @@ export function MascotSprite({
     };
   }, [mode, visual, reducedMotion]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  // Caminata espontánea de vez en cuando, para que se sienta viva.
+  // Gesto chiquito en reposo (ver nota de `fidget` arriba): respira un
+  // poco más marcado un instante, sin inclinarse. Más seguido que el
+  // brinco contento porque es mucho más discreto.
+  useEffect(() => {
+    if (!parsed || reducedMotion || mode !== "idle") return undefined;
+    let t1;
+    let t2;
+    const loop = () => {
+      t1 = setTimeout(() => {
+        setFidget(true);
+        t2 = setTimeout(() => {
+          setFidget(false);
+          loop();
+        }, 800);
+      }, 7000 + Math.random() * 6000);
+    };
+    loop();
+    return () => {
+      clearTimeout(t1);
+      clearTimeout(t2);
+      setFidget(false);
+    };
+  }, [mode, visual, reducedMotion]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Caminata espontánea de vez en cuando, para que se sienta viva. 19 de
+  // noviembre de 2026: más seguido que antes (16-30s → 10-20s).
   useEffect(() => {
     if (!parsed || reducedMotion || mode !== "idle" || !has("b")) return undefined;
     const t = setTimeout(() => {
       setMode("walk");
       walkBackToIdle(WALK_MS);
-    }, 16000 + Math.random() * 14000);
+    }, 10000 + Math.random() * 10000);
     return () => clearTimeout(t);
   }, [mode, visual, reducedMotion]); // eslint-disable-line react-hooks/exhaustive-deps
 
@@ -228,11 +277,15 @@ export function MascotSprite({
   // imagen (un emoji no tiene "ojos cerrados" ni poses).
   if (!parsed) {
     return (
-      <span className={`anro-sprite anro-sprite-${mode}`} style={{ position: "relative", display: "inline-block", opacity: hidden ? 0 : 1 }}>
+      <span
+        className={`anro-sprite anro-sprite-${mode}${fidget ? " anro-sprite-fidget" : ""}`}
+        style={{ position: "relative", display: "inline-block", opacity: hidden ? 0 : 1 }}
+      >
         <SpriteStyles />
         <span style={{ display: "inline-block" }} className="anro-sprite-body">
           {visual}
         </span>
+        {(mode === "greet" || mode === "happy") && <span className="anro-sprite-heart">💗</span>}
         {mode === "greet" && <Sparkles />}
         {mode === "eat" && <span className="anro-sprite-nom">🍓</span>}
         {mode === "sleep" && <span className="anro-sprite-zzz">Zzz</span>}
@@ -248,7 +301,7 @@ export function MascotSprite({
 
   return (
     <span
-      className={`anro-sprite anro-sprite-${mode}${reducedMotion ? " anro-sprite-still" : ""}`}
+      className={`anro-sprite anro-sprite-${mode}${reducedMotion ? " anro-sprite-still" : ""}${fidget ? " anro-sprite-fidget" : ""}`}
       style={{
         position: "relative",
         display: "inline-block",
@@ -268,8 +321,8 @@ export function MascotSprite({
         <MascotArt visual={visual} size={size} pose={pose} style={{ position: "absolute", inset: 0 }} />
       )}
       {mode === "sleep" && <span className="anro-sprite-zzz">Zzz</span>}
+      {(mode === "greet" || mode === "happy") && <span className="anro-sprite-heart">💗</span>}
       {mode === "greet" && <Sparkles />}
-      {mode === "happy" && <span className="anro-sprite-heart">💗</span>}
       {mode === "eat" && <span className="anro-sprite-nom">🍓</span>}
       {mode === "play" && <span className="anro-sprite-ball">🎾</span>}
     </span>
@@ -302,6 +355,13 @@ function SpriteStyles() {
       @keyframes anroSpriteHop { 0%,100% { transform: translateY(0) scale(1); } 35% { transform: translateY(-14%) scale(1.04, .97); } 60% { transform: translateY(0) scale(1.03, .96); } }
       .anro-sprite-eat .anro-mascot-frame, .anro-sprite-eat .anro-sprite-body { animation: anroSpriteNom 0.5s ease-in-out infinite; }
       .anro-sprite-play .anro-mascot-frame { animation: anroSpriteWiggle 0.5s ease-in-out infinite; }
+      /* 19 de noviembre de 2026 ("quiero los animales más movidos, que
+         reaccionen tipo Pou"): gesto chiquito en reposo (ver fidget en
+         MascotSprite), para que se sienta viva más seguido sin esperar el
+         brinco grande. A propósito SOLO escala/respira, nunca rota (ver
+         la nota de "chueca" de abajo) — así nunca se ve inclinada. */
+      .anro-sprite-fidget .anro-mascot-frame { animation: anroSpriteFidget 0.8s ease-in-out; }
+      @keyframes anroSpriteFidget { 0%,100% { transform: translateY(0) scale(1,1); } 40% { transform: translateY(-3%) scale(1.04,0.97); } 70% { transform: translateY(0) scale(0.99,1.02); } }
       .anro-sprite-zzz { position: absolute; top: 0; right: 4%; font-weight: 800; font-size: 13px; color: #7C6BAE; pointer-events: none; animation: anroSpriteZ 2.4s ease-in infinite; }
       .anro-sprite-spark { position: absolute; font-size: 14px; pointer-events: none; animation: anroSpriteSpark 0.8s ease-out forwards; }
       .anro-sprite-spark-1 { top: 2%; left: -6%; }

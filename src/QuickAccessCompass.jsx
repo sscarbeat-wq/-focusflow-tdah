@@ -514,7 +514,6 @@ export default function QuickAccessCompass({
   streak,
   species,
   focusStatus = "idle",
-  accessory = "none",
   focusPercent = 0,
   // Puntos de "foco acumulado": la mascota come cuando suben (ver
   // MascotSprite.jsx). Opcional.
@@ -834,7 +833,6 @@ export default function QuickAccessCompass({
             accent={accent}
             species={species}
             focusStatus={focusStatus}
-            accessory={accessory}
             focusPercent={focusPercent}
             heroRingSize={sizes.heroRingSize}
             heroRingRadius={sizes.heroRingRadius}

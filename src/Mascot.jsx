@@ -8,7 +8,6 @@ import {
   RESET_VARIANT_COUNT,
   getStoredResetVariant,
   storeResetVariant,
-  ACCESSORY_EMOJI,
   isImageSpecies,
 } from "./mascotLogic";
 import { MascotArt, MascotSprite } from "./MascotSprite";
@@ -157,7 +156,6 @@ export default function Mascot({
   accent,
   species,
   focusStatus = "idle",
-  accessory = "none",
   variant = "card",
   focusPercent = 0,
   heroRingSize = HERO_RING_SIZE,
@@ -400,20 +398,9 @@ export default function Mascot({
   // anillo, en vez de quedar chicos y perdidos (o, al revés, más grandes
   // de lo necesario) frente a un anillo que cambia de tamaño.
   const heroScale = isHero ? heroRingSize / HERO_RING_SIZE : 1;
-  // 15 de noviembre de 2026 ("Y LOS ACCESORIOS, APARECEN AFUERA"): el
-  // tamaño de la CAJA del anillo (ringSize) siempre fue más grande que el
-  // círculo PINTADO adentro (ringRadius) — queda un margen invisible de
-  // 13-15px entre el aro de color y el borde de la caja (nunca se nota
-  // porque esa caja no tiene fondo ni borde propio). El accesorio viejo
-  // se anclaba a ESE borde invisible (top:-2px, right:-2px de la caja),
-  // así que quedaba flotando en ese margen vacío — se notó recién ahora
-  // porque la corona (50 XP) es el primer accesorio que la doctora
-  // desbloqueó y vio de cerca. Acá se recalcula el accesorio para que su
-  // CENTRO quede sobre el aro mismo (a 45°, arriba-derecha, la misma
-  // esquina de siempre) en vez de sobre el borde vacío de la caja.
-  const accessorySize = (isHero ? 30 : 26) * heroScale;
-  const accessoryCenterX = ringSize / 2 + ringRadius * Math.cos(Math.PI / 4);
-  const accessoryCenterY = ringSize / 2 - ringRadius * Math.sin(Math.PI / 4);
+  // Tamaño real de la caja del dibujo en esta vista (hero o chica) — lo
+  // recibe MascotSprite/MascotArt más abajo.
+  const spriteBoxSize = isHero ? Math.round(emojiFontSize * 1.9) : hasArt ? Math.round(emojiFontSize * 1.4) : emojiFontSize;
   // Hero: el anillo muestra el % real de enfoque de hoy, no el avance de
   // racha — son dos cosas distintas (ver comentario arriba de HERO_RING_SIZE).
   const ringFraction = isHero ? Math.max(0, Math.min(1, (focusPercent || 0) / 100)) : fraction;
@@ -722,13 +709,23 @@ export default function Mascot({
             // menos "peso" visual que un emoji del mismo tamaño.
             <MascotSprite
               visual={stage.emoji}
-              size={Math.round(emojiFontSize * 1.9)}
+              size={spriteBoxSize}
               hidden={!!evolution}
               dayMood={dayMood}
               tapSignal={tapSignal}
               playSignal={playSignal}
               eatSignal={eatSignal}
               walking={focusStatus === "focusing"}
+              // 19 de noviembre de 2026 ("que la mascota se mueva y hable
+              // como POU" → "Sonidos tipo Pou"): el brinco contento
+              // espontáneo de MascotSprite ya existía solo visual; ahora
+              // también avisa aquí para que suene la "voz" de caricatura de
+              // la especie (la misma de animalSounds.js que ya se usa al
+              // tocarla/jugar/comer/crecer) — respeta el mismo botón de
+              // silencio (soundOnRef) que todos los demás sonidos.
+              onAutoSound={() => {
+                if (soundOnRef.current) playAnimalSound(resolvedSpecies, "play");
+              }}
             />
           ) : hasArt ? (
             <MascotArt visual={stage.emoji} size={Math.round(emojiFontSize * 1.4)} />
@@ -880,26 +877,6 @@ export default function Mascot({
           filter: "blur(1px)",
         }}
       />
-      {/* Accesorio cosmético desbloqueable por puntos (8 de noviembre de
-          2026, ver ACCESSORY_EMOJI en mascotLogic.js y xpMilestones.js) —
-          una insignia chica encima de la mascota, no un disfraz de verdad
-          (la mascota sigue siendo un solo emoji) para no complicar el
-          dibujo. "none" no renderiza nada. */}
-      {ACCESSORY_EMOJI[accessory] && (
-        <span
-          aria-hidden="true"
-          style={{
-            position: "absolute",
-            top: `${accessoryCenterY - accessorySize / 2}px`,
-            left: `${accessoryCenterX - accessorySize / 2}px`,
-            fontSize: `${accessorySize}px`,
-            lineHeight: 1,
-            filter: "drop-shadow(0 2px 3px rgba(0,0,0,0.25))",
-          }}
-        >
-          {ACCESSORY_EMOJI[accessory]}
-        </span>
-      )}
     </div>
   );
 
