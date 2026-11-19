@@ -538,7 +538,7 @@ const es = {
     xpBadge: (n) => `${n} XP`,
     xpBadgeAria: (n) => `Tienes ${n} XP. ¿Qué son?`,
     xpNext: (n, name) => `Te faltan ${n} XP para desbloquear: ${name}`,
-    plusHint: "¿Sabías que con ANRO Plus tienes temas con diseño, como Galaxia, y accesorios exclusivos?",
+    plusHint: "¿Sabías que con ANRO Plus tienes temas con diseño, como Galaxia?",
     plusHintAria: "Ver ANRO Plus",
     xpAllUnlocked: "¡Ya desbloqueaste todos los premios!",
     xpInfoButton: "Ver premios",
@@ -1410,7 +1410,7 @@ const es = {
       },
       {
         title: "¿Qué son los XP?",
-        body: "Los XP son puntos que ganas con todo lo que haces en ANRO: completar un paso, anotar cómo te sientes, respirar, tomar tu medicamento a tiempo… No son solo del Modo Enfoque. Nunca se pierden, ni aunque se reinicie tu racha, y sirven para desbloquear mascotas y accesorios.",
+        body: "Los XP son puntos que ganas con todo lo que haces en ANRO: completar un paso, anotar cómo te sientes, respirar, tomar tu medicamento a tiempo… No son solo del Modo Enfoque. Nunca se pierden, ni aunque se reinicie tu racha, y sirven para desbloquear mascotas nuevas.",
       },
       {
         title: "Memoria ANRO, a un toque",
@@ -1488,7 +1488,7 @@ const es = {
     // distinto en cada lugar.
     xpInfoLabel: "¿Qué son los XP?",
     xpInfoBody:
-      "Los XP son puntos que ganas con todo lo que haces en ANRO: completar un paso, anotar cómo te sientes, respirar, tomar tu medicamento a tiempo… No son solo del Modo Enfoque. Nunca se pierden, ni aunque se reinicie tu racha, y sirven para desbloquear mascotas y accesorios.",
+      "Los XP son puntos que ganas con todo lo que haces en ANRO: completar un paso, anotar cómo te sientes, respirar, tomar tu medicamento a tiempo… No son solo del Modo Enfoque. Nunca se pierden, ni aunque se reinicie tu racha, y sirven para desbloquear mascotas nuevas.",
     xpGained: (label) => `+0.85 XP — ${label}`,
     muteOn: "Apagar sonido y vibración al completar",
     muteOff: "Encender sonido y vibración al completar",
@@ -1498,7 +1498,6 @@ const es = {
       title: "Personaliza tu ANRO",
       mascot: "Mascota",
       color: "Color",
-      accessory: "Accesorio",
       theme: "Tema",
       themeLight: "Claro",
       themeDark: "Oscuro",
@@ -1594,55 +1593,14 @@ const es = {
       stagesNote: "Así se ve en cada etapa de tu racha:",
       interactionHint: "En Inicio, tócala para saludarla y dale doble toque para que juegue. Come cada vez que ganas puntos.",
     },
-    // 8 de noviembre de 2026 — accesorios cosméticos de la mascota que se
-    // desbloquean por puntos de "foco acumulado" (ver ACCESSORY_EMOJI en
-    // mascotLogic.js y XP_MILESTONES en xpMilestones.js).
-    accessoryPicker: {
-      label: "Accesorio de tu mascota",
-      prompt: "Elige un accesorio para tu mascota — algunos se desbloquean juntando XP.",
-      names: {
-        none: "Ninguno",
-        sparkle: "Destello",
-        crown: "Corona",
-        scarf: "Bufanda",
-        bow: "Moño",
-        glasses: "Lentes de sol",
-        flower: "Flor",
-        cap: "Gorra",
-        headphones: "Audífonos",
-        star: "Estrella",
-        rainbow: "Arcoíris",
-        medal: "Medalla",
-        wand: "Varita mágica",
-        gem: "Diamante",
-        trophy: "Trofeo",
-        tophat: "Sombrero de copa",
-        crystal: "Bola de cristal",
-        moon: "Luna",
-        planet: "Planeta",
-        balloon: "Globo",
-        clover: "Trébol",
-        music: "Nota musical",
-        sunflower: "Girasol",
-        backpack: "Mochila",
-        lollipop: "Paleta",
-        kite: "Papalote",
-        art: "Paleta de pintor",
-        ball: "Balón",
-        cupcake: "Pastelito",
-        comet: "Estrella fugaz",
-        unicorn: "Unicornio",
-      },
-    },
-    // Textos reutilizables para el estado "todavía bloqueado" en ambos
-    // selectores (accesorio y colores con candado).
+    // Textos reutilizables para el estado "todavía bloqueado" en el
+    // selector de colores con candado.
     rewardsLockedShort: (name) => `Bloqueado — ${name}`,
     rewardsRemaining: (n) => `Te faltan ${n} XP`,
     // Modal de celebración al cruzar un hito de puntos — distinto del
     // aviso corto que ya sale en cada acción (xpGained).
     unlockModal: {
       title: "¡Desbloqueaste algo nuevo!",
-      accessoryBody: (name) => `Con tus XP ganaste un accesorio nuevo para tu mascota: ${name}.`,
       accentBody: (name) => `Con tus XP ganaste un color nuevo: ${name}.`,
       speciesBody: (name) => `Con tus XP ganaste una mascota nueva: ${name}. Ya puedes elegirla.`,
       button: "Genial",
