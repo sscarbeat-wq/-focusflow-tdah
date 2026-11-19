@@ -1355,7 +1355,7 @@ const en = {
       },
       {
         title: "What are XP?",
-        body: "XP are points you earn for everything you do in ANRO: finishing a step, logging how you feel, breathing, taking your medication on time… Not only Focus Mode. They're never lost, even if your streak resets, and you use them to unlock mascots, colors and accessories.",
+        body: "XP are points you earn for everything you do in ANRO: finishing a step, logging how you feel, breathing, taking your medication on time… Not only Focus Mode. They're never lost, even if your streak resets, and you use them to unlock mascots and accessories.",
       },
       {
         title: "ANRO Memory, one tap away",
@@ -1427,7 +1427,7 @@ const en = {
     xpCaption: "points for rewards",
     xpInfoLabel: "What are XP?",
     xpInfoBody:
-      "XP are points you earn for everything you do in ANRO: finishing a step, logging how you feel, breathing, taking your medication on time… Not only Focus Mode. They're never lost, even if your streak resets, and you use them to unlock mascots, colors and accessories.",
+      "XP are points you earn for everything you do in ANRO: finishing a step, logging how you feel, breathing, taking your medication on time… Not only Focus Mode. They're never lost, even if your streak resets, and you use them to unlock mascots and accessories.",
     xpGained: (label) => `+0.85 XP — ${label}`,
     muteOn: "Turn off sound and vibration on completion",
     muteOff: "Turn on sound and vibration on completion",

@@ -1360,7 +1360,7 @@ const pt = {
       },
       {
         title: "O que são os XP?",
-        body: "Os XP são pontos que você ganha com tudo o que faz no ANRO: concluir uma etapa, anotar como se sente, respirar, tomar seu remédio na hora… Não só no Modo Foco. Eles nunca se perdem, mesmo que sua sequência recomece, e servem para desbloquear mascotes, cores e acessórios.",
+        body: "Os XP são pontos que você ganha com tudo o que faz no ANRO: concluir uma etapa, anotar como se sente, respirar, tomar seu remédio na hora… Não só no Modo Foco. Eles nunca se perdem, mesmo que sua sequência recomece, e servem para desbloquear mascotes e acessórios.",
       },
       {
         title: "Memória ANRO, a um toque",
@@ -1432,7 +1432,7 @@ const pt = {
     xpCaption: "pontos para prêmios",
     xpInfoLabel: "O que são os XP?",
     xpInfoBody:
-      "Os XP são pontos que você ganha com tudo o que faz no ANRO: concluir uma etapa, anotar como se sente, respirar, tomar seu remédio na hora… Não só no Modo Foco. Eles nunca se perdem, mesmo que sua sequência recomece, e servem para desbloquear mascotes, cores e acessórios.",
+      "Os XP são pontos que você ganha com tudo o que faz no ANRO: concluir uma etapa, anotar como se sente, respirar, tomar seu remédio na hora… Não só no Modo Foco. Eles nunca se perdem, mesmo que sua sequência recomece, e servem para desbloquear mascotes e acessórios.",
     xpGained: (label) => `+0,85 XP — ${label}`,
     muteOn: "Desligar som e vibração ao concluir",
     muteOff: "Ligar som e vibração ao concluir",

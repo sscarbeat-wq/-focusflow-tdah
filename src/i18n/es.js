@@ -1410,7 +1410,7 @@ const es = {
       },
       {
         title: "¿Qué son los XP?",
-        body: "Los XP son puntos que ganas con todo lo que haces en ANRO: completar un paso, anotar cómo te sientes, respirar, tomar tu medicamento a tiempo… No son solo del Modo Enfoque. Nunca se pierden, ni aunque se reinicie tu racha, y sirven para desbloquear mascotas, colores y accesorios.",
+        body: "Los XP son puntos que ganas con todo lo que haces en ANRO: completar un paso, anotar cómo te sientes, respirar, tomar tu medicamento a tiempo… No son solo del Modo Enfoque. Nunca se pierden, ni aunque se reinicie tu racha, y sirven para desbloquear mascotas y accesorios.",
       },
       {
         title: "Memoria ANRO, a un toque",
@@ -1488,7 +1488,7 @@ const es = {
     // distinto en cada lugar.
     xpInfoLabel: "¿Qué son los XP?",
     xpInfoBody:
-      "Los XP son puntos que ganas con todo lo que haces en ANRO: completar un paso, anotar cómo te sientes, respirar, tomar tu medicamento a tiempo… No son solo del Modo Enfoque. Nunca se pierden, ni aunque se reinicie tu racha, y sirven para desbloquear mascotas, colores y accesorios.",
+      "Los XP son puntos que ganas con todo lo que haces en ANRO: completar un paso, anotar cómo te sientes, respirar, tomar tu medicamento a tiempo… No son solo del Modo Enfoque. Nunca se pierden, ni aunque se reinicie tu racha, y sirven para desbloquear mascotas y accesorios.",
     xpGained: (label) => `+0.85 XP — ${label}`,
     muteOn: "Apagar sonido y vibración al completar",
     muteOff: "Encender sonido y vibración al completar",

@@ -1358,7 +1358,7 @@ const fr = {
       },
       {
         title: "C'est quoi les XP ?",
-        body: "Les XP sont des points que tu gagnes avec tout ce que tu fais dans ANRO : terminer une étape, noter comment tu te sens, respirer, prendre ton médicament à l'heure… Pas seulement le Mode Concentration. Ils ne se perdent jamais, même si ta série recommence, et servent à débloquer des mascottes, des couleurs et des accessoires.",
+        body: "Les XP sont des points que tu gagnes avec tout ce que tu fais dans ANRO : terminer une étape, noter comment tu te sens, respirer, prendre ton médicament à l'heure… Pas seulement le Mode Concentration. Ils ne se perdent jamais, même si ta série recommence, et servent à débloquer des mascottes et des accessoires.",
       },
       {
         title: "Mémoire ANRO, à portée de main",
@@ -1431,7 +1431,7 @@ const fr = {
     xpCaption: "points pour des récompenses",
     xpInfoLabel: "C'est quoi les XP ?",
     xpInfoBody:
-      "Les XP sont des points que tu gagnes avec tout ce que tu fais dans ANRO : terminer une étape, noter comment tu te sens, respirer, prendre ton médicament à l'heure… Pas seulement le Mode Concentration. Ils ne se perdent jamais, même si ta série recommence, et servent à débloquer des mascottes, des couleurs et des accessoires.",
+      "Les XP sont des points que tu gagnes avec tout ce que tu fais dans ANRO : terminer une étape, noter comment tu te sens, respirer, prendre ton médicament à l'heure… Pas seulement le Mode Concentration. Ils ne se perdent jamais, même si ta série recommence, et servent à débloquer des mascottes et des accessoires.",
     xpGained: (label) => `+0,85 XP — ${label}`,
     muteOn: "Désactiver le son et les vibrations à la fin",
     muteOff: "Activer le son et les vibrations à la fin",
