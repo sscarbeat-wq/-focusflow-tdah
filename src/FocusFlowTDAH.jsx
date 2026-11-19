@@ -1124,7 +1124,16 @@ export default function FocusFlowTDAH({
   useEffect(() => {
     const prev = prevXpRef.current;
     if (xp > prev) {
-      const crossed = justCrossedMilestones(prev, xp);
+      // 19 de noviembre de 2026 ("los colores a elegir los quiero
+      // quitar"): sin filtrar esto, cruzar un umbral de tipo "accent"
+      // (oro, jade, océano, violeta, rubí, atardecer, bosque) seguiría
+      // abriendo el modal de "¡desbloqueaste algo nuevo!" anunciando un
+      // color — que ya no se puede elegir en ningún lado (ver la nota
+      // junto a nextUnlock, más abajo, mismo filtro). Se descarta ANTES
+      // de encolarlo, para que ese modal nunca llegue a mostrarse por un
+      // color. No se toca xpMilestones.js: los puntos ya ganados cuentan
+      // igual, solo deja de festejarse algo que no lleva a ningún lado.
+      const crossed = justCrossedMilestones(prev, xp).filter((m) => m.kind !== "accent");
       if (crossed.length > 0) setUnlockQueue((q) => [...q, ...crossed]);
     }
     prevXpRef.current = xp;
@@ -2794,15 +2803,26 @@ export default function FocusFlowTDAH({
                   focusMinutes={todayFocusMinutes(focusSessionLog)}
                   focusGoal={DAILY_FOCUS_GOAL_MIN}
                   nextUnlock={(() => {
+                    // 19 de noviembre de 2026 ("los colores a elegir los
+                    // quiero quitar"): se quitó el selector de acento
+                    // personal (ver la nota junto a accentPickerOpen más
+                    // abajo), así que un premio de tipo "accent" (oro,
+                    // jade, océano, violeta, rubí, atardecer, bosque) ya
+                    // no se puede aplicar ni elegir — mostrarlo como
+                    // "siguiente premio" solo confundiría, prometiendo
+                    // algo que no lleva a ningún lado. Se salta ese tipo
+                    // y se busca el siguiente que sí sigue siendo real
+                    // (mascota o accesorio). No se tocan XP_MILESTONES ni
+                    // xpMilestones.js: los puntos de "foco acumulado" ya
+                    // ganados por esos hitos siguen contando igual, solo
+                    // deja de ofrecerse como algo que ver/elegir.
                     const next = [...XP_MILESTONES]
                       .sort((a, b) => a.xp - b.xp)
-                      .find((m) => m.xp > xp);
+                      .find((m) => m.xp > xp && m.kind !== "accent");
                     if (!next) return null;
                     const names =
                       next.kind === "species"
                         ? t.app.speciesPicker.names
-                        : next.kind === "accent"
-                        ? t.app.accentPicker.names
                         : t.app.accessoryPicker.names;
                     return { remaining: Math.max(1, Math.ceil(next.xp - xp)), name: names[next.key] || next.key, kind: next.kind };
                   })()}
@@ -3403,6 +3423,16 @@ export default function FocusFlowTDAH({
                     {tileText(st.mascot, t.app.speciesPicker.names[resolvedSpecies] || resolvedSpecies)}
                   </button>
                 )}
+                {/* 19 de noviembre de 2026 ("los colores a elegir los
+                    quiero quitar"): este tile y todo su selector de abajo
+                    (accentPickerOpen) dependen de que `onChangeAccent`
+                    exista como prop. App.jsx ya dejó de mandarla — ahora
+                    `accentKey` es un valor fijo (DEFAULT_ACCENT, "lavanda")
+                    para todas las pacientes, no una preferencia que se
+                    guarda — así que este tile nunca se muestra, sin tener
+                    que tocar nada más aquí abajo. El claro/oscuro (tile de
+                    "theme" un poco más abajo) SÍ se queda como elección de
+                    la paciente, eso no cambió. */}
                 {onChangeAccent && (
                   <button
                     type="button"
@@ -3527,7 +3557,19 @@ export default function FocusFlowTDAH({
                 </button>
               </div>
 
-              {accentPickerOpen && (
+              {/* 19 de noviembre de 2026 ("los colores a elegir los quiero
+                  quitar"): se quita el botón de arriba que abría este
+                  selector (ver la nota junto al tile "Color", más arriba),
+                  pero este bloque se queda con su propio guard
+                  `onChangeAccent &&` por si acaso — `setAccentPickerOpen`
+                  también se podía disparar desde "ver mi próximo premio"
+                  en la mascota (onSeeRewards, arriba), y sin el guard un
+                  clic en un color aquí habría llamado a `onChangeAccent`,
+                  que ya no existe, y tronado la pantalla. (Ese otro camino
+                  ya no debería llegar a "accent" tampoco — ver la nota
+                  junto a nextUnlock, arriba — pero este guard no depende
+                  de que esa otra corrección siga ahí.) */}
+              {onChangeAccent && accentPickerOpen && (
                 <div style={panelStyle}>
                   <div style={{ fontSize: "12px", color: C.textMuted, marginBottom: "10px" }}>{t.app.accentPicker.prompt}</div>
                     <div style={{ display: "flex", flexWrap: "wrap", gap: "10px" }}>
