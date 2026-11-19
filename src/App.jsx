@@ -5,7 +5,7 @@ import ResetPassword from "./ResetPassword";
 import FocusFlowTDAH from "./FocusFlowTDAH";
 import Paywall from "./Paywall";
 import UpdatePrompt from "./UpdatePrompt";
-import { DARK_THEME, LIGHT_THEME, getStoredTheme, storeTheme, getStoredAccent, storeAccent } from "./theme";
+import { DARK_THEME, LIGHT_THEME, getStoredTheme, storeTheme, DEFAULT_ACCENT } from "./theme";
 import { getStoredLanguage, storeLanguage, getTranslations } from "./i18n";
 import { getStoredSpecies, storeSpecies, getStoredAccessory, storeAccessory } from "./mascotLogic";
 import { getPlanState, hasPlusAccess } from "./plans";
@@ -43,19 +43,24 @@ export default function App() {
     document.body.style.background = C.bg;
   }, [C.bg]);
 
-  // Acento personal — 26 de octubre de 2026, mismo patrón y mismo motivo
-  // que el tema claro/oscuro justo arriba: preferencia de DISPOSITIVO, no
-  // del progreso clínico. La paciente elige uno de los 6 colores que ya
-  // tiene la app para los elementos que no pertenecen a ninguna categoría
-  // fija (la mascota, el panel "Hoy") — los paneles con categoría propia
-  // (medicamentos, ánimo, etc.) siguen con su color fijo sin importar el
-  // acento elegido, para no perder esa señal visual de "qué tipo de cosa es
-  // esta tarjeta".
-  const [accentKey, setAccentKey] = useState(getStoredAccent);
-  const changeAccent = (next) => {
-    setAccentKey(next);
-    storeAccent(next);
-  };
+  // Acento personal — nació el 26 de octubre de 2026 como preferencia de
+  // DISPOSITIVO (la paciente elegía uno de los colores de la app para la
+  // mascota y el panel "Hoy"). Se quitó el 19 de noviembre de 2026 ("los
+  // colores a elegir los quiero quitar"): combinado con el tema claro/
+  // oscuro (que SÍ se queda como elección, ver `theme` arriba) y con los
+  // colores fijos por categoría de panel, era la pieza que seguía dando
+  // combinaciones de mal contraste una y otra vez (ver las notas de
+  // contraste del 15 y 18 de noviembre en este mismo archivo y en
+  // theme.js) — nunca se terminaba de cubrir cada combinación posible a
+  // mano. Ahora `accentKey` es un valor fijo para todas las pacientes
+  // (DEFAULT_ACCENT, "lavanda" — el mismo tono que ya traían todas por
+  // default antes de poder elegir, así que nadie ve un cambio de color sin
+  // haberlo pedido), ya no una preferencia guardada. No se manda
+  // `onChangeAccent` a FocusFlowTDAH: el selector de color en Perfil
+  // depende de que esa prop exista (ver la nota junto a su tile en
+  // FocusFlowTDAH.jsx), así que al no mandarla, ese selector deja de
+  // mostrarse solo, sin tener que tocar su JSX.
+  const accentKey = DEFAULT_ACCENT;
 
   // Especie de la mascota — 27 de octubre de 2026, mismo patrón: la
   // paciente elige su personaje (ave, gato, planta o dragón) y la app
@@ -292,7 +297,6 @@ export default function App() {
         theme={theme}
         onToggleTheme={toggleTheme}
         accentKey={accentKey}
-        onChangeAccent={changeAccent}
         species={species}
         onChangeSpecies={changeSpecies}
         accessory={accessory}
