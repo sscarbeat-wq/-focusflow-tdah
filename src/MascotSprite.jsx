@@ -412,7 +412,7 @@ function SpriteStyles() {
   return (
     <style>{`
       .anro-sprite .anro-mascot-frame { transform-origin: center bottom; }
-      .anro-sprite-idle .anro-mascot-frame { animation: anroSpriteBob 2.6s ease-in-out infinite; }
+      .anro-sprite-idle .anro-mascot-frame { animation: anroSpriteBob 2.2s ease-in-out infinite; }
       /* hijo 1 = <style>, hijo 2 = pose "a", hijo 3 = pose "b" (segundo paso) */
       .anro-sprite-walk .anro-mascot-frame:nth-child(2) { animation: anroSpriteShowA 0.6s steps(1) infinite, anroSpriteStepA 0.6s steps(1) infinite; }
       .anro-sprite-walk .anro-mascot-frame:nth-child(3) { animation: anroSpriteShowB 0.6s steps(1) infinite, anroSpriteStepB 0.6s steps(1) infinite; }
@@ -424,29 +424,32 @@ function SpriteStyles() {
       .anro-sprite-eat .anro-mascot-frame, .anro-sprite-eat .anro-sprite-body { animation: anroSpriteNom 0.5s ease-in-out infinite; }
       .anro-sprite-play .anro-mascot-frame { animation: anroSpriteWiggle 0.5s ease-in-out infinite; }
       /* 19 de noviembre de 2026 ("quiero los animales más movidos, que
-         reaccionen tipo Pou"): gesto chiquito en reposo (ver fidget en
+         reaccionen tipo Pou"; ampliado el mismo día, "casi ni se mueven" —
+         se subió la amplitud de este gesto y de la respiración de reposo
+         de arriba, anroSpriteBob): gesto chiquito en reposo (ver fidget en
          MascotSprite), para que se sienta viva más seguido sin esperar el
          brinco grande. A propósito SOLO escala/respira, nunca rota (ver
          la nota de "chueca" de abajo) — así nunca se ve inclinada. */
       .anro-sprite-fidget .anro-mascot-frame { animation: anroSpriteFidget 0.8s ease-in-out; }
-      @keyframes anroSpriteFidget { 0%,100% { transform: translateY(0) scale(1,1); } 40% { transform: translateY(-3%) scale(1.04,0.97); } 70% { transform: translateY(0) scale(0.99,1.02); } }
-      /* 19 de noviembre de 2026 ("más reacciones, como un tamagochi"): dos
-         gestos más en reposo, para que no se sienta repetitivo con solo el
-         fidget y el brinco contento. A diferencia del fidget, estos SÍ
-         aplican también a los personajes de emoji de siempre (por eso
-         también tocan .anro-sprite-body, igual que el brinco contento) —
-         mismo cuidado de siempre: solo escala o traslada, nunca rota. */
+      @keyframes anroSpriteFidget { 0%,100% { transform: translateY(0) scale(1,1); } 40% { transform: translateY(-6%) scale(1.07,0.94); } 70% { transform: translateY(0) scale(0.97,1.05); } }
+      /* 19 de noviembre de 2026 ("más reacciones, como un tamagochi";
+         ampliado el mismo día por "casi ni se mueven"): dos gestos más en
+         reposo, para que no se sienta repetitivo con solo el fidget y el
+         brinco contento. A diferencia del fidget, estos SÍ aplican también
+         a los personajes de emoji de siempre (por eso también tocan
+         .anro-sprite-body, igual que el brinco contento) — mismo cuidado
+         de siempre: solo escala o traslada, nunca rota. */
       .anro-sprite-stretch .anro-mascot-frame, .anro-sprite-stretch .anro-sprite-body { animation: anroSpriteStretch 1.1s ease-in-out; }
-      @keyframes anroSpriteStretch { 0%,100% { transform: translateY(0) scale(1,1); } 45% { transform: translateY(-6%) scale(0.94,1.08); } 75% { transform: translateY(2%) scale(1.05,0.95); } }
+      @keyframes anroSpriteStretch { 0%,100% { transform: translateY(0) scale(1,1); } 45% { transform: translateY(-10%) scale(0.88,1.16); } 75% { transform: translateY(3%) scale(1.08,0.92); } }
       .anro-sprite-peek .anro-mascot-frame, .anro-sprite-peek .anro-sprite-body { animation: anroSpritePeek 0.9s ease-in-out; }
-      @keyframes anroSpritePeek { 0%,100% { transform: translateX(0); } 40% { transform: translateX(-7%); } 70% { transform: translateX(4%); } }
+      @keyframes anroSpritePeek { 0%,100% { transform: translateX(0); } 40% { transform: translateX(-12%); } 70% { transform: translateX(7%); } }
       .anro-sprite-zzz { position: absolute; top: 0; right: 4%; font-weight: 800; font-size: 13px; color: #7C6BAE; pointer-events: none; animation: anroSpriteZ 2.4s ease-in infinite; }
       .anro-sprite-spark { position: absolute; font-size: 14px; pointer-events: none; animation: anroSpriteSpark 0.8s ease-out forwards; }
       .anro-sprite-spark-1 { top: 2%; left: -6%; }
       .anro-sprite-spark-2 { top: -6%; right: 2%; }
       .anro-sprite-nom { position: absolute; bottom: 4%; left: 50%; font-size: 14px; pointer-events: none; animation: anroSpriteNomPop 1.8s ease-in-out infinite; }
       .anro-sprite-ball { position: absolute; top: 0; right: -8%; font-size: 14px; pointer-events: none; animation: anroSpriteBall 1.8s ease-in-out infinite; }
-      @keyframes anroSpriteBob { 0%,100% { transform: translateY(0); } 50% { transform: translateY(-5%); } }
+      @keyframes anroSpriteBob { 0%,100% { transform: translateY(0); } 50% { transform: translateY(-9%); } }
       {/* 15 de noviembre de 2026 ("luego la figura aparece chueca en el
           círculo"): la respiración de "dormido" incluía una rotación de
           -3° a la mitad del ciclo — si la paciente tomaba una captura
