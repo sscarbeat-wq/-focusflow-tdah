@@ -2277,6 +2277,13 @@ export default function FocusFlowTDAH({
         // En la brújula de Inicio no hay nada debajo: el padding de abajo
         // se reduce a lo justo (en teléfono, el alto de la barra fija) para
         // que la pantalla no se pueda bajar a un espacio vacío.
+        // 19 de noviembre de 2026: se probó mostrar también en Inicio los 3
+        // botones flotantes ("Ir a...", Memoria ANRO, Burbuja de enfoque,
+        // ver la nota junto a su `<div>` más abajo) y por eso este padding
+        // había crecido a 160/70 — con capturas de muestra, sin encimarse
+        // con nada, pero la doctora decidió que Inicio se vea mejor sin
+        // ellos (la brújula ya hace ese trabajo), así que vuelve a quedar
+        // reducido como antes.
         padding: isNarrow
           ? `28px 18px ${inicioCompass ? 64 : 160}px`
           : `28px 18px ${inicioCompass ? 0 : 70}px`,
@@ -2910,7 +2917,25 @@ export default function FocusFlowTDAH({
                         mezclarse con el papel tapiz), un tinte de color
                         más marcado encima, borde más grueso y una sombra
                         suave — se nota como tarjeta en vez de solo un
-                        tinte de color. */}
+                        tinte de color.
+                        19 de noviembre de 2026 ("podrían cambiar el color
+                        de los accesos para que se puedan leer las
+                        letras?"): ese fondo de base volvió a romperse al
+                        quitar la Colección Plus (18 de noviembre) —
+                        "palette.chipBg" era un valor que SOLO traían los
+                        temas Plus (ya no existe ninguno), así que esto
+                        caía siempre a C.surface: el fondo fijo de
+                        claro/oscuro, que no tiene nada que ver con
+                        palette.text (el color automático por hora del
+                        día) de la línea de abajo. De noche, con tema
+                        claro, salía texto casi blanco sobre tarjeta casi
+                        blanca; de día, con tema oscuro, texto oscuro
+                        sobre tarjeta oscura — exactamente lo que se veía
+                        en la captura. Ahora cae a `palette.bg`: el mismo
+                        objeto de paleta que ya trae `text` pensado para
+                        pintarse encima de ÉL, así los dos SIEMPRE
+                        combinan, sin importar qué tema claro/oscuro haya
+                        elegido la paciente. */}
                     <button
                       type="button"
                       onClick={() => openFromHome(contextualNudge.key)}
@@ -2922,20 +2947,8 @@ export default function FocusFlowTDAH({
                         padding: "14px 16px",
                         borderRadius: "16px",
                         border: `2px solid ${toneAlpha(nudgeColor, 40)}`,
-                        background: `linear-gradient(135deg, ${toneAlpha(nudgeColor, 24)} 0%, ${toneAlpha(nudgeColor, 12)} 100%), ${palette.chipBg || C.surface}`,
+                        background: `linear-gradient(135deg, ${toneAlpha(nudgeColor, 24)} 0%, ${toneAlpha(nudgeColor, 12)} 100%), ${palette.chipBg || palette.bg || C.surface}`,
                         boxShadow: `0 4px 14px ${toneAlpha(nudgeColor, 15)}`,
-                        // 15 de noviembre de 2026 ("estas otra vez no se
-                        // ven"): "palette.textHi" nunca existe (ni en la
-                        // paleta por hora ni en los temas Plus) — siempre
-                        // caía directo a C.text, el color ESTÁTICO de
-                        // tema claro/oscuro, que no tiene nada que ver con
-                        // el fondo real de esta tarjeta cuando hay un tema
-                        // Plus activo (palette.chipBg/palette.text SÍ
-                        // vienen pareados entre sí, ver PLUS_THEMES). Con
-                        // modo oscuro + un Plus de fondo claro (ej.
-                        // "clouds"), salía texto claro sobre tarjeta clara.
-                        // Mismo patrón ya correcto en renderHomeQuickActions
-                        // (labelColor, más arriba en este archivo).
                         color: palette.textHi || palette.text || C.text,
                         cursor: "pointer",
                         textAlign: "left",
@@ -2981,7 +2994,7 @@ export default function FocusFlowTDAH({
                   guardada en localStorage. */}
               {recentToolKeys.length > 0 && (
                 <div style={{ padding: isNarrow ? "8px 12px 14px" : "8px 18px 14px", maxWidth: isWide ? "600px" : "420px", width: "100%", margin: "0 auto", boxSizing: "border-box" }}>
-                  <h3 style={{ fontSize: "12px", fontWeight: 800, color: C.textMuted, margin: "0 0 6px", textTransform: "uppercase", letterSpacing: "0.04em" }}>
+                  <h3 style={{ fontSize: "12px", fontWeight: 800, color: palette.textMuted || C.textMuted, margin: "0 0 6px", textTransform: "uppercase", letterSpacing: "0.04em" }}>
                     ⚡ {t.today.frequentTitle}
                   </h3>
                   {/* 15 de noviembre de 2026 ("esta barra la podrías
@@ -2995,7 +3008,20 @@ export default function FocusFlowTDAH({
                       envuelve todo en una tarjeta con su propio fondo —
                       antes los iconitos quedaban sueltos directo sobre el
                       papel tapiz de puntos de Inicio, que se mezclaba con
-                      ellos. */}
+                      ellos.
+                      19 de noviembre de 2026 ("podrían cambiar el color de
+                      los accesos para que se puedan leer las letras?"): el
+                      título de arriba y este fondo tenían el mismo defecto
+                      que la tarjeta "Te puede servir ahora" de más arriba
+                      (ver su nota ahí) — "palette.chipBg" ya no existe
+                      desde que se quitó la Colección Plus, así que el
+                      fondo caía a C.surface (fijo) mientras el texto de
+                      cada acceso, más abajo, sí sigue `palette.text`
+                      (automático): de noche con tema claro, o de día con
+                      tema oscuro, el texto se volvía casi invisible contra
+                      su propio fondo. Mismo arreglo: el fondo cae a
+                      `palette.bg`, que es justo con lo que palette.text ya
+                      está pensado para combinar. */}
                   <div
                     style={{
                       display: "flex",
@@ -3003,7 +3029,7 @@ export default function FocusFlowTDAH({
                       overflowX: "auto",
                       padding: "10px 8px",
                       borderRadius: "16px",
-                      background: palette.chipBg || C.surface,
+                      background: palette.chipBg || palette.bg || C.surface,
                       scrollbarWidth: "thin",
                     }}
                   >
@@ -5742,8 +5768,14 @@ export default function FocusFlowTDAH({
           encima de AppTabBar cuando esta queda fija abajo (móvil). */}
       {/* 11 nov 2026: en Inicio (brújula) los 3 botones flotantes tapaban
           la franja "Mis hábitos de hoy" de abajo; ahí se ocultan (la
-          brújula ya lleva a todo). Siguen montados (display:none), así que
-          no pierden su estado, y en las demás pestañas se ven igual. */}
+          brújula ya lleva a todo).
+          19 de noviembre de 2026: se probó quitar este ocultamiento para
+          que también se vieran en Inicio — sin encimarse con nada (se
+          verificó con capturas en móvil y escritorio), pero la doctora
+          decidió dejar Inicio sin ellos, se ve más limpio con solo la
+          brújula. Se regresa la condición tal como estaba.
+          Siguen montados (display:none), así que no pierden su estado, y
+          en las demás pestañas se ven igual. */}
       <div style={{ display:
             inicioCompass ||
             (activeTab === "herramientas" && ((habitFormOpen && activeTool === "habits") || (breakInProgress && activeTool === "activeBreak")))
