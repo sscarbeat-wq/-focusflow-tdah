@@ -1664,8 +1664,14 @@ const es = {
       companion: { title: "Compañero de apoyo", subtitle: "Elige lo que estás sintiendo ahora mismo — respuestas pensadas para TDAH, sin que tengas que escribir nada." },
       oneThing: { title: "Solo una cosa", subtitle: "Elige una sola tarea y enfócate solo en ella — sin ver el resto de tu lista." },
       routines: { title: "Rutinas visuales guiadas", subtitle: "Para cosas que repites seguido y en el mismo orden — arma los pasos una vez y ANRO TDAH te los va mostrando de uno en uno." },
-      mindMap: { title: "Mapa mental", subtitle: "Suelta ideas sueltas antes de ordenarlas en el desglosador." },
-      dismantler: { title: "El desglosador", subtitle: "Si te cuesta empezar, suele ser porque el primer paso es demasiado grande." },
+      // 20 de noviembre de 2026 ("no entiendo cuales son las diferencias
+      // entre el desglosador y el mapa mental"): los subtítulos ahora dicen
+      // explícitamente PARA CUÁNDO es cada uno (antes de saber los pasos vs.
+      // ya sabiendo la tarea), en vez de solo describir el mecanismo — este
+      // mismo texto es el que se ve también como descripción de la tarjeta
+      // en Herramientas (FocusFlowTDAH.jsx los reutiliza ahí).
+      mindMap: { title: "Mapa mental", subtitle: "Para cuando aún no sabes los pasos: suelta ideas sueltas, sin orden ni compromiso, y mándalas al desglosador cuando una te convenza." },
+      dismantler: { title: "El desglosador", subtitle: "Para cuando ya sabes la tarea: divídela en pasos chiquitos y en orden — si te cuesta empezar, suele ser porque el primero es demasiado grande." },
       auditor: { title: "El auditor de tiempo", subtitle: "Compara cuánto piensas que va a tardar contra lo que realmente tarda." },
       focusMode: { title: "Modo enfoque", subtitle: "Divide tu trabajo en bloques cortos con descansos automáticos — tu cerebro TDAH rinde mejor así." },
       mood: { title: "Registro de ánimo", subtitle: "Un check-in rápido al día — te ayuda a ver patrones entre tu ánimo y tus hábitos." },
