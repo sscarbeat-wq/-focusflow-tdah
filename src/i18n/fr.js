@@ -1610,6 +1610,11 @@ const fr = {
 
     dismantler: {
       taskPlaceholder: "Quelle tâche remets-tu à plus tard ?",
+      micButtonAria: "Dicter la tâche à voix haute",
+      micListening: "Écoute en cours...",
+      micUnsupported: "Ton navigateur ne prend pas en charge la saisie vocale.",
+      micDenied: "Autorise l'accès au microphone pour utiliser cette fonction.",
+      micErrorGeneric: "Rien n'a été capté. Réessaie.",
       granularityLabel: "À quel point découper, pour ce moment :",
       granularityFew: "Peu d'étapes",
       granularityNormal: "Normal",

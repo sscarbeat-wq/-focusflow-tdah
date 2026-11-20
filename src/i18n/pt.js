@@ -1611,6 +1611,11 @@ const pt = {
 
     dismantler: {
       taskPlaceholder: "Que tarefa você está postergando?",
+      micButtonAria: "Ditar tarefa por voz",
+      micListening: "Ouvindo...",
+      micUnsupported: "Seu navegador não tem suporte a entrada por voz.",
+      micDenied: "Permita o acesso ao microfone para usar este recurso.",
+      micErrorGeneric: "Não captei nada. Tente de novo.",
       granularityLabel: "O quanto detalhar, para este momento:",
       granularityFew: "Poucas etapas",
       granularityNormal: "Normal",

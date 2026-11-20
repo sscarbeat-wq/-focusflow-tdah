@@ -1698,6 +1698,14 @@ const es = {
 
     dismantler: {
       taskPlaceholder: "¿Qué tarea estás postergando?",
+      // 20 de noviembre de 2026 ("al desglosador también ponle microfono"):
+      // mismo dictado por voz que ya tiene el mapa mental, aplicado aquí al
+      // campo de la tarea grande.
+      micButtonAria: "Dictar tarea por voz",
+      micListening: "Escuchando...",
+      micUnsupported: "Tu navegador no soporta entrada de voz.",
+      micDenied: "Permite el acceso al micrófono para usar esta función.",
+      micErrorGeneric: "No se captó nada. Intenta de nuevo.",
       granularityLabel: "Qué tan desglosado, para este momento:",
       granularityFew: "Pocos pasos",
       granularityNormal: "Normal",

@@ -1606,6 +1606,11 @@ const en = {
 
     dismantler: {
       taskPlaceholder: "What task are you putting off?",
+      micButtonAria: "Dictate task by voice",
+      micListening: "Listening...",
+      micUnsupported: "Your browser doesn't support voice input.",
+      micDenied: "Allow microphone access to use this feature.",
+      micErrorGeneric: "Didn't catch that. Try again.",
       granularityLabel: "How broken down, for right now:",
       granularityFew: "Few steps",
       granularityNormal: "Normal",
