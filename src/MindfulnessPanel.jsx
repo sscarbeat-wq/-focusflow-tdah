@@ -1,8 +1,8 @@
 import React, { useEffect, useRef, useState } from "react";
-import { Play, Square, Volume2, Sparkles, Activity, Wind, Brain, CheckCircle2 } from "lucide-react";
+import { Play, Square, Volume2, Sparkles, Activity, Wind, Brain, CheckCircle2, Timer, Moon } from "lucide-react";
 import {
-  MINDFULNESS_STEPS,
-  MINDFULNESS_TOTAL_SECONDS,
+  MINDFULNESS_PROGRAMS,
+  programTotalSeconds,
   stepIndexAt,
   secondsLeftInStep,
   isFinished,
@@ -17,43 +17,74 @@ function getSpeechSynthesis() {
   return window.speechSynthesis || null;
 }
 
-// Un ícono por paso, para que la tarjeta se sienta guiada y no solo un
-// cronómetro — 20 de noviembre de 2026 ("que se vea bonita"). Reutiliza
-// íconos que la app ya usa en otras herramientas (Wind en la burbuja de
-// enfoque, Brain en varias pantallas) para no introducir un lenguaje visual
-// nuevo.
+// Un ícono por programa (para el menú) y por paso (para la tarjeta en
+// curso) — 20 de noviembre de 2026 ("que se vea bonita" + varios ejercicios
+// nuevos). Reutiliza íconos que la app ya usa en otras herramientas, nunca
+// introduce un lenguaje visual nuevo.
+const PROGRAM_ICONS = {
+  clasica: Sparkles,
+  rapida: Timer,
+  escaneo: Activity,
+  respiracion478: Wind,
+  dormir: Moon,
+};
+
 const STEP_ICONS = {
   llegar: Sparkles,
   cuerpo: Activity,
   respiracion: Wind,
   mente: Brain,
   cierre: CheckCircle2,
+  piesPiernas: Activity,
+  torsoManos: Activity,
+  hombrosCuello: Activity,
+  caraCabeza: Activity,
+  cuerpoCompleto: Activity,
+  intro: Wind,
+  inhala: Wind,
+  sostiene: Wind,
+  exhala: Wind,
+  soltarDia: Moon,
+  cuerpoPesado: Moon,
 };
 
-// Práctica breve de atención plena guiada — ver mindfulness.js para la
-// evidencia detrás de esta función y el guion completo. Autocontenido,
-// mismo patrón que FocusMode.jsx: lleva su propio temporizador y solo
-// avisa al padre cuando la práctica se completa (`onComplete`) para que
-// ahí se otorgue el XP — este componente nunca toca el progreso guardado.
+// Prácticas breves de atención plena guiada — ver mindfulness.js para la
+// evidencia clínica detrás de esta herramienta y el guion completo de cada
+// programa. Autocontenido, mismo patrón que FocusMode.jsx: lleva su propio
+// temporizador y solo avisa al padre cuando una práctica se completa
+// (`onComplete`) para que ahí se otorgue el XP — este componente nunca toca
+// el progreso guardado.
+//
+// 20 de noviembre de 2026 ("añadir otros ejercicios de mindfulness"): lo
+// que era un solo ejercicio fijo ahora es un menú (MINDFULNESS_PROGRAMS) —
+// la pantalla de inicio pasó de un botón "Empezar" a una lista de tarjetas,
+// una por programa; todo lo demás (cronómetro, voz, "Detener") es el mismo
+// motor de antes, solo que ahora parametrizado por el programa elegido en
+// vez de un guion fijo.
 const SPEECH_LOCALES = { es: "es-MX", en: "en-US", fr: "fr-FR", pt: "pt-BR" };
 
 export default function MindfulnessPanel({ C, t, lang, onComplete }) {
+  const [programId, setProgramId] = useState(null);
   const [running, setRunning] = useState(false);
   const [elapsed, setElapsed] = useState(0);
   const [justFinished, setJustFinished] = useState(false);
+  const [justFinishedMinutes, setJustFinishedMinutes] = useState(0);
   const tickRef = useRef(null);
   const finishedTimeout = useRef(null);
   const speechSynthesis = getSpeechSynthesis();
 
+  const program = programId ? MINDFULNESS_PROGRAMS.find((p) => p.id === programId) : null;
+
   useEffect(() => {
-    if (!running) return;
+    if (!running || !program) return;
     tickRef.current = setInterval(() => {
       setElapsed((s) => {
         const next = s + 1;
-        if (isFinished(next)) {
+        if (isFinished(program, next)) {
           clearInterval(tickRef.current);
           setRunning(false);
           setJustFinished(true);
+          setJustFinishedMinutes(Math.max(1, Math.round(programTotalSeconds(program) / 60)));
           // 20 de noviembre de 2026 ("cuando le pongo detener no se detiene
           // la voz"): si la práctica termina sola mientras seguía hablando
           // (por ejemplo, alguien le dio "Escuchar" al último paso), también
@@ -62,14 +93,15 @@ export default function MindfulnessPanel({ C, t, lang, onComplete }) {
           onComplete?.();
           if (finishedTimeout.current) clearTimeout(finishedTimeout.current);
           finishedTimeout.current = setTimeout(() => setJustFinished(false), 5000);
-          return MINDFULNESS_TOTAL_SECONDS;
+          setProgramId(null);
+          return programTotalSeconds(program);
         }
         return next;
       });
     }, 1000);
     return () => clearInterval(tickRef.current);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [running]);
+  }, [running, program]);
 
   useEffect(() => () => finishedTimeout.current && clearTimeout(finishedTimeout.current), []);
 
@@ -79,27 +111,29 @@ export default function MindfulnessPanel({ C, t, lang, onComplete }) {
   // fondo sin que hubiera ya ninguna práctica visible en pantalla.
   useEffect(() => () => speechSynthesis?.cancel(), [speechSynthesis]);
 
-  const start = () => {
+  const start = (id) => {
     setJustFinished(false);
     setElapsed(0);
+    setProgramId(id);
     setRunning(true);
   };
 
   const stop = () => {
     setRunning(false);
+    setProgramId(null);
     clearInterval(tickRef.current);
     // 20 de noviembre de 2026 ("cuando le pongo detener no se detiene la
     // voz"): esto faltaba — "Detener" paraba el cronómetro y la cuenta
     // regresiva, pero no el audio del navegador, así que la voz seguía
-    // leyendo el paso aunque la pantalla ya hubiera regresado a "Empezar".
+    // leyendo el paso aunque la pantalla ya hubiera regresado al menú.
     speechSynthesis?.cancel();
   };
 
-  const stepIndex = running ? stepIndexAt(elapsed) : null;
-  const step = stepIndex === null ? null : MINDFULNESS_STEPS[stepIndex];
-  const secondsLeft = running ? secondsLeftInStep(elapsed) : 0;
+  const stepIndex = running && program ? stepIndexAt(program, elapsed) : null;
+  const step = stepIndex === null || !program ? null : program.steps[stepIndex];
+  const secondsLeft = running && program ? secondsLeftInStep(program, elapsed) : 0;
 
-  const stepText = step ? t.mindfulnessSteps[step.id] : null;
+  const stepText = step && program ? t.mindfulnessSteps[program.id][step.id] : null;
   const StepIcon = step ? STEP_ICONS[step.id] || Sparkles : null;
 
   const speak = () => {
@@ -110,46 +144,72 @@ export default function MindfulnessPanel({ C, t, lang, onComplete }) {
     speechSynthesis.speak(utterance);
   };
 
-  const minutes = Math.round(MINDFULNESS_TOTAL_SECONDS / 60);
-
-  // Progreso dentro del paso actual (para el anillo) y del total (para la
-  // barra de abajo) — 20 de noviembre de 2026, parte del rediseño visual.
+  // Progreso dentro del paso actual (para el anillo) y del total del
+  // programa (para la barra de abajo) — 20 de noviembre de 2026, parte del
+  // rediseño visual.
   const stepFraction = step ? 1 - secondsLeft / step.seconds : 0;
-  const totalFraction = Math.min(1, elapsed / MINDFULNESS_TOTAL_SECONDS);
+  const totalFraction = program ? Math.min(1, elapsed / programTotalSeconds(program)) : 0;
   const RING_R = 52;
   const RING_CIRC = 2 * Math.PI * RING_R;
 
   return (
     <div>
       <p style={{ fontSize: "12px", color: C.textMuted, margin: "0 0 14px", lineHeight: 1.6 }}>
-        {t.mindfulness.intro(minutes)}
+        {t.mindfulness.intro}
       </p>
 
       {!running && justFinished && (
         <p style={{ fontSize: "13px", color: C.mint, margin: "0 0 12px" }}>
-          {t.mindfulness.justFinished(minutes)}
+          {t.mindfulness.justFinished(justFinishedMinutes)}
         </p>
       )}
 
-      {!running ? (
-        <button
-          onClick={start}
-          style={{
-            display: "flex",
-            alignItems: "center",
-            gap: "8px",
-            background: C.lavender,
-            color: C.lavenderText,
-            border: "none",
-            borderRadius: "12px",
-            padding: "10px 16px",
-            fontSize: "13px",
-            fontWeight: 600,
-            cursor: "pointer",
-          }}
-        >
-          <Play size={16} /> {t.mindfulness.start}
-        </button>
+      {!running || !program ? (
+        <div style={{ display: "flex", flexDirection: "column", gap: "10px" }}>
+          {MINDFULNESS_PROGRAMS.map((p) => {
+            const Icon = PROGRAM_ICONS[p.id] || Sparkles;
+            const info = t.mindfulnessPrograms[p.id];
+            return (
+              <button
+                key={p.id}
+                type="button"
+                onClick={() => start(p.id)}
+                style={{
+                  display: "flex",
+                  alignItems: "center",
+                  gap: "12px",
+                  textAlign: "left",
+                  width: "100%",
+                  background: C.surface,
+                  border: `1px solid ${C.border}`,
+                  borderRadius: "14px",
+                  padding: "12px 14px",
+                  cursor: "pointer",
+                }}
+              >
+                <div
+                  style={{
+                    width: "38px",
+                    height: "38px",
+                    borderRadius: "10px",
+                    background: `${C.lavender}22`,
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    flexShrink: 0,
+                  }}
+                >
+                  <Icon size={18} color={C.lavender} />
+                </div>
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <p style={{ fontSize: "13.5px", fontWeight: 700, color: C.text, margin: "0 0 2px" }}>{info.title}</p>
+                  <p style={{ fontSize: "11.5px", color: C.textMuted, margin: 0, lineHeight: 1.4 }}>{info.blurb}</p>
+                </div>
+                <Play size={16} color={C.lavender} style={{ flexShrink: 0 }} />
+              </button>
+            );
+          })}
+        </div>
       ) : (
         <div
           style={{
@@ -170,7 +230,7 @@ export default function MindfulnessPanel({ C, t, lang, onComplete }) {
               margin: "0 0 16px",
             }}
           >
-            {t.mindfulness.stepProgress(stepIndex + 1, MINDFULNESS_STEPS.length)}
+            {t.mindfulness.stepProgress(stepIndex + 1, program.steps.length)}
           </p>
 
           {/* Anillo de progreso del paso actual — SVG simple, sin librería
