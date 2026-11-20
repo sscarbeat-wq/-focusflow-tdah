@@ -535,6 +535,11 @@ export default function QuickAccessCompass({
   palette = null,
   // Cómo va el día, para la mascota (ver Mascot.jsx). Opcional.
   dayMood = "neutral",
+  // 20 de noviembre de 2026 ("el animalito puede decir otras frases?"):
+  // evento de racha para que la mascota lo comente (ver streakEventFor en
+  // streak.js y Mascot.jsx) — pasan tal cual, igual que dayMood.
+  streakEvent,
+  onStreakEventShown,
   // Arrastrar un acceso encima de otro los intercambia de lugar; el padre
   // recibe el nuevo orden de keys y lo guarda (10 de noviembre de 2026).
   onReorder,
@@ -840,6 +845,8 @@ export default function QuickAccessCompass({
             heroEmojiSize={sizes.heroEmojiSize}
             xp={xp}
             dayMood={dayMood}
+            streakEvent={streakEvent}
+            onStreakEventShown={onStreakEventShown}
             focusMinutes={focusMinutes}
             focusGoal={focusGoal}
             nextUnlock={nextUnlock}

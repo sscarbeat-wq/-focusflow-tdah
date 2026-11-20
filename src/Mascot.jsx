@@ -169,6 +169,15 @@ export default function Mascot({
   // "good" (ya hizo algo hoy) | "quiet" (todavía nada y ya es de día) |
   // "night" (de noche) | "neutral". Lo calcula FocusFlowTDAH.jsx.
   dayMood = "neutral",
+  // 20 de noviembre de 2026 ("el animalito puede decir otras frases?" →
+  // frases según la racha, no solo las genéricas del día): objeto
+  // { type: "welcomeBack" | "record" | "milestone", value?, gapDays? } o
+  // null, calculado por streakEventFor (streak.js) en FocusFlowTDAH.jsx.
+  // Cuando llega, tiene prioridad sobre el globito normal de dayMood — se
+  // muestra una vez y se avisa con onStreakEventShown para que el padre
+  // lo limpie y nunca se repita.
+  streakEvent = null,
+  onStreakEventShown = () => {},
   // Explicaciones del centro (10 de noviembre de 2026, "el paciente tiene
   // que saber para qué es"): minutos de Modo Enfoque de hoy y la meta,
   // el siguiente premio que se desbloquea con XP ({ remaining, name } o
@@ -365,6 +374,36 @@ export default function Mascot({
       setNudge(text);
       timers.push(setTimeout(() => setNudge(null), ms));
     };
+    // 20 de noviembre de 2026 ("el animalito puede decir otras frases?"):
+    // un evento de racha (récord, hito redondo, o volver tras un hueco)
+    // manda por delante de los globitos genéricos de siempre — se
+    // muestra solo, un poco más tiempo por ser algo especial, y al
+    // terminar se avisa al padre (onStreakEventShown) para que lo limpie:
+    // así nunca se repite, y este mismo efecto vuelve a correr después
+    // con streakEvent ya en null, cayendo en el comportamiento normal de
+    // dayMood de abajo.
+    if (streakEvent) {
+      const text =
+        streakEvent.type === "record"
+          ? t.mascot.newRecordNudge(streakEvent.value)
+          : streakEvent.type === "welcomeBack"
+            ? (t.mascot.welcomeBackNudges || [])[Math.floor(Math.random() * (t.mascot.welcomeBackNudges || [1]).length)]
+            : t.mascot.streakMilestoneNudge(streakEvent.value);
+      if (text) {
+        timers.push(
+          setTimeout(() => {
+            show(text, 7000);
+            timers.push(setTimeout(onStreakEventShown, 7000));
+          }, 1200)
+        );
+      } else {
+        onStreakEventShown();
+      }
+      return () => {
+        timers.forEach(clearTimeout);
+        setNudge(null);
+      };
+    }
     if (dayMood === "quiet") {
       const list = t.mascot.dayNudges || [];
       let i = 0;
@@ -384,7 +423,7 @@ export default function Mascot({
       timers.forEach(clearTimeout);
       setNudge(null);
     };
-  }, [dayMood, isHero, t]);
+  }, [dayMood, isHero, t, streakEvent, onStreakEventShown]);
 
   const ringSize = isHero ? heroRingSize : RING_SIZE;
   const ringRadius = isHero ? heroRingRadius : RING_RADIUS;

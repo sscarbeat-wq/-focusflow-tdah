@@ -50,3 +50,42 @@ export function effectiveStreak(streak, now = new Date()) {
   if (gap > 1) return { ...s, current: 0 };
   return s;
 }
+
+// 20 de noviembre de 2026 ("el animalito puede decir otras frases?" →
+// frases nuevas según lo que pasa con la racha/XP, no solo las genéricas
+// del día): números de racha que se festejan con una frase especial de la
+// mascota (no un modal, solo el globito de siempre — ver `streakEvent` en
+// FocusFlowTDAH.jsx y las frases nuevas en i18n `mascot.streakMilestone*`).
+export const STREAK_MILESTONES = [3, 7, 14, 21, 30, 50, 100, 150, 200, 365];
+
+// Dado el estado de racha justo ANTES de actualizarse (prevStreak) y el
+// estado justo DESPUÉS (nextStreak, el resultado de llamar nextStreak()
+// arriba), decide si hay algo que vale la pena que la mascota comente —
+// nunca más de un evento a la vez, en orden de qué tan especial es.
+// Pensado para llamarse solo el día en que `lastDate` de verdad cambió
+// (una sola vez al día, la primera acción que cuenta ese día) — así nunca
+// se repite con solo recargar la página. Nunca regaña: el caso de "volver
+// después de una ausencia" es una bienvenida cálida, nunca menciona
+// cuántos días faltaron de forma que se sienta un reclamo.
+export function streakEventFor(prevStreak, nextStreakState) {
+  const prev = { ...DEFAULT_STREAK, ...(prevStreak || {}) };
+  const next = nextStreakState;
+  if (!next || !next.lastDate) return null;
+  // ¿Volvió después de una ausencia real? Solo cuenta si YA había una
+  // fecha previa (si no, es la primerísima vez que usa la app — eso no
+  // es "volver a nada") y el hueco fue de más de un día.
+  if (prev.lastDate) {
+    const gap = daysBetween(prev.lastDate, next.lastDate);
+    if (gap > 1) return { type: "welcomeBack", gapDays: gap };
+  }
+  // ¿Récord personal? La racha actual superó el mejor histórico de antes
+  // (y no es solo el primerísimo día, donde "superar" un 0 no dice nada).
+  if (next.current > 1 && next.longest > (prev.longest || 0)) {
+    return { type: "record", value: next.current };
+  }
+  // ¿Hito redondo de racha?
+  if (STREAK_MILESTONES.includes(next.current)) {
+    return { type: "milestone", value: next.current };
+  }
+  return null;
+}

@@ -111,7 +111,7 @@ import { PlusLockedPanel, PlusUpsellBadge, PlusUpsellInline } from "./PlusUpsell
 import { scheduleStepsOnCalendar } from "./calendarSync";
 import { useBodyDouble } from "./bodyDouble";
 import { celebrate } from "./celebrate";
-import { DEFAULT_STREAK, nextStreak, effectiveStreak, todayKey } from "./streak";
+import { DEFAULT_STREAK, nextStreak, effectiveStreak, todayKey, streakEventFor } from "./streak";
 import { DEFAULT_MOOD_LOG, recordMood, todayEntry as todayMoodEntry } from "./moodLog";
 import {
   DEFAULT_FOCUS_SESSION_LOG,
@@ -1120,6 +1120,34 @@ export default function FocusFlowTDAH({
     }
     prevXpRef.current = xp;
   }, [xp]);
+  // 20 de noviembre de 2026 ("el animalito puede decir otras frases?" →
+  // frases según la racha/XP, no solo las genéricas del día): mismo
+  // patrón exacto que `prevXpRef` arriba — `prevStreakRef` guarda el
+  // estado de racha del render anterior para detectar el momento EXACTO
+  // en que cambia `streak.lastDate` (una sola vez al día, la primera
+  // acción que cuenta ese día; recargar la página no lo repite, porque el
+  // ref arranca ya con el valor actual al montar). `streakEventFor` (ver
+  // streak.js) decide si hay algo que vale la pena que la mascota
+  // comente — récord personal, hito redondo de racha, o una bienvenida
+  // cálida si volvió después de un hueco real. Se guarda en estado (no
+  // solo se dispara un efecto) para que Mascot.jsx lo muestre con
+  // prioridad sobre los globitos genéricos de siempre, y para poder
+  // limpiarlo (onStreakEventShown) una vez mostrado y así nunca repetirlo.
+  const prevStreakRef = useRef(streak);
+  const [streakEvent, setStreakEvent] = useState(null);
+  useEffect(() => {
+    const prev = prevStreakRef.current;
+    if (streak.lastDate !== prev.lastDate) {
+      const event = streakEventFor(prev, streak);
+      if (event) setStreakEvent(event);
+    }
+    prevStreakRef.current = streak;
+  }, [streak]);
+  // Referencia estable (useCallback sin dependencias) para que Mascot.jsx
+  // pueda incluirla tal cual en las dependencias de su efecto sin que
+  // cambie en cada render de esta pantalla (que pasa seguido — cualquier
+  // punto ganado, por ejemplo) y reinicie de más el ciclo de globitos.
+  const clearStreakEvent = useCallback(() => setStreakEvent(null), []);
   // Desbloqueo que se muestra ahora mismo en el modal de celebración (el
   // primero de la cola) — si se cruzan dos umbrales de un solo golpe de XP
   // (no debería pasar con +0.85 por acción, pero por si acaso), se
@@ -2774,6 +2802,12 @@ export default function FocusFlowTDAH({
                   palette={palette}
                   xp={xp}
                   dayMood={dayMood}
+                  // 20 de noviembre de 2026 ("el animalito puede decir
+                  // otras frases?" → frases según racha/XP, ver streak.js
+                  // streakEventFor): se limpia apenas Mascot.jsx lo
+                  // muestra, para que nunca se repita.
+                  streakEvent={streakEvent}
+                  onStreakEventShown={clearStreakEvent}
                   // Planetas de categoría: cada uno con el color fijo de su
                   // grupo (TOOL_GROUPS), ya no del acento personal — así se
                   // reconocen de un vistazo, independiente del color elegido.
