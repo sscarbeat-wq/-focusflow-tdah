@@ -14,7 +14,6 @@ import React, { useState, useMemo, useCallback, useRef, useEffect } from "react"
 import {
   scheduleBlocksForDay,
   formatMinutesAsTime,
-  snapToGrid,
 } from "./scheduleBlocks";
 import {
   Plus,
@@ -550,91 +549,6 @@ export default function ScheduleAgendaPanel({
   const totalBlocks = dayBlocks.length;
   const completedCount = dayBlocks.filter((b) => completedIds.has(b.id)).length;
   const progressPct = totalBlocks > 0 ? Math.round((completedCount / totalBlocks) * 100) : 0;
-
-  // ── Arrastrar para cambiar la hora (franja de tiempo) ──
-  // Cada hora ocupa GRID_ROW_H px; el rango de horas que se dibuja se
-  // ajusta para que siempre caigan todos los bloques del día (con un
-  // margen de 1 hora), aunque por defecto cubre 6:00–23:00.
-  const GRID_ROW_H = 160; // px por hora — suficiente para que un bloque típico
-  // de 25-30 min (el tamaño por defecto de un pomodoro) no choque con el
-  // siguiente, incluso con bloques seguidos
-  const GRID_MIN_BLOCK_H = 56; // alto mínimo de una tarjeta, aunque dure poco
-  const gridBounds = useMemo(() => {
-    let startHour = 6;
-    let endHour = 23;
-    dayBlocks.forEach((b) => {
-      const bStartH = Math.floor(b.startMin / 60);
-      const bEndH = Math.ceil((b.startMin + (b.durationMin || 0)) / 60);
-      if (bStartH - 1 < startHour) startHour = Math.max(0, bStartH - 1);
-      if (bEndH + 1 > endHour) endHour = Math.min(24, bEndH + 1);
-    });
-    return { startHour, endHour };
-  }, [dayBlocks]);
-  const gridStartMin = gridBounds.startHour * 60;
-  const gridHeight = (gridBounds.endHour - gridBounds.startHour) * GRID_ROW_H;
-  const minToY = useCallback((min) => ((min - gridStartMin) / 60) * GRID_ROW_H, [gridStartMin]);
-
-  const [dragBlockId, setDragBlockId] = useState(null);
-  const [dragPreviewMin, setDragPreviewMin] = useState(null);
-  const dragInfoRef = useRef(null);
-
-  const handleBlockPointerDown = useCallback((e, block) => {
-    if (block.isMedication) return; // los medicamentos son automáticos, no se arrastran
-    if (e.target.closest && e.target.closest("[data-no-drag]")) return;
-    dragInfoRef.current = {
-      blockId: block.id,
-      pointerId: e.pointerId,
-      startClientY: e.clientY,
-      originStartMin: block.startMin,
-      moved: false,
-    };
-    try {
-      e.currentTarget.setPointerCapture(e.pointerId);
-    } catch (_) {}
-  }, []);
-
-  const handleBlockPointerMove = useCallback((e) => {
-    const info = dragInfoRef.current;
-    if (!info || info.pointerId !== e.pointerId) return;
-    const deltaY = e.clientY - info.startClientY;
-    if (!info.moved && Math.abs(deltaY) < 4) return;
-    if (!info.moved) {
-      info.moved = true;
-      setDragBlockId(info.blockId);
-    }
-    const deltaMin = (deltaY / GRID_ROW_H) * 60;
-    const snapped = snapToGrid(info.originStartMin + deltaMin);
-    info.previewMin = snapped;
-    setDragPreviewMin(snapped);
-  }, [GRID_ROW_H]);
-
-  const finishDrag = useCallback(
-    (e) => {
-      const info = dragInfoRef.current;
-      if (!info || info.pointerId !== e.pointerId) return;
-      dragInfoRef.current = null;
-      try {
-        e.currentTarget.releasePointerCapture(e.pointerId);
-      } catch (_) {}
-      if (info.moved && info.previewMin != null && info.previewMin !== info.originStartMin && onMove) {
-        onMove(info.blockId, info.previewMin);
-      }
-      setDragBlockId(null);
-      setDragPreviewMin(null);
-    },
-    [onMove]
-  );
-
-  const cancelDrag = useCallback((e) => {
-    const info = dragInfoRef.current;
-    if (!info || info.pointerId !== e.pointerId) return;
-    dragInfoRef.current = null;
-    try {
-      e.currentTarget.releasePointerCapture(e.pointerId);
-    } catch (_) {}
-    setDragBlockId(null);
-    setDragPreviewMin(null);
-  }, []);
 
   const monthNames = MONTH_NAMES[lang] || MONTH_NAMES.es;
   const dayHeaders = DAY_HEADERS[lang] || DAY_HEADERS.es;
@@ -1246,181 +1160,103 @@ export default function ScheduleAgendaPanel({
           </div>
         </div>
       ) : (
-        /* ---- Franja de horas: cada bloque en su lugar, se puede arrastrar ---- */
-        <div>
-          {dayBlocks.some((b) => !b.isMedication) && (
-            <div style={{ fontSize: "11px", color: C.textMuted, textAlign: "center", marginBottom: "8px" }}>
-              {labels.dragHint || "Arrastra una tarjeta hacia arriba o abajo para cambiarle la hora"}
-            </div>
-          )}
-          <div style={{ position: "relative", marginLeft: "46px", height: gridHeight }}>
-            {/* Líneas y etiquetas de hora */}
-            {Array.from({ length: gridBounds.endHour - gridBounds.startHour + 1 }).map((_, i) => {
-              const h = gridBounds.startHour + i;
-              return (
-                <div
-                  key={h}
-                  style={{
-                    position: "absolute",
-                    left: 0,
-                    right: 0,
-                    top: i * GRID_ROW_H,
-                    borderTop: i === 0 ? "none" : `1px solid ${tint(C.text, 0.08)}`,
-                  }}
-                >
-                  <span
+        /* ---- Lista de bloques existentes ---- */
+        <div style={{ display: "flex", flexDirection: "column", gap: "6px" }}>
+          {dayBlocks.map((block) => {
+            const isDone = completedIds.has(block.id);
+            const isNext = nextBlock && block.id === nextBlock.id;
+            const catColor = block.isMedication ? "#7C4DFF" : guessCategoryColor(block);
+
+            // No mostrar el hero de nuevo como tarjeta normal
+            if (isNext && isToday) return null;
+
+            return (
+              <div
+                key={block.id}
+                style={{
+                  background: block.isMedication ? `${tint("#7C4DFF", 0.06)}` : C.surface,
+                  borderRadius: "14px",
+                  padding: "12px 14px",
+                  display: "flex",
+                  alignItems: "center",
+                  gap: "12px",
+                  opacity: isDone ? 0.6 : (isToday && block.startMin < nowMinutes && !isDone ? 0.8 : 1),
+                  transition: "all 0.2s",
+                  boxShadow: "0 1px 3px rgba(0,0,0,0.04)",
+                  borderLeft: block.isMedication ? "3px solid #7C4DFF" : "none",
+                }}
+              >
+                {/* Check circle / Med icon */}
+                {block.isMedication ? (
+                  <div style={{
+                    width: "36px", height: "36px", borderRadius: "10px",
+                    background: `${tint("#7C4DFF", 0.12)}`,
+                    display: "flex", alignItems: "center", justifyContent: "center",
+                    flexShrink: 0, fontSize: "18px",
+                  }}>
+                    💊
+                  </div>
+                ) : (
+                  <button
+                    onClick={() => toggleComplete(block.id)}
+                    aria-label={isDone ? "Desmarcar" : "Completar"}
                     style={{
-                      position: "absolute",
-                      left: "-46px",
-                      top: "-6px",
-                      width: "40px",
-                      textAlign: "right",
-                      fontSize: "10px",
-                      color: C.textMuted,
+                      width: "36px",
+                      height: "36px",
+                      borderRadius: "10px",
+                      background: isDone ? `${catColor}15` : tint(C.text, 0.04),
+                      border: "none",
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "center",
+                      cursor: "pointer",
+                      flexShrink: 0,
+                      transition: "all 0.2s",
                     }}
                   >
-                    {String(h).padStart(2, "0")}:00
-                  </span>
-                </div>
-              );
-            })}
+                    {isDone ? (
+                      <Check size={18} color="#22c55e" strokeWidth={2.5} />
+                    ) : (
+                      <span style={{ fontSize: "18px" }}>{block.icon || "📋"}</span>
+                    )}
+                  </button>
+                )}
 
-            {/* Bloques del día, posicionados por su hora */}
-            {dayBlocks.map((block, blockIdx) => {
-              const isDone = completedIds.has(block.id);
-              const isNext = nextBlock && block.id === nextBlock.id;
-              const catColor = block.isMedication ? "#7C4DFF" : guessCategoryColor(block);
-              const isDragging = dragBlockId === block.id;
-              const shownStartMin = isDragging && dragPreviewMin != null ? dragPreviewMin : block.startMin;
-              // Si el siguiente bloque empieza muy pronto (p. ej. un descanso
-              // corto justo antes del próximo pomodoro), no dejar que el
-              // alto mínimo haga que esta tarjeta se encime con la de abajo:
-              // se recorta al espacio real disponible hasta que empieza.
-              let cardHeight = Math.max(GRID_MIN_BLOCK_H, (block.durationMin / 60) * GRID_ROW_H);
-              const followingBlock = dayBlocks[blockIdx + 1];
-              if (followingBlock && !isDragging) {
-                const gapPx = minToY(followingBlock.startMin) - minToY(block.startMin);
-                if (gapPx > 0) cardHeight = Math.min(cardHeight, Math.max(22, gapPx - 2));
-              }
-
-              // No mostrar el hero de nuevo como tarjeta normal
-              if (isNext && isToday) return null;
-
-              // Tarjeta muy comprimida (bloques cortos muy seguidos): icono
-              // más chico y sin la línea de hora aparte, todo en una línea.
-              const isCompact = cardHeight < 44;
-              const iconBoxSize = isCompact ? 22 : 36;
-
-              return (
-                <div
-                  key={block.id}
-                  onPointerDown={(e) => handleBlockPointerDown(e, block)}
-                  onPointerMove={handleBlockPointerMove}
-                  onPointerUp={finishDrag}
-                  onPointerCancel={cancelDrag}
-                  style={{
-                    position: "absolute",
-                    left: 0,
-                    right: 0,
-                    top: minToY(shownStartMin),
-                    height: cardHeight,
-                    overflow: "hidden",
-                    background: block.isMedication ? `${tint("#7C4DFF", 0.06)}` : C.surface,
-                    borderRadius: isCompact ? "8px" : "14px",
-                    padding: isCompact ? "2px 10px" : "10px 14px",
-                    display: "flex",
-                    alignItems: "center",
-                    gap: isCompact ? "6px" : "12px",
-                    opacity: isDone ? 0.6 : (isToday && block.startMin < nowMinutes && !isDone ? 0.8 : 1),
-                    transition: isDragging ? "none" : "top 0.2s ease, box-shadow 0.15s, transform 0.1s",
-                    boxShadow: isDragging ? "0 8px 18px rgba(0,0,0,0.22)" : "0 1px 3px rgba(0,0,0,0.04)",
-                    transform: isDragging ? "scale(1.02)" : "none",
-                    zIndex: isDragging ? 5 : 1,
-                    borderLeft: block.isMedication ? "3px solid #7C4DFF" : "none",
-                    cursor: block.isMedication ? "default" : "grab",
-                    touchAction: block.isMedication ? "auto" : "none",
-                    userSelect: "none",
-                  }}
-                >
-                  {/* Check circle / Med icon */}
-                  {block.isMedication ? (
-                    <div style={{
-                      width: iconBoxSize, height: iconBoxSize, borderRadius: isCompact ? "6px" : "10px",
-                      background: `${tint("#7C4DFF", 0.12)}`,
-                      display: "flex", alignItems: "center", justifyContent: "center",
-                      flexShrink: 0, fontSize: isCompact ? "12px" : "18px",
-                    }}>
-                      💊
-                    </div>
-                  ) : (
-                    <button
-                      data-no-drag="true"
-                      onClick={() => toggleComplete(block.id)}
-                      aria-label={isDone ? "Desmarcar" : "Completar"}
-                      style={{
-                        width: iconBoxSize,
-                        height: iconBoxSize,
-                        borderRadius: isCompact ? "6px" : "10px",
-                        background: isDone ? `${catColor}15` : tint(C.text, 0.04),
-                        border: "none",
-                        display: "flex",
-                        alignItems: "center",
-                        justifyContent: "center",
-                        cursor: "pointer",
-                        flexShrink: 0,
-                        transition: "all 0.2s",
-                      }}
-                    >
-                      {isDone ? (
-                        <Check size={isCompact ? 12 : 18} color="#22c55e" strokeWidth={2.5} />
-                      ) : (
-                        <span style={{ fontSize: isCompact ? "12px" : "18px" }}>{block.icon || "📋"}</span>
-                      )}
-                    </button>
-                  )}
-
-                  {/* Content */}
-                  <div style={{ flex: 1, minWidth: 0, display: isCompact ? "flex" : "block", alignItems: "baseline", gap: "6px" }}>
-                    <div
-                      style={{
-                        fontSize: isCompact ? "11px" : "13px",
-                        fontWeight: 600,
-                        color: C.text,
-                        textDecoration: isDone ? "line-through" : "none",
-                        whiteSpace: "nowrap",
-                        overflow: "hidden",
-                        textOverflow: "ellipsis",
-                      }}
-                    >
-                      {block.text || block.name}
-                    </div>
-                    <div style={{ fontSize: isCompact ? "9px" : "11px", color: block.isMedication ? "#7C4DFF" : (isDone ? "#22c55e" : C.textMuted), fontWeight: block.isMedication ? 600 : (isDone ? 500 : 400), marginTop: isCompact ? 0 : "1px", flexShrink: 0 }}>
-                      {formatMinutesAsTime(shownStartMin)}
-                      {block.isMedication && !isCompact ? ` · ${labels.autoLabel || "Automático"}` : ""}
-                      {isDone && !block.isMedication ? ` · ${labels.completedLabel || "Completado"}` : ""}
-                    </div>
+                {/* Content */}
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <div
+                    style={{
+                      fontSize: "13px",
+                      fontWeight: 600,
+                      color: C.text,
+                      textDecoration: isDone ? "line-through" : "none",
+                    }}
+                  >
+                    {block.text || block.name}
                   </div>
-
-                  {/* Color accent bar */}
-                  {!isCompact && (
-                    <div style={{ width: "4px", height: "28px", borderRadius: "2px", background: catColor, flexShrink: 0 }} />
-                  )}
-
-                  {/* Delete — solo para bloques manuales, NO medicamentos */}
-                  {!block.isMedication && (
-                    <button
-                      data-no-drag="true"
-                      onClick={() => onRemove(block.id)}
-                      aria-label={labels.deleteBlockTitle || "Eliminar bloque"}
-                      style={{ background: "none", border: "none", cursor: "pointer", color: C.textMuted, padding: isCompact ? "2px" : "4px", display: "flex", opacity: 0.4, flexShrink: 0 }}
-                    >
-                      <Trash2 size={isCompact ? 10 : 14} />
-                    </button>
-                  )}
+                  <div style={{ fontSize: "11px", color: block.isMedication ? "#7C4DFF" : (isDone ? "#22c55e" : C.textMuted), fontWeight: block.isMedication ? 600 : (isDone ? 500 : 400), marginTop: "1px" }}>
+                    {block.startMin != null ? formatMinutesAsTime(block.startMin) : (labels.pendingToday || "Pendiente de hoy")}
+                    {block.isMedication ? ` · ${labels.autoLabel || "Automático"}` : ""}
+                    {isDone && !block.isMedication ? ` · ${labels.completedLabel || "Completado"}` : ""}
+                  </div>
                 </div>
-              );
-            })}
-          </div>
+
+                {/* Color accent bar */}
+                <div style={{ width: "4px", height: "28px", borderRadius: "2px", background: catColor, flexShrink: 0 }} />
+
+                {/* Delete — solo para bloques manuales, NO medicamentos */}
+                {!block.isMedication && (
+                  <button
+                    onClick={() => onRemove(block.id)}
+                    aria-label={labels.deleteBlockTitle || "Eliminar bloque"}
+                    style={{ background: "none", border: "none", cursor: "pointer", color: C.textMuted, padding: "4px", display: "flex", opacity: 0.4 }}
+                  >
+                    <Trash2 size={14} />
+                  </button>
+                )}
+              </div>
+            );
+          })}
         </div>
       )}
 
