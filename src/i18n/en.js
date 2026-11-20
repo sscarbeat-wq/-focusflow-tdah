@@ -600,8 +600,8 @@ const en = {
   },
 
   mindfulness: {
-    intro: (minutes) => `About ${minutes} minutes of guided mindfulness — among everything researched for ADHD in adults, it's the non-pharmacological practice with the strongest direct support in a recent meta-analysis.`,
-    justFinished: (minutes) => `Done — you practiced ${minutes} minutes of mindfulness.`,
+    intro: "Among everything researched for ADHD in adults, mindfulness is the non-pharmacological practice with the strongest direct support in a recent meta-analysis. Pick the exercise that fits this moment.",
+    justFinished: (minutes) => `Done — you practiced ${minutes} minute${minutes === 1 ? "" : "s"} of mindfulness.`,
     start: "Start",
     listenAria: "Listen",
     listenButton: "Listen",
@@ -609,12 +609,51 @@ const en = {
     stepProgress: (i, n) => `Step ${i} of ${n}`,
   },
 
+  mindfulnessPrograms: {
+    clasica: { title: "Full practice", blurb: "The original guided walkthrough — about 3 minutes." },
+    rapida: { title: "Quick version", blurb: "For when there's little time — 1 minute." },
+    escaneo: { title: "Body scan", blurb: "Scan your body part by part, noticing tension — about 3 minutes." },
+    respiracion478: { title: "4-7-8 breathing", blurb: "For moments of anxiety or impulsivity — about 2 minutes." },
+    dormir: { title: "Before sleep", blurb: "Slower pace, meant to do already in bed — about 4 minutes." },
+  },
+
   mindfulnessSteps: {
-    llegar: "Sit comfortably. You don't need to close your eyes if you don't want to — just stop whatever you were doing for a moment.",
-    cuerpo: "Notice how your body feels right now, without changing anything yet. Your feet on the floor, your back supported.",
-    respiracion: "Bring your attention to your breathing, without forcing it. Just notice the air moving in and out.",
-    mente: "It's normal for your mind to wander — with ADHD, more often. When you notice it, come back to your breathing, without judging yourself for having drifted.",
-    cierre: "Before finishing, notice how you feel now compared to a moment ago. Whatever you notice is fine.",
+    clasica: {
+      llegar: "Sit comfortably. You don't need to close your eyes if you don't want to — just stop whatever you were doing for a moment.",
+      cuerpo: "Notice how your body feels right now, without changing anything yet. Your feet on the floor, your back supported.",
+      respiracion: "Bring your attention to your breathing, without forcing it. Just notice the air moving in and out.",
+      mente: "It's normal for your mind to wander — with ADHD, more often. When you notice it, come back to your breathing, without judging yourself for having drifted.",
+      cierre: "Before finishing, notice how you feel now compared to a moment ago. Whatever you notice is fine.",
+    },
+    rapida: {
+      llegar: "Just take 15 seconds: stop whatever you were doing and settle in however you are.",
+      respiracion: "Now just notice your breathing moving in and out, without changing it. If your mind wanders, that's fine — just come back.",
+      cierre: "That's it. A full minute of pause — you can go back to what's next.",
+    },
+    escaneo: {
+      llegar: "Sit or lie down wherever you're comfortable. We're going to go through your body part by part, no rush.",
+      piesPiernas: "Bring your attention to your feet and legs. Notice any tension, weight, or temperature — whatever it is, without trying to change it.",
+      torsoManos: "Now notice your torso, your arms, and your hands. Where do you feel something tight? Where does it feel loose?",
+      hombrosCuello: "Move up to your shoulders and neck — tension tends to build up there without you noticing. Just notice it.",
+      caraCabeza: "Notice your face: your jaw, your eyes, your forehead. If they're tight, you don't need to force them to relax — just notice.",
+      cuerpoCompleto: "Now feel your whole body at once, from head to toe, as if it were one single thing.",
+      cierre: "Before finishing, notice how your body feels now compared to when you started.",
+    },
+    respiracion478: {
+      intro: "This technique helps when you feel anxious or the urge to act out: inhale 4 seconds, hold 7, exhale 8. We'll do it 4 times.",
+      inhala: "Inhale through your nose... 4 seconds.",
+      sostiene: "Hold the air... 7 seconds.",
+      exhala: "Exhale slowly through your mouth... 8 seconds.",
+      cierre: "Done. Notice how your body feels now — it doesn't need to be different, just notice it.",
+    },
+    dormir: {
+      llegar: "You're already in bed. There's nothing else to do today — this is the only thing left, and it's staying here.",
+      cuerpo: "Notice your body lying down, the weight of the covers, the temperature. You don't need to move or settle differently.",
+      respiracion: "Let your breathing slow down, at its own pace. Don't force it, just follow along.",
+      soltarDia: "If something from the day keeps circling back, don't solve it now — just notice it's there and leave it for tomorrow.",
+      cuerpoPesado: "Notice how your body feels heavier and heavier against the bed, as if it sinks a little more with every breath.",
+      cierre: "There's nothing else you need to do. If you fall asleep before this ends, that's perfect.",
+    },
   },
 
   moodLog: {

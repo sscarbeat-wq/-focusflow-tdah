@@ -603,8 +603,8 @@ const fr = {
   },
 
   mindfulness: {
-    intro: (minutes) => `Environ ${minutes} minutes de pleine conscience guidée — parmi tout ce qui a été étudié pour le TDAH chez l'adulte, c'est la pratique non pharmacologique la plus solidement soutenue par une méta-analyse récente.`,
-    justFinished: (minutes) => `Terminé — tu as pratiqué ${minutes} minutes de pleine conscience.`,
+    intro: "Parmi tout ce qui a été étudié pour le TDAH chez l'adulte, la pleine conscience est la pratique non pharmacologique la plus solidement soutenue par une méta-analyse récente. Choisis l'exercice qui convient le mieux à ce moment.",
+    justFinished: (minutes) => `Terminé — tu as pratiqué ${minutes} minute${minutes === 1 ? "" : "s"} de pleine conscience.`,
     start: "Commencer",
     listenAria: "Écouter",
     listenButton: "Écouter",
@@ -612,12 +612,51 @@ const fr = {
     stepProgress: (i, n) => `Étape ${i} sur ${n}`,
   },
 
+  mindfulnessPrograms: {
+    clasica: { title: "Pratique complète", blurb: "Le parcours guidé original — environ 3 minutes." },
+    rapida: { title: "Version rapide", blurb: "Pour quand il y a peu de temps — 1 minute." },
+    escaneo: { title: "Scan corporel", blurb: "Parcours ton corps partie par partie, en remarquant les tensions — environ 3 minutes." },
+    respiracion478: { title: "Respiration 4-7-8", blurb: "Pour les moments d'anxiété ou d'impulsivité — environ 2 minutes." },
+    dormir: { title: "Avant de dormir", blurb: "Rythme plus lent, à faire déjà au lit — environ 4 minutes." },
+  },
+
   mindfulnessSteps: {
-    llegar: "Installe-toi confortablement. Pas besoin de fermer les yeux si tu ne le souhaites pas — arrête juste ce que tu faisais pendant un instant.",
-    cuerpo: "Remarque comment ton corps se sent en ce moment, sans rien changer encore. Les pieds sur le sol, le dos soutenu.",
-    respiracion: "Porte ton attention sur ta respiration, sans la forcer. Remarque juste l'air qui entre et qui sort.",
-    mente: "C'est normal que l'esprit s'échappe — avec un TDAH, encore plus souvent. Quand tu le remarques, reviens à la respiration, sans te juger pour être parti.",
-    cierre: "Avant de terminer, remarque comment tu te sens maintenant par rapport à il y a un instant. Quoi que tu remarques, c'est bien.",
+    clasica: {
+      llegar: "Installe-toi confortablement. Pas besoin de fermer les yeux si tu ne le souhaites pas — arrête juste ce que tu faisais pendant un instant.",
+      cuerpo: "Remarque comment ton corps se sent en ce moment, sans rien changer encore. Les pieds sur le sol, le dos soutenu.",
+      respiracion: "Porte ton attention sur ta respiration, sans la forcer. Remarque juste l'air qui entre et qui sort.",
+      mente: "C'est normal que l'esprit s'échappe — avec un TDAH, encore plus souvent. Quand tu le remarques, reviens à la respiration, sans te juger pour être parti.",
+      cierre: "Avant de terminer, remarque comment tu te sens maintenant par rapport à il y a un instant. Quoi que tu remarques, c'est bien.",
+    },
+    rapida: {
+      llegar: "Prends juste 15 secondes : arrête ce que tu faisais et installe-toi comme tu es.",
+      respiracion: "Maintenant, remarque juste ta respiration qui entre et sort, sans la changer. Si l'esprit s'échappe, ce n'est pas grave — reviens, c'est tout.",
+      cierre: "C'est tout. Une minute complète de pause — tu peux reprendre ce qui suit.",
+    },
+    escaneo: {
+      llegar: "Assieds-toi ou allonge-toi où tu es à l'aise. On va parcourir ton corps partie par partie, sans te presser.",
+      piesPiernas: "Porte ton attention sur tes pieds et tes jambes. Remarque s'il y a de la tension, du poids ou de la température — peu importe quoi, sans essayer de le changer.",
+      torsoManos: "Remarque maintenant ton torse, tes bras et tes mains. Où sens-tu quelque chose de serré ? Où ça se sent relâché ?",
+      hombrosCuello: "Monte vers tes épaules et ton cou — c'est souvent là que la tension s'accumule sans qu'on s'en rende compte. Remarque-le, c'est tout.",
+      caraCabeza: "Remarque ton visage : ta mâchoire, tes yeux, ton front. S'ils sont serrés, pas besoin de forcer la détente — remarque-le, c'est tout.",
+      cuerpoCompleto: "Maintenant, ressens ton corps entier d'un seul coup, de la tête aux pieds, comme si c'était une seule chose.",
+      cierre: "Avant de terminer, remarque comment ton corps se sent maintenant par rapport au début.",
+    },
+    respiracion478: {
+      intro: "Cette technique aide quand tu sens de l'anxiété ou l'envie d'agir trop vite : inspire 4 secondes, retiens 7, expire 8. On va le faire 4 fois.",
+      inhala: "Inspire par le nez... 4 secondes.",
+      sostiene: "Retiens l'air... 7 secondes.",
+      exhala: "Expire lentement par la bouche... 8 secondes.",
+      cierre: "Voilà. Remarque comment ton corps se sent maintenant — pas besoin que ce soit différent, remarque-le, c'est tout.",
+    },
+    dormir: {
+      llegar: "Tu es déjà au lit. Il n'y a plus rien d'autre à faire aujourd'hui — c'est la seule chose qui reste, et c'est de rester ici.",
+      cuerpo: "Remarque ton corps allongé, le poids des couvertures, la température. Pas besoin de bouger ni de t'installer autrement.",
+      respiracion: "Laisse ta respiration ralentir, à son propre rythme. Ne la force pas, accompagne-la juste.",
+      soltarDia: "Si quelque chose de la journée continue de tourner dans ta tête, ne le règle pas maintenant — remarque juste que c'est là et laisse ça pour demain.",
+      cuerpoPesado: "Remarque comment ton corps se sent de plus en plus lourd contre le lit, comme s'il s'enfonçait un peu plus à chaque respiration.",
+      cierre: "Il n'y a rien d'autre à faire. Si tu t'endors avant la fin, c'est parfait.",
+    },
   },
 
   moodLog: {

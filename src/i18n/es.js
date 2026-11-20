@@ -641,8 +641,12 @@ const es = {
   },
 
   mindfulness: {
-    intro: (minutes) => `Unos ${minutes} minutos de atención plena guiada — entre todo lo investigado para TDAH en adultos, es la práctica no farmacológica con más respaldo directo en un metaanálisis reciente.`,
-    justFinished: (minutes) => `Listo — practicaste ${minutes} minutos de atención plena.`,
+    // 20 de noviembre de 2026 ("añadir otros ejercicios de mindfulness"):
+    // ya no es un solo guion de duración fija, sino un menú de programas
+    // (ver mindfulnessPrograms más abajo) — este texto de intro ya no
+    // promete una duración específica, cada tarjeta del menú dice la suya.
+    intro: "Entre todo lo investigado para TDAH en adultos, mindfulness es la práctica no farmacológica con más respaldo directo en un metaanálisis reciente. Elige el ejercicio que más se ajuste a este momento.",
+    justFinished: (minutes) => `Listo — practicaste ${minutes} minuto${minutes === 1 ? "" : "s"} de atención plena.`,
     start: "Empezar",
     listenAria: "Escuchar",
     listenButton: "Escuchar",
@@ -652,12 +656,54 @@ const es = {
     stepProgress: (i, n) => `Paso ${i} de ${n}`,
   },
 
+  // 20 de noviembre de 2026: un programa por tarjeta del menú — el id debe
+  // coincidir exactamente con el id en MINDFULNESS_PROGRAMS (mindfulness.js)
+  // y con la clave correspondiente en mindfulnessSteps, abajo.
+  mindfulnessPrograms: {
+    clasica: { title: "Práctica completa", blurb: "El recorrido guiado original — unos 3 minutos." },
+    rapida: { title: "Versión rápida", blurb: "Para cuando hay poco tiempo — 1 minuto." },
+    escaneo: { title: "Escaneo corporal", blurb: "Recorre tu cuerpo por partes, notando tensión — unos 3 minutos." },
+    respiracion478: { title: "Respiración 4-7-8", blurb: "Para momentos de ansiedad o impulsividad — unos 2 minutos." },
+    dormir: { title: "Antes de dormir", blurb: "Tono lento, para hacer ya en la cama — unos 4 minutos." },
+  },
+
   mindfulnessSteps: {
-    llegar: "Siéntate cómodo. No hace falta cerrar los ojos si no quieres — solo deja de hacer lo que estabas haciendo por un momento.",
-    cuerpo: "Nota cómo se siente tu cuerpo ahora mismo, sin cambiar nada todavía. Los pies en el piso, la espalda apoyada.",
-    respiracion: "Lleva tu atención a la respiración, sin forzarla. Solo nota el aire entrando y saliendo.",
-    mente: "Es normal que la mente se vaya — con TDAH, más seguido. Cuando lo notes, regresa a la respiración, sin juzgarte por haberte ido.",
-    cierre: "Antes de terminar, nota cómo te sientes ahora comparado con hace un momento. Lo que sea que notes está bien.",
+    clasica: {
+      llegar: "Siéntate cómodo. No hace falta cerrar los ojos si no quieres — solo deja de hacer lo que estabas haciendo por un momento.",
+      cuerpo: "Nota cómo se siente tu cuerpo ahora mismo, sin cambiar nada todavía. Los pies en el piso, la espalda apoyada.",
+      respiracion: "Lleva tu atención a la respiración, sin forzarla. Solo nota el aire entrando y saliendo.",
+      mente: "Es normal que la mente se vaya — con TDAH, más seguido. Cuando lo notes, regresa a la respiración, sin juzgarte por haberte ido.",
+      cierre: "Antes de terminar, nota cómo te sientes ahora comparado con hace un momento. Lo que sea que notes está bien.",
+    },
+    rapida: {
+      llegar: "Tómate 15 segundos nada más: deja lo que estabas haciendo y acomódate como estés.",
+      respiracion: "Ahora solo nota tu respiración entrando y saliendo, sin cambiarla. Si la mente se va, no pasa nada — solo regresa.",
+      cierre: "Eso es todo. Un minuto completo de pausa — ya puedes seguir con lo que sigue.",
+    },
+    escaneo: {
+      llegar: "Siéntate o acuéstate donde estés cómodo. Vamos a recorrer tu cuerpo por partes, sin apurarte.",
+      piesPiernas: "Lleva tu atención a tus pies y piernas. Nota si hay tensión, peso o temperatura — lo que sea, sin intentar cambiarlo.",
+      torsoManos: "Ahora nota tu torso, tus brazos y tus manos. ¿Dónde sientes algo apretado? ¿Dónde se siente suelto?",
+      hombrosCuello: "Sube a tus hombros y tu cuello — es común que ahí se acumule tensión sin que te des cuenta. Solo nótalo.",
+      caraCabeza: "Nota tu cara: la mandíbula, los ojos, la frente. Si están apretados, no hace falta forzar que se relajen — solo date cuenta.",
+      cuerpoCompleto: "Ahora siente tu cuerpo completo de una vez, de la cabeza a los pies, como si fuera una sola cosa.",
+      cierre: "Antes de terminar, nota cómo se siente tu cuerpo ahora comparado con cuando empezaste.",
+    },
+    respiracion478: {
+      intro: "Esta técnica ayuda cuando sientes ansiedad o ganas de actuar de más: inhala 4 segundos, sostén 7, exhala 8. Vamos a hacerlo 4 veces.",
+      inhala: "Inhala por la nariz... 4 segundos.",
+      sostiene: "Sostén el aire... 7 segundos.",
+      exhala: "Exhala despacio por la boca... 8 segundos.",
+      cierre: "Listo. Nota cómo se siente tu cuerpo ahora — no hace falta que sea distinto, solo nótalo.",
+    },
+    dormir: {
+      llegar: "Ya estás en la cama. No hay nada más que hacer hoy — este es el único pendiente, y es quedarte aquí.",
+      cuerpo: "Nota tu cuerpo recostado, el peso de las cobijas, la temperatura. No hace falta moverte ni acomodarte distinto.",
+      respiracion: "Deja que tu respiración se haga más lenta, a su propio ritmo. No la fuerces, solo acompáñala.",
+      soltarDia: "Si algo del día te sigue dando vueltas, no lo resuelvas ahora — solo nota que está ahí y déjalo para mañana.",
+      cuerpoPesado: "Nota cómo tu cuerpo se siente cada vez más pesado contra la cama, como si se hundiera un poco más con cada respiración.",
+      cierre: "No hace falta hacer nada más. Si te quedas dormido antes de terminar esto, está perfecto.",
+    },
   },
 
   moodLog: {

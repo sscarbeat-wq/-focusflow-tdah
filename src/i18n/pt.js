@@ -605,8 +605,8 @@ const pt = {
   },
 
   mindfulness: {
-    intro: (minutes) => `Cerca de ${minutes} minutos de atenção plena guiada — entre tudo o que já foi pesquisado sobre TDAH em adultos, é a prática não farmacológica com mais apoio direto em uma meta-análise recente.`,
-    justFinished: (minutes) => `Pronto — você praticou ${minutes} minutos de atenção plena.`,
+    intro: "Entre tudo o que já foi pesquisado sobre TDAH em adultos, a atenção plena é a prática não farmacológica com mais apoio direto em uma meta-análise recente. Escolha o exercício que mais combina com este momento.",
+    justFinished: (minutes) => `Pronto — você praticou ${minutes} minuto${minutes === 1 ? "" : "s"} de atenção plena.`,
     start: "Começar",
     listenAria: "Escutar",
     listenButton: "Escutar",
@@ -614,12 +614,51 @@ const pt = {
     stepProgress: (i, n) => `Passo ${i} de ${n}`,
   },
 
+  mindfulnessPrograms: {
+    clasica: { title: "Prática completa", blurb: "O percurso guiado original — cerca de 3 minutos." },
+    rapida: { title: "Versão rápida", blurb: "Para quando há pouco tempo — 1 minuto." },
+    escaneo: { title: "Escaneamento corporal", blurb: "Percorra seu corpo parte por parte, notando tensão — cerca de 3 minutos." },
+    respiracion478: { title: "Respiração 4-7-8", blurb: "Para momentos de ansiedade ou impulsividade — cerca de 2 minutos." },
+    dormir: { title: "Antes de dormir", blurb: "Ritmo mais lento, para fazer já na cama — cerca de 4 minutos." },
+  },
+
   mindfulnessSteps: {
-    llegar: "Sente-se confortavelmente. Não precisa fechar os olhos se não quiser — só pare o que estava fazendo por um momento.",
-    cuerpo: "Note como seu corpo se sente agora, sem mudar nada ainda. Os pés no chão, as costas apoiadas.",
-    respiracion: "Leve sua atenção para a respiração, sem forçá-la. Só note o ar entrando e saindo.",
-    mente: "É normal que a mente se distraia — com TDAH, mais ainda. Quando notar, volte para a respiração, sem se julgar por ter se distraído.",
-    cierre: "Antes de terminar, note como você se sente agora comparado a um momento atrás. O que quer que você note, está tudo bem.",
+    clasica: {
+      llegar: "Sente-se confortavelmente. Não precisa fechar os olhos se não quiser — só pare o que estava fazendo por um momento.",
+      cuerpo: "Note como seu corpo se sente agora, sem mudar nada ainda. Os pés no chão, as costas apoiadas.",
+      respiracion: "Leve sua atenção para a respiração, sem forçá-la. Só note o ar entrando e saindo.",
+      mente: "É normal que a mente se distraia — com TDAH, mais ainda. Quando notar, volte para a respiração, sem se julgar por ter se distraído.",
+      cierre: "Antes de terminar, note como você se sente agora comparado a um momento atrás. O que quer que você note, está tudo bem.",
+    },
+    rapida: {
+      llegar: "Tire só 15 segundos: pare o que estava fazendo e se acomode do jeito que estiver.",
+      respiracion: "Agora só note sua respiração entrando e saindo, sem mudá-la. Se a mente se distrair, não tem problema — só volte.",
+      cierre: "Pronto. Um minuto inteiro de pausa — já pode seguir com o que vem depois.",
+    },
+    escaneo: {
+      llegar: "Sente-se ou deite-se onde estiver confortável. Vamos percorrer seu corpo parte por parte, sem pressa.",
+      piesPiernas: "Leve sua atenção para os pés e as pernas. Note se há tensão, peso ou temperatura — o que for, sem tentar mudar.",
+      torsoManos: "Agora note seu tronco, seus braços e suas mãos. Onde você sente algo apertado? Onde se sente solto?",
+      hombrosCuello: "Suba para os ombros e o pescoço — é comum acumular tensão aí sem perceber. Só note.",
+      caraCabeza: "Note seu rosto: a mandíbula, os olhos, a testa. Se estiverem tensos, não precisa forçar o relaxamento — só perceba.",
+      cuerpoCompleto: "Agora sinta seu corpo inteiro de uma vez, da cabeça aos pés, como se fosse uma coisa só.",
+      cierre: "Antes de terminar, note como seu corpo se sente agora comparado a quando você começou.",
+    },
+    respiracion478: {
+      intro: "Essa técnica ajuda quando você sente ansiedade ou vontade de agir demais: inspire 4 segundos, segure 7, expire 8. Vamos fazer isso 4 vezes.",
+      inhala: "Inspire pelo nariz... 4 segundos.",
+      sostiene: "Segure o ar... 7 segundos.",
+      exhala: "Expire devagar pela boca... 8 segundos.",
+      cierre: "Pronto. Note como seu corpo se sente agora — não precisa ser diferente, só perceba.",
+    },
+    dormir: {
+      llegar: "Você já está na cama. Não há mais nada para fazer hoje — essa é a única pendência, e é ficar aqui.",
+      cuerpo: "Note seu corpo deitado, o peso das cobertas, a temperatura. Não precisa se mexer nem se ajeitar diferente.",
+      respiracion: "Deixe sua respiração ficar mais lenta, no seu próprio ritmo. Não force, só acompanhe.",
+      soltarDia: "Se algo do dia continuar na sua cabeça, não resolva agora — só note que está ali e deixe para amanhã.",
+      cuerpoPesado: "Note como seu corpo se sente cada vez mais pesado contra a cama, como se afundasse um pouco mais a cada respiração.",
+      cierre: "Não precisa fazer mais nada. Se você adormecer antes disso terminar, está perfeito.",
+    },
   },
 
   moodLog: {
