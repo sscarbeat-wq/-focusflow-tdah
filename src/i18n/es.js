@@ -1769,13 +1769,25 @@ const es = {
       bigTaskLabel: "¿De qué tarea estamos hablando? (es el mismo campo del desglosador)",
       ideaPlaceholder: "Una idea suelta...",
       addIdeaButton: "Agregar",
-      emptyHint: "Suelta aquí lo primero que se te ocurra, sin orden ni compromiso.",
+      // 20 de noviembre de 2026 ("esto no lo entiendo tengo que poner dos
+      // ideas?"): "Suelta aquí" sonaba a instrucción de escribir EN esta
+      // caja, pero esta caja solo MUESTRA las ideas que ya agregaste abajo
+      // — texto cambiado para describir, no para invitar a escribir aquí.
+      emptyHint: "Aquí van apareciendo las ideas que agregues abajo, sin orden ni compromiso.",
       convertButtonTitle: "Convertir en paso del desglosador",
       removeIdeaAria: "Quitar esta idea",
       maxIdeasNotice: "Ya tienes 12 ideas — es el máximo a la vez. Convierte o quita alguna para soltar otra.",
       hint: "Cuando una idea ya te convence, dale al ✓ para mandarla directo al desglosador como un paso real.",
       convertedNotice: (text) => `"${text}" ya está en tu desglosador.`,
       goToDismantlerButton: "Ver el desglosador",
+      // 20 de noviembre de 2026 ("¿podría también usarse el micrófono para
+      // soltar las ideas?"): dictado por voz, igual que en la Agenda, pero
+      // más simple — solo transcribe al campo, no agrega nada sola.
+      micButtonAria: "Dictar idea por voz",
+      micListening: "Escuchando...",
+      micUnsupported: "Tu navegador no soporta entrada de voz.",
+      micDenied: "Permite el acceso al micrófono para usar esta función.",
+      micErrorGeneric: "No se captó nada. Intenta de nuevo.",
     },
 
     auditor: {
