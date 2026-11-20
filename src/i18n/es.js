@@ -1452,6 +1452,30 @@ const es = {
     browseTitle: "O explora por categoría",
     seeMore: (n) => `Ver ${n} más`,
     seeLess: "Ver menos",
+    // 20 de noviembre de 2026 ("que elija de forma rápida lo que
+    // necesita"): pregunta corta que reemplaza la vista inicial de
+    // Herramientas — contestar lleva directo a UNA herramienta. El orden
+    // de `answers` debe coincidir con TRIAGE_MAP en ToolsGrid.jsx.
+    triage: {
+      question: "¿Qué necesitas ahora?",
+      back: "Volver",
+      subIntro: {
+        start: "Sobre empezar y organizarte...",
+        focus: "Sobre concentrarte...",
+        calm: "Sobre calmarte...",
+        feel: "Sobre cómo te sientes...",
+        daily: "Sobre tu día a día...",
+      },
+      subAnswers: {
+        start: ["No sé por dónde empezar", "Tengo muchas ideas sueltas", "Se me va el tiempo"],
+        focus: ["Quiero empezar una sesión de enfoque", "Prefiero sentir que alguien me acompaña", "Necesito un descanso activo"],
+        calm: ["Necesito calmarme ya", "Quiero un ejercicio de mindfulness", "Siento que voy a reaccionar de más"],
+        feel: ["Quiero registrar mi ánimo", "Siento que no tengo energía", "Quiero platicar un momento"],
+        daily: ["Mis medicamentos", "Mis hábitos", "Cosas pendientes fuera de casa"],
+      },
+      browseAll: "Ver todas las herramientas",
+      backToQuestion: "Volver a la pregunta rápida",
+    },
   },
 
   weeklyInsights: {

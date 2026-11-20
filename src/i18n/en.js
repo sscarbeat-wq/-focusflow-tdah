@@ -1392,6 +1392,26 @@ const en = {
     browseTitle: "Or browse by category",
     seeMore: (n) => `See ${n} more`,
     seeLess: "See less",
+    triage: {
+      question: "What do you need right now?",
+      back: "Back",
+      subIntro: {
+        start: "About getting started and organized...",
+        focus: "About focusing...",
+        calm: "About calming down...",
+        feel: "About how you feel...",
+        daily: "About your day-to-day...",
+      },
+      subAnswers: {
+        start: ["I don't know where to start", "My head's full of loose ideas", "Time slips by without me noticing"],
+        focus: ["I want to start a focus session", "I'd rather feel like someone's with me", "I need an active break"],
+        calm: ["I need to calm down now", "I want a mindfulness exercise", "I feel like I'm about to overreact"],
+        feel: ["I want to log my mood", "I feel like I have no energy", "I want to chat for a moment"],
+        daily: ["My medications", "My habits", "Things pending outside the house"],
+      },
+      browseAll: "See all tools",
+      backToQuestion: "Back to the quick question",
+    },
   },
 
   weeklyInsights: {

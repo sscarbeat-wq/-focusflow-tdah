@@ -1395,6 +1395,26 @@ const fr = {
     browseTitle: "Ou explore par catégorie",
     seeMore: (n) => `Voir ${n} de plus`,
     seeLess: "Voir moins",
+    triage: {
+      question: "De quoi as-tu besoin maintenant ?",
+      back: "Retour",
+      subIntro: {
+        start: "À propos de commencer et t'organiser...",
+        focus: "À propos de te concentrer...",
+        calm: "À propos de te calmer...",
+        feel: "À propos de comment tu te sens...",
+        daily: "À propos de ton quotidien...",
+      },
+      subAnswers: {
+        start: ["Je ne sais pas par où commencer", "J'ai plein d'idées en vrac", "Le temps passe sans que je m'en rende compte"],
+        focus: ["Je veux commencer une session de concentration", "Je préfère sentir que quelqu'un m'accompagne", "J'ai besoin d'une pause active"],
+        calm: ["J'ai besoin de me calmer maintenant", "Je veux un exercice de pleine conscience", "Je sens que je vais trop réagir"],
+        feel: ["Je veux enregistrer mon humeur", "Je sens que je n'ai pas d'énergie", "Je veux discuter un moment"],
+        daily: ["Mes médicaments", "Mes habitudes", "Des choses à faire en dehors de la maison"],
+      },
+      browseAll: "Voir tous les outils",
+      backToQuestion: "Revenir à la question rapide",
+    },
   },
 
   weeklyInsights: {
