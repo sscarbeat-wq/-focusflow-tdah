@@ -512,6 +512,13 @@ const en = {
     dayNudges: ["Shall we start with something small?", "A 2-minute step counts too", "I'm here whenever you want to start"],
     goodNudge: "You're doing great today!",
     nightNudge: "Resting is progress too",
+    streakMilestoneNudge: (n) => `${n} day${n === 1 ? "" : "s"} in a row! Such consistency.`,
+    newRecordNudge: (n) => `New personal record! ${n} day${n === 1 ? "" : "s"} in a row — you've never gone this far.`,
+    welcomeBackNudges: [
+      "So good to see you again. Today's a good day to start.",
+      "I was waiting for you. Let's take it easy, one step at a time.",
+      "However long it's been — I'm still here, ready to keep you company.",
+    ],
     evolvedLabel: "It grew!",
   },
 

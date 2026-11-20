@@ -517,6 +517,13 @@ const pt = {
     dayNudges: ["Vamos começar com algo pequeno?", "Um passo de 2 minutos também conta", "Estou aqui quando você quiser começar"],
     goodNudge: "Você está indo muito bem hoje!",
     nightNudge: "Descansar também é avançar",
+    streakMilestoneNudge: (n) => `${n} dia${n === 1 ? "" : "s"} seguidos! Que constância.`,
+    newRecordNudge: (n) => `Novo recorde pessoal! ${n} dia${n === 1 ? "" : "s"} seguidos — você nunca tinha chegado tão longe.`,
+    welcomeBackNudges: [
+      "Que bom te ver de novo. Hoje é um bom dia para começar.",
+      "Eu estava te esperando. Vamos com calma, um passo de cada vez.",
+      "Não importa quanto tempo passou — continuo aqui, pronto para te acompanhar.",
+    ],
     evolvedLabel: "Cresceu!",
   },
 

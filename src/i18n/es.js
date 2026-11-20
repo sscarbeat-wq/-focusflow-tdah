@@ -548,6 +548,18 @@ const es = {
     dayNudges: ["¿Empezamos con algo pequeño?", "Un paso de 2 minutos también cuenta", "Aquí estoy cuando quieras empezar"],
     goodNudge: "¡Vas muy bien hoy!",
     nightNudge: "Descansar también es avanzar",
+    // 20 de noviembre de 2026 ("el animalito puede decir otras frases?" →
+    // frases según la racha/XP, no solo las genéricas de arriba — ver
+    // streakEventFor en streak.js): tienen PRIORIDAD sobre dayNudges/
+    // goodNudge/nightNudge cuando hay algo que celebrar. Nunca mencionan
+    // cuántos días pasaron al volver — bienvenida cálida, nunca un reclamo.
+    streakMilestoneNudge: (n) => `¡${n} ${n === 1 ? "día" : "días"} seguidos! Qué constancia.`,
+    newRecordNudge: (n) => `¡Nuevo récord personal! ${n} ${n === 1 ? "día" : "días"} seguidos — nunca habías llegado tan lejos.`,
+    welcomeBackNudges: [
+      "Qué bueno verte de nuevo. Hoy es un buen día para empezar.",
+      "Te estaba esperando. Vamos con calma, un paso a la vez.",
+      "No importa cuánto tiempo pasó — aquí sigo, listo para acompañarte.",
+    ],
     evolvedLabel: "¡Creció!",
   },
 

@@ -515,6 +515,13 @@ const fr = {
     dayNudges: ["On commence par quelque chose de petit ?", "Une étape de 2 minutes, ça compte aussi", "Je suis là quand tu veux commencer"],
     goodNudge: "Tu avances très bien aujourd'hui !",
     nightNudge: "Se reposer, c'est aussi avancer",
+    streakMilestoneNudge: (n) => `${n} jour${n === 1 ? "" : "s"} d'affilée ! Quelle régularité.`,
+    newRecordNudge: (n) => `Nouveau record personnel ! ${n} jour${n === 1 ? "" : "s"} d'affilée — tu n'étais jamais allée aussi loin.`,
+    welcomeBackNudges: [
+      "Ça fait plaisir de te revoir. Aujourd'hui, c'est un bon jour pour commencer.",
+      "Je t'attendais. On y va doucement, une étape à la fois.",
+      "Peu importe le temps passé — je suis toujours là, prêt à t'accompagner.",
+    ],
     evolvedLabel: "Elle a grandi !",
   },
 
