@@ -909,7 +909,6 @@ const es = {
     durationLabel: "Duración",
     aboutMinutes: (min) => `${min} min`,
     deleteBlockTitle: "Eliminar bloque",
-    dragHint: "Arrastra una tarjeta hacia arriba o abajo para cambiarle la hora",
     closeEditor: "Cerrar",
     iconLabel: "Ícono del bloque",
     newBlockPlaceholder: "Nombre del bloque (ej. Trabajo profundo)...",
@@ -1628,13 +1627,13 @@ const es = {
     panels: {
       today: { title: "Hoy", subtitle: "Lo que sigue pendiente ahora mismo, juntando lo que ya registraste en la app." },
       timeline: { title: "Línea de tiempo de hoy", subtitle: "A qué hora pasó cada cosa que hiciste en ANRO TDAH hoy — para ver de un vistazo cómo se ha ido el día." },
-      // 20 de noviembre de 2026 ("no entiendo esta instrucción" → "pero no
-      // se pueden arrastrar"): la frase original prometía 2 cosas que no
-      // existían todavía (arrastrar y ver la semana). Arrastrar ya es real
-      // (ver ScheduleAgendaPanel.jsx), así que se queda en el texto; la
-      // vista de semana todavía no se construyó, así que se quitó de aquí
-      // para no prometer algo que la app no hace.
-      schedule: { title: "Agenda visual", subtitle: "Arma tu día con bloques de tiempo y arrástralos para cambiarles la hora." },
+      // 20 de noviembre de 2026: la frase original prometía arrastrar y ver
+      // la semana, pero ninguna de las dos existe en la pantalla real (es
+      // una lista simple de un día). Se probó construir el arrastre de
+      // verdad, pero la vista de franja de horas se veía enorme en el
+      // celular, así que se revirtió. El texto ahora describe solo lo que
+      // la pantalla realmente hace.
+      schedule: { title: "Agenda visual", subtitle: "Agrega bloques de tiempo para organizar tus pendientes del día." },
       quickCapture: { title: "Captura rápida", subtitle: "Deja una idea por voz o texto sin decidir primero en qué panel va — ANRO TDAH intenta mandarla sola al lugar correcto." },
       brainDump: { title: "Descarga mental con IA", subtitle: "Cuando son varias cosas a la vez — dilas o escríbelas todas juntas y ANRO TDAH las separa por ti." },
       captureHub: { title: "Memoria ANRO", subtitle: "Deja una idea suelta, vacía la cabeza de varias a la vez, adjunta una foto o busca algo que ya guardaste — tú eliges cómo, en el mismo lugar." },
