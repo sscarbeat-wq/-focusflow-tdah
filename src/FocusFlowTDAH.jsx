@@ -4338,6 +4338,7 @@ export default function FocusFlowTDAH({
               <MindMap
                 C={C}
                 t={t}
+                lang={lang}
                 bigTask={bigTask}
                 onBigTaskChange={setBigTask}
                 ideas={mindMapIdeas}
