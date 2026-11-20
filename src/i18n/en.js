@@ -866,6 +866,7 @@ const en = {
     durationLabel: "Duration",
     aboutMinutes: (min) => `${min} min`,
     deleteBlockTitle: "Delete block",
+    dragHint: "Drag a card up or down to change its time",
     closeEditor: "Close",
     iconLabel: "Block icon",
     newBlockPlaceholder: "Block name (e.g. Deep work)...",
@@ -1551,7 +1552,7 @@ const en = {
     panels: {
       today: { title: "Today", subtitle: "What's still pending right now, pulled together from what you've already logged in the app." },
       timeline: { title: "Today's timeline", subtitle: "What time each thing you did in ANRO TDAH today happened — to get a quick sense of how the day has gone." },
-      schedule: { title: "Visual schedule", subtitle: "Build your plan with time blocks — switch between day and week view, and drag them to change the time." },
+      schedule: { title: "Visual schedule", subtitle: "Build your day with time blocks and drag them to change the time." },
       quickCapture: { title: "Quick capture", subtitle: "Leave an idea by voice or text without deciding first which panel it belongs in — ANRO TDAH tries to route it to the right place on its own." },
       brainDump: { title: "AI brain dump", subtitle: "When it's several things at once — say or write them all together and ANRO TDAH splits them for you." },
       captureHub: { title: "ANRO Memory", subtitle: "Drop one loose idea, empty your head of several at once, attach a photo, or search something you already saved — you choose how, in the same place." },
