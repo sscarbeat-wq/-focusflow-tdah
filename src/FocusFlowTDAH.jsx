@@ -2860,7 +2860,24 @@ export default function FocusFlowTDAH({
                         display: "inline-flex",
                         alignItems: "center",
                         gap: "6px",
-                        background: `${palette.chipBg || (C.bg + "dd")}`,
+                        // 19 de noviembre de 2026 ("en tono oscuro sigue sin
+                        // verse bien"): igual que la tarjeta "Te puede
+                        // servir ahora" más abajo (ver su nota ahí —
+                        // "palette.chipBg" ya no existe, era de la
+                        // Colección Plus que se quitó el 18 de noviembre),
+                        // este globito se quedó con el fondo viejo
+                        // (C.bg + "dd": el tema claro/oscuro fijo de la
+                        // paciente) mientras que su texto (de la línea de
+                        // abajo, palette.text) es del sistema AUTOMÁTICO
+                        // por hora del día — dos sistemas de color
+                        // distintos que no siempre combinan. Con tema
+                        // oscuro, C.bg es oscuro y el texto de la tarde/
+                        // mañana es café oscuro: texto oscuro sobre fondo
+                        // oscuro, ilegible. Ahora cae a palette.bg (mismo
+                        // objeto de paleta que ya trae `text` pensado para
+                        // pintarse encima de ÉL), así los dos siempre
+                        // combinan sin importar el tema claro/oscuro.
+                        background: `${palette.chipBg || palette.bg || C.surface}`,
                         borderRadius: "20px",
                         padding: "6px 14px",
                         maxWidth: "100%",
