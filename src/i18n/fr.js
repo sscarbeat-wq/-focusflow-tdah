@@ -609,6 +609,7 @@ const fr = {
     listenAria: "Écouter",
     listenButton: "Écouter",
     stopButton: "Arrêter",
+    stepProgress: (i, n) => `Étape ${i} sur ${n}`,
   },
 
   mindfulnessSteps: {

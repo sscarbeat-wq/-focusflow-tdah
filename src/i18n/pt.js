@@ -611,6 +611,7 @@ const pt = {
     listenAria: "Escutar",
     listenButton: "Escutar",
     stopButton: "Parar",
+    stepProgress: (i, n) => `Passo ${i} de ${n}`,
   },
 
   mindfulnessSteps: {

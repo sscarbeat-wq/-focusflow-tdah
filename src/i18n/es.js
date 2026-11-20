@@ -647,6 +647,9 @@ const es = {
     listenAria: "Escuchar",
     listenButton: "Escuchar",
     stopButton: "Detener",
+    // 20 de noviembre de 2026 (rediseño visual + corrección del botón
+    // "Detener" que no cortaba la voz): etiqueta de progreso por paso.
+    stepProgress: (i, n) => `Paso ${i} de ${n}`,
   },
 
   mindfulnessSteps: {
