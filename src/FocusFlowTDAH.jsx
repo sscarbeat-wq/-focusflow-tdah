@@ -349,6 +349,16 @@ function Toggle({ label, checked, onChange, C }) {
   );
 }
 
+// Dictado por voz para el campo de tarea del desglosador — 20 de noviembre
+// de 2026 ("al desglosador también ponle microfono"), mismo patrón ya usado
+// en MindMap.jsx: solo transcribe al campo de texto, no manda nada sola, así
+// la persona revisa/corrige antes de seguir.
+const SpeechRecognitionAPI =
+  typeof window !== "undefined"
+    ? window.SpeechRecognition || window.webkitSpeechRecognition
+    : null;
+const SPEECH_LANG_DISMANTLER = { es: "es-MX", en: "en-US", fr: "fr-FR", pt: "pt-BR" };
+
 export default function FocusFlowTDAH({
   initialProgress,
   onProgressChange,
@@ -1458,6 +1468,57 @@ export default function FocusFlowTDAH({
       /* localStorage no disponible (modo privado, etc.) */
     }
   }, [bigTask, steps]);
+
+  // ── Dictado por voz del campo de tarea (desglosador) ──
+  const [bigTaskMicListening, setBigTaskMicListening] = useState(false);
+  const [bigTaskMicError, setBigTaskMicError] = useState("");
+  const bigTaskRecognitionRef = useRef(null);
+
+  const stopBigTaskMic = useCallback(() => {
+    if (bigTaskRecognitionRef.current) {
+      try { bigTaskRecognitionRef.current.stop(); } catch (_) {}
+      bigTaskRecognitionRef.current = null;
+    }
+    setBigTaskMicListening(false);
+  }, []);
+
+  const startBigTaskMic = useCallback(() => {
+    if (!SpeechRecognitionAPI) {
+      setBigTaskMicError(t.app.dismantler.micUnsupported || "Tu navegador no soporta entrada de voz.");
+      return;
+    }
+    setBigTaskMicError("");
+    const rec = new SpeechRecognitionAPI();
+    rec.lang = SPEECH_LANG_DISMANTLER[lang] || "es-MX";
+    rec.interimResults = true;
+    rec.maxAlternatives = 1;
+    rec.continuous = false;
+
+    rec.onresult = (e) => {
+      const transcript = Array.from(e.results)
+        .map((r) => r[0].transcript)
+        .join("");
+      setBigTask(transcript);
+    };
+
+    rec.onerror = (e) => {
+      if (e.error === "not-allowed") {
+        setBigTaskMicError(t.app.dismantler.micDenied || "Permite el acceso al micrófono para usar esta función.");
+      } else if (e.error !== "aborted") {
+        setBigTaskMicError(t.app.dismantler.micErrorGeneric || "No se captó nada. Intenta de nuevo.");
+      }
+      stopBigTaskMic();
+    };
+
+    rec.onend = () => setBigTaskMicListening(false);
+
+    bigTaskRecognitionRef.current = rec;
+    setBigTaskMicListening(true);
+    rec.start();
+  }, [lang, t, stopBigTaskMic]);
+
+  useEffect(() => () => stopBigTaskMic(), [stopBigTaskMic]);
+
   const [stepDraft, setStepDraft] = useState("");
   const [stepMin, setStepMin] = useState(5);
   // Energía sugerida para el paso que se está agregando a mano (inspirado
@@ -4360,13 +4421,41 @@ export default function FocusFlowTDAH({
               title={t.app.panels.dismantler.title}
               subtitle={t.app.panels.dismantler.subtitle}
             >
-              <input
-                type="text"
-                value={bigTask}
-                onChange={(e) => setBigTask(e.target.value)}
-                placeholder={t.app.dismantler.taskPlaceholder}
-                style={{ ...inputStyle, marginBottom: bigTask.trim() ? "14px" : "8px" }}
-              />
+              <div style={{ display: "flex", gap: "8px", marginBottom: bigTask.trim() ? "14px" : "8px" }}>
+                <input
+                  type="text"
+                  value={bigTask}
+                  onChange={(e) => setBigTask(e.target.value)}
+                  placeholder={t.app.dismantler.taskPlaceholder}
+                  style={{ ...inputStyle, width: "auto", flex: "1 1 auto", marginBottom: 0 }}
+                />
+                {SpeechRecognitionAPI && (
+                  <button
+                    type="button"
+                    onClick={bigTaskMicListening ? stopBigTaskMic : startBigTaskMic}
+                    aria-label={t.app.dismantler.micButtonAria}
+                    title={t.app.dismantler.micButtonAria}
+                    style={{
+                      background: bigTaskMicListening ? C.coral : C.surfaceAlt,
+                      color: bigTaskMicListening ? "#fff" : C.textMuted,
+                      border: `1px solid ${bigTaskMicListening ? C.coral : C.border}`,
+                      borderRadius: "12px",
+                      width: "42px",
+                      flexShrink: 0,
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "center",
+                      cursor: "pointer",
+                    }}
+                  >
+                    <Mic size={16} />
+                  </button>
+                )}
+              </div>
+              {bigTaskMicListening && (
+                <p style={{ fontSize: "11px", color: C.coral, margin: "-8px 0 8px", fontWeight: 600 }}>{t.app.dismantler.micListening}</p>
+              )}
+              {bigTaskMicError && <p style={{ fontSize: "11px", color: C.coral, margin: "-8px 0 8px" }}>{bigTaskMicError}</p>}
               {(() => {
                 // (a) Ejemplos tocables mientras no hay nada escrito — tres a
                 // la vez, rotando solos cada 4s (dismantlerExampleIdx, arriba).
