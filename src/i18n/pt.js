@@ -610,6 +610,8 @@ const pt = {
     start: "Começar",
     listenAria: "Escutar",
     listenButton: "Escutar",
+    muteButton: "Silenciar",
+    muteAria: "Silenciar a voz",
     stopButton: "Parar",
     stepProgress: (i, n) => `Passo ${i} de ${n}`,
   },

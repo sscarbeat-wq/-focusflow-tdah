@@ -608,6 +608,8 @@ const fr = {
     start: "Commencer",
     listenAria: "Écouter",
     listenButton: "Écouter",
+    muteButton: "Couper",
+    muteAria: "Couper la voix",
     stopButton: "Arrêter",
     stepProgress: (i, n) => `Étape ${i} sur ${n}`,
   },

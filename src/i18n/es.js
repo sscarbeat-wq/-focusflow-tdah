@@ -650,6 +650,11 @@ const es = {
     start: "Empezar",
     listenAria: "Escuchar",
     listenButton: "Escuchar",
+    // 20 de noviembre de 2026 ("al ponerle escuchar se apaga la voz al
+    // pasar al siguiente paso"): "Escuchar" ahora es un interruptor que
+    // sigue narrando paso por paso hasta que se apaga con este botón.
+    muteButton: "Silenciar",
+    muteAria: "Silenciar la voz",
     stopButton: "Detener",
     // 20 de noviembre de 2026 (rediseño visual + corrección del botón
     // "Detener" que no cortaba la voz): etiqueta de progreso por paso.
