@@ -1,5 +1,5 @@
 import React, { useEffect, useRef, useState } from "react";
-import { Play, Square, Volume2, Sparkles, Activity, Wind, Brain, CheckCircle2, Timer, Moon } from "lucide-react";
+import { Play, Square, Volume2, VolumeX, Sparkles, Activity, Wind, Brain, CheckCircle2, Timer, Moon } from "lucide-react";
 import {
   MINDFULNESS_PROGRAMS,
   programTotalSeconds,
@@ -69,6 +69,13 @@ export default function MindfulnessPanel({ C, t, lang, onComplete }) {
   const [elapsed, setElapsed] = useState(0);
   const [justFinished, setJustFinished] = useState(false);
   const [justFinishedMinutes, setJustFinishedMinutes] = useState(0);
+  // 20 de noviembre de 2026 ("al ponerle escuchar se apaga la voz al pasar
+  // al siguiente paso"): "Escuchar" leía el paso UNA sola vez y se quedaba
+  // ahí — al avanzar de paso había que volver a tocarlo a mano, lo que se
+  // sentía como que "la voz se apagaba sola". Ahora es un interruptor: una
+  // vez activado, sigue narrando cada paso nuevo solo, hasta que se apague
+  // o termine la práctica.
+  const [voiceOn, setVoiceOn] = useState(false);
   const tickRef = useRef(null);
   const finishedTimeout = useRef(null);
   const speechSynthesis = getSpeechSynthesis();
@@ -116,11 +123,13 @@ export default function MindfulnessPanel({ C, t, lang, onComplete }) {
     setElapsed(0);
     setProgramId(id);
     setRunning(true);
+    setVoiceOn(false);
   };
 
   const stop = () => {
     setRunning(false);
     setProgramId(null);
+    setVoiceOn(false);
     clearInterval(tickRef.current);
     // 20 de noviembre de 2026 ("cuando le pongo detener no se detiene la
     // voz"): esto faltaba — "Detener" paraba el cronómetro y la cuenta
@@ -136,12 +145,28 @@ export default function MindfulnessPanel({ C, t, lang, onComplete }) {
   const stepText = step && program ? t.mindfulnessSteps[program.id][step.id] : null;
   const StepIcon = step ? STEP_ICONS[step.id] || Sparkles : null;
 
-  const speak = () => {
+  // Narra el paso actual en automático cada vez que cambia (stepIndex, no
+  // el texto — con la respiración 4-7-8 varios pasos no consecutivos
+  // repiten exactamente el mismo texto, y dependiendo del texto el efecto
+  // no se volvería a disparar entre ellos). Se dispara también al activar
+  // el interruptor a medio paso, para leer el paso actual de inmediato.
+  useEffect(() => {
+    if (!voiceOn || !running || !program) return;
     if (!speechSynthesis || !stepText || typeof window === "undefined" || !window.SpeechSynthesisUtterance) return;
     speechSynthesis.cancel();
     const utterance = new window.SpeechSynthesisUtterance(stepText);
     utterance.lang = SPEECH_LOCALES[lang] || SPEECH_LOCALES.es;
     speechSynthesis.speak(utterance);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [stepIndex, voiceOn, running, program]);
+
+  const toggleVoice = () => {
+    if (voiceOn) {
+      speechSynthesis?.cancel();
+      setVoiceOn(false);
+    } else {
+      setVoiceOn(true);
+    }
   };
 
   // Progreso dentro del paso actual (para el anillo) y del total del
@@ -276,23 +301,24 @@ export default function MindfulnessPanel({ C, t, lang, onComplete }) {
           <div style={{ display: "flex", gap: "10px", justifyContent: "center", marginBottom: "18px" }}>
             {speechSynthesis && (
               <button
-                onClick={speak}
-                aria-label={t.mindfulness.listenAria}
+                onClick={toggleVoice}
+                aria-label={voiceOn ? t.mindfulness.muteAria : t.mindfulness.listenAria}
                 style={{
                   display: "flex",
                   alignItems: "center",
                   gap: "6px",
-                  background: C.surface,
-                  border: `1px solid ${C.border}`,
+                  background: voiceOn ? C.lavender : C.surface,
+                  border: `1px solid ${voiceOn ? C.lavender : C.border}`,
                   borderRadius: "999px",
                   padding: "9px 16px",
-                  color: C.text,
+                  color: voiceOn ? C.lavenderText : C.text,
                   fontSize: "13px",
                   fontWeight: 600,
                   cursor: "pointer",
                 }}
               >
-                <Volume2 size={14} /> {t.mindfulness.listenButton}
+                {voiceOn ? <VolumeX size={14} /> : <Volume2 size={14} />}
+                {voiceOn ? t.mindfulness.muteButton : t.mindfulness.listenButton}
               </button>
             )}
             <button
