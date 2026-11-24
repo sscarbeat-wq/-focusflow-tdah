@@ -2329,6 +2329,81 @@ export default function FocusFlowTDAH({
     fontSize: "14px",
   };
 
+  // 24 de noviembre de 2026 ("aquí siempre dice algo de la agenda, que
+  // sugiera otras herramientas") — la tarjeta "Te puede servir ahora"
+  // (tanto la de Inicio como la de Herramientas, que antes calculaban esto
+  // cada una por su lado, con la lista de Herramientas incluso desfasada y
+  // sin la condición de agenda vacía) decidía la sugerencia con una
+  // cascada de prioridad fija: la primera condición que se cumplía ganaba,
+  // siempre en el mismo orden. En la práctica "agenda vacía" (emptyAgenda)
+  // casi siempre era cierta —no es una herramienta que use a diario— así
+  // que ganaba todos los días y las demás nunca se mostraban.
+  //
+  // Ahora se separan dos grupos:
+  // - "urgentes" (ánimo bajo recién registrado, recién terminó una sesión
+  //   de enfoque, ya es de noche): son momentos puntuales de verdad, así
+  //   que SIEMPRE ganan cuando aplican, sin rotar — no tendría sentido
+  //   "turnarlas" con otra sugerencia menos importante.
+  // - "de relleno" (agenda vacía, sin check-in de ánimo, pasos pendientes,
+  //   es de mañana, o nada de lo anterior): cuando ninguna urgente aplica,
+  //   se turnan un día a la vez entre las que SÍ aplican hoy (un índice
+  //   que avanza una vez por día, guardado en localStorage), en vez de
+  //   que la primera de la lista gane siempre. Dentro del mismo día se
+  //   queda fija (no cambia cada vez que abre la app, solo de un día a otro).
+  const todayStr = new Date().toISOString().slice(0, 10);
+  const nudgeUrgent = (() => {
+    const now = new Date();
+    const h = now.getHours();
+    const moodToday = todayMoodEntry(moodLog, now);
+    if (moodToday && moodToday.mood <= 2) return { key: "calmBubbles", reason: "moodLow" };
+    const lastFocus = Object.values(focusSessionLog || {}).flat().map((e) => Date.parse(e.completedAt)).filter(Boolean).sort().pop();
+    if (lastFocus && now.getTime() - lastFocus < 60 * 60 * 1000) return { key: "activeBreak", reason: "afterFocus" };
+    if (h >= 21 || h < 5) return { key: "habits", reason: "night" };
+    return null;
+  })();
+  const nudgeFillers = (() => {
+    const now = new Date();
+    const h = now.getHours();
+    const moodToday = todayMoodEntry(moodLog, now);
+    const todayBlocks = scheduleBlocksForDay(scheduleBlocks, now);
+    const list = [];
+    if (todayBlocks.length === 0 && h >= 5 && h < 20) list.push({ key: "schedule", reason: "emptyAgenda" });
+    if (!moodToday) list.push({ key: "mood", reason: "noCheckin" });
+    if (steps.some((st) => !st.done)) list.push({ key: "oneThing", reason: "pending" });
+    if (h < 13) list.push({ key: "desglosador", reason: "morning" });
+    list.push({ key: "focusMode", reason: "default" });
+    return list;
+  })();
+  const [nudgeRotation, setNudgeRotation] = useState(() => {
+    try {
+      const raw = window.localStorage.getItem("anro-nudge-rotation");
+      return raw ? JSON.parse(raw) : null;
+    } catch (e) {
+      return null;
+    }
+  });
+  let nudgeFillerIndex = 0;
+  let nudgeNeedsPersist = true;
+  if (nudgeRotation && nudgeRotation.date === todayStr) {
+    nudgeFillerIndex = nudgeFillers.length ? nudgeRotation.index % nudgeFillers.length : 0;
+    nudgeNeedsPersist = false;
+  } else {
+    const prevIndex = nudgeRotation ? nudgeRotation.index : -1;
+    nudgeFillerIndex = nudgeFillers.length ? (prevIndex + 1) % nudgeFillers.length : 0;
+  }
+  const contextualNudge = nudgeUrgent || nudgeFillers[nudgeFillerIndex] || null;
+  useEffect(() => {
+    if (!nudgeNeedsPersist) return;
+    const next = { date: todayStr, index: nudgeFillerIndex };
+    setNudgeRotation(next);
+    try {
+      window.localStorage.setItem("anro-nudge-rotation", JSON.stringify(next));
+    } catch (e) {
+      /* sin localStorage */
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [todayStr]);
+
   return (
     <div
       style={{
@@ -2646,26 +2721,10 @@ export default function FocusFlowTDAH({
           };
 
           // --- Sugerencia contextual para Inicio (nudge card) -----------
-          // Misma lógica de prioridad que ToolsGrid.suggestion, pero
-          // calculada aquí porque la tarjeta se muestra entre la brújula y
-          // la franja de hábitos.
-          const contextualNudge = (() => {
-            const now = new Date();
-            const h = now.getHours();
-            const moodToday = todayMoodEntry(moodLog, now);
-            if (moodToday && moodToday.mood <= 2) return { key: "calmBubbles", reason: "moodLow" };
-            const lastFocus = Object.values(focusSessionLog || {}).flat().map((e) => Date.parse(e.completedAt)).filter(Boolean).sort().pop();
-            if (lastFocus && now.getTime() - lastFocus < 60 * 60 * 1000) return { key: "activeBreak", reason: "afterFocus" };
-            if (h >= 21 || h < 5) return { key: "habits", reason: "night" };
-            // Agenda vacía — prioridad alta antes del check-in de ánimo
-            // (planear el día es lo primero que debería hacer al abrir la app por la mañana)
-            const todayBlocks = scheduleBlocksForDay(scheduleBlocks, now);
-            if (todayBlocks.length === 0 && h >= 5 && h < 20) return { key: "schedule", reason: "emptyAgenda" };
-            if (!moodToday) return { key: "mood", reason: "noCheckin" };
-            if (steps.some((st) => !st.done)) return { key: "oneThing", reason: "pending" };
-            if (h < 13) return { key: "desglosador", reason: "morning" };
-            return { key: "focusMode", reason: "default" };
-          })();
+          // 24 de noviembre de 2026: ya no se recalcula aquí — usa
+          // "contextualNudge", calculado una sola vez arriba (con rotación
+          // para no repetir siempre la misma), para que Inicio y
+          // Herramientas muestren exactamente la misma sugerencia.
 
           // --- Herramientas más usadas (hasta 7 recientes) ---------------
           // Empieza vacía; se va llenando conforme el usuario usa
@@ -4243,27 +4302,12 @@ export default function FocusFlowTDAH({
                 accent={personalAccent}
                 items={herramientasItems}
                 onSelect={setActiveTool}
-                // "Te puede servir ahora" (11 de noviembre de 2026): UNA
-                // sugerencia según lo que la app ya sabe del día, en este
-                // orden — ánimo bajo registrado hoy → calmarse; de noche →
-                // preparar el descanso; sin check-in → registrar ánimo;
-                // pasos pendientes → elegir solo uno; mañana → desglosar;
-                // si no, un rato de Modo Enfoque.
-                suggestion={(() => {
-                  const now = new Date();
-                  const h = now.getHours();
-                  const moodToday = todayMoodEntry(moodLog, now);
-                  if (moodToday && moodToday.mood <= 2) return { key: "calmBubbles", reason: "moodLow" };
-                  // Acaba de terminar una sesión de enfoque (última hora) →
-                  // moverse un poco.
-                  const lastFocus = Object.values(focusSessionLog || {}).flat().map((e) => Date.parse(e.completedAt)).filter(Boolean).sort().pop();
-                  if (lastFocus && now.getTime() - lastFocus < 60 * 60 * 1000) return { key: "activeBreak", reason: "afterFocus" };
-                  if (h >= 21 || h < 5) return { key: "habits", reason: "night" };
-                  if (!moodToday) return { key: "mood", reason: "noCheckin" };
-                  if (steps.some((st) => !st.done)) return { key: "oneThing", reason: "pending" };
-                  if (h < 13) return { key: "desglosador", reason: "morning" };
-                  return { key: "focusMode", reason: "default" };
-                })()}
+                // "Te puede servir ahora" (11 de noviembre de 2026, con
+                // rotación agregada el 24 de noviembre de 2026): usa
+                // "contextualNudge" — calculado una sola vez arriba, igual
+                // que la tarjeta de Inicio — para que las dos coincidan y
+                // ninguna se quede pegada siempre en la misma sugerencia.
+                suggestion={contextualNudge}
                 // Conexión brújula → ToolsGrid (12 de noviembre de 2026):
                 // al tocar un planeta de categoría en Inicio, se manda el
                 // grupo aquí para que ToolsGrid lo abra automáticamente.
