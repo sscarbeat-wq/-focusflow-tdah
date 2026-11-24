@@ -128,6 +128,22 @@ const DESKTOP_SIZES = {
 const TRANSITION_MIN = 480;
 const TRANSITION_MAX = 820;
 
+// Décima corrección (24 de noviembre de 2026, "tengo que disminuirla para
+// poder ver todas las funciones"): hasta ahora el tamaño SOLO crecía según
+// el ANCHO de la ventana — una laptop con ventana ancha pero de poca
+// altura (muy común: 1280-1440px de ancho con 700-800px de alto útil, una
+// vez descontada la barra de marcadores/pestañas de Chrome) recibía el
+// tamaño COMPLETO de escritorio (el círculo más grande que existe) sin
+// importar que la pantalla no tuviera espacio vertical para eso — de ahí
+// que tuviera que achicar el zoom del navegador para ver todo. Ahora
+// también se mide el ALTO disponible y se usa el factor MÁS CHICO entre
+// ancho y alto (nunca el promedio): así, aunque la ventana sea ancha, si
+// es bajita la brújula se queda en un tamaño intermedio/chico que sí cabe
+// completa sin tener que hacer zoom ni scroll. En una ventana alta (lo de
+// siempre) esto no cambia nada, porque ahí el alto nunca es el que manda.
+const HEIGHT_TRANSITION_MIN = 650;
+const HEIGHT_TRANSITION_MAX = 900;
+
 function clampNum(v, lo, hi) {
   return Math.min(hi, Math.max(lo, v));
 }
@@ -135,8 +151,10 @@ function lerp(a, b, t) {
   return a + (b - a) * t;
 }
 
-function computeSizes(width) {
-  const t = clampNum((width - TRANSITION_MIN) / (TRANSITION_MAX - TRANSITION_MIN), 0, 1);
+function computeSizes(width, height) {
+  const tWidth = clampNum((width - TRANSITION_MIN) / (TRANSITION_MAX - TRANSITION_MIN), 0, 1);
+  const tHeight = clampNum((height - HEIGHT_TRANSITION_MIN) / (HEIGHT_TRANSITION_MAX - HEIGHT_TRANSITION_MIN), 0, 1);
+  const t = Math.min(tWidth, tHeight);
   const out = {};
   for (const key of Object.keys(MOBILE_SIZES)) {
     out[key] = lerp(MOBILE_SIZES[key], DESKTOP_SIZES[key], t);
@@ -150,15 +168,18 @@ function computeSizes(width) {
   return out;
 }
 
-function useViewportWidth() {
-  const [width, setWidth] = useState(() => (typeof window !== "undefined" ? window.innerWidth : 1024));
+function useViewportSize() {
+  const [size, setSize] = useState(() => ({
+    width: typeof window !== "undefined" ? window.innerWidth : 1024,
+    height: typeof window !== "undefined" ? window.innerHeight : 800,
+  }));
   useEffect(() => {
-    const onResize = () => setWidth(window.innerWidth);
+    const onResize = () => setSize({ width: window.innerWidth, height: window.innerHeight });
     onResize();
     window.addEventListener("resize", onResize);
     return () => window.removeEventListener("resize", onResize);
   }, []);
-  return width;
+  return size;
 }
 
 // Novena corrección, parte 2 — "que el giro no distraiga": la rueda se
@@ -564,8 +585,8 @@ export default function QuickAccessCompass({
   // Sexta corrección de fidelidad (9 de noviembre de 2026): "el animal más
   // grande, los círculos grandes" — ver la nota junto a DESKTOP_SIZES más
   // arriba para por qué este agrandado es solo de >=760px en adelante.
-  const viewportWidth = useViewportWidth();
-  const sizes = computeSizes(viewportWidth);
+  const { width: viewportWidth, height: viewportHeight } = useViewportSize();
+  const sizes = computeSizes(viewportWidth, viewportHeight);
   const circleFilter = palette?.circleFilter;
   const haloColor = palette?.bg || C.bg;
   const labelHalo = haloColor
