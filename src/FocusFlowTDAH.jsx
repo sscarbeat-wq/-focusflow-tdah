@@ -5147,85 +5147,153 @@ export default function FocusFlowTDAH({
               title={t.app.panels.auditor.title}
               subtitle={t.app.panels.auditor.subtitle}
             >
-              <div style={{ display: "flex", alignItems: "center", gap: "10px", marginBottom: "16px" }}>
-                <label style={{ fontSize: "13px", color: C.textMuted }}>{t.app.auditor.estimateLabel}</label>
+              {/* 24 de noviembre de 2026 ("quiero que el auditor de tiempo
+                  tenga mejor apariencia"): antes era solo un número de
+                  minutos, un reloj en texto plano y dos botones sueltos —
+                  sin nada que se sintiera "de la app". Ahora el cronómetro
+                  vive dentro de un anillo de progreso (mismo lenguaje
+                  visual que ya se usa en el desglosador): se va llenando
+                  según el tiempo transcurrido contra lo estimado, y cambia
+                  de coral a ámbar en cuanto se pasa del estimado — así se
+                  ve de un vistazo si ya se excedió, sin tener que detenerlo
+                  para saberlo. El resultado final también se resalta con
+                  color e ícono según si tardó más, menos o justo lo
+                  pensado. */}
+              <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: "10px", marginBottom: "22px" }}>
+                <label style={{ fontSize: "13px", color: C.textMuted, fontWeight: 600 }}>{t.app.auditor.estimateLabel}</label>
                 <input
                   type="number"
                   min={1}
                   value={estimateMin}
                   onChange={(e) => setEstimateMin(Math.max(1, Number(e.target.value)))}
                   disabled={running || elapsed > 0}
-                  style={{ ...inputStyle, width: "60px" }}
+                  style={{ ...inputStyle, width: "64px", textAlign: "center", fontWeight: 700 }}
                 />
                 <span style={{ fontSize: "13px", color: C.textMuted }}>{t.app.auditor.minutesUnit}</span>
               </div>
-              <div style={{ display: "flex", alignItems: "center", gap: "16px", marginBottom: "16px" }}>
-                <span style={{ fontSize: "34px", fontWeight: 700, fontVariantNumeric: "tabular-nums" }}>
-                  {fmt(elapsed)}
-                </span>
-                <div style={{ display: "flex", gap: "8px" }}>
-                  {!running ? (
-                    <button
-                      onClick={() => setRunning(true)}
-                      aria-label={t.app.auditor.startAria}
-                      style={{
-                        ...btnPrimary(C.mint, C.mintText),
-                        borderRadius: "50%",
-                        width: "40px",
-                        height: "40px",
-                        padding: 0,
-                        display: "flex",
-                        alignItems: "center",
-                        justifyContent: "center",
-                      }}
-                    >
-                      <Play size={18} />
-                    </button>
-                  ) : (
-                    <button
-                      onClick={stopAudit}
-                      aria-label={t.app.auditor.stopAria}
-                      style={{
-                        ...btnPrimary(C.amber, C.amberText),
-                        borderRadius: "50%",
-                        width: "40px",
-                        height: "40px",
-                        padding: 0,
-                        display: "flex",
-                        alignItems: "center",
-                        justifyContent: "center",
-                      }}
-                    >
-                      <Pause size={18} />
-                    </button>
-                  )}
-                  <button
-                    onClick={resetAudit}
-                    aria-label={t.app.auditor.resetAria}
+              {(() => {
+                const RING_SIZE = 172;
+                const RING_R = 74;
+                const RING_STROKE = 12;
+                const RING_CIRC = 2 * Math.PI * RING_R;
+                const estimateSec = Math.max(1, estimateMin) * 60;
+                const overEstimate = elapsed > estimateSec;
+                const fraction = Math.min(1, estimateSec ? elapsed / estimateSec : 0);
+                const ringColor = overEstimate ? C.amber : C.coral;
+                const percent = overEstimate
+                  ? Math.round(((elapsed - estimateSec) / estimateSec) * 100)
+                  : Math.round(fraction * 100);
+                return (
+                  <div style={{ display: "flex", flexDirection: "column", alignItems: "center", marginBottom: "20px" }}>
+                    <div style={{ position: "relative", width: `${RING_SIZE}px`, height: `${RING_SIZE}px` }}>
+                      <svg width={RING_SIZE} height={RING_SIZE} style={{ transform: "rotate(-90deg)", display: "block" }}>
+                        <circle cx={RING_SIZE / 2} cy={RING_SIZE / 2} r={RING_R} fill="none" stroke={C.surfaceAlt} strokeWidth={RING_STROKE} />
+                        <circle
+                          cx={RING_SIZE / 2}
+                          cy={RING_SIZE / 2}
+                          r={RING_R}
+                          fill="none"
+                          stroke={ringColor}
+                          strokeWidth={RING_STROKE}
+                          strokeLinecap="round"
+                          strokeDasharray={RING_CIRC}
+                          strokeDashoffset={RING_CIRC * (1 - fraction)}
+                          style={{ transition: "stroke-dashoffset 0.3s linear, stroke 0.3s ease" }}
+                        />
+                      </svg>
+                      <div style={{ position: "absolute", inset: 0, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center" }}>
+                        <span style={{ fontSize: "32px", fontWeight: 800, fontVariantNumeric: "tabular-nums", color: C.text, lineHeight: 1 }}>
+                          {fmt(elapsed)}
+                        </span>
+                        <span style={{ fontSize: "11.5px", fontWeight: 700, marginTop: "5px", color: overEstimate ? C.amber : C.textMuted }}>
+                          {overEstimate ? `+${percent}%` : `${percent}%`}
+                        </span>
+                      </div>
+                    </div>
+                    <div style={{ display: "flex", gap: "14px", marginTop: "18px" }}>
+                      {!running ? (
+                        <button
+                          onClick={() => setRunning(true)}
+                          aria-label={t.app.auditor.startAria}
+                          style={{
+                            ...btnPrimary(C.mint, C.mintText),
+                            borderRadius: "50%",
+                            width: "52px",
+                            height: "52px",
+                            padding: 0,
+                            display: "flex",
+                            alignItems: "center",
+                            justifyContent: "center",
+                          }}
+                        >
+                          <Play size={22} />
+                        </button>
+                      ) : (
+                        <button
+                          onClick={stopAudit}
+                          aria-label={t.app.auditor.stopAria}
+                          style={{
+                            ...btnPrimary(C.amber, C.amberText),
+                            borderRadius: "50%",
+                            width: "52px",
+                            height: "52px",
+                            padding: 0,
+                            display: "flex",
+                            alignItems: "center",
+                            justifyContent: "center",
+                          }}
+                        >
+                          <Pause size={22} />
+                        </button>
+                      )}
+                      <button
+                        onClick={resetAudit}
+                        aria-label={t.app.auditor.resetAria}
+                        style={{
+                          ...btnGhost,
+                          borderRadius: "50%",
+                          width: "52px",
+                          height: "52px",
+                          padding: 0,
+                          display: "flex",
+                          alignItems: "center",
+                          justifyContent: "center",
+                        }}
+                      >
+                        <RotateCcw size={20} />
+                      </button>
+                    </div>
+                  </div>
+                );
+              })()}
+              {audit && (() => {
+                const resultColor = audit.diff > 0 ? C.amber : audit.diff < 0 ? C.mint : C.coral;
+                const resultIcon = audit.diff > 0 ? "⏱️" : audit.diff < 0 ? "⚡" : "🎯";
+                return (
+                  <div
                     style={{
-                      ...btnGhost,
-                      borderRadius: "50%",
-                      width: "40px",
-                      height: "40px",
-                      padding: 0,
                       display: "flex",
                       alignItems: "center",
-                      justifyContent: "center",
+                      gap: "12px",
+                      background: `linear-gradient(135deg, ${tint(resultColor, 0.18)}, ${tint(resultColor, 0.06)})`,
+                      border: `1px solid ${tint(resultColor, 0.35)}`,
+                      borderRadius: "14px",
+                      padding: "14px 16px",
+                      fontSize: "14px",
+                      lineHeight: 1.4,
                     }}
                   >
-                    <RotateCcw size={16} />
-                  </button>
-                </div>
-              </div>
-              {audit && (
-                <div style={{ background: C.surfaceAlt, borderRadius: "12px", padding: "12px 14px", fontSize: "14px" }}>
-                  {audit.diff > 0
-                    ? t.app.auditor.resultMore(audit.realMin, estimateMin, audit.diff)
-                    : audit.diff < 0
-                    ? t.app.auditor.resultLess(audit.realMin, estimateMin, Math.abs(audit.diff))
-                    : t.app.auditor.resultExact(audit.realMin, estimateMin)}
-                </div>
-              )}
+                    <span style={{ fontSize: "20px", flexShrink: 0 }}>{resultIcon}</span>
+                    <span>
+                      {audit.diff > 0
+                        ? t.app.auditor.resultMore(audit.realMin, estimateMin, audit.diff)
+                        : audit.diff < 0
+                        ? t.app.auditor.resultLess(audit.realMin, estimateMin, Math.abs(audit.diff))
+                        : t.app.auditor.resultExact(audit.realMin, estimateMin)}
+                    </span>
+                  </div>
+                );
+              })()}
             </Panel>
             </div>
 

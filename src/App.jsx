@@ -95,6 +95,32 @@ export default function App() {
     return () => listener.subscription.unsubscribe();
   }, []);
 
+  // 24 de noviembre de 2026 ("el auditor de tiempo... cuando lo activo y me
+  // cambio de página se quita"): la doctora activaba el cronómetro del
+  // auditor de tiempo, cambiaba a OTRA pestaña del navegador (ej. GitHub) y,
+  // al volver a la pestaña de la app unos segundos después, "El auditor de
+  // tiempo" ya no estaba — había vuelto solo a la lista de Herramientas,
+  // con el cronómetro perdido. La causa real no tenía nada que ver con el
+  // auditor en sí: supabase-js, al recuperar el foco de la pestaña,
+  // refresca la sesión y dispara onAuthStateChange con un objeto `session`
+  // NUEVO (aunque sea la misma persona, el mismo token) — y este efecto
+  // dependía de `[session]` (el objeto completo), así que se volvía a
+  // ejecutar en cada refresco silencioso de foco, poniendo
+  // `loadingProgress` en true. Eso hacía que el render de abajo (línea
+  // "if (loadingProgress...) return null") desmontara TODO <FocusFlowTDAH>
+  // un instante — perdiendo de golpe cualquier estado que viviera solo ahí
+  // dentro (activeTool, y el cronómetro del auditor: running/elapsed), que
+  // no se guarda en Supabase ni en localStorage. Al terminar de cargar
+  // (progress ya venía igual, porque el usuario no cambió), se volvía a
+  // montar desde cero: de ahí que SIEMPRE cayera de vuelta a la pantalla
+  // principal de Herramientas con el cronómetro en 00:00.
+  // Arreglo: que este efecto dependa del ID de usuario (`userId`, un string
+  // estable) en vez del objeto `session` completo — así solo se vuelve a
+  // pedir el progreso cuando la persona realmente inicia sesión o cambia de
+  // cuenta, no cada vez que supabase-js renueva el token en silencio al
+  // volver a la pestaña.
+  const userId = session?.user?.id;
+
   useEffect(() => {
     if (!session) return;
     let active = true;
@@ -113,7 +139,8 @@ export default function App() {
     return () => {
       active = false;
     };
-  }, [session]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [userId]);
 
   const refreshSubscription = React.useCallback(() => {
     if (!session) return;
@@ -126,12 +153,14 @@ export default function App() {
         if (error) console.error("Error cargando suscripción:", error);
         setSubscription(data || null);
       });
-  }, [session]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [userId]);
 
   useEffect(() => {
     if (!session) return;
     refreshSubscription();
-  }, [session, refreshSubscription]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [userId, refreshSubscription]);
 
   // Si venimos de vuelta de un pago exitoso, reintenta cargar el estado
   // unas veces (el webhook de Stripe puede tardar unos segundos).
