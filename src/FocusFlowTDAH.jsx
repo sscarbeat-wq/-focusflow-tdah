@@ -2737,6 +2737,131 @@ export default function FocusFlowTDAH({
             return [];
           })();
 
+          // --- Opción B de escritorio (24 de noviembre de 2026) ----------
+          // La doctora: "ajusta la imagen a la pantalla, tengo que
+          // disminuirla para poder ver todas las funciones" (ventana ancha
+          // pero bajita: todo se apilaba debajo de la brújula y quedaba
+          // fuera de lo visible sin bajarle zoom). Se le mandó un demo con
+          // varias alternativas (A a E) y escogió la "Opción B": en
+          // escritorio ancho, la tarjeta "Te puede servir ahora" y "Tus
+          // más usadas" se extraen de la columna apilada y se calculan UNA
+          // sola vez aquí (nudgeCardNode / usageStripNode) para poder
+          // mostrarlas en dos sitios distintos según el ancho — en vez de
+          // duplicar su JSX. En escritorio (isWide) se insertan junto con
+          // la franja de hábitos (TodayHabitsStrip, que YA se movía al
+          // borde derecho desde antes) en una columnita pegada al borde
+          // derecho de la pantalla; en teléfono/ventana angosta siguen
+          // apiladas debajo de la brújula exactamente igual que antes.
+          const nudgeCardNode = contextualNudge && (() => {
+            const nudgeItem = quickNavSections.find((s) => s.key === contextualNudge.key);
+            if (!nudgeItem) return null;
+            const nudgeGroup = TOOL_GROUPS.find((g) => g.tools.includes(contextualNudge.key));
+            const nudgeColor = nudgeGroup ? nudgeGroup.color : personalAccent;
+            const nudgeTone = toneTint(nudgeColor);
+            return (
+              <button
+                type="button"
+                onClick={() => openFromHome(contextualNudge.key)}
+                style={{
+                  display: "flex",
+                  alignItems: "center",
+                  gap: "12px",
+                  width: "100%",
+                  padding: "14px 16px",
+                  borderRadius: "16px",
+                  border: `2px solid ${toneAlpha(nudgeColor, 40)}`,
+                  background: `linear-gradient(135deg, ${toneAlpha(nudgeColor, 24)} 0%, ${toneAlpha(nudgeColor, 12)} 100%), ${palette.chipBg || palette.bg || C.surface}`,
+                  boxShadow: `0 4px 14px ${toneAlpha(nudgeColor, 15)}`,
+                  color: palette.textHi || palette.text || C.text,
+                  cursor: "pointer",
+                  textAlign: "left",
+                  boxSizing: "border-box",
+                }}
+              >
+                <span style={{ width: "40px", height: "40px", borderRadius: "12px", background: nudgeTone, color: "#fff", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
+                  {nudgeItem.icon}
+                </span>
+                <span style={{ flex: 1, minWidth: 0 }}>
+                  <span style={{ display: "block", fontSize: "11px", fontWeight: 800, color: palette.text || C.text, textTransform: "uppercase", letterSpacing: "0.04em" }}>
+                    ✨ {t.today.nudgeTitle}
+                  </span>
+                  <span style={{ display: "block", fontSize: "14px", fontWeight: 700, margin: "1px 0" }}>{nudgeItem.label}</span>
+                  <span style={{ display: "block", fontSize: "12px", color: palette.textMuted || C.textMuted, lineHeight: 1.3 }}>
+                    {t.tools.suggestReasons[contextualNudge.reason]}
+                  </span>
+                </span>
+                <span style={{ fontSize: "18px", color: nudgeTone, fontWeight: 800 }}>›</span>
+              </button>
+            );
+          })();
+
+          const usageStripNode = recentToolKeys.length > 0 && (
+            <>
+              <h3 style={{ fontSize: "12px", fontWeight: 800, color: palette.textMuted || C.textMuted, margin: "0 0 6px", textTransform: "uppercase", letterSpacing: "0.04em" }}>
+                ⚡ {t.today.frequentTitle}
+              </h3>
+              <div
+                style={{
+                  display: "flex",
+                  gap: "10px",
+                  overflowX: "auto",
+                  padding: "10px 8px",
+                  borderRadius: "16px",
+                  background: palette.chipBg || palette.bg || C.surface,
+                  scrollbarWidth: "thin",
+                }}
+              >
+                {recentToolKeys.map((key) => {
+                  const item = quickNavSections.find((s) => s.key === key);
+                  if (!item) return null;
+                  const grp = TOOL_GROUPS.find((g) => g.tools.includes(key));
+                  const color = grp ? grp.color : personalAccent;
+                  const tone = toneTint(color);
+                  return (
+                    <button
+                      key={key}
+                      type="button"
+                      onClick={() => openFromHome(key)}
+                      style={{
+                        display: "flex",
+                        flexDirection: "column",
+                        alignItems: "center",
+                        gap: "4px",
+                        minWidth: "76px",
+                        maxWidth: "76px",
+                        padding: "8px 6px",
+                        borderRadius: "14px",
+                        border: `1px solid ${toneAlpha(color, 13)}`,
+                        background: toneAlpha(color, 8),
+                        color: palette.textHi || palette.text || C.text,
+                        cursor: "pointer",
+                        flexShrink: 0,
+                      }}
+                    >
+                      <span style={{ width: "32px", height: "32px", borderRadius: "10px", background: toneAlpha(color, 13), color: tone, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
+                        {item.icon}
+                      </span>
+                      <span
+                        style={{
+                          fontSize: "10.5px",
+                          fontWeight: 700,
+                          lineHeight: 1.2,
+                          textAlign: "center",
+                          display: "-webkit-box",
+                          WebkitLineClamp: 2,
+                          WebkitBoxOrient: "vertical",
+                          overflow: "hidden",
+                        }}
+                      >
+                        {item.label}
+                      </span>
+                    </button>
+                  );
+                })}
+              </div>
+            </>
+          );
+
           return (
             <div
               style={{
@@ -2869,12 +2994,22 @@ export default function FocusFlowTDAH({
                   sobra debajo del saludo — igual que en el mockup, en vez
                   de quedar pegada arriba con un hueco vacío abajo. */}
               <div style={{ flex: 1, display: "flex", flexDirection: "column", justifyContent: "center", position: "relative" }}>
-                {/* Computadora: la franja de hábitos va a la derecha de la
-                    brújula, centrada a lo alto (ver TodayHabitsStrip.jsx).
-                    El envoltorio no recibe clics; solo la tarjeta. */}
+                {/* Computadora (Opción B, 24 de noviembre de 2026): la
+                    franja de hábitos, la tarjeta "Te puede servir ahora" y
+                    "Tus más usadas" se agrupan en UNA sola columnita
+                    pegada al borde derecho de la pantalla, centrada a lo
+                    alto junto a la brújula — en vez de apilarse debajo de
+                    ella. El envoltorio no recibe clics; solo las tarjetas
+                    de adentro (pointerEvents: "auto"). */}
                 {isWide && (
                   <div style={{ position: "absolute", top: 0, bottom: 0, right: 0, display: "flex", alignItems: "center", pointerEvents: "none", zIndex: 3 }}>
-                    <div style={{ pointerEvents: "auto" }}>
+                    <div style={{ pointerEvents: "auto", display: "flex", flexDirection: "column", alignItems: "flex-end", gap: "14px" }}>
+                      {nudgeCardNode && (
+                        <div style={{ width: "280px", boxSizing: "border-box" }}>{nudgeCardNode}</div>
+                      )}
+                      {usageStripNode && (
+                        <div style={{ width: "280px", boxSizing: "border-box" }}>{usageStripNode}</div>
+                      )}
                       <TodayHabitsStrip
                         C={C}
                         t={t}
@@ -3062,200 +3197,30 @@ export default function FocusFlowTDAH({
               {renderErrandHome()}
               {/* ✨ Tarjeta contextual "Te puede servir ahora" (12 de
                   noviembre de 2026, rediseño brújula): una sugerencia
-                  dinámica basada en lo que la app ya sabe del día. Se
-                  muestra tanto en móvil como en escritorio. */}
-              {contextualNudge && (() => {
-                const nudgeItem = quickNavSections.find((s) => s.key === contextualNudge.key);
-                if (!nudgeItem) return null;
-                const nudgeGroup = TOOL_GROUPS.find((g) => g.tools.includes(contextualNudge.key));
-                const nudgeColor = nudgeGroup ? nudgeGroup.color : personalAccent;
-                const nudgeTone = toneTint(nudgeColor);
-                return (
-                  <div style={{ padding: isNarrow ? "6px 12px 0" : "6px 18px 0", maxWidth: isWide ? "600px" : "420px", width: "100%", margin: "0 auto", boxSizing: "border-box" }}>
-                    {/* 15 de noviembre de 2026 ("podrías hacer esto más
-                        visible?"): ya se leía bien (contraste arreglado
-                        arriba), pero el fondo era un tinte casi
-                        transparente (6-9% de opacidad) que se perdía
-                        contra el papel tapiz de puntos de Inicio. Ahora
-                        lleva un fondo sólido de base (palette.chipBg,
-                        igual que usa "Tus más usadas" más abajo, para no
-                        mezclarse con el papel tapiz), un tinte de color
-                        más marcado encima, borde más grueso y una sombra
-                        suave — se nota como tarjeta en vez de solo un
-                        tinte de color.
-                        19 de noviembre de 2026 ("podrían cambiar el color
-                        de los accesos para que se puedan leer las
-                        letras?"): ese fondo de base volvió a romperse al
-                        quitar la Colección Plus (18 de noviembre) —
-                        "palette.chipBg" era un valor que SOLO traían los
-                        temas Plus (ya no existe ninguno), así que esto
-                        caía siempre a C.surface: el fondo fijo de
-                        claro/oscuro, que no tiene nada que ver con
-                        palette.text (el color automático por hora del
-                        día) de la línea de abajo. De noche, con tema
-                        claro, salía texto casi blanco sobre tarjeta casi
-                        blanca; de día, con tema oscuro, texto oscuro
-                        sobre tarjeta oscura — exactamente lo que se veía
-                        en la captura. Ahora cae a `palette.bg`: el mismo
-                        objeto de paleta que ya trae `text` pensado para
-                        pintarse encima de ÉL, así los dos SIEMPRE
-                        combinan, sin importar qué tema claro/oscuro haya
-                        elegido la paciente. */}
-                    <button
-                      type="button"
-                      onClick={() => openFromHome(contextualNudge.key)}
-                      style={{
-                        display: "flex",
-                        alignItems: "center",
-                        gap: "12px",
-                        width: "100%",
-                        padding: "14px 16px",
-                        borderRadius: "16px",
-                        border: `2px solid ${toneAlpha(nudgeColor, 40)}`,
-                        background: `linear-gradient(135deg, ${toneAlpha(nudgeColor, 24)} 0%, ${toneAlpha(nudgeColor, 12)} 100%), ${palette.chipBg || palette.bg || C.surface}`,
-                        boxShadow: `0 4px 14px ${toneAlpha(nudgeColor, 15)}`,
-                        color: palette.textHi || palette.text || C.text,
-                        cursor: "pointer",
-                        textAlign: "left",
-                        boxSizing: "border-box",
-                      }}
-                    >
-                      <span style={{ width: "40px", height: "40px", borderRadius: "12px", background: nudgeTone, color: "#fff", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
-                        {nudgeItem.icon}
-                      </span>
-                      <span style={{ flex: 1, minWidth: 0 }}>
-                        {/* 15 de noviembre de 2026 ("la función de que te
-                            podría funcionar no se ve por el contraste de
-                            colores"): esta etiqueta y la frase de abajo
-                            usaban colores fijos (nudgeColor / C.textMuted)
-                            pensados para el tema oscuro de siempre, no para
-                            el fondo de Inicio que cambia con la hora del
-                            día (ver timeOfDayPalette.js). Igual que el
-                            resto de esta misma tarjeta (palette.textHi en
-                            la línea de arriba), ahora usan palette.text/
-                            palette.textMuted para quedar legibles en
-                            mañana/tarde/noche. nudgeColor (vía nudgeTone,
-                            ver nota de toneTint más arriba) se queda solo
-                            en el cuadrito del ícono y la flechita, que
-                            siempre tienen buen contraste (ícono blanco /
-                            color sólido). */}
-                        <span style={{ display: "block", fontSize: "11px", fontWeight: 800, color: palette.text || C.text, textTransform: "uppercase", letterSpacing: "0.04em" }}>
-                          ✨ {t.today.nudgeTitle}
-                        </span>
-                        <span style={{ display: "block", fontSize: "14px", fontWeight: 700, margin: "1px 0" }}>{nudgeItem.label}</span>
-                        <span style={{ display: "block", fontSize: "12px", color: palette.textMuted || C.textMuted, lineHeight: 1.3 }}>
-                          {t.tools.suggestReasons[contextualNudge.reason]}
-                        </span>
-                      </span>
-                      <span style={{ fontSize: "18px", color: nudgeTone, fontWeight: 800 }}>›</span>
-                    </button>
-                  </div>
-                );
-              })()}
+                  dinámica basada en lo que la app ya sabe del día.
+                  24 de noviembre de 2026 (Opción B de escritorio): en
+                  pantallas anchas (isWide) esta tarjeta ya se dibuja en la
+                  columnita del borde derecho (ver nudgeCardNode y el
+                  bloque de arriba, junto a TodayHabitsStrip), así que aquí
+                  solo se repite apilada debajo de la brújula en móvil o
+                  ventana angosta. */}
+              {!isWide && nudgeCardNode && (
+                <div style={{ padding: isNarrow ? "6px 12px 0" : "6px 18px 0", maxWidth: "420px", width: "100%", margin: "0 auto", boxSizing: "border-box" }}>
+                  {nudgeCardNode}
+                </div>
+              )}
 
               {/* ⚡ Tus más usadas (12 de noviembre de 2026): las últimas
                   5 herramientas usadas, en un scroll horizontal compacto.
                   Se muestra si hay al menos 1 herramienta reciente
-                  guardada en localStorage. */}
-              {recentToolKeys.length > 0 && (
-                <div style={{ padding: isNarrow ? "8px 12px 14px" : "8px 18px 14px", maxWidth: isWide ? "600px" : "420px", width: "100%", margin: "0 auto", boxSizing: "border-box" }}>
-                  <h3 style={{ fontSize: "12px", fontWeight: 800, color: palette.textMuted || C.textMuted, margin: "0 0 6px", textTransform: "uppercase", letterSpacing: "0.04em" }}>
-                    ⚡ {t.today.frequentTitle}
-                  </h3>
-                  {/* 15 de noviembre de 2026 ("esta barra la podrías
-                      distribuir de otra forma, mi esposo dice que es
-                      confusa"): antes cada nombre se cortaba a la fuerza en
-                      una sola línea ("Cuerpo d...", "El desglo...",
-                      "Rutinas v..."), así que no se alcanzaba a leer qué
-                      herramienta era cada una. Ahora el nombre completo
-                      cabe en hasta 2 líneas (solo se recorta si de plano
-                      no entra en 2 líneas, en vez de 1). También se
-                      envuelve todo en una tarjeta con su propio fondo —
-                      antes los iconitos quedaban sueltos directo sobre el
-                      papel tapiz de puntos de Inicio, que se mezclaba con
-                      ellos.
-                      19 de noviembre de 2026 ("podrían cambiar el color de
-                      los accesos para que se puedan leer las letras?"): el
-                      título de arriba y este fondo tenían el mismo defecto
-                      que la tarjeta "Te puede servir ahora" de más arriba
-                      (ver su nota ahí) — "palette.chipBg" ya no existe
-                      desde que se quitó la Colección Plus, así que el
-                      fondo caía a C.surface (fijo) mientras el texto de
-                      cada acceso, más abajo, sí sigue `palette.text`
-                      (automático): de noche con tema claro, o de día con
-                      tema oscuro, el texto se volvía casi invisible contra
-                      su propio fondo. Mismo arreglo: el fondo cae a
-                      `palette.bg`, que es justo con lo que palette.text ya
-                      está pensado para combinar. */}
-                  <div
-                    style={{
-                      display: "flex",
-                      gap: "10px",
-                      overflowX: "auto",
-                      padding: "10px 8px",
-                      borderRadius: "16px",
-                      background: palette.chipBg || palette.bg || C.surface,
-                      scrollbarWidth: "thin",
-                    }}
-                  >
-                    {recentToolKeys.map((key) => {
-                      const item = quickNavSections.find((s) => s.key === key);
-                      if (!item) return null;
-                      const grp = TOOL_GROUPS.find((g) => g.tools.includes(key));
-                      const color = grp ? grp.color : personalAccent;
-                      // Ver nota de toneTint más arriba ("que resalten el
-                      // tono"): mismo tratamiento que la tarjeta de
-                      // sugerencia, para que estos botones también se
-                      // sientan del fondo del momento y no planos.
-                      const tone = toneTint(color);
-                      return (
-                        <button
-                          key={key}
-                          type="button"
-                          onClick={() => openFromHome(key)}
-                          style={{
-                            display: "flex",
-                            flexDirection: "column",
-                            alignItems: "center",
-                            gap: "4px",
-                            minWidth: "76px",
-                            maxWidth: "76px",
-                            padding: "8px 6px",
-                            borderRadius: "14px",
-                            border: `1px solid ${toneAlpha(color, 13)}`,
-                            background: toneAlpha(color, 8),
-                            // Mismo arreglo que en la nudge card de arriba:
-                            // "palette.textHi" no existe, así que esto
-                            // siempre caía a C.text (estático) en vez de
-                            // palette.text (el que de verdad hace pareja
-                            // con el fondo de esta tarjeta, palette.chipBg,
-                            // cuando hay un tema Plus activo).
-                            color: palette.textHi || palette.text || C.text,
-                            cursor: "pointer",
-                            flexShrink: 0,
-                          }}
-                        >
-                          <span style={{ width: "32px", height: "32px", borderRadius: "10px", background: toneAlpha(color, 13), color: tone, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
-                            {item.icon}
-                          </span>
-                          <span
-                            style={{
-                              fontSize: "10.5px",
-                              fontWeight: 700,
-                              lineHeight: 1.2,
-                              textAlign: "center",
-                              display: "-webkit-box",
-                              WebkitLineClamp: 2,
-                              WebkitBoxOrient: "vertical",
-                              overflow: "hidden",
-                            }}
-                          >
-                            {item.label}
-                          </span>
-                        </button>
-                      );
-                    })}
-                  </div>
+                  guardada en localStorage.
+                  24 de noviembre de 2026 (Opción B de escritorio): mismo
+                  caso que la tarjeta de arriba — en isWide ya se dibuja en
+                  la columnita del borde derecho (usageStripNode), así que
+                  aquí solo se repite apilada en móvil/ventana angosta. */}
+              {!isWide && usageStripNode && (
+                <div style={{ padding: isNarrow ? "8px 12px 14px" : "8px 18px 14px", maxWidth: "420px", width: "100%", margin: "0 auto", boxSizing: "border-box" }}>
+                  {usageStripNode}
                 </div>
               )}
 
