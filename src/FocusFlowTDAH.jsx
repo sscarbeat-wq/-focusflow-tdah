@@ -4826,29 +4826,75 @@ export default function FocusFlowTDAH({
                     </div>
                   )}
                   {steps.length > 0 && (() => {
-                    // (b) Progreso tipo juego: barra de X/Y pasos hechos
-                    // (se ve igual en lista o tablero) y una tarjeta de
-                    // felicitación cuando ya están todos — el XP extra por
-                    // completar TODO el desglose se otorga aparte, en el
-                    // useEffect de dismantlerAllDoneRef (arriba), no aquí
-                    // (aquí solo se DIBUJA, nunca se cambia estado).
+                    // (b) Progreso tipo juego: antes una barra delgada,
+                    // ahora (24 de noviembre de 2026, "me gusta la opción B"
+                    // del demo que se le mandó a elegir) un anillo de
+                    // progreso circular — mismo lenguaje visual ya aprobado
+                    // en Atención plena — con una sugerencia de a cuál paso
+                    // seguir al lado. La tarjeta de felicitación al terminar
+                    // todo sigue igual; el XP extra por completar TODO el
+                    // desglose se otorga aparte, en el useEffect de
+                    // dismantlerAllDoneRef (arriba), no aquí (aquí solo se
+                    // DIBUJA, nunca se cambia estado).
                     const totalSteps = steps.length;
                     const doneSteps = steps.filter((s) => s.done).length;
                     const allDone = doneSteps === totalSteps;
+                    const fraction = totalSteps ? doneSteps / totalSteps : 0;
+                    const nextPending = steps.find((s) => !s.done);
+                    const RING_SIZE = 84;
+                    const RING_R = 36;
+                    const RING_CIRC = 2 * Math.PI * RING_R;
                     return (
-                      <div style={{ marginBottom: "12px" }}>
-                        <div style={{ fontSize: "11px", color: C.textMuted, marginBottom: "4px" }}>
-                          {t.app.dismantler.progressLabel(doneSteps, totalSteps)}
-                        </div>
-                        <div style={{ height: "8px", borderRadius: "999px", background: C.surfaceAlt, overflow: "hidden" }}>
-                          <div
-                            style={{
-                              height: "100%",
-                              width: `${(doneSteps / totalSteps) * 100}%`,
-                              background: C.mint,
-                              transition: "width 0.3s ease",
-                            }}
-                          />
+                      <div style={{ marginBottom: "14px" }}>
+                        <div
+                          style={{
+                            display: "flex",
+                            alignItems: "center",
+                            gap: "16px",
+                            flexWrap: "wrap",
+                            justifyContent: "center",
+                            marginBottom: allDone ? "2px" : "4px",
+                          }}
+                        >
+                          <div style={{ position: "relative", width: `${RING_SIZE}px`, height: `${RING_SIZE}px`, flexShrink: 0 }}>
+                            <svg width={RING_SIZE} height={RING_SIZE} style={{ transform: "rotate(-90deg)" }}>
+                              <circle cx={RING_SIZE / 2} cy={RING_SIZE / 2} r={RING_R} fill="none" stroke={C.border} strokeWidth="7" />
+                              <circle
+                                cx={RING_SIZE / 2}
+                                cy={RING_SIZE / 2}
+                                r={RING_R}
+                                fill="none"
+                                stroke={C.coral}
+                                strokeWidth="7"
+                                strokeLinecap="round"
+                                strokeDasharray={RING_CIRC}
+                                strokeDashoffset={RING_CIRC * (1 - fraction)}
+                                style={{ transition: "stroke-dashoffset 0.4s ease" }}
+                              />
+                            </svg>
+                            <div
+                              style={{
+                                position: "absolute",
+                                inset: 0,
+                                display: "flex",
+                                flexDirection: "column",
+                                alignItems: "center",
+                                justifyContent: "center",
+                              }}
+                            >
+                              <p style={{ fontSize: "17px", fontWeight: 800, color: C.text, margin: 0, lineHeight: 1.1, fontVariantNumeric: "tabular-nums" }}>
+                                {doneSteps}/{totalSteps}
+                              </p>
+                              <p style={{ fontSize: "9px", fontWeight: 700, color: C.textMuted, textTransform: "uppercase", margin: 0 }}>
+                                {t.app.dismantler.ringStepsWord}
+                              </p>
+                            </div>
+                          </div>
+                          {!allDone && nextPending && (
+                            <p style={{ fontSize: "12.5px", color: C.text, lineHeight: 1.5, maxWidth: "220px", margin: 0 }}>
+                              {t.app.dismantler.nextStepCaption(nextPending.text)}
+                            </p>
+                          )}
                         </div>
                         {allDone && (
                           <div style={{ marginTop: "10px", padding: "12px 14px", borderRadius: "12px", background: C.mint, color: C.mintText }}>
@@ -4992,11 +5038,11 @@ export default function FocusFlowTDAH({
                                 <span
                                   onClick={() => toggleStep(s.id)}
                                   style={{
-                                    width: "22px",
-                                    height: "22px",
+                                    width: "24px",
+                                    height: "24px",
                                     borderRadius: "50%",
-                                    background: s.done ? C.mint : C.surfaceAlt,
-                                    color: s.done ? C.mintText : C.textMuted,
+                                    background: s.done ? C.coral : "transparent",
+                                    color: s.done ? "#fff" : C.textMuted,
                                     fontSize: "12px",
                                     fontWeight: 600,
                                     display: "flex",
@@ -5004,7 +5050,7 @@ export default function FocusFlowTDAH({
                                     justifyContent: "center",
                                     flexShrink: 0,
                                     cursor: "pointer",
-                                    border: `1px solid ${C.border}`,
+                                    border: `2px solid ${C.coral}`,
                                   }}
                                 >
                                   {s.done ? <CheckCircle2 size={13} /> : originalIndex + 1}
@@ -5019,22 +5065,33 @@ export default function FocusFlowTDAH({
                                 >
                                   {s.text}
                                 </span>
-                                <span style={{ fontSize: "12px", color: C.textMuted }}>{s.min} min</span>
-                                {s.energy && (
-                                  <span
-                                    title={t.app.dismantler.energyTagTitle(s.energy)}
-                                    style={{
-                                      fontSize: "11px",
-                                      color: C.textMuted,
-                                      background: C.surfaceAlt,
-                                      border: `1px solid ${C.border}`,
-                                      borderRadius: "10px",
-                                      padding: "2px 7px",
-                                    }}
-                                  >
-                                    {s.energy}
-                                  </span>
-                                )}
+                                <span
+                                  title={s.energy ? t.app.dismantler.energyTagTitle(s.energy) : undefined}
+                                  style={{
+                                    fontSize: "11px",
+                                    color: C.textMuted,
+                                    display: "flex",
+                                    alignItems: "center",
+                                    gap: "5px",
+                                    whiteSpace: "nowrap",
+                                    flexShrink: 0,
+                                  }}
+                                >
+                                  {s.energy && (
+                                    <span
+                                      aria-hidden="true"
+                                      style={{
+                                        width: "8px",
+                                        height: "8px",
+                                        borderRadius: "999px",
+                                        flexShrink: 0,
+                                        background:
+                                          s.energy === "baja" ? C.mint : s.energy === "alta" ? C.sky : C.amber,
+                                      }}
+                                    />
+                                  )}
+                                  {s.min} min
+                                </span>
                                 <button
                                   onClick={() => removeStep(s.id)}
                                   style={{ background: "transparent", border: "none", cursor: "pointer", color: C.textMuted }}
