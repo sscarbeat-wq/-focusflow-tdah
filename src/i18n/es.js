@@ -1798,9 +1798,22 @@ const es = {
         "Organizar el clóset",
         "Pagar un recibo",
         "Avanzar la tarea de la escuela",
+        "Lavar los platos",
+        "Hacer la cama",
+        "Sacar la basura",
+        "Agendar una cita médica",
+        "Actualizar mi currículum",
+        "Ordenar mi bandeja de entrada",
+        "Doblar la ropa limpia",
+        "Regar las plantas",
       ],
       // Progreso tipo juego (barra + tarjeta al completar todo).
       progressLabel: (done, total) => `${done} de ${total} paso${total === 1 ? "" : "s"}`,
+      // 24 de noviembre de 2026 — rediseño del desglosador con anillo de
+      // progreso (opción B del demo que se le mandó a elegir): la etiqueta
+      // chiquita dentro del anillo y la sugerencia de a cuál paso seguir.
+      ringStepsWord: "pasos",
+      nextStepCaption: (text) => `Sigue con: "${text}"`,
       allDoneTitle: "¡Desglose completo! 🎉",
       allDoneBody: (text) => `Terminaste todos los pasos de "${text}".`,
       startNewTaskButton: "Empezar otra tarea",
