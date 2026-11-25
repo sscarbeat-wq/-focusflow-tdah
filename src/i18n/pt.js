@@ -1653,7 +1653,7 @@ const pt = {
       medication: { title: "Medicamentos", subtitle: "Horários, registro de doses tomadas e notas de efeitos colaterais — para você e, se quiser, para compartilhar com seu médico." },
       payments: { title: "Pagamentos e assinaturas", subtitle: "Uma lista manual com aviso antes da data, para não pagar atrasado nem esquecer uma assinatura." },
       stopThink: { title: "Freio de impulsividade", subtitle: "Pare, respire, avalie, aja." },
-      breathing: { title: "Bolha de foco", subtitle: "Um minuto de respiração guiada para baixar a sobrecarga." },
+      breathing: { title: "Bolha de foco", subtitle: "Um minuto de respiração guiada para baixar a sobrecarga. Feche os olhos: uma voz avisa quando inspirar, segurar e expirar." },
       calmBubbles: { title: "Bolhas de calma", subtitle: "Estoure bolhas no ritmo da sua respiração, por um minuto." },
       mindfulness: { title: "Atenção plena", subtitle: "Uma prática breve de mindfulness, guiada passo a passo." },
       reframe: { title: "Reestruturação de pensamentos", subtitle: "Um pensamento automático não é sempre um fato." },

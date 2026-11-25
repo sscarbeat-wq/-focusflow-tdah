@@ -1652,7 +1652,7 @@ const fr = {
       medication: { title: "Médicaments", subtitle: "Horaires, suivi des doses prises et notes d'effets secondaires — pour toi et, si tu veux, à partager avec ton médecin." },
       payments: { title: "Paiements et abonnements", subtitle: "Une liste manuelle avec rappel avant l'échéance, pour ne pas payer en retard ni oublier un abonnement." },
       stopThink: { title: "Frein à l'impulsivité", subtitle: "Stop, respire, évalue, agis." },
-      breathing: { title: "Bulle de concentration", subtitle: "Une minute de respiration guidée pour faire baisser la surcharge." },
+      breathing: { title: "Bulle de concentration", subtitle: "Une minute de respiration guidée pour faire baisser la surcharge. Ferme les yeux : une voix te dit quand inspirer, retenir et expirer." },
       calmBubbles: { title: "Bulles de calme", subtitle: "Éclate des bulles au rythme de ta respiration, pendant une minute." },
       mindfulness: { title: "Pleine conscience", subtitle: "Une courte pratique de pleine conscience, guidée pas à pas." },
       reframe: { title: "Restructuration des pensées", subtitle: "Une pensée automatique n'est pas toujours un fait." },

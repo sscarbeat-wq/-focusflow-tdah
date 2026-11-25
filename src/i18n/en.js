@@ -1654,7 +1654,7 @@ const en = {
       medication: { title: "Medications", subtitle: "Schedules, dose log, and side-effect notes — for you and, if you want, to share with your doctor." },
       payments: { title: "Payments and subscriptions", subtitle: "A manual list with a reminder before the due date, so you don't pay late or forget a subscription." },
       stopThink: { title: "Impulse brake", subtitle: "Stop, breathe, evaluate, act." },
-      breathing: { title: "Focus bubble", subtitle: "One minute of guided breathing to bring down overload." },
+      breathing: { title: "Focus bubble", subtitle: "One minute of guided breathing to bring down overload. Close your eyes — a voice tells you when to inhale, hold, and exhale." },
       calmBubbles: { title: "Calm bubbles", subtitle: "Pop bubbles to the rhythm of your breathing, for one minute." },
       mindfulness: { title: "Mindfulness", subtitle: "A brief mindfulness practice, guided step by step." },
       reframe: { title: "Thought reframing", subtitle: "An automatic thought isn't always a fact." },
