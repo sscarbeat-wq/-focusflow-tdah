@@ -617,6 +617,24 @@ export default function ScheduleAgendaPanel({
           0%, 100% { opacity: 1; transform: scale(1); }
           50% { opacity: 0.7; transform: scale(1.05); }
         }
+        /* 25 de noviembre de 2026 ("no se ve que se pueda presionar"): el
+           círculo del micrófono, cuando NO está grabando, respira solo con
+           un anillo de luz que crece y se desvanece — para que se note que
+           es un botón presionable y no solo un ícono decorativo. Se detiene
+           en cuanto empieza a grabar (ahí ya pulsa en rojo todo el bloque,
+           con anro-pulse) y respeta "reducir movimiento". */
+        @keyframes anroMicInvite {
+          0%, 100% { box-shadow: 0 0 0 0 rgba(255,255,255,0.45); transform: scale(1); }
+          50% { box-shadow: 0 0 0 7px rgba(255,255,255,0); transform: scale(1.07); }
+        }
+        .anro-mic-invite {
+          animation: anroMicInvite 2s ease-in-out infinite;
+        }
+        @media (prefers-reduced-motion: reduce) {
+          .anro-mic-invite {
+            animation: none !important;
+          }
+        }
       `}</style>
 
       {/* ===== CALENDARIO ===== */}
@@ -980,11 +998,12 @@ export default function ScheduleAgendaPanel({
                   type="button"
                   onClick={voiceListening ? stopVoice : startVoice}
                   aria-label={voiceListening ? (labels.voiceTapStop || "Toca para detener") : (labels.voiceAdd || "Agregar con voz")}
+                  className={voiceListening ? "" : "anro-mic-invite"}
                   style={{
                     width: "44px",
                     height: "44px",
                     borderRadius: "12px",
-                    background: "rgba(255,255,255,0.2)",
+                    background: "rgba(255,255,255,0.3)",
                     border: "none",
                     display: "flex",
                     alignItems: "center",
@@ -1438,11 +1457,12 @@ export default function ScheduleAgendaPanel({
                   type="button"
                   onClick={voiceListening ? stopVoice : startVoice}
                   aria-label={voiceListening ? (labels.voiceTapStop || "Toca para detener") : (labels.voiceAdd || "Agregar con voz")}
+                  className={voiceListening ? "" : "anro-mic-invite"}
                   style={{
                     width: "36px",
                     height: "36px",
                     borderRadius: "10px",
-                    background: "rgba(255,255,255,0.2)",
+                    background: "rgba(255,255,255,0.3)",
                     border: "none",
                     display: "flex",
                     alignItems: "center",
