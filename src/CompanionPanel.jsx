@@ -1,6 +1,22 @@
-import React, { useState } from "react";
-import { ArrowRight, AlertTriangle, RotateCcw, Lock } from "lucide-react";
+import React, { useState, useRef } from "react";
+import { ArrowRight, AlertTriangle, RotateCcw, Lock, Mic, Square } from "lucide-react";
 import { SITUATIONS, getSituation, nextResponseIndex } from "./companionSituations";
+
+// El reconocimiento de voz del navegador (Web Speech API) necesita un BCP-47
+// completo, no solo el código de 2 letras — mismo mapa que ya se usa en
+// GoodMomentsPanel.jsx.
+const SPEECH_LOCALES = { es: "es-MX", en: "en-US", fr: "fr-FR", pt: "pt-BR" };
+
+// 25 de noviembre de 2026 ("añade que lo pueda decir con voz"): dictado del
+// propio navegador para el cuadro de texto libre — mismo patrón que
+// GoodMomentsPanel.jsx (a propósito NO pasa por api/quick-capture.js ni
+// ninguna IA, solo transcribe; si el navegador no lo soporta, ej. Safari de
+// iPhone, el botón de micrófono simplemente no aparece y el textarea sigue
+// funcionando igual con el teclado).
+function getSpeechRecognition() {
+  if (typeof window === "undefined") return null;
+  return window.SpeechRecognition || window.webkitSpeechRecognition || null;
+}
 
 // Compañero de apoyo situacional — botones de entrada rápida (5 situaciones
 // fijas) MÁS, desde el 24 de noviembre de 2026, un cuadro de texto libre
@@ -50,6 +66,31 @@ export default function CompanionPanel({ C, t, lang, userId, onNavigate, isPlus 
   const [customResponse, setCustomResponse] = useState(null);
   const [customLoading, setCustomLoading] = useState(false);
   const [customError, setCustomError] = useState(false);
+  const [listening, setListening] = useState(false); // dictado por voz del cuadro de texto libre
+  const recognitionRef = useRef(null);
+  const SpeechRecognition = getSpeechRecognition();
+
+  const startListening = () => {
+    if (!SpeechRecognition) return;
+    const recognition = new SpeechRecognition();
+    recognition.lang = SPEECH_LOCALES[lang] || SPEECH_LOCALES.es;
+    recognition.interimResults = false;
+    recognition.maxAlternatives = 1;
+    recognition.onresult = (event) => {
+      const transcript = event.results?.[0]?.[0]?.transcript || "";
+      setFreeText((prev) => (prev ? `${prev} ${transcript}` : transcript));
+    };
+    recognition.onend = () => setListening(false);
+    recognition.onerror = () => setListening(false);
+    recognitionRef.current = recognition;
+    recognition.start();
+    setListening(true);
+  };
+
+  const stopListening = () => {
+    recognitionRef.current?.stop();
+    setListening(false);
+  };
 
   const showFallback = (situationId) => {
     const responses = t.companionSituationContent[situationId].fallbackResponses;
@@ -149,6 +190,7 @@ export default function CompanionPanel({ C, t, lang, userId, onNavigate, isPlus 
   const submitFreeText = () => {
     const text = freeText.trim();
     if (!text || customLoading) return;
+    if (listening) stopListening();
     if (!isPlus) {
       // Plan Gratis: el texto libre nunca se manda a ningún lado — mismo
       // upsell que ya existía para las respuestas personalizadas.
@@ -406,6 +448,29 @@ export default function CompanionPanel({ C, t, lang, userId, onNavigate, isPlus 
         >
           {customLoading ? t.companion.thinking : t.companion.freeTextSubmit}
         </button>
+        {SpeechRecognition && (
+          <button
+            type="button"
+            onClick={listening ? stopListening : startListening}
+            disabled={customLoading}
+            style={{
+              display: "flex",
+              alignItems: "center",
+              gap: "6px",
+              background: listening ? C.rose : C.surfaceAlt,
+              color: listening ? C.roseText || "#fff" : C.text,
+              border: `1px solid ${C.border}`,
+              borderRadius: "12px",
+              padding: "10px 14px",
+              fontSize: "13px",
+              cursor: customLoading ? "default" : "pointer",
+              ...(customLoading ? btnDisabled : {}),
+            }}
+          >
+            {listening ? <Square size={14} /> : <Mic size={14} />}
+            {listening ? t.companion.freeTextStop : t.companion.freeTextRecordVoice}
+          </button>
+        )}
         {!isPlus && (
           <button
             type="button"
