@@ -56,6 +56,7 @@ import {
   Flame,
   Globe,
   Mic,
+  Square,
 } from "lucide-react";
 
 import LanguageSwitcher from "./LanguageSwitcher";
@@ -2159,6 +2160,105 @@ export default function FocusFlowTDAH({
   const breathRef = useRef(null);
   const phaseLabel = [t.app.breathing.inhale, t.app.breathing.hold, t.app.breathing.exhale];
 
+  // 25 de noviembre de 2026 ("la persona cierra sus ojos al respirar, como
+  // sabría cuando inhalar y exhalar"): con los ojos cerrados la burbuja y el
+  // anillo no sirven de nada, así que cada fase también se anuncia con
+  // sonido. playBreathTone marca el cambio con un barrido de tono (sube al
+  // inhalar, plano al sostener, baja al exhalar — reconocible aunque no se
+  // entienda el idioma); speakBreathPhase dice la palabra ("Inhala" /
+  // "Mantén" / "Exhala") en el idioma activo, un instante después del tono.
+  // Ambas respetan el interruptor general de "Sonido" (celebrateOn) que ya
+  // usa el resto de la app, así que quien ya silenció la app no se lleva una
+  // sorpresa con una voz.
+  // Mismo día, tercera vuelta ("que sea una voz suave, tenue, casi ASMR"):
+  // el tono pasa por un filtro paso-bajo (menos agudo, más aterciopelado),
+  // entra más despacio (sin golpe) y suena más bajito; la voz se busca entre
+  // las disponibles del navegador tratando de evitar la robótica por
+  // defecto, y habla más lento, un poco más grave y en volumen bajo, como
+  // para no sobresaltar a quien tiene los ojos cerrados.
+  const playBreathTone = useCallback((phaseIndex) => {
+    try {
+      const ctx = new (window.AudioContext || window.webkitAudioContext)();
+      const osc = ctx.createOscillator();
+      const filter = ctx.createBiquadFilter();
+      const gain = ctx.createGain();
+      osc.type = "sine";
+      filter.type = "lowpass";
+      filter.frequency.value = 1100; // le quita el filo al tono, queda más suave y redondo
+      const now = ctx.currentTime;
+      if (phaseIndex === 0) {
+        osc.frequency.setValueAtTime(349, now); // inhala: barrido ascendente
+        osc.frequency.linearRampToValueAtTime(466, now + 0.9);
+      } else if (phaseIndex === 1) {
+        osc.frequency.setValueAtTime(415, now); // mantén: tono plano
+      } else {
+        osc.frequency.setValueAtTime(466, now); // exhala: barrido descendente
+        osc.frequency.linearRampToValueAtTime(311, now + 1.1);
+      }
+      gain.gain.setValueAtTime(0, now);
+      gain.gain.linearRampToValueAtTime(0.08, now + 0.3); // entrada lenta, sin golpe
+      gain.gain.linearRampToValueAtTime(0.08, now + 0.65);
+      gain.gain.exponentialRampToValueAtTime(0.001, now + 1.2);
+      osc.connect(filter);
+      filter.connect(gain);
+      gain.connect(ctx.destination);
+      osc.start(now);
+      osc.stop(now + 1.3);
+      setTimeout(() => ctx.close(), 1400);
+    } catch (_) { /* silenciar si el navegador no soporta Web Audio */ }
+  }, []);
+
+  // Busca, entre las voces que ofrece el navegador para el idioma activo,
+  // una que suene más natural/suave en vez de la primera robótica que
+  // encuentre (los nombres varían mucho según el sistema — "Paulina",
+  // "Mónica", "Google español", etc. — por eso la lista de palabras clave es
+  // amplia). Si no encuentra ninguna coincidencia, o el navegador todavía no
+  // cargó la lista de voces, se queda con la voz por defecto del idioma.
+  const pickSoftVoice = useCallback((langCode) => {
+    try {
+      const voices = window.speechSynthesis.getVoices();
+      if (!voices || !voices.length) return null;
+      const base = (SPEECH_LANG_DISMANTLER[langCode] || "es-MX").slice(0, 2).toLowerCase();
+      const matching = voices.filter((v) => v.lang && v.lang.toLowerCase().startsWith(base));
+      if (!matching.length) return null;
+      const soft = matching.find((v) =>
+        /female|mujer|natural|enhanced|premium|neural|siri|google|paulina|mónica|monica|lucía|lucia|lupe|sabina|helena|esperanza/i.test(
+          v.name
+        )
+      );
+      return soft || matching[0];
+    } catch (_) {
+      return null;
+    }
+  }, []);
+
+  // Pedir la lista de voces una vez al montar: en algunos navegadores tarda
+  // en cargar de forma asíncrona, así que esto adelanta esa carga para que
+  // ya esté lista cuando arranque el primer ciclo de respiración.
+  useEffect(() => {
+    try {
+      window.speechSynthesis && window.speechSynthesis.getVoices();
+    } catch (_) { /* nada que precargar */ }
+  }, []);
+
+  const speakBreathPhase = useCallback(
+    (label) => {
+      try {
+        if (!window.speechSynthesis) return;
+        window.speechSynthesis.cancel(); // no acumular frases si la fase cambia rápido
+        const utter = new SpeechSynthesisUtterance(label);
+        utter.lang = SPEECH_LANG_DISMANTLER[lang] || "es-MX";
+        const voice = pickSoftVoice(lang);
+        if (voice) utter.voice = voice;
+        utter.rate = 0.8; // despacio, sin prisa
+        utter.pitch = 0.92; // un poco más grave, menos robótico
+        utter.volume = 0.6; // bajito — guía, no un aviso que sobresalte
+        window.speechSynthesis.speak(utter);
+      } catch (_) { /* silenciar si el navegador no soporta síntesis de voz */ }
+    },
+    [lang, pickSoftVoice]
+  );
+
   useEffect(() => {
     if (breathingOn) {
       breathRef.current = setInterval(() => {
@@ -2175,6 +2275,28 @@ export default function FocusFlowTDAH({
       }, 1000);
     } else if (breathRef.current) clearInterval(breathRef.current);
     return () => breathRef.current && clearInterval(breathRef.current);
+  }, [breathingOn]);
+
+  // Anuncia cada fase (tono + voz) mientras la burbuja está activa; se
+  // dispara tanto al cambiar de fase como al arrancar (breathingOn pasa a
+  // true con phase ya en 0). Se cancela la voz pendiente si la fase vuelve a
+  // cambiar o se detiene el ejercicio antes de que termine de hablar.
+  useEffect(() => {
+    if (!breathingOn || !celebrateOn) return;
+    playBreathTone(phase);
+    const voiceTimeout = setTimeout(() => speakBreathPhase(phaseLabel[phase]), 350);
+    return () => clearTimeout(voiceTimeout);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [phase, breathingOn, celebrateOn]);
+
+  // Si se detiene el ejercicio (manual o al completar los ciclos), corta
+  // cualquier frase que siga sonando.
+  useEffect(() => {
+    if (!breathingOn) {
+      try {
+        window.speechSynthesis && window.speechSynthesis.cancel();
+      } catch (_) { /* nada que cancelar */ }
+    }
   }, [breathingOn]);
 
   const cyclesRef = useRef(0);
@@ -5416,7 +5538,7 @@ export default function FocusFlowTDAH({
               title={t.app.panels.mood.title}
               subtitle={t.app.panels.mood.subtitle}
             >
-              <MoodLog C={C} t={t} moodLog={moodLog} onSave={handleMoodSave} />
+              <MoodLog C={C} t={t} lang={lang} moodLog={moodLog} onSave={handleMoodSave} />
             </Panel>
             </div>
 
@@ -5705,29 +5827,135 @@ export default function FocusFlowTDAH({
               subtitle={t.app.panels.breathing.subtitle}
             >
               <div style={{ display: "flex", flexDirection: "column", alignItems: "center" }}>
+                {/* 25 de noviembre de 2026 ("hazla más bonita, más
+                    interactiva"): antes era un círculo con solo un borde de
+                    2px que cambiaba de tamaño en saltos de 1 segundo — se
+                    veía plano y estático cuando no estaba en uso. Ahora:
+                    (1) en reposo, la burbuja respira sola despacio e invita
+                    a tocar "Empezar" — igual que el micrófono de la agenda
+                    (ver anro-mic-invite en ScheduleAgendaPanel.jsx); (2) una
+                    vez iniciada, un anillo SVG alrededor se va vaciando
+                    segundo a segundo (en vez de solo mostrar el número),
+                    dando una referencia visual continua de cuánto falta de
+                    esa fase; (3) la burbuja tiene relleno con degradado y
+                    brillo (glow) en vez de un aro vacío, y el número de
+                    cuenta regresiva hace un pequeño "pop" cada vez que
+                    cambia. Todo respeta "reducir movimiento" (se apaga la
+                    respiración de reposo y el pop del número; el aro y el
+                    cambio de tamaño del ciclo en sí se mantienen porque son
+                    información, no solo decoración).
+                    Mismo día, segunda vuelta ("hazla más grande" +
+                    "la persona cierra sus ojos al respirar, como sabría
+                    cuándo inhalar y exhalar"): la burbuja y el anillo crecen
+                    ~30% (antes 152px, ahora 200px) para que se note más de
+                    lejos; y como con los ojos cerrados no se puede seguir la
+                    señal visual, cada cambio de fase ahora también se anuncia
+                    con un tono (ver playBreathTone) y con la palabra hablada
+                    (ver speakBreathPhase, en el idioma activo), respetando el
+                    interruptor general de "Sonido" de Ajustes
+                    (celebrateOn). */}
+                <style>{`
+                  @keyframes anroBubbleIdle {
+                    0%, 100% { transform: scale(1); }
+                    50% { transform: scale(1.045); }
+                  }
+                  @keyframes anroBubbleIdleGlow {
+                    0%, 100% { opacity: 0.35; }
+                    50% { opacity: 0.6; }
+                  }
+                  @keyframes anroCountPop {
+                    0% { transform: scale(1.35); opacity: 0.4; }
+                    100% { transform: scale(1); opacity: 1; }
+                  }
+                  .anro-bubble-idle { animation: anroBubbleIdle 3.6s ease-in-out infinite; }
+                  .anro-bubble-idle-glow { animation: anroBubbleIdleGlow 3.6s ease-in-out infinite; }
+                  .anro-count-pop { animation: anroCountPop 0.3s ease-out; }
+                  @media (prefers-reduced-motion: reduce) {
+                    .anro-bubble-idle, .anro-bubble-idle-glow, .anro-count-pop {
+                      animation: none !important;
+                    }
+                  }
+                `}</style>
                 <div
                   style={{
-                    width: "100px",
-                    height: "100px",
-                    borderRadius: "50%",
-                    border: `2px solid ${C.mint}`,
+                    position: "relative",
+                    width: "200px",
+                    height: "200px",
                     display: "flex",
                     alignItems: "center",
                     justifyContent: "center",
-                    marginBottom: "14px",
-                    transform: `scale(${breathingOn ? scale : 1})`,
-                    transition: "transform 1s ease-in-out",
+                    marginBottom: "18px",
                   }}
                 >
-                  <div style={{ textAlign: "center" }}>
-                    <div style={{ fontSize: "13px", fontWeight: 600 }}>{breathingOn ? phaseLabel[phase] : t.app.breathing.ready}</div>
-                    {breathingOn && <div style={{ fontSize: "20px", fontWeight: 700 }}>{count}</div>}
+                  {/* Halo difuso detrás, se agranda/achica junto con la burbuja */}
+                  <div
+                    className={!breathingOn ? "anro-bubble-idle-glow" : ""}
+                    style={{
+                      position: "absolute",
+                      width: "158px",
+                      height: "158px",
+                      borderRadius: "50%",
+                      background: `radial-gradient(circle, ${tint(C.mint, 0.55)} 0%, transparent 72%)`,
+                      filter: "blur(9px)",
+                      transform: `scale(${breathingOn ? scale * 1.1 : 1})`,
+                      transition: "transform 1s ease-in-out",
+                      opacity: breathingOn ? 0.55 : undefined,
+                    }}
+                  />
+                  {/* Anillo de progreso: se vacía segundo a segundo durante cada fase (4s) */}
+                  <svg width="200" height="200" style={{ position: "absolute", transform: "rotate(-90deg)" }}>
+                    <circle cx="100" cy="100" r="90" fill="none" stroke={tint(C.mint, 0.78)} strokeWidth="5" />
+                    <circle
+                      cx="100"
+                      cy="100"
+                      r="90"
+                      fill="none"
+                      stroke={C.mint}
+                      strokeWidth="5"
+                      strokeLinecap="round"
+                      strokeDasharray={2 * Math.PI * 90}
+                      strokeDashoffset={breathingOn ? 2 * Math.PI * 90 * (1 - count / 4) : 2 * Math.PI * 90}
+                      style={{ transition: "stroke-dashoffset 1s linear" }}
+                    />
+                  </svg>
+                  {/* Burbuja con degradado — el tamaño la hace "respirar" */}
+                  <div
+                    className={!breathingOn ? "anro-bubble-idle" : ""}
+                    style={{
+                      width: "132px",
+                      height: "132px",
+                      borderRadius: "50%",
+                      background: `radial-gradient(circle at 35% 28%, ${tint(C.mint, 0.7)}, ${C.mint} 72%)`,
+                      boxShadow: `0 8px 28px ${tint(C.mint, 0.4)}, inset 0 -10px 20px rgba(0,0,0,0.14)`,
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "center",
+                      transform: `scale(${breathingOn ? scale : 1})`,
+                      transition: "transform 1s ease-in-out",
+                    }}
+                  >
+                    <div style={{ textAlign: "center", color: C.mintText }}>
+                      <div style={{ fontSize: "16px", fontWeight: 700, letterSpacing: "0.2px" }}>
+                        {breathingOn ? phaseLabel[phase] : t.app.breathing.ready}
+                      </div>
+                      {breathingOn && (
+                        <div key={count} className="anro-count-pop" style={{ fontSize: "28px", fontWeight: 800 }}>
+                          {count}
+                        </div>
+                      )}
+                    </div>
                   </div>
                 </div>
                 <button
                   onClick={breathingOn ? () => setBreathingOn(false) : startBreathing}
-                  style={breathingOn ? btnGhost : btnPrimary(C.mint, C.mintText)}
+                  style={{
+                    ...(breathingOn ? btnGhost : btnPrimary(C.mint, C.mintText)),
+                    display: "inline-flex",
+                    alignItems: "center",
+                    gap: "7px",
+                  }}
                 >
+                  {breathingOn ? <Square size={14} /> : <Play size={14} />}
                   {breathingOn ? t.app.breathing.stop : t.app.breathing.start}
                 </button>
               </div>
