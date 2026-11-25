@@ -42,9 +42,23 @@ export default function GoodMomentsPanel({ C, t, lang, goodMoments, onAdd, onRem
     recognition.lang = SPEECH_LOCALES[lang] || SPEECH_LOCALES.es;
     recognition.interimResults = false;
     recognition.maxAlternatives = 1;
+    // 25 de noviembre de 2026: mismo bug reportado en MoodLog.jsx ("llegué
+    // Llegué temprano Llegué temprano al trabajo" — texto duplicado y
+    // encimado) — este componente fue la plantilla original que se copió en
+    // MoodLog.jsx y CompanionPanel.jsx, así que tenía el mismo problema: en
+    // algunos navegadores/celulares onresult se dispara varias veces para
+    // el mismo audio aunque interimResults esté en false, y cada disparo se
+    // pegaba al texto anterior, duplicando todo. Ahora se arma el
+    // transcript completo desde event.results en cada disparo y se
+    // REEMPLAZA (texto de antes + ese transcript completo), así no importa
+    // cuántas veces dispare el navegador — nunca se duplica.
+    const baseText = text;
     recognition.onresult = (event) => {
-      const transcript = event.results?.[0]?.[0]?.transcript || "";
-      setText((prev) => (prev ? `${prev} ${transcript}` : transcript));
+      let transcript = "";
+      for (let i = 0; i < event.results.length; i++) {
+        transcript += (transcript ? " " : "") + (event.results[i][0]?.transcript || "");
+      }
+      setText(baseText ? `${baseText} ${transcript}` : transcript);
     };
     recognition.onend = () => setListening(false);
     recognition.onerror = () => setListening(false);

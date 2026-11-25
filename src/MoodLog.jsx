@@ -186,9 +186,23 @@ export default function MoodLog({ C, t, lang, moodLog, onSave }) {
     recognition.lang = SPEECH_LOCALES[lang] || SPEECH_LOCALES.es;
     recognition.interimResults = false;
     recognition.maxAlternatives = 1;
+    // 25 de noviembre de 2026 ("solo aparece un cuadro verde con lo que dije
+    // por microfono" — en realidad el bug era que el texto se repetía
+    // encimado: "llegué Llegué temprano Llegué temprano al trabajo"): en
+    // algunos navegadores/celulares, onresult se dispara VARIAS veces para
+    // el mismo audio aunque interimResults esté en false (cada vez con el
+    // texto un poco más completo). Antes cada disparo se PEGABA al texto
+    // anterior, duplicando todo. Ahora se arma el transcript completo desde
+    // event.results en cada disparo y se REEMPLAZA (nota de antes + ese
+    // transcript completo), así no importa cuántas veces dispare el
+    // navegador — nunca se duplica.
+    const baseNote = note;
     recognition.onresult = (event) => {
-      const transcript = event.results?.[0]?.[0]?.transcript || "";
-      setNote((prev) => (prev ? `${prev} ${transcript}` : transcript));
+      let transcript = "";
+      for (let i = 0; i < event.results.length; i++) {
+        transcript += (transcript ? " " : "") + (event.results[i][0]?.transcript || "");
+      }
+      setNote(baseNote ? `${baseNote} ${transcript}` : transcript);
     };
     recognition.onend = () => setListening(false);
     recognition.onerror = () => setListening(false);
