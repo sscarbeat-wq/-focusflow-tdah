@@ -2,30 +2,54 @@ import React, { useState } from "react";
 import { ArrowRight, AlertTriangle, RotateCcw, Lock } from "lucide-react";
 import { SITUATIONS, getSituation, nextResponseIndex } from "./companionSituations";
 
-// Compañero de apoyo situacional — SOLO botones de entrada rápida, nunca
-// texto libre (decisión explícita de la usuaria, para acotar el riesgo
-// clínico/legal: la paciente nunca puede escribirle a una IA algo que no
-// esperamos; el "tema" que recibe la IA siempre es uno de los 5 ids fijos
-// de SITUATIONS, nunca texto de la paciente). El botón de crisis vive
-// separado del resto, con su propio estilo, nunca pasa por la IA, y su
-// mensaje nunca se genera ni se continúa — es texto fijo con recursos reales.
+// Compañero de apoyo situacional — botones de entrada rápida (5 situaciones
+// fijas) MÁS, desde el 24 de noviembre de 2026, un cuadro de texto libre
+// para que la paciente describa su propia situación con sus palabras.
+//
+// Hasta esa fecha esto era solo botones, a propósito (decisión explícita de
+// la usuaria para acotar el riesgo clínico/legal: la paciente nunca podía
+// escribirle a una IA algo que no esperábamos). La usuaria pidió
+// explícitamente poder dejar que la paciente plantee su propia situación, y
+// eligió resolver la tensión con la regla anterior así: el texto libre SÍ se
+// manda a la IA (api/companion-response.js), con una salvaguarda nueva del
+// lado de la entrada — el texto se revisa con containsRiskLanguage() ANTES
+// de llegar a la IA, no solo después — además de la salvaguarda de salida
+// que ya existía. El botón de crisis sigue viviendo separado del resto, con
+// su propio estilo, nunca pasa por la IA (ni el de botones ni el de texto
+// libre), y su mensaje nunca se genera ni se continúa — es texto fijo con
+// recursos reales.
 //
 // Las 5 situaciones normales piden una respuesta a api/companion-response.js
 // (IA, gpt-4o-mini) cada vez que se abren o se pide "otra idea". Si la IA no
 // responde (límite mensual, red, error del servidor) se usa en su lugar uno
 // de los textos fijos de respaldo (fallbackResponses), rotando sin repetir —
-// la paciente nunca se queda sin un mensaje de apoyo.
+// la paciente nunca se queda sin un mensaje de apoyo. El texto libre no tiene
+// un fallbackResponses fijo posible (no sabemos de antemano qué va a
+// escribir la paciente), así que si la IA falla se muestra un error simple
+// con opción de reintentar — nunca se deja a la paciente con un texto que no
+// corresponde a lo que escribió.
 // Fase 3 del sistema de planes (30 de octubre de 2026) — "companionAiReplies"
 // es Plus; el botón de crisis y el menú de las 5 situaciones NUNCA se
 // restringen, en ningún plan (ver el comentario de PLUS_FEATURE_KEYS en
-// plans.js). isPlus=true por default para no afectar a quien use este
-// componente sin pasar la prop todavía.
+// plans.js). El texto libre, al depender por completo de la IA (no hay
+// fallback fijo posible), es Plus también — en plan Gratis el botón de
+// enviar abre el mismo upsell que ya existía para las respuestas
+// personalizadas, sin mandar el texto a ningún lado. isPlus=true por
+// default para no afectar a quien use este componente sin pasar la prop
+// todavía.
 export default function CompanionPanel({ C, t, lang, userId, onNavigate, isPlus = true, onRequestUpgrade }) {
-  const [activeId, setActiveId] = useState(null); // id de SITUATIONS, "crisis", o null
+  const [activeId, setActiveId] = useState(null); // id de SITUATIONS, "crisis", "custom", o null
   const [textBySituation, setTextBySituation] = useState({});
   const [loadingId, setLoadingId] = useState(null);
   const [usingFallback, setUsingFallback] = useState({});
   const [fallbackIndexBySituation, setFallbackIndexBySituation] = useState({});
+
+  // --- Texto libre (24 de noviembre de 2026) ---
+  const [freeText, setFreeText] = useState(""); // lo que la paciente va escribiendo
+  const [freeTextSent, setFreeTextSent] = useState(""); // el último texto que sí se mandó (para "otra idea" y reintentar)
+  const [customResponse, setCustomResponse] = useState(null);
+  const [customLoading, setCustomLoading] = useState(false);
+  const [customError, setCustomError] = useState(false);
 
   const showFallback = (situationId) => {
     const responses = t.companionSituationContent[situationId].fallbackResponses;
@@ -84,6 +108,76 @@ export default function CompanionPanel({ C, t, lang, userId, onNavigate, isPlus 
       return;
     }
     requestAiResponse(situationId, textBySituation[situationId]);
+  };
+
+  // Pide a la IA una respuesta para el texto libre que escribió la paciente
+  // (avoidText solo se usa en "otra idea", para no repetir el mensaje
+  // anterior). La salvaguarda de entrada (containsRiskLanguage sobre lo que
+  // escribió la paciente) vive del lado del servidor, en
+  // api/companion-response.js — acá solo se maneja la respuesta.
+  const requestFreeTextResponse = async (text, avoidText) => {
+    setCustomLoading(true);
+    setCustomError(false);
+    try {
+      const res = await fetch("/api/companion-response", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ userId, freeText: text, avoid: avoidText || "", language: lang }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || t.companion.aiError);
+      if (data.unsafe) {
+        // Misma salvaguarda que con las situaciones fijas: nunca se muestra
+        // el texto (si lo hubiera) — se trata como si hubieran elegido el
+        // botón de crisis.
+        setActiveId("crisis");
+        return;
+      }
+      setCustomResponse(data.response);
+      setActiveId("custom");
+    } catch (err) {
+      console.error("Compañero de apoyo — texto libre, fallo IA:", err);
+      // A diferencia de las situaciones fijas, aquí no hay un
+      // fallbackResponses posible (no sabemos de antemano qué iba a
+      // escribir la paciente) — se muestra un error simple con reintentar.
+      setCustomError(true);
+    } finally {
+      setCustomLoading(false);
+    }
+  };
+
+  const submitFreeText = () => {
+    const text = freeText.trim();
+    if (!text || customLoading) return;
+    if (!isPlus) {
+      // Plan Gratis: el texto libre nunca se manda a ningún lado — mismo
+      // upsell que ya existía para las respuestas personalizadas.
+      onRequestUpgrade?.();
+      return;
+    }
+    // Mismo patrón que openSituation(): activeId cambia DE INMEDIATO (no
+    // solo cuando la respuesta llega), para que la vista de "custom" —
+    // la única que sabe mostrar el estado de carga y, si algo sale mal, el
+    // error — quede montada mientras se espera la IA. Si esto se dejara
+    // para después (como estaba antes), un fallo de red dejaba a la
+    // paciente viendo el menú de siempre sin ningún aviso de error.
+    setActiveId("custom");
+    setFreeTextSent(text);
+    setCustomResponse(null);
+    requestFreeTextResponse(text, null);
+  };
+
+  const otraIdeaCustom = () => {
+    if (!freeTextSent || customLoading) return;
+    requestFreeTextResponse(freeTextSent, customResponse);
+  };
+
+  const goBackFromCustom = () => {
+    setActiveId(null);
+    setCustomResponse(null);
+    setCustomError(false);
+    setFreeText("");
+    setFreeTextSent("");
   };
 
   const goBack = () => setActiveId(null);
@@ -159,6 +253,50 @@ export default function CompanionPanel({ C, t, lang, userId, onNavigate, isPlus 
     );
   }
 
+  // --- Vista del texto libre: respuesta de la IA a lo que escribió la
+  // paciente. Sin "fallbackResponses" posible (no es una de las 5
+  // situaciones fijas) y sin botón de "ir a la herramienta" (no sabemos de
+  // antemano cuál aplica a un texto libre) — solo el mensaje, "otra idea" y
+  // volver. Si la IA falló, se muestra un error con botón de reintentar en
+  // vez de un texto que no corresponde a lo que escribió la paciente. ---
+  if (activeId === "custom") {
+    return (
+      <div>
+        {customError ? (
+          <div>
+            <p style={{ fontSize: "13px", color: C.text, lineHeight: 1.6, margin: "0 0 10px" }}>
+              {t.companion.aiError}
+            </p>
+            <button onClick={otraIdeaCustom} style={{ ...btnLink, marginBottom: "10px" }}>
+              {t.companion.freeTextRetry}
+            </button>
+          </div>
+        ) : customLoading && !customResponse ? (
+          <p style={{ fontSize: "13px", color: C.textMuted, lineHeight: 1.6, margin: "0 0 14px" }}>
+            {t.companion.thinking}
+          </p>
+        ) : (
+          <p style={{ fontSize: "14px", color: C.text, lineHeight: 1.6, margin: "0 0 14px" }}>{customResponse}</p>
+        )}
+        {!customError && customResponse && (
+          <div style={{ display: "flex", alignItems: "center", gap: "12px", flexWrap: "wrap" }}>
+            <button
+              onClick={() => !customLoading && otraIdeaCustom()}
+              disabled={customLoading}
+              style={{ ...btnBack, padding: 0, ...(customLoading ? btnDisabled : {}) }}
+            >
+              <RotateCcw size={12} style={{ verticalAlign: "-1px", marginRight: "4px" }} />
+              {t.companion.anotherIdea}
+            </button>
+          </div>
+        )}
+        <button onClick={goBackFromCustom} style={btnBack}>
+          {t.companion.chooseOther}
+        </button>
+      </div>
+    );
+  }
+
   // --- Vista de una situación normal: respuesta (IA o respaldo fijo) + enlace ---
   if (activeId) {
     const situation = getSituation(activeId);
@@ -222,7 +360,8 @@ export default function CompanionPanel({ C, t, lang, userId, onNavigate, isPlus 
     );
   }
 
-  // --- Menú principal: solo botones, nunca texto libre ---
+  // --- Menú principal: los 5 botones fijos, el cuadro de texto libre, y el
+  // botón de crisis (separado, al final, con su propio estilo). ---
   return (
     <div>
       {SITUATIONS.map((s) => (
@@ -230,6 +369,67 @@ export default function CompanionPanel({ C, t, lang, userId, onNavigate, isPlus 
           {t.companionSituationContent[s.id].label}
         </button>
       ))}
+
+      <div style={{ display: "flex", alignItems: "center", gap: "10px", margin: "14px 0 10px" }}>
+        <div style={{ flex: 1, height: "1px", background: C.border }} />
+        <span style={{ fontSize: "11px", color: C.textMuted, fontWeight: 600 }}>{t.companion.freeTextIntro}</span>
+        <div style={{ flex: 1, height: "1px", background: C.border }} />
+      </div>
+
+      <textarea
+        value={freeText}
+        onChange={(e) => setFreeText(e.target.value)}
+        placeholder={t.companion.freeTextPlaceholder}
+        maxLength={500}
+        rows={3}
+        style={{
+          display: "block",
+          width: "100%",
+          boxSizing: "border-box",
+          background: C.surfaceAlt,
+          border: `1px solid ${C.border}`,
+          borderRadius: "12px",
+          padding: "10px 12px",
+          color: C.text,
+          fontSize: "13px",
+          fontFamily: "inherit",
+          resize: "vertical",
+          marginBottom: "8px",
+        }}
+      />
+
+      <div style={{ display: "flex", alignItems: "center", gap: "10px", flexWrap: "wrap" }}>
+        <button
+          onClick={submitFreeText}
+          disabled={customLoading || !freeText.trim()}
+          style={{ ...btnLink, ...(customLoading || !freeText.trim() ? btnDisabled : {}) }}
+        >
+          {customLoading ? t.companion.thinking : t.companion.freeTextSubmit}
+        </button>
+        {!isPlus && (
+          <button
+            type="button"
+            onClick={onRequestUpgrade}
+            style={{
+              display: "flex",
+              alignItems: "center",
+              gap: "4px",
+              background: "transparent",
+              border: "none",
+              color: C.amberText || C.amber,
+              fontSize: "12px",
+              cursor: onRequestUpgrade ? "pointer" : "default",
+              padding: 0,
+            }}
+          >
+            <Lock size={12} /> {t.upsell.companionAiReply}
+          </button>
+        )}
+      </div>
+      <p style={{ fontSize: "11px", color: C.textMuted, lineHeight: 1.4, margin: "8px 0 0" }}>
+        {t.companion.freeTextHint}
+      </p>
+
       <button onClick={() => setActiveId("crisis")} style={btnCrisis}>
         <AlertTriangle size={13} style={{ verticalAlign: "-2px", marginRight: "6px" }} />
         {t.crisis.label}

@@ -1,23 +1,28 @@
 // Compañero de apoyo situacional — a diferencia del programa de TCC (contenido
 // progresivo por semana) o las herramientas sueltas, esto da un mensaje breve
 // de apoyo en el momento, elegido por la propia paciente entre un menú fijo
-// de situaciones (nunca texto libre, a propósito, para acotar el riesgo
-// clínico/legal de esta función), y enlaza directo a la herramienta de Senda
-// que ya existe para esa situación.
+// de situaciones, y enlaza directo a la herramienta de Senda que ya existe
+// para esa situación. Desde el 24 de noviembre de 2026 (decisión explícita
+// de la usuaria) la paciente también puede, en vez de elegir una de estas 5,
+// describir su propia situación con sus palabras — ver src/CompanionPanel.jsx
+// y api/companion-response.js para el porqué y las salvaguardas nuevas.
 //
 // Las 5 situaciones normales usan IA (api/companion-response.js, gpt-4o-mini)
-// para variar el mensaje cada vez — pero la IA nunca reacciona a texto libre
-// de la paciente: el "tema" siempre es uno de estos 5 ids fijos, que ya
-// aprobamos de antemano (promptContext abajo). fallbackResponses son textos
-// 100% fijos, usados solo si la IA no responde (límite mensual alcanzado,
-// error de red, etc.) para que la paciente nunca se quede sin apoyo.
+// para variar el mensaje cada vez. Para estas 5, el "tema" que recibe la IA
+// siempre es uno de estos ids fijos, que ya aprobamos de antemano
+// (promptContext abajo) — nunca texto de la paciente. fallbackResponses son
+// textos 100% fijos, usados solo si la IA no responde (límite mensual
+// alcanzado, error de red, etc.) para que la paciente nunca se quede sin
+// apoyo. (El texto libre, al no ser una de estas 5 situaciones, no tiene
+// fallback fijo — ver el manejo de error en CompanionPanel.jsx.)
 //
 // El botón de crisis (CRISIS, abajo) es la excepción: NUNCA pasa por la IA,
 // bajo ninguna circunstancia — su mensaje es fijo y no continúa la
-// conversación. api/companion-response.js además revisa cada respuesta de
-// la IA con containsRiskLanguage() antes de mostrarla: si por cualquier
-// motivo toca temas de autolesión/suicidio, el cliente muestra el mensaje
-// fijo de crisis en su lugar, nunca el texto generado.
+// conversación. api/companion-response.js además revisa, con
+// containsRiskLanguage(), tanto el texto libre de la paciente ANTES de
+// mandarlo a la IA como cada respuesta de la IA antes de mostrarla: si por
+// cualquier motivo toca temas de autolesión/suicidio, el cliente muestra el
+// mensaje fijo de crisis en su lugar, nunca el texto generado.
 //
 // Set de situaciones elegido con la usuaria después de investigar qué
 // reportan con más frecuencia personas con TDAH (ADDitude, Understood.org,
