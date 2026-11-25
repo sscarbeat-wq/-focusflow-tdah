@@ -666,6 +666,8 @@ const en = {
   },
 
   moodLog: {
+    intro: "This feeds your Weekly Insights (so you can see your own patterns) and the report you can print for your psychiatrist.",
+    pickOne: "Pick the emoji closest to how you feel",
     veryBad: "Very bad",
     bad: "Bad",
     regular: "Okay",
@@ -917,8 +919,8 @@ const en = {
     deleteBlockTitle: "Delete block",
     closeEditor: "Close",
     iconLabel: "Block icon",
-    newBlockPlaceholder: "Block name (e.g. Deep work)...",
-    addBlockButton: "Add block",
+    newBlockPlaceholder: "Your task (e.g. Dentist appointment)...",
+    addBlockButton: "Add task",
     dayFullNotice: "You already have the maximum number of blocks for this day — delete one before adding another.",
     conflictLabel: "overlaps with another block",
     conflictNotice: "This block overlaps with another at the same time — you decide which one to move, ANRO TDAH just points it out.",
@@ -958,7 +960,16 @@ const en = {
     voiceUnsupported: "Your browser doesn't support voice input.",
     voiceDenied: "Allow microphone access to use this feature.",
     voiceErrorGeneric: "Nothing was captured. Try again.",
-    voiceHint: "Example: \"Focus session at 10 for 25 minutes\"",
+    // Nov 25, 2026: the purple "add pending task" block now has two tap
+    // zones — the mic icon dictates, the rest of the text opens the form
+    // to type it (merged with the secondary button that used to live
+    // separately). voiceHint/voiceHintShort reflect that dual mode;
+    // voiceHint previously carried mismatched example text from another
+    // screen (Focus session).
+    voiceCTA: "Say or type your task",
+    voiceHint: "Tap the mic to speak, or tap here to type",
+    voiceHintShort: "Tap the mic or tap here to type",
+    voiceTapStop: "Tap to stop",
     addAnotherBlock: "Add another block",
   },
 

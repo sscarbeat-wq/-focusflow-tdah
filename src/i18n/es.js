@@ -724,6 +724,10 @@ const es = {
   },
 
   moodLog: {
+    // 25 de noviembre de 2026 ("no le dice al paciente para qué sirve"):
+    // explica en una frase para qué se usa este registro.
+    intro: "Esto alimenta tus Insights semanales (para que veas tus propios patrones) y el reporte que puedes imprimir para tu psiquiatra.",
+    pickOne: "Elige el emoji que más se parezca a cómo te sientes",
     veryBad: "Muy mal",
     bad: "Mal",
     regular: "Regular",
@@ -977,8 +981,12 @@ const es = {
     deleteBlockTitle: "Eliminar bloque",
     closeEditor: "Cerrar",
     iconLabel: "Ícono del bloque",
-    newBlockPlaceholder: "Nombre del bloque (ej. Trabajo profundo)...",
-    addBlockButton: "Agregar bloque",
+    // 25 de noviembre de 2026 ("que es eso de nombre del bloque"): este
+    // cuadro de texto SOLO se usa para agregar un pendiente (cita, mandado,
+    // compromiso) — nunca para nombrar un bloque de agenda genérico — así
+    // que el placeholder debe hablar de "pendiente", no de "bloque".
+    newBlockPlaceholder: "Tu pendiente (ej. Cita con el dentista)...",
+    addBlockButton: "Agregar pendiente",
     dayFullNotice: "Ya tienes el máximo de bloques para este día — borra alguno antes de agregar otro.",
     conflictLabel: "se encima con otro bloque",
     conflictNotice: "Este bloque se encima con otro a la misma hora — tú decides cuál mover, ANRO TDAH solo te lo hace notar.",
@@ -1019,7 +1027,17 @@ const es = {
     voiceUnsupported: "Tu navegador no soporta entrada de voz.",
     voiceDenied: "Permite el acceso al micrófono para usar esta función.",
     voiceErrorGeneric: "No se captó nada. Intenta de nuevo.",
-    voiceHint: "Ejemplo: \"Sesión de enfoque a las 10 por 25 minutos\"",
+    // 25 de noviembre de 2026 ("aquí como que no se entiende, pon dicta o
+    // escribe"): el bloque morado de agregar pendiente ahora tiene dos zonas
+    // tocables — el ícono de micrófono dicta, el resto del texto abre el
+    // formulario para escribirlo (se fusionó con el botón secundario que
+    // antes vivía aparte). voiceHint/voiceHintShort reflejan ese doble modo;
+    // antes voiceHint traía por error el texto de ejemplo de otra pantalla
+    // (Sesión de enfoque).
+    voiceCTA: "Dicta o escribe tu pendiente",
+    voiceHint: "Toca el micrófono para hablar, o aquí para escribir",
+    voiceHintShort: "Toca el micrófono o aquí para escribir",
+    voiceTapStop: "Toca para detener",
   },
 
   activeBreak: {

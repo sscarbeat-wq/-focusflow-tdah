@@ -669,6 +669,8 @@ const fr = {
   },
 
   moodLog: {
+    intro: "Ceci alimente ton Bilan hebdomadaire (pour voir tes propres tendances) et le rapport que tu peux imprimer pour ton psychiatre.",
+    pickOne: "Choisis l'emoji qui ressemble le plus à ce que tu ressens",
     veryBad: "Très mauvaise",
     bad: "Mauvaise",
     regular: "Moyenne",
@@ -920,8 +922,8 @@ const fr = {
     deleteBlockTitle: "Supprimer le bloc",
     closeEditor: "Fermer",
     iconLabel: "Icône du bloc",
-    newBlockPlaceholder: "Nom du bloc (ex. Travail concentré)...",
-    addBlockButton: "Ajouter un bloc",
+    newBlockPlaceholder: "Ta tâche (ex. Rendez-vous chez le dentiste)...",
+    addBlockButton: "Ajouter la tâche",
     dayFullNotice: "Tu as déjà le nombre maximum de blocs pour ce jour — supprime-en un avant d'en ajouter un autre.",
     conflictLabel: "chevauche un autre bloc",
     conflictNotice: "Ce bloc chevauche un autre à la même heure — c'est toi qui décides lequel déplacer, ANRO TDAH ne fait que te le signaler.",
@@ -961,7 +963,10 @@ const fr = {
     voiceUnsupported: "Ton navigateur ne supporte pas la saisie vocale.",
     voiceDenied: "Autorise l'accès au micro pour utiliser cette fonction.",
     voiceErrorGeneric: "Rien n'a été capté. Réessaye.",
-    voiceHint: "Exemple : « Séance de concentration à 10h pendant 25 minutes »",
+    voiceCTA: "Dicte ou écris ta tâche",
+    voiceHint: "Touche le micro pour parler, ou ici pour écrire",
+    voiceHintShort: "Touche le micro ou ici pour écrire",
+    voiceTapStop: "Touche pour arrêter",
     addAnotherBlock: "Ajouter un autre bloc",
   },
 

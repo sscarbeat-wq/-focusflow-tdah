@@ -671,6 +671,8 @@ const pt = {
   },
 
   moodLog: {
+    intro: "Isso alimenta seu Resumo semanal (para você ver seus próprios padrões) e o relatório que pode imprimir para seu psiquiatra.",
+    pickOne: "Escolha o emoji mais parecido com o que você está sentindo",
     veryBad: "Muito mal",
     bad: "Mal",
     regular: "Regular",
@@ -922,8 +924,8 @@ const pt = {
     deleteBlockTitle: "Excluir bloco",
     closeEditor: "Fechar",
     iconLabel: "Ícone do bloco",
-    newBlockPlaceholder: "Nome do bloco (ex. Trabalho focado)...",
-    addBlockButton: "Adicionar bloco",
+    newBlockPlaceholder: "Sua tarefa (ex. Consulta no dentista)...",
+    addBlockButton: "Adicionar tarefa",
     dayFullNotice: "Você já tem o número máximo de blocos para este dia — exclua algum antes de adicionar outro.",
     conflictLabel: "sobrepõe outro bloco",
     conflictNotice: "Este bloco se sobrepõe a outro no mesmo horário — você decide qual mover, o ANRO TDAH só avisa.",
@@ -963,7 +965,10 @@ const pt = {
     voiceUnsupported: "Seu navegador não suporta entrada de voz.",
     voiceDenied: "Permita o acesso ao microfone para usar esta função.",
     voiceErrorGeneric: "Nada foi captado. Tente de novo.",
-    voiceHint: "Exemplo: \"Sessão de foco às 10 por 25 minutos\"",
+    voiceCTA: "Dite ou digite sua tarefa",
+    voiceHint: "Toque no microfone para falar, ou aqui para digitar",
+    voiceHintShort: "Toque no microfone ou aqui para digitar",
+    voiceTapStop: "Toque para parar",
     addAnotherBlock: "Adicionar outro bloco",
   },
 
