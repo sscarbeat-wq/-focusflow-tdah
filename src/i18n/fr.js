@@ -298,6 +298,11 @@ const fr = {
     anotherIdea: "Une autre idée pour ça",
     back: "Retour",
     chooseOther: "Choisir une autre situation",
+    freeTextIntro: "Autre chose ? Dis-le avec tes propres mots",
+    freeTextPlaceholder: "Écris ici ce qui se passe en ce moment…",
+    freeTextSubmit: "Envoyer",
+    freeTextRetry: "Réessayer",
+    freeTextHint: "Ceci ne remplace pas ton médecin ou ton thérapeute. En cas d'urgence, utilise le bouton ci-dessous.",
   },
 
   companionSituationContent: {
@@ -1621,7 +1626,7 @@ const fr = {
       quickCapture: { title: "Capture rapide", subtitle: "Laisse une idée à la voix ou par écrit sans décider d'abord dans quel panneau elle va — ANRO TDAH essaie de l'envoyer seule au bon endroit." },
       brainDump: { title: "Décharge mentale avec IA", subtitle: "Quand c'est plusieurs choses à la fois — dis-les ou écris-les toutes ensemble et ANRO TDAH les sépare pour toi." },
       captureHub: { title: "Mémoire ANRO", subtitle: "Dépose une idée isolée, vide ta tête de plusieurs à la fois, ajoute une photo ou retrouve quelque chose que tu as déjà enregistré — tu choisis comment, au même endroit." },
-      companion: { title: "Compagnon de soutien", subtitle: "Choisis ce que tu ressens en ce moment — des réponses pensées pour le TDAH, sans rien avoir à écrire." },
+      companion: { title: "Compagnon de soutien", subtitle: "Choisis ce que tu ressens en ce moment, ou dis-le avec tes propres mots — des réponses pensées pour le TDAH." },
       oneThing: { title: "Une seule chose", subtitle: "Choisis une seule tâche et concentre-toi uniquement sur elle — sans voir le reste de ta liste." },
       routines: { title: "Routines visuelles guidées", subtitle: "Pour les choses que tu répètes souvent dans le même ordre — construis les étapes une fois et ANRO TDAH te les montre une à la fois." },
       mindMap: { title: "Carte mentale", subtitle: "Pour quand tu ne connais pas encore les étapes : dépose des idées en vrac, sans ordre ni engagement, et envoie-les à l'outil de découpage dès qu'une te convainc." },

@@ -296,6 +296,11 @@ const en = {
     anotherIdea: "Another idea for this",
     back: "Back",
     chooseOther: "Choose another situation",
+    freeTextIntro: "Something else? Tell me in your own words",
+    freeTextPlaceholder: "Write here what's going on right now…",
+    freeTextSubmit: "Send",
+    freeTextRetry: "Try again",
+    freeTextHint: "This doesn't replace your doctor or therapist. If it's an emergency, use the button below.",
   },
 
   companionSituationContent: {
@@ -1617,7 +1622,7 @@ const en = {
       quickCapture: { title: "Quick capture", subtitle: "Leave an idea by voice or text without deciding first which panel it belongs in — ANRO TDAH tries to route it to the right place on its own." },
       brainDump: { title: "AI brain dump", subtitle: "When it's several things at once — say or write them all together and ANRO TDAH splits them for you." },
       captureHub: { title: "ANRO Memory", subtitle: "Drop one loose idea, empty your head of several at once, attach a photo, or search something you already saved — you choose how, in the same place." },
-      companion: { title: "Support companion", subtitle: "Pick what you're feeling right now — responses designed for ADHD, with nothing to type." },
+      companion: { title: "Support companion", subtitle: "Pick what you're feeling right now, or tell it in your own words — responses designed for ADHD." },
       oneThing: { title: "Just one thing", subtitle: "Pick a single task and focus only on it — without seeing the rest of your list." },
       routines: { title: "Guided visual routines", subtitle: "For things you repeat often in the same order — build the steps once and ANRO TDAH walks you through them one at a time." },
       mindMap: { title: "Mind map", subtitle: "For when you don't even know the steps yet: drop loose ideas, no order, no commitment, and send them to the breakdown tool once one clicks." },

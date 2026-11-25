@@ -301,6 +301,11 @@ const pt = {
     anotherIdea: "Outra ideia para isso",
     back: "Voltar",
     chooseOther: "Escolher outra situação",
+    freeTextIntro: "É outra coisa? Conte com suas próprias palavras",
+    freeTextPlaceholder: "Escreva aqui o que está acontecendo agora…",
+    freeTextSubmit: "Enviar",
+    freeTextRetry: "Tentar de novo",
+    freeTextHint: "Isso não substitui seu médico ou terapeuta. Se for uma emergência, use o botão abaixo.",
   },
 
   companionSituationContent: {
@@ -1622,7 +1627,7 @@ const pt = {
       quickCapture: { title: "Captura rápida", subtitle: "Deixe uma ideia por voz ou texto sem decidir antes em qual painel ela vai — o ANRO TDAH tenta enviá-la sozinho ao lugar certo." },
       brainDump: { title: "Descarga mental com IA", subtitle: "Quando são várias coisas de uma vez — diga ou escreva tudo junto e o ANRO TDAH separa para você." },
       captureHub: { title: "Memória ANRO", subtitle: "Deixe uma ideia solta, esvazie a cabeça de várias de uma vez, adicione uma foto ou busque algo que já salvou — você escolhe como, no mesmo lugar." },
-      companion: { title: "Companheiro de apoio", subtitle: "Escolha o que você está sentindo agora — respostas pensadas para TDAH, sem precisar escrever nada." },
+      companion: { title: "Companheiro de apoio", subtitle: "Escolha o que você está sentindo agora, ou conte com suas próprias palavras — respostas pensadas para TDAH." },
       oneThing: { title: "Só uma coisa", subtitle: "Escolha uma única tarefa e foque somente nela — sem ver o resto da sua lista." },
       routines: { title: "Rotinas visuais guiadas", subtitle: "Para coisas que você repete com frequência na mesma ordem — monte as etapas uma vez e o ANRO TDAH mostra uma de cada vez." },
       mindMap: { title: "Mapa mental", subtitle: "Para quando você ainda não sabe os passos: solte ideias soltas, sem ordem nem compromisso, e mande para o detalhador quando uma te convencer." },

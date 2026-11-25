@@ -328,6 +328,13 @@ const es = {
     anotherIdea: "Otra idea para esto",
     back: "Volver",
     chooseOther: "Elegir otra situación",
+    // 24 de noviembre de 2026 — texto libre: la paciente describe su propia
+    // situación en vez de elegir una de las 5 fijas.
+    freeTextIntro: "¿Es otra cosa? Cuéntamelo con tus palabras",
+    freeTextPlaceholder: "Escribe aquí qué te está pasando ahora mismo…",
+    freeTextSubmit: "Enviar",
+    freeTextRetry: "Intentar de nuevo",
+    freeTextHint: "Esto no sustituye a tu médico o terapeuta. Si es una emergencia, usa el botón de abajo.",
   },
 
   companionSituationContent: {
@@ -1715,7 +1722,7 @@ const es = {
       quickCapture: { title: "Captura rápida", subtitle: "Deja una idea por voz o texto sin decidir primero en qué panel va — ANRO TDAH intenta mandarla sola al lugar correcto." },
       brainDump: { title: "Descarga mental con IA", subtitle: "Cuando son varias cosas a la vez — dilas o escríbelas todas juntas y ANRO TDAH las separa por ti." },
       captureHub: { title: "Memoria ANRO", subtitle: "Deja una idea suelta, vacía la cabeza de varias a la vez, adjunta una foto o busca algo que ya guardaste — tú eliges cómo, en el mismo lugar." },
-      companion: { title: "Compañero de apoyo", subtitle: "Elige lo que estás sintiendo ahora mismo — respuestas pensadas para TDAH, sin que tengas que escribir nada." },
+      companion: { title: "Compañero de apoyo", subtitle: "Elige lo que estás sintiendo ahora mismo, o cuéntalo con tus propias palabras — respuestas pensadas para TDAH." },
       oneThing: { title: "Solo una cosa", subtitle: "Elige una sola tarea y enfócate solo en ella — sin ver el resto de tu lista." },
       routines: { title: "Rutinas visuales guiadas", subtitle: "Para cosas que repites seguido y en el mismo orden — arma los pasos una vez y ANRO TDAH te los va mostrando de uno en uno." },
       // 20 de noviembre de 2026 ("no entiendo cuales son las diferencias
