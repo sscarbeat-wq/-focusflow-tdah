@@ -301,6 +301,8 @@ const en = {
     freeTextSubmit: "Send",
     freeTextRetry: "Try again",
     freeTextHint: "This doesn't replace your doctor or therapist. If it's an emergency, use the button below.",
+    freeTextRecordVoice: "Record by voice",
+    freeTextStop: "Stop",
   },
 
   companionSituationContent: {

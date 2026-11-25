@@ -303,6 +303,8 @@ const fr = {
     freeTextSubmit: "Envoyer",
     freeTextRetry: "Réessayer",
     freeTextHint: "Ceci ne remplace pas ton médecin ou ton thérapeute. En cas d'urgence, utilise le bouton ci-dessous.",
+    freeTextRecordVoice: "Enregistrer à la voix",
+    freeTextStop: "Arrêter",
   },
 
   companionSituationContent: {

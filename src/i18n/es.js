@@ -335,6 +335,11 @@ const es = {
     freeTextSubmit: "Enviar",
     freeTextRetry: "Intentar de nuevo",
     freeTextHint: "Esto no sustituye a tu médico o terapeuta. Si es una emergencia, usa el botón de abajo.",
+    // 25 de noviembre de 2026 — dictado por voz del cuadro de texto libre
+    // (Web Speech API del navegador, igual que en goodMoments; nunca pasa
+    // por api/quick-capture.js ni ninguna IA, solo transcribe).
+    freeTextRecordVoice: "Grabar por voz",
+    freeTextStop: "Detener",
   },
 
   companionSituationContent: {

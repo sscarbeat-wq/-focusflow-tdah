@@ -306,6 +306,8 @@ const pt = {
     freeTextSubmit: "Enviar",
     freeTextRetry: "Tentar de novo",
     freeTextHint: "Isso não substitui seu médico ou terapeuta. Se for uma emergência, use o botão abaixo.",
+    freeTextRecordVoice: "Gravar por voz",
+    freeTextStop: "Parar",
   },
 
   companionSituationContent: {
