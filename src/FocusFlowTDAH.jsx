@@ -121,7 +121,7 @@ import {
   todayFocusMinutes,
   DAILY_FOCUS_GOAL_MIN,
 } from "./focusSessionLog";
-import { DEFAULT_ENERGY_LOG, recordEnergy } from "./energyLog";
+import { DEFAULT_ENERGY_LOG, recordEnergy, todayEnergyEntry } from "./energyLog";
 import {
   DEFAULT_MEDICATIONS,
   DEFAULT_MEDICATION_DOSE_LOG,
@@ -2032,18 +2032,26 @@ export default function FocusFlowTDAH({
   );
 
   // "Elige por mí" (inspirado en "Pick one for me" de Llama Life) — para
-  // cuando la decisión de "¿cuál paso empiezo?" es justo lo que traba. Por
-  // ahora elige al azar entre TODOS los pasos pendientes, sin considerar la
-  // energía de hoy (ver choosePick.js). chosenStepId solo resalta un paso
-  // que siga pendiente — si ya se completó o se borró, simplemente deja de
-  // resaltarse, sin necesidad de limpiarlo a mano.
+  // cuando la decisión de "¿cuál paso empiezo?" es justo lo que traba.
+  // 26 de noviembre de 2026 ("siento que no tiene mucha funcionalidad"
+  // sobre el check-in de energía): ahora SÍ considera la energía de hoy
+  // (ver choosePick.js) — si hay pasos etiquetados con ese nivel, elige
+  // entre esos primero; si no, elige entre todos los pendientes, igual que
+  // antes. chosenStepId solo resalta un paso que siga pendiente — si ya se
+  // completó o se borró, simplemente deja de resaltarse, sin necesidad de
+  // limpiarlo a mano.
   const [chosenStepId, setChosenStepId] = useState(null);
   const [chooseMsg, setChooseMsg] = useState("");
   const handleChoosePick = () => {
-    const picked = pickRandomStep(steps);
+    const energyToday = todayEnergyEntry(energyLog);
+    const picked = pickRandomStep(steps, energyToday?.level);
     if (picked) {
       setChosenStepId(picked.id);
-      setChooseMsg("");
+      setChooseMsg(
+        energyToday && picked.energy === energyToday.level
+          ? t.app.dismantler.pickedForEnergy(energyToday.level)
+          : ""
+      );
     } else {
       setChosenStepId(null);
       setChooseMsg(t.app.dismantler.noPendingSteps);
@@ -5198,8 +5206,35 @@ export default function FocusFlowTDAH({
                       ? steps.filter((s) => s.done || s.id === pending[0]?.id)
                       : steps;
                     const hiddenPendingCount = oneStepMode ? Math.max(0, pending.length - (pending[0] ? 1 : 0)) : 0;
+                    // 26 de noviembre de 2026 ("siento que no tiene mucha
+                    // funcionalidad" sobre el check-in de energía): antes el
+                    // único lugar donde se notaba el check-in de energía era
+                    // una línea de texto en la pestaña "Hoy" — aquí mismo, en
+                    // el desglosador (donde la persona SÍ está mirando
+                    // cuando elige su energía), no pasaba nada visible. Ahora,
+                    // si hay un paso etiquetado que coincide con la energía
+                    // de hoy, se avisa aquí mismo y se resalta ese paso en la
+                    // lista con un borde del color de su etiqueta.
+                    const energyToday = todayEnergyEntry(energyLog);
+                    const energyMatch = energyToday ? pending.find((s) => s.energy === energyToday.level) : null;
+                    const energyTagColor = (level) => (level === "baja" ? C.rose : level === "alta" ? C.mint : C.amber);
                     return (
                       <>
+                        {energyMatch && (
+                          <p
+                            style={{
+                              fontSize: "12.5px",
+                              color: C.text,
+                              background: tint(C.lavender, 0.18),
+                              borderRadius: "10px",
+                              padding: "8px 12px",
+                              margin: "0 0 10px",
+                              lineHeight: 1.5,
+                            }}
+                          >
+                            {t.app.dismantler.energySuggestion(energyToday.level, energyMatch.text)}
+                          </p>
+                        )}
                         <ol style={{ listStyle: "none", padding: 0, margin: 0 }}>
                           {visibleSteps.map((s) => {
                             const originalIndex = steps.findIndex((o) => o.id === s.id);
@@ -5218,6 +5253,11 @@ export default function FocusFlowTDAH({
                                   // se vea bien mientras se arrastra encima de las
                                   // demás (ver ReorderHandle.jsx).
                                   background: chosenStep?.id === s.id ? C.surfaceAlt : C.surface,
+                                  // 26 de noviembre de 2026: borde del color de su
+                                  // etiqueta de energía en el paso sugerido por el
+                                  // check-in de hoy — mismo aviso de arriba, pero
+                                  // visible también al recorrer la lista completa.
+                                  borderLeft: energyMatch?.id === s.id ? `3px solid ${energyTagColor(s.energy)}` : "3px solid transparent",
                                 }}
                               >
                                 {!oneStepMode && steps.length > 1 && (
@@ -5279,8 +5319,12 @@ export default function FocusFlowTDAH({
                                         height: "8px",
                                         borderRadius: "999px",
                                         flexShrink: 0,
-                                        background:
-                                          s.energy === "baja" ? C.mint : s.energy === "alta" ? C.sky : C.amber,
+                                        // 26 de noviembre de 2026: mismo mapeo de
+                                        // colores que ya usa el check-in de energía
+                                        // (EnergyLog.jsx) — antes "baja" se veía
+                                        // verde aquí y rosa allá, confuso al
+                                        // comparar el punto con el aviso de arriba.
+                                        background: energyTagColor(s.energy),
                                       }}
                                     />
                                   )}
