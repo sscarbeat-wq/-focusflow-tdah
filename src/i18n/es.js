@@ -668,7 +668,14 @@ const es = {
     // sigue narrando paso por paso hasta que se apaga con este botón.
     muteButton: "Silenciar",
     muteAria: "Silenciar la voz",
-    stopButton: "Detener",
+    // 26 de noviembre de 2026 ("le pongo detener y me manda al menú"):
+    // antes "Detener" cortaba la práctica entera sin avisar. Ahora pausa
+    // (congela el paso y el cronómetro) y dentro de la pausa se elige
+    // entre reanudar o terminar de verdad.
+    pauseButton: "Pausar",
+    resumeButton: "Reanudar",
+    endPracticeButton: "Terminar la práctica",
+    pausedLabel: "En pausa",
     // 20 de noviembre de 2026 (rediseño visual + corrección del botón
     // "Detener" que no cortaba la voz): etiqueta de progreso por paso.
     stepProgress: (i, n) => `Paso ${i} de ${n}`,

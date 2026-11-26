@@ -615,7 +615,10 @@ const en = {
     listenButton: "Listen",
     muteButton: "Mute",
     muteAria: "Mute the voice",
-    stopButton: "Stop",
+    pauseButton: "Pause",
+    resumeButton: "Resume",
+    endPracticeButton: "End practice",
+    pausedLabel: "Paused",
     stepProgress: (i, n) => `Step ${i} of ${n}`,
   },
 
