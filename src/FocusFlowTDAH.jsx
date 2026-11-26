@@ -360,6 +360,18 @@ const SpeechRecognitionAPI =
     : null;
 const SPEECH_LANG_DISMANTLER = { es: "es-MX", en: "en-US", fr: "fr-FR", pt: "pt-BR" };
 
+// Freno de impulsividad — un ícono por etapa, reutilizado tanto en el
+// indicador de 4 pasos de arriba como en el encabezado de cada tarjeta
+// (26 de noviembre de 2026, "esto tambien realiza un mejor diseño"). Los
+// íconos ya estaban importados para otros paneles de esta misma pantalla —
+// no hizo falta agregar ninguno nuevo.
+const ST_STAGES = [
+  { key: "stop", icon: Hand },
+  { key: "breathe", icon: Wind },
+  { key: "evaluate", icon: Brain },
+  { key: "act", icon: Target },
+];
+
 export default function FocusFlowTDAH({
   initialProgress,
   onProgressChange,
@@ -2114,16 +2126,40 @@ export default function FocusFlowTDAH({
   const [stContext, setStContext] = useState("general");
   const [breathCountdown, setBreathCountdown] = useState(3);
   const stTimerRef = useRef(null);
+  // 26 de noviembre de 2026 ("no me convence, hazlo más interactivo"): el
+  // rediseño anterior (26 nov, tarjetas + indicador de pasos) seguía siendo
+  // "leer y tocar un botón" en 2 de las 4 etapas. Dos cambios para que de
+  // verdad pida algo del usuario en vez de solo avanzar texto:
+  // 1) "Alto" ya no se confirma con un tap reflejo — hay que MANTENER
+  //    presionado el botón (ver stHolding/stHoldProgress) mientras se
+  //    llena, igual que un freno real: soltarlo antes de tiempo lo cancela
+  //    y hay que empezar de nuevo.
+  // 2) "Evalúa" deja de ser un botón de "ya lo pensé" sin contenido: ahora
+  //    pide responder Sí/No a la pregunta (ver stEvalAnswer) y recién
+  //    entonces muestra una frase corta según la respuesta, antes de poder
+  //    seguir — para que conteste de verdad en vez de solo pasar la
+  //    pantalla.
+  const [stHolding, setStHolding] = useState(false);
+  const [stHoldProgress, setStHoldProgress] = useState(0);
+  const stHoldTimerRef = useRef(null);
+  const [stEvalAnswer, setStEvalAnswer] = useState(null);
 
   const startStopThink = (context = "general") => {
     setStFlowOpen(true);
     setStStage(0);
     setStContext(context);
+    setStEvalAnswer(null);
+    setStHoldProgress(0);
+    setStHolding(false);
   };
   const closeStopThink = () => {
     setStFlowOpen(false);
     setStStage(0);
     if (stTimerRef.current) clearInterval(stTimerRef.current);
+    if (stHoldTimerRef.current) clearInterval(stHoldTimerRef.current);
+    setStHolding(false);
+    setStHoldProgress(0);
+    setStEvalAnswer(null);
   };
   const advanceStage = () => {
     if (stStage === 0) {
@@ -2136,6 +2172,33 @@ export default function FocusFlowTDAH({
       setImpulseBrakeLog((prev) => recordImpulseBrakeUse(prev, stContext));
       closeStopThink();
     }
+  };
+  const HOLD_MS = 1400;
+  const startHold = () => {
+    if (stHoldTimerRef.current) return; // ya sosteniendo
+    setStHolding(true);
+    const stepMs = 30;
+    stHoldTimerRef.current = setInterval(() => {
+      setStHoldProgress((p) => {
+        const next = p + (stepMs / HOLD_MS) * 100;
+        if (next >= 100) {
+          clearInterval(stHoldTimerRef.current);
+          stHoldTimerRef.current = null;
+          setStHolding(false);
+          advanceStage();
+          return 0;
+        }
+        return next;
+      });
+    }, stepMs);
+  };
+  const cancelHold = () => {
+    if (stHoldTimerRef.current) {
+      clearInterval(stHoldTimerRef.current);
+      stHoldTimerRef.current = null;
+    }
+    setStHolding(false);
+    setStHoldProgress(0);
   };
   useEffect(() => {
     if (stStage === 1) {
@@ -5708,62 +5771,343 @@ export default function FocusFlowTDAH({
               title={t.app.panels.stopThink.title}
               subtitle={t.app.panels.stopThink.subtitle}
             >
+              {/* 26 de noviembre de 2026 ("esto tambien realiza un mejor
+                  diseño"): antes eran 2 botones planos sin contexto y, una
+                  vez abierto el flujo, una sola caja gris que solo
+                  cambiaba de texto en cada etapa — no se notaba que "Alto,
+                  respira, evalúa, actúa" eran 4 pasos de un mismo proceso.
+                  Ahora:
+                  1) Las 2 opciones de entrada son tarjetas con ícono propio
+                     y una frase corta de cuándo usar cada una (ver
+                     t.app.stopThink.generalHint / purchaseHint).
+                  2) Dentro del flujo, un indicador de 4 pasos (ST_STAGES)
+                     arriba muestra en cuál vas, con el mismo ícono de cada
+                     etapa repetido como encabezado de su tarjeta.
+                  3) La cuenta regresiva de "Respira" ahora es una burbuja
+                     con degradado (mismo lenguaje visual que la Burbuja de
+                     enfoque) en vez de un número suelto. */}
+              <style>{`
+                @keyframes anroStBreatheGlow {
+                  0%, 100% { opacity: 0.35; transform: scale(1); }
+                  50% { opacity: 0.6; transform: scale(1.08); }
+                }
+                @keyframes anroStCountPop {
+                  0% { transform: scale(1.3); opacity: 0.4; }
+                  100% { transform: scale(1); opacity: 1; }
+                }
+                .anro-st-breathe-glow { animation: anroStBreatheGlow 1.6s ease-in-out infinite; }
+                .anro-st-count-pop { animation: anroStCountPop 0.3s ease-out; }
+                @media (prefers-reduced-motion: reduce) {
+                  .anro-st-breathe-glow, .anro-st-count-pop { animation: none !important; }
+                }
+              `}</style>
               {!stFlowOpen ? (
-                <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
-                  <button onClick={() => startStopThink("general")} style={{ ...btnPrimary(C.lavender, C.lavenderText), width: "100%" }}>
-                    {t.app.stopThink.pressBeforeActing}
+                <div style={{ display: "flex", flexDirection: "column", gap: "10px" }}>
+                  <button
+                    onClick={() => startStopThink("general")}
+                    style={{
+                      display: "flex",
+                      alignItems: "center",
+                      gap: "12px",
+                      width: "100%",
+                      textAlign: "left",
+                      background: tint(C.lavender, 0.2),
+                      border: `1px solid ${C.lavender}`,
+                      borderRadius: "14px",
+                      padding: "12px 14px",
+                      cursor: "pointer",
+                      boxSizing: "border-box",
+                    }}
+                  >
+                    <span
+                      style={{
+                        width: "40px",
+                        height: "40px",
+                        borderRadius: "50%",
+                        background: C.lavender,
+                        color: C.lavenderText,
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "center",
+                        flexShrink: 0,
+                      }}
+                    >
+                      <Hand size={19} />
+                    </span>
+                    <span style={{ display: "flex", flexDirection: "column", gap: "2px" }}>
+                      <span style={{ fontWeight: 700, fontSize: "14px", color: C.text }}>{t.app.stopThink.pressBeforeActing}</span>
+                      <span style={{ fontSize: "11.5px", color: C.textMuted }}>{t.app.stopThink.generalHint}</span>
+                    </span>
                   </button>
                   <button
                     onClick={() => startStopThink("compra")}
                     style={{
-                      ...btnPrimary(C.surfaceAlt, C.text),
-                      width: "100%",
                       display: "flex",
                       alignItems: "center",
-                      justifyContent: "center",
-                      gap: "8px",
+                      gap: "12px",
+                      width: "100%",
+                      textAlign: "left",
+                      background: C.surfaceAlt,
                       border: `1px solid ${C.border}`,
+                      borderRadius: "14px",
+                      padding: "12px 14px",
+                      cursor: "pointer",
+                      boxSizing: "border-box",
                     }}
                   >
-                    <ShoppingCart size={16} /> {t.app.stopThink.beforePurchase}
+                    <span
+                      style={{
+                        width: "40px",
+                        height: "40px",
+                        borderRadius: "50%",
+                        background: tint(C.lavender, 0.22),
+                        color: C.lavender,
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "center",
+                        flexShrink: 0,
+                      }}
+                    >
+                      <ShoppingCart size={19} />
+                    </span>
+                    <span style={{ display: "flex", flexDirection: "column", gap: "2px" }}>
+                      <span style={{ fontWeight: 700, fontSize: "14px", color: C.text }}>{t.app.stopThink.beforePurchase}</span>
+                      <span style={{ fontSize: "11.5px", color: C.textMuted }}>{t.app.stopThink.purchaseHint}</span>
+                    </span>
                   </button>
                 </div>
               ) : (
-                <div style={{ background: C.surfaceAlt, borderRadius: "12px", padding: "18px", textAlign: "center" }}>
+                <div style={{ background: C.surfaceAlt, borderRadius: "14px", padding: "20px 18px", textAlign: "center" }}>
+                  <div style={{ display: "flex", alignItems: "center", marginBottom: "18px" }}>
+                    {ST_STAGES.map((stage, i) => {
+                      const StageIcon = stage.icon;
+                      const done = i < stStage;
+                      const current = i === stStage;
+                      return (
+                        <React.Fragment key={stage.key}>
+                          <div
+                            style={{
+                              width: "32px",
+                              height: "32px",
+                              borderRadius: "50%",
+                              display: "flex",
+                              alignItems: "center",
+                              justifyContent: "center",
+                              flexShrink: 0,
+                              background: done || current ? C.lavender : "transparent",
+                              color: done || current ? C.lavenderText : C.textMuted,
+                              border: `1.5px solid ${done || current ? C.lavender : C.border}`,
+                              boxShadow: current ? `0 0 0 4px ${tint(C.lavender, 0.28)}` : "none",
+                              transition: "background 0.25s ease, box-shadow 0.25s ease",
+                            }}
+                          >
+                            <StageIcon size={15} />
+                          </div>
+                          {i < ST_STAGES.length - 1 && (
+                            <div
+                              style={{
+                                flex: 1,
+                                height: "3px",
+                                margin: "0 4px",
+                                borderRadius: "2px",
+                                background: done ? C.lavender : C.border,
+                                transition: "background 0.25s ease",
+                              }}
+                            />
+                          )}
+                        </React.Fragment>
+                      );
+                    })}
+                  </div>
                   {stStage === 0 && (
                     <>
+                      <div
+                        style={{
+                          width: "52px",
+                          height: "52px",
+                          borderRadius: "50%",
+                          background: tint(C.lavender, 0.22),
+                          color: C.lavender,
+                          display: "flex",
+                          alignItems: "center",
+                          justifyContent: "center",
+                          margin: "0 auto 10px",
+                        }}
+                      >
+                        <Hand size={24} />
+                      </div>
                       <p style={{ fontSize: "20px", fontWeight: 700, margin: "0 0 8px" }}>{t.app.stopThink.stopLabel}</p>
                       <p style={{ fontSize: "13px", color: C.textMuted, margin: "0 0 16px" }}>
                         {stContext === "compra"
                           ? t.app.stopThink.pausePurchase
                           : t.app.stopThink.pauseGeneral}
                       </p>
-                      <button onClick={advanceStage} style={btnPrimary(C.lavender, C.lavenderText)}>
-                        {t.app.stopThink.ready}
+                      <button
+                        onPointerDown={startHold}
+                        onPointerUp={cancelHold}
+                        onPointerLeave={cancelHold}
+                        onPointerCancel={cancelHold}
+                        onContextMenu={(e) => e.preventDefault()}
+                        style={{
+                          ...btnPrimary(C.lavender, C.lavenderText),
+                          position: "relative",
+                          overflow: "hidden",
+                          userSelect: "none",
+                          WebkitUserSelect: "none",
+                          touchAction: "none",
+                          transform: stHolding ? "scale(0.97)" : "scale(1)",
+                          transition: "transform 0.15s ease",
+                        }}
+                      >
+                        <span
+                          aria-hidden="true"
+                          style={{
+                            position: "absolute",
+                            inset: 0,
+                            left: 0,
+                            width: `${stHoldProgress}%`,
+                            background: "rgba(255,255,255,0.4)",
+                            transition: stHolding ? "none" : "width 0.2s ease-out",
+                          }}
+                        />
+                        <span style={{ position: "relative" }}>{t.app.stopThink.holdToConfirm}</span>
                       </button>
                     </>
                   )}
                   {stStage === 1 && (
                     <>
-                      <p style={{ fontSize: "20px", fontWeight: 700, margin: "0 0 8px" }}>{t.app.stopThink.breatheLabel}</p>
-                      <p style={{ fontSize: "34px", fontWeight: 700, margin: "0 0 8px" }}>{breathCountdown}</p>
+                      <p style={{ fontSize: "20px", fontWeight: 700, margin: "0 0 10px" }}>{t.app.stopThink.breatheLabel}</p>
+                      <div
+                        style={{
+                          position: "relative",
+                          width: "92px",
+                          height: "92px",
+                          margin: "0 auto 4px",
+                          display: "flex",
+                          alignItems: "center",
+                          justifyContent: "center",
+                        }}
+                      >
+                        <div
+                          className="anro-st-breathe-glow"
+                          style={{
+                            position: "absolute",
+                            width: "92px",
+                            height: "92px",
+                            borderRadius: "50%",
+                            background: `radial-gradient(circle, ${tint(C.lavender, 0.55)} 0%, transparent 72%)`,
+                            filter: "blur(6px)",
+                          }}
+                        />
+                        <div
+                          style={{
+                            width: "72px",
+                            height: "72px",
+                            borderRadius: "50%",
+                            background: `radial-gradient(circle at 35% 28%, ${tint(C.lavender, 0.7)}, ${C.lavender} 72%)`,
+                            boxShadow: `0 6px 18px ${tint(C.lavender, 0.4)}`,
+                            display: "flex",
+                            alignItems: "center",
+                            justifyContent: "center",
+                          }}
+                        >
+                          <div
+                            key={breathCountdown}
+                            className="anro-st-count-pop"
+                            style={{ fontSize: "30px", fontWeight: 800, color: C.lavenderText }}
+                          >
+                            {breathCountdown}
+                          </div>
+                        </div>
+                      </div>
                     </>
                   )}
                   {stStage === 2 && (
                     <>
+                      <div
+                        style={{
+                          width: "52px",
+                          height: "52px",
+                          borderRadius: "50%",
+                          background: tint(C.lavender, 0.22),
+                          color: C.lavender,
+                          display: "flex",
+                          alignItems: "center",
+                          justifyContent: "center",
+                          margin: "0 auto 10px",
+                        }}
+                      >
+                        <Brain size={24} />
+                      </div>
                       <p style={{ fontSize: "20px", fontWeight: 700, margin: "0 0 8px" }}>{t.app.stopThink.evaluateLabel}</p>
                       <p style={{ fontSize: "14px", color: C.text, margin: "0 0 16px" }}>
                         {stContext === "compra"
                           ? t.app.stopThink.evaluatePurchase
                           : t.app.stopThink.evaluateGeneral}
                       </p>
-                      <button onClick={advanceStage} style={btnPrimary(C.lavender, C.lavenderText)}>
-                        {t.app.stopThink.alreadyThought}
-                      </button>
+                      {!stEvalAnswer ? (
+                        <div style={{ display: "flex", gap: "10px", justifyContent: "center" }}>
+                          <button
+                            onClick={() => setStEvalAnswer("yes")}
+                            style={{ ...btnPrimary(C.lavender, C.lavenderText), minWidth: "84px" }}
+                          >
+                            {t.app.stopThink.evalYes}
+                          </button>
+                          <button
+                            onClick={() => setStEvalAnswer("no")}
+                            style={{
+                              ...btnPrimary(C.surfaceAlt, C.text),
+                              minWidth: "84px",
+                              border: `1px solid ${C.border}`,
+                            }}
+                          >
+                            {t.app.stopThink.evalNo}
+                          </button>
+                        </div>
+                      ) : (
+                        <>
+                          <p
+                            style={{
+                              fontSize: "13px",
+                              color: C.text,
+                              background: tint(C.lavender, 0.18),
+                              borderRadius: "10px",
+                              padding: "10px 12px",
+                              margin: "0 0 14px",
+                            }}
+                          >
+                            {stContext === "compra"
+                              ? stEvalAnswer === "yes"
+                                ? t.app.stopThink.evalYesPurchaseFeedback
+                                : t.app.stopThink.evalNoPurchaseFeedback
+                              : stEvalAnswer === "yes"
+                              ? t.app.stopThink.evalYesGeneralFeedback
+                              : t.app.stopThink.evalNoGeneralFeedback}
+                          </p>
+                          <button onClick={advanceStage} style={btnPrimary(C.lavender, C.lavenderText)}>
+                            {t.app.stopThink.alreadyThought}
+                          </button>
+                        </>
+                      )}
                     </>
                   )}
                   {stStage === 3 && (
                     <>
+                      <div
+                        style={{
+                          width: "52px",
+                          height: "52px",
+                          borderRadius: "50%",
+                          background: tint(C.lavender, 0.22),
+                          color: C.lavender,
+                          display: "flex",
+                          alignItems: "center",
+                          justifyContent: "center",
+                          margin: "0 auto 10px",
+                        }}
+                      >
+                        <Target size={24} />
+                      </div>
                       <p style={{ fontSize: "20px", fontWeight: 700, margin: "0 0 8px" }}>{t.app.stopThink.actLabel}</p>
                       <p style={{ fontSize: "13px", color: C.textMuted, margin: "0 0 16px" }}>
                         {stContext === "compra"
