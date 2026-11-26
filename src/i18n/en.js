@@ -1032,7 +1032,7 @@ const en = {
     title: "Out of sight, out of mind",
     why: "With ADHD, whatever is in sight competes for your attention: your phone, papers, other to-dos. It's easier to put things away before you start than to resist looking at them during the session. It takes 1 minute.",
     steps: [
-      { emoji: "📱", text: "Leave your phone in another room, in a drawer, or face down and silenced." },
+      { emoji: "📱", text: "Using your phone for this session's timer? Leave it face down and nearby, with only other apps' notifications silenced — you'll need to hear the bell when it ends. If not, put it away in another room or drawer." },
       { emoji: "🗂️", text: "Put away what you won't use right now: papers, dishes, other tasks." },
       { emoji: "💧", text: "Keep only what you need within reach: the things for this task and a glass of water." },
       { emoji: "🖥️", text: "Close tabs and apps that have nothing to do with this task." },

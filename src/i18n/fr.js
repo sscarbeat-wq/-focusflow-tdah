@@ -1029,7 +1029,7 @@ const fr = {
     title: "Hors de vue, hors de l'esprit",
     why: "Avec le TDAH, tout ce qui est en vue attire ton attention : le téléphone, les papiers, les autres tâches. C'est plus facile de les ranger avant de commencer que de résister à les regarder pendant la séance. Ça prend 1 minute.",
     steps: [
-      { emoji: "📱", text: "Laisse ton téléphone dans une autre pièce, dans un tiroir ou face cachée et en silencieux." },
+      { emoji: "📱", text: "Tu utilises ton téléphone pour le minuteur de cette session ? Laisse-le face cachée et à portée, en mettant en silencieux seulement les autres apps — tu devras entendre la cloche à la fin. Sinon, range-le dans une autre pièce ou un tiroir." },
       { emoji: "🗂️", text: "Range ce que tu n'utilises pas maintenant : papiers, vaisselle, autres tâches." },
       { emoji: "💧", text: "Garde à portée de main seulement ce dont tu as besoin : ce qu'il faut pour cette tâche et un verre d'eau." },
       { emoji: "🖥️", text: "Ferme les onglets et applis qui n'ont rien à voir avec cette tâche." },

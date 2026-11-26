@@ -1031,7 +1031,7 @@ const pt = {
     title: "Fora de vista, fora da mente",
     why: "Com TDAH, o que está à vista disputa sua atenção: o celular, papéis, outras pendências. É mais fácil guardar antes de começar do que resistir a olhar durante a sessão. Leva 1 minuto.",
     steps: [
-      { emoji: "📱", text: "Deixe o celular em outro cômodo, numa gaveta ou virado para baixo e no silencioso." },
+      { emoji: "📱", text: "Vai usar o celular para o temporizador desta sessão? Deixe-o virado para baixo e por perto, com o silencioso só para os outros apps — você vai precisar ouvir o sino no final. Se não, guarde-o em outro cômodo ou gaveta." },
       { emoji: "🗂️", text: "Guarde o que não vai usar agora: papéis, louça, outras tarefas." },
       { emoji: "💧", text: "Deixe à mão só o que precisa: o que é desta tarefa e um copo de água." },
       { emoji: "🖥️", text: "Feche as abas e apps que não têm a ver com esta tarefa." },
