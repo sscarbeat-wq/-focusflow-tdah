@@ -1,5 +1,5 @@
 import React, { useEffect, useRef, useState } from "react";
-import { Play, Square, Volume2, VolumeX, Sparkles, Activity, Wind, Brain, CheckCircle2, Timer, Moon } from "lucide-react";
+import { Play, Pause, Square, Volume2, VolumeX, Sparkles, Activity, Wind, Brain, CheckCircle2, Timer, Moon } from "lucide-react";
 import {
   MINDFULNESS_PROGRAMS,
   programTotalSeconds,
@@ -15,6 +15,30 @@ import {
 function getSpeechSynthesis() {
   if (typeof window === "undefined") return null;
   return window.speechSynthesis || null;
+}
+
+// 26 de noviembre de 2026 ("puedes mejorar la voz, más tenue tipo ASMR"):
+// misma lógica que ya se usa en la burbuja de respiración (FocusFlowTDAH.jsx)
+// — busca, entre las voces que ofrece el navegador para el idioma activo,
+// una que suene más natural/suave en vez de la primera robótica que
+// encuentre. Si no encuentra ninguna coincidencia, o el navegador todavía
+// no cargó la lista de voces, se queda con la voz por defecto del idioma.
+function pickSoftVoice(speechSynthesis, langCode) {
+  try {
+    const voices = speechSynthesis.getVoices();
+    if (!voices || !voices.length) return null;
+    const base = (langCode || "es").slice(0, 2).toLowerCase();
+    const matching = voices.filter((v) => v.lang && v.lang.toLowerCase().startsWith(base));
+    if (!matching.length) return null;
+    const soft = matching.find((v) =>
+      /female|mujer|natural|enhanced|premium|neural|siri|google|paulina|mónica|monica|lucía|lucia|lupe|sabina|helena|esperanza/i.test(
+        v.name
+      )
+    );
+    return soft || matching[0];
+  } catch (_) {
+    return null;
+  }
 }
 
 // Un ícono por programa (para el menú) y por paso (para la tarjeta en
@@ -66,6 +90,13 @@ const SPEECH_LOCALES = { es: "es-MX", en: "en-US", fr: "fr-FR", pt: "pt-BR" };
 export default function MindfulnessPanel({ C, t, lang, onComplete }) {
   const [programId, setProgramId] = useState(null);
   const [running, setRunning] = useState(false);
+  // 26 de noviembre de 2026 ("le pongo detener y me manda al menú de
+  // mindfulness"): "Detener" cortaba la práctica entera de un jalón, sin
+  // avisar — quien solo quería un respiro de un segundo perdía el paso en
+  // el que iba. Ahora "Pausar" congela el paso actual (cronómetro y voz)
+  // y desde ahí se elige entre reanudar en el mismo paso o terminar de
+  // verdad, que es lo único que ahora regresa al menú.
+  const [paused, setPaused] = useState(false);
   const [elapsed, setElapsed] = useState(0);
   const [justFinished, setJustFinished] = useState(false);
   const [justFinishedMinutes, setJustFinishedMinutes] = useState(0);
@@ -118,29 +149,63 @@ export default function MindfulnessPanel({ C, t, lang, onComplete }) {
   // fondo sin que hubiera ya ninguna práctica visible en pantalla.
   useEffect(() => () => speechSynthesis?.cancel(), [speechSynthesis]);
 
+  // 26 de noviembre de 2026: pedir la lista de voces una vez al montar —
+  // en algunos navegadores tarda en cargar de forma asíncrona, así que
+  // esto adelanta esa carga para que pickSoftVoice ya tenga opciones
+  // disponibles cuando arranque la primera narración.
+  useEffect(() => {
+    try {
+      speechSynthesis && speechSynthesis.getVoices();
+    } catch (_) { /* nada que precargar */ }
+  }, [speechSynthesis]);
+
   const start = (id) => {
     setJustFinished(false);
     setElapsed(0);
     setProgramId(id);
     setRunning(true);
+    setPaused(false);
     setVoiceOn(false);
   };
 
-  const stop = () => {
+  // Pausa: congela el cronómetro y la voz en el paso actual, pero NO
+  // suelta el programa ni reinicia `elapsed` — así el paso se queda
+  // exactamente donde iba para poder reanudarlo.
+  const pause = () => {
     setRunning(false);
-    setProgramId(null);
+    setPaused(true);
     setVoiceOn(false);
     clearInterval(tickRef.current);
+    speechSynthesis?.cancel();
+  };
+
+  const resume = () => {
+    setPaused(false);
+    setRunning(true);
+  };
+
+  // Termina la práctica de verdad — este es el único camino que regresa
+  // al menú de ejercicios ahora (antes "Detener" hacía esto de un jalón).
+  const endPractice = () => {
+    setRunning(false);
+    setPaused(false);
+    setProgramId(null);
+    setVoiceOn(false);
+    setElapsed(0);
+    clearInterval(tickRef.current);
     // 20 de noviembre de 2026 ("cuando le pongo detener no se detiene la
-    // voz"): esto faltaba — "Detener" paraba el cronómetro y la cuenta
+    // voz"): esto faltaba — terminar paraba el cronómetro y la cuenta
     // regresiva, pero no el audio del navegador, así que la voz seguía
     // leyendo el paso aunque la pantalla ya hubiera regresado al menú.
     speechSynthesis?.cancel();
   };
 
-  const stepIndex = running && program ? stepIndexAt(program, elapsed) : null;
+  // Ya no depende de `running`: en pausa, `running` es false pero el paso
+  // debe seguir mostrándose congelado (no desaparecer), así que basta con
+  // que haya un programa elegido.
+  const stepIndex = program ? stepIndexAt(program, elapsed) : null;
   const step = stepIndex === null || !program ? null : program.steps[stepIndex];
-  const secondsLeft = running && program ? secondsLeftInStep(program, elapsed) : 0;
+  const secondsLeft = program ? secondsLeftInStep(program, elapsed) : 0;
 
   const stepText = step && program ? t.mindfulnessSteps[program.id][step.id] : null;
   const StepIcon = step ? STEP_ICONS[step.id] || Sparkles : null;
@@ -156,6 +221,15 @@ export default function MindfulnessPanel({ C, t, lang, onComplete }) {
     speechSynthesis.cancel();
     const utterance = new window.SpeechSynthesisUtterance(stepText);
     utterance.lang = SPEECH_LOCALES[lang] || SPEECH_LOCALES.es;
+    // 26 de noviembre de 2026 ("puedes mejorar la voz, más tenue tipo
+    // ASMR"): mismo ajuste que ya tiene la burbuja de respiración — una
+    // voz más natural si el navegador ofrece alguna, hablando despacio,
+    // un poco más grave y bajito, para que acompañe sin sobresaltar.
+    const voice = pickSoftVoice(speechSynthesis, utterance.lang);
+    if (voice) utterance.voice = voice;
+    utterance.rate = 0.82;
+    utterance.pitch = 0.92;
+    utterance.volume = 0.65;
     speechSynthesis.speak(utterance);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [stepIndex, voiceOn, running, program]);
@@ -189,7 +263,7 @@ export default function MindfulnessPanel({ C, t, lang, onComplete }) {
         </p>
       )}
 
-      {!running || !program ? (
+      {!program ? (
         <div style={{ display: "flex", flexDirection: "column", gap: "10px" }}>
           {MINDFULNESS_PROGRAMS.map((p) => {
             const Icon = PROGRAM_ICONS[p.id] || Sparkles;
@@ -255,7 +329,7 @@ export default function MindfulnessPanel({ C, t, lang, onComplete }) {
               margin: "0 0 16px",
             }}
           >
-            {t.mindfulness.stepProgress(stepIndex + 1, program.steps.length)}
+            {paused ? t.mindfulness.pausedLabel : t.mindfulness.stepProgress(stepIndex + 1, program.steps.length)}
           </p>
 
           {/* Anillo de progreso del paso actual — SVG simple, sin librería
@@ -298,8 +372,8 @@ export default function MindfulnessPanel({ C, t, lang, onComplete }) {
             {stepText}
           </p>
 
-          <div style={{ display: "flex", gap: "10px", justifyContent: "center", marginBottom: "18px" }}>
-            {speechSynthesis && (
+          <div style={{ display: "flex", gap: "10px", justifyContent: "center", marginBottom: "18px", flexWrap: "wrap" }}>
+            {!paused && speechSynthesis && (
               <button
                 onClick={toggleVoice}
                 aria-label={voiceOn ? t.mindfulness.muteAria : t.mindfulness.listenAria}
@@ -321,24 +395,65 @@ export default function MindfulnessPanel({ C, t, lang, onComplete }) {
                 {voiceOn ? t.mindfulness.muteButton : t.mindfulness.listenButton}
               </button>
             )}
-            <button
-              onClick={stop}
-              style={{
-                display: "flex",
-                alignItems: "center",
-                gap: "6px",
-                background: "transparent",
-                border: `1px solid ${C.border}`,
-                borderRadius: "999px",
-                padding: "9px 16px",
-                color: C.textMuted,
-                fontSize: "13px",
-                fontWeight: 600,
-                cursor: "pointer",
-              }}
-            >
-              <Square size={14} /> {t.mindfulness.stopButton}
-            </button>
+            {!paused ? (
+              <button
+                onClick={pause}
+                style={{
+                  display: "flex",
+                  alignItems: "center",
+                  gap: "6px",
+                  background: "transparent",
+                  border: `1px solid ${C.border}`,
+                  borderRadius: "999px",
+                  padding: "9px 16px",
+                  color: C.textMuted,
+                  fontSize: "13px",
+                  fontWeight: 600,
+                  cursor: "pointer",
+                }}
+              >
+                <Pause size={14} /> {t.mindfulness.pauseButton}
+              </button>
+            ) : (
+              <>
+                <button
+                  onClick={resume}
+                  style={{
+                    display: "flex",
+                    alignItems: "center",
+                    gap: "6px",
+                    background: C.lavender,
+                    border: `1px solid ${C.lavender}`,
+                    borderRadius: "999px",
+                    padding: "9px 16px",
+                    color: C.lavenderText,
+                    fontSize: "13px",
+                    fontWeight: 600,
+                    cursor: "pointer",
+                  }}
+                >
+                  <Play size={14} /> {t.mindfulness.resumeButton}
+                </button>
+                <button
+                  onClick={endPractice}
+                  style={{
+                    display: "flex",
+                    alignItems: "center",
+                    gap: "6px",
+                    background: "transparent",
+                    border: `1px solid ${C.border}`,
+                    borderRadius: "999px",
+                    padding: "9px 16px",
+                    color: C.textMuted,
+                    fontSize: "13px",
+                    fontWeight: 600,
+                    cursor: "pointer",
+                  }}
+                >
+                  <Square size={14} /> {t.mindfulness.endPracticeButton}
+                </button>
+              </>
+            )}
           </div>
 
           {/* Barra de progreso de toda la práctica (no solo del paso) —
