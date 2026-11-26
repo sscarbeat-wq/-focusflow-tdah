@@ -1699,7 +1699,15 @@ const fr = {
       dragStepHint: "Fais glisser les étapes par les petits points pour changer leur ordre.",
       morePendingSteps: (n) => `+${n} étape${n === 1 ? "" : "s"} en attente — elles s'afficheront une par une.`,
       energyTagTitle: (energy) => `Pensé pour une énergie ${energy}`,
-      stepEnergyTooltip: "Énergie que cette étape demande (facultatif) — utilisé pour la suggérer dans « Aujourd'hui » selon ton bilan d'énergie",
+      stepEnergyTooltip: "Énergie que cette étape demande (facultatif) — utilisé pour la suggérer ici et dans « Aujourd'hui » selon ton bilan d'énergie",
+      energySuggestion: (level, text) => {
+        const word = { baja: "basse", media: "moyenne", alta: "haute" }[level] || level;
+        return `Ton énergie aujourd'hui est ${word} — c'est pourquoi on te suggère de commencer par : « ${text} ».`;
+      },
+      pickedForEnergy: (level) => {
+        const word = { baja: "basse", media: "moyenne", alta: "haute" }[level] || level;
+        return `Choisi selon ton énergie ${word} d'aujourd'hui.`;
+      },
       examplesLabel: "Ou essaie l'un de ceux-ci :",
       examples: [
         "Ranger ma chambre",

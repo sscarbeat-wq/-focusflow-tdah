@@ -1701,7 +1701,15 @@ const en = {
       dragStepHint: "Drag steps by the dots to change their order.",
       morePendingSteps: (n) => `+${n} more step${n === 1 ? "" : "s"} waiting — they'll show up one at a time.`,
       energyTagTitle: (energy) => `Designed for ${energy} energy`,
-      stepEnergyTooltip: "Energy this step requires (optional) — used to suggest it in 'Today' based on your energy check-in",
+      stepEnergyTooltip: "Energy this step requires (optional) — used to suggest it here and in 'Today' based on your energy check-in",
+      energySuggestion: (level, text) => {
+        const word = { baja: "low", media: "medium", alta: "high" }[level] || level;
+        return `Your energy today is ${word} — that's why we suggest starting with: "${text}".`;
+      },
+      pickedForEnergy: (level) => {
+        const word = { baja: "low", media: "medium", alta: "high" }[level] || level;
+        return `Picked based on your ${word} energy today.`;
+      },
       examplesLabel: "Or try one of these:",
       examples: [
         "Clean my room",

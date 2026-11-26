@@ -1824,7 +1824,19 @@ const es = {
       dragStepHint: "Arrastra los pasos desde los puntitos para cambiarles el orden.",
       morePendingSteps: (n) => `+${n} paso${n === 1 ? "" : "s"} más esperando — se irán mostrando uno a la vez.`,
       energyTagTitle: (energy) => `Pensado para energía ${energy}`,
-      stepEnergyTooltip: "Energía que requiere este paso (opcional) — se usa para sugerirlo en 'Hoy' según tu check-in de energía",
+      stepEnergyTooltip: "Energía que requiere este paso (opcional) — se usa para sugerirlo aquí y en 'Hoy' según tu check-in de energía",
+      // 26 de noviembre de 2026 ("siento que no tiene mucha funcionalidad"
+      // sobre el check-in de energía): antes esta conexión solo se notaba
+      // como una línea de texto en "Hoy" — ahora también se avisa aquí
+      // mismo, justo donde la persona mira después de registrar su energía.
+      energySuggestion: (level, text) => {
+        const word = { baja: "baja", media: "media", alta: "alta" }[level] || level;
+        return `Tu energía de hoy es ${word} — por eso te sugerimos empezar con: "${text}".`;
+      },
+      pickedForEnergy: (level) => {
+        const word = { baja: "baja", media: "media", alta: "alta" }[level] || level;
+        return `Elegido según tu energía ${word} de hoy.`;
+      },
       // 18 de noviembre de 2026 ("puedes hacer más interactiva esta
       // herramienta?") — ejemplos tocables mientras el cuadro de la tarea
       // está vacío (rotan solos cada 4s, ver dismantlerExampleIdx).

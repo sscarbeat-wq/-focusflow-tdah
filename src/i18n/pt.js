@@ -1700,7 +1700,15 @@ const pt = {
       dragStepHint: "Arraste as etapas pelos pontinhos para mudar a ordem.",
       morePendingSteps: (n) => `+${n} etapa${n === 1 ? "" : "s"} mais esperando — vão aparecer uma por vez.`,
       energyTagTitle: (energy) => `Pensado para energia ${energy}`,
-      stepEnergyTooltip: "Energia que esta etapa exige (opcional) — usado para sugeri-la em 'Hoje' de acordo com seu check-in de energia",
+      stepEnergyTooltip: "Energia que esta etapa exige (opcional) — usado para sugeri-la aqui e em 'Hoje' de acordo com seu check-in de energia",
+      energySuggestion: (level, text) => {
+        const word = { baja: "baixa", media: "média", alta: "alta" }[level] || level;
+        return `Sua energia hoje está ${word} — por isso sugerimos começar com: "${text}".`;
+      },
+      pickedForEnergy: (level) => {
+        const word = { baja: "baixa", media: "média", alta: "alta" }[level] || level;
+        return `Escolhido de acordo com sua energia ${word} de hoje.`;
+      },
       examplesLabel: "Ou tente uma destas:",
       examples: [
         "Arrumar meu quarto",
