@@ -151,7 +151,13 @@ async function handleDailyCheck(req, res) {
 
       if (title) {
         try {
-          await webpush.sendNotification(sub.subscription, JSON.stringify({ title, body, url: "/" }));
+          // `tag` para no colisionar con los avisos de pago/reenganche de
+          // abajo ni con el de medicamento (ver nota de renotify en
+          // public/push-sw.js) — antes ninguno de los avisos de este
+          // archivo llevaba `tag`, así que todos caían en el mismo genérico
+          // "senda-recordatorio" del service worker y uno podía reemplazar
+          // a otro en silencio sin que la persona llegara a verlo.
+          await webpush.sendNotification(sub.subscription, JSON.stringify({ title, body, tag: "senda-diario", url: "/" }));
           sent += 1;
         } catch (err) {
           if (err.statusCode === 404 || err.statusCode === 410) {
@@ -178,6 +184,7 @@ async function handleDailyCheck(req, res) {
                 body: `${p.name}${p.amount ? ` — ${p.amount}` : ""} — ${
                   p.daysUntil === 0 ? "vence hoy" : `vence en ${p.daysUntil} día${p.daysUntil === 1 ? "" : "s"}`
                 }`,
+                tag: `pago-${p.id}`,
                 url: "/",
               })
             );
@@ -212,6 +219,7 @@ async function handleDailyCheck(req, res) {
             JSON.stringify({
               title: "Aquí seguimos, sin prisa 🌿",
               body: "Cuando quieras volver a ANRO TDAH, todo va a seguir tal como lo dejaste.",
+              tag: "senda-reenganche",
               url: "/",
             })
           );
@@ -335,6 +343,14 @@ async function handleMedicationCheck(req, res) {
               JSON.stringify({
                 title: "Es hora de tu medicamento 💊",
                 body: `${med.name} — ${time}`,
+                // `tag` por dosis (no por medicamento+persona): así cada
+                // insistencia de este mismo cron cada 15 min REEMPLAZA al
+                // aviso anterior de esa misma dosis en vez de apilarse en la
+                // bandeja — y gracias a renotify:true (public/push-sw.js)
+                // cada reemplazo vuelve a sonar/vibrar aunque el celular
+                // esté bloqueado. Un tag distinto por medicamento/horario
+                // evita además que una dosis "tape" el aviso de otra.
+                tag: `medicamento-${med.id}-${time}`,
                 url: "/",
               })
             );
@@ -405,6 +421,7 @@ async function handleScheduleCheck(req, res) {
             JSON.stringify({
               title: `En ${diff} min: ${block.icon} ${block.text}`,
               body: "Según tu Agenda visual en ANRO TDAH.",
+              tag: `agenda-${block.id}`,
               url: "/",
             })
           );
@@ -622,6 +639,7 @@ async function handleDigestCheck(req, res) {
           JSON.stringify({
             title: "Tu plan de hoy en ANRO TDAH ☀️",
             body: `Tienes ${parts.join(" y ")}.`,
+            tag: "senda-resumen",
             url: "/",
           })
         );
