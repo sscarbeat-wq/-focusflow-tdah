@@ -274,8 +274,20 @@ async function handleDailyCheck(req, res) {
 const REENGAGEMENT_MIN_DAYS = 4;
 const REENGAGEMENT_COOLDOWN_DAYS = 7;
 
-const MEDICATION_WINDOW_MIN = 16;
-
+// 26 de noviembre de 2026 ("podria mandar alarmas constantes"): antes este
+// aviso push se mandaba UNA sola vez, en los ~16 minutos después de la
+// hora de la dosis (MEDICATION_WINDOW_MIN) — si la persona no lo veía a
+// tiempo, no volvía a insistir. La doctora pidió que insista cada 15
+// minutos (cada vez que corre este cron) y SIN límite de tiempo, hasta que
+// la dosis se marque como tomada — a propósito nunca cruza al día
+// siguiente, porque takenToday se reinicia solo con cada nuevo "hoy" (ver
+// todayKeyMX arriba) y una dosis de ayer ya no aparece en doseTimes de hoy
+// de ninguna forma especial, así que no hay riesgo de que seguir insistiendo
+// "para siempre" en realidad signifique "para siempre, incluso mañana".
+// Esto es honesto con lo que la Web Push API puede hacer: no reemplaza un
+// sonido en loop con el celular cerrado (eso solo lo logra la alarma DENTRO
+// de la app, ver MedicationAlarm.jsx) — es un aviso que se repite, no una
+// alarma nativa.
 async function handleMedicationCheck(req, res) {
   try {
     const { data: subs, error: subsErr } = await supabaseAdmin.from("push_subscriptions").select("*");
@@ -308,8 +320,12 @@ async function handleMedicationCheck(req, res) {
       for (const med of medications) {
         if (med.active === false) continue;
         for (const time of med.doseTimes || []) {
-          const diff = ((nowMin - timeToMinutes(time)) % 1440 + 1440) % 1440;
-          if (diff >= MEDICATION_WINDOW_MIN) continue; // no es la hora de esta dosis
+          // "Todavía no toca" (la dosis es más tarde hoy) sigue filtrándose
+          // igual que antes. Lo que cambió es que ya NO hay un límite por
+          // arriba: mientras la dosis ya haya pasado hoy y siga sin
+          // marcarse, este cron la vuelve a avisar cada vez que corre
+          // (cada 15 minutos), hasta que se marque como tomada.
+          if (timeToMinutes(time) > nowMin) continue;
           const alreadyTaken = takenToday.some((e) => e.medicationId === med.id && e.time === time);
           if (alreadyTaken) continue;
 
