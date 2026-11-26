@@ -372,6 +372,7 @@ const en = {
     low: "Low",
     medium: "Medium",
     high: "High",
+    intro: "Helps you pick which step to try first based on your energy: an easy one if you're running low, the heavier one if you have plenty to spare — so you don't get stuck or frustrated trying something that doesn't fit right now.",
     todayRegistered: (level) => `Today you logged: energy ${level}.`,
     prompt: "How's your energy right now?",
     last7Days: "Last 7 days",

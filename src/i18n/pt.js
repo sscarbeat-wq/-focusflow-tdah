@@ -377,6 +377,7 @@ const pt = {
     low: "Baixa",
     medium: "Média",
     high: "Alta",
+    intro: "Ajuda você a escolher qual passo tentar primeiro de acordo com sua energia: um fácil se estiver com pouca, o mais pesado se tiver de sobra — para não travar nem se frustrar tentando algo que não cabe agora.",
     todayRegistered: (level) => `Hoje você registrou: energia ${level}.`,
     prompt: "Como está sua energia agora?",
     last7Days: "Últimos 7 dias",

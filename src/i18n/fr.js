@@ -374,6 +374,7 @@ const fr = {
     low: "Basse",
     medium: "Moyenne",
     high: "Haute",
+    intro: "T'aide à choisir quelle étape essayer en premier selon ton énergie : une facile si tu en as peu, la plus lourde si tu en as beaucoup — pour éviter de te bloquer ou de te frustrer avec quelque chose qui ne convient pas maintenant.",
     todayRegistered: (level) => `Aujourd'hui tu as enregistré : énergie ${level}.`,
     prompt: "Comment est ton énergie en ce moment ?",
     last7Days: "7 derniers jours",
