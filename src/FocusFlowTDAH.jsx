@@ -5655,7 +5655,7 @@ export default function FocusFlowTDAH({
               title={t.app.panels.energy.title}
               subtitle={t.app.panels.energy.subtitle}
             >
-              <EnergyLog C={C} t={t} energyLog={energyLog} onSave={handleEnergySave} />
+              <EnergyLog C={C} t={t} lang={lang} energyLog={energyLog} onSave={handleEnergySave} />
             </Panel>
             </div>
 
