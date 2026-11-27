@@ -5776,6 +5776,7 @@ export default function FocusFlowTDAH({
               <MedicationPanel
                 C={C}
                 t={t}
+                lang={lang}
                 medications={medications}
                 doseLog={medicationDoseLog}
                 onAdd={handleAddMedication}
