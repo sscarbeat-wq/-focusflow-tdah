@@ -532,6 +532,10 @@ const en = {
 
   medication: {
     todayDoses: "Today's doses",
+    doseProgress: (taken, total) => `${taken} of ${total} taken today`,
+    allTaken: "✅ You've taken all your doses for today.",
+    noneYet: "Add your first medication to start keeping track.",
+    historyNoneExpected: "nothing scheduled",
     undo: "Undo",
     sideEffectPlaceholder: "Any side effects? (optional)",
     markTaken: "Mark as taken",
@@ -545,6 +549,8 @@ const en = {
     notesPlaceholder: "Notes (optional) — e.g. what it's for, your doctor's instructions",
     addButton: "Add",
     historyCaption: "Doses taken / expected — last 7 days",
+    dictate: "Dictate the name by voice",
+    micError: "Couldn't use the microphone. Check that the browser has microphone permission.",
     alarm: {
       ariaLabel: "Active medication alarm",
       headline: "Time for your medication",

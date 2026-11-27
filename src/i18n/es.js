@@ -578,6 +578,13 @@ const es = {
 
   medication: {
     todayDoses: "Dosis de hoy",
+    // 26 de noviembre de 2026 ("acomoda de otra forma esto de los
+    // medicamentos, que se vea bonito"): resumen de progreso + mensajes
+    // para el formulario colapsable y la gráfica de historial a color.
+    doseProgress: (taken, total) => `${taken} de ${total} tomada${taken === 1 ? "" : "s"} hoy`,
+    allTaken: "✅ Ya tomaste todas tus dosis de hoy.",
+    noneYet: "Agrega tu primer medicamento para empezar a llevar el registro.",
+    historyNoneExpected: "nada programado",
     undo: "Deshacer",
     sideEffectPlaceholder: "¿Algún efecto secundario? (opcional)",
     markTaken: "Marcar como tomada",
@@ -591,6 +598,14 @@ const es = {
     notesPlaceholder: "Notas (opcional) — ej. para qué es, indicaciones del médico o médica",
     addButton: "Agregar",
     historyCaption: "Dosis tomadas / esperadas — últimos 7 días",
+    // 26 de noviembre de 2026 ("puedes añadir micrófono para que también el
+    // paciente pueda dictar su medicamento"): dictado por voz del nombre del
+    // medicamento (Web Speech API) — ver el botón junto al campo de nombre
+    // en MedicationPanel.jsx. Si el navegador no lo soporta, el botón
+    // simplemente no aparece (mismo criterio "honesto" que pushSupported()
+    // en push.js).
+    dictate: "Dictar el nombre por voz",
+    micError: "No se pudo usar el micrófono. Revisa que el navegador tenga permiso de micrófono.",
     alarm: {
       ariaLabel: "Alarma de medicamento activa",
       headline: "Hora de tu medicamento",

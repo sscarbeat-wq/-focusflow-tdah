@@ -535,6 +535,10 @@ const fr = {
 
   medication: {
     todayDoses: "Doses d'aujourd'hui",
+    doseProgress: (taken, total) => `${taken} sur ${total} prise${taken === 1 ? "" : "s"} aujourd'hui`,
+    allTaken: "✅ Tu as pris toutes tes doses d'aujourd'hui.",
+    noneYet: "Ajoute ton premier médicament pour commencer à suivre.",
+    historyNoneExpected: "rien de prévu",
     undo: "Annuler",
     sideEffectPlaceholder: "Un effet secondaire ? (facultatif)",
     markTaken: "Marquer comme prise",
@@ -548,6 +552,8 @@ const fr = {
     notesPlaceholder: "Notes (facultatif) — ex. à quoi ça sert, indications du médecin",
     addButton: "Ajouter",
     historyCaption: "Doses prises / attendues — 7 derniers jours",
+    dictate: "Dicter le nom à voix haute",
+    micError: "Impossible d'utiliser le micro. Vérifie que le navigateur a la permission d'accéder au micro.",
     alarm: {
       ariaLabel: "Alarme de médicament active",
       headline: "C'est l'heure de ton médicament",
