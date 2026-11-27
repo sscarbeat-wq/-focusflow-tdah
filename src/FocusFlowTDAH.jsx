@@ -86,6 +86,7 @@ import CalendarPanel from "./CalendarPanel";
 import BodyDoublePanel from "./BodyDoublePanel";
 import CbtProgramPanel from "./CbtProgramPanel";
 import CompanionPanel from "./CompanionPanel";
+import { nextResponseIndex } from "./companionSituations";
 import TodayPanel from "./TodayPanel";
 import MessageTonePanel from "./MessageTonePanel";
 import CaptureHubPanel from "./CaptureHubPanel";
@@ -2151,6 +2152,19 @@ export default function FocusFlowTDAH({
   const [stHoldProgress, setStHoldProgress] = useState(0);
   const stHoldTimerRef = useRef(null);
   const [stEvalAnswer, setStEvalAnswer] = useState(null);
+  // 27 de noviembre de 2026 ("la puedes redactar de otra forma? / podrían
+  // irse rotando?"): la pregunta de "Evalúa" para impulso general (no
+  // compra) dejó de ser un solo texto fijo — t.app.stopThink.evaluateGeneral
+  // ahora es un arreglo de variantes (i18n) y cada vez que se abre el flujo
+  // en modo general se elige una nueva, rotando sin repetir la misma dos
+  // veces seguidas (mismo nextResponseIndex puro que ya usa Compañero de
+  // apoyo para sus respuestas de respaldo). La de compra sigue siendo un
+  // solo texto — nunca se pidió rotarla.
+  const [stEvalGeneralIndex, setStEvalGeneralIndex] = useState(0);
+  const stEvalGeneralVariants = t.app.stopThink.evaluateGeneral;
+  const stEvalGeneralText = Array.isArray(stEvalGeneralVariants)
+    ? stEvalGeneralVariants[stEvalGeneralIndex % stEvalGeneralVariants.length] || ""
+    : stEvalGeneralVariants;
 
   const startStopThink = (context = "general") => {
     setStFlowOpen(true);
@@ -2159,6 +2173,9 @@ export default function FocusFlowTDAH({
     setStEvalAnswer(null);
     setStHoldProgress(0);
     setStHolding(false);
+    if (context === "general") {
+      setStEvalGeneralIndex((prev) => nextResponseIndex(t.app.stopThink.evaluateGeneral.length, prev));
+    }
   };
   const closeStopThink = () => {
     setStFlowOpen(false);
@@ -2168,8 +2185,16 @@ export default function FocusFlowTDAH({
     setStHolding(false);
     setStHoldProgress(0);
     setStEvalAnswer(null);
+    try {
+      window.speechSynthesis && window.speechSynthesis.cancel();
+    } catch (_) { /* nada que cancelar */ }
+    setStSpeaking(false);
   };
   const advanceStage = () => {
+    try {
+      window.speechSynthesis && window.speechSynthesis.cancel();
+    } catch (_) { /* nada que cancelar */ }
+    setStSpeaking(false);
     if (stStage === 0) {
       setStStage(1);
       setBreathCountdown(3);
@@ -2382,6 +2407,67 @@ export default function FocusFlowTDAH({
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [phase]);
+
+  // 27 de noviembre de 2026 ("y quiero que igual se pueda escuchar"): que el
+  // texto de cada etapa de Freno de impulsividad (Alto, Evalúa, Actúa) se
+  // pueda escuchar en voz alta — mismo botón "Escuchar" que ya tiene
+  // Compañero de apoyo, con la misma voz suave/ASMR que ya usa la burbuja
+  // de respiración de aquí arriba (reutiliza pickSoftVoice). A propósito es
+  // a botón, no automático como la burbuja de respiración: ahí la paciente
+  // cierra los ojos y necesita el audio para saber cuándo inhalar/exhalar;
+  // aquí está leyendo y decidiendo, y puede estar en un lugar donde no
+  // quiere que el celular hable solo.
+  const [stSpeaking, setStSpeaking] = useState(false);
+  const speakStopThink = useCallback(
+    (text) => {
+      try {
+        if (!window.speechSynthesis || !text) return;
+        window.speechSynthesis.cancel();
+        const utter = new SpeechSynthesisUtterance(text);
+        utter.lang = SPEECH_LANG_DISMANTLER[lang] || "es-MX";
+        const voice = pickSoftVoice(lang);
+        if (voice) utter.voice = voice;
+        utter.rate = 0.82;
+        utter.pitch = 0.92;
+        utter.volume = 0.65;
+        utter.onend = () => setStSpeaking(false);
+        utter.onerror = () => setStSpeaking(false);
+        setStSpeaking(true);
+        window.speechSynthesis.speak(utter);
+      } catch (_) { /* silenciar si el navegador no soporta síntesis de voz */ }
+    },
+    [lang, pickSoftVoice]
+  );
+  const stopStopThinkSpeech = () => {
+    try {
+      window.speechSynthesis && window.speechSynthesis.cancel();
+    } catch (_) { /* nada que cancelar */ }
+    setStSpeaking(false);
+  };
+  // Botón "Escuchar"/"Detener" en miniatura, reutilizado en las 3 etapas
+  // con texto de Freno de impulsividad — mismo ícono (Volume2/VolumeX) que
+  // ya usa el botón de silenciar general de la app.
+  const StopThinkListenButton = ({ text }) => (
+    <button
+      type="button"
+      onClick={() => (stSpeaking ? stopStopThinkSpeech() : speakStopThink(text))}
+      style={{
+        display: "inline-flex",
+        alignItems: "center",
+        gap: "5px",
+        background: "transparent",
+        border: "none",
+        color: C.lavender,
+        fontSize: "12px",
+        fontWeight: 600,
+        cursor: "pointer",
+        padding: "0 0 10px",
+      }}
+    >
+      {stSpeaking ? <VolumeX size={13} /> : <Volume2 size={13} />}
+      {stSpeaking ? t.companion.stopSpeaking : t.companion.listenResponse}
+    </button>
+  );
 
   const scale = phase === 0 ? 1.3 : phase === 1 ? 1.3 : 0.85;
 
@@ -5982,11 +6068,16 @@ export default function FocusFlowTDAH({
                         <Hand size={24} />
                       </div>
                       <p style={{ fontSize: "20px", fontWeight: 700, margin: "0 0 8px" }}>{t.app.stopThink.stopLabel}</p>
-                      <p style={{ fontSize: "13px", color: C.textMuted, margin: "0 0 16px" }}>
+                      <p style={{ fontSize: "13px", color: C.textMuted, margin: "0 0 4px" }}>
                         {stContext === "compra"
                           ? t.app.stopThink.pausePurchase
                           : t.app.stopThink.pauseGeneral}
                       </p>
+                      <div>
+                        <StopThinkListenButton
+                          text={stContext === "compra" ? t.app.stopThink.pausePurchase : t.app.stopThink.pauseGeneral}
+                        />
+                      </div>
                       <button
                         onPointerDown={startHold}
                         onPointerUp={cancelHold}
@@ -6085,21 +6176,34 @@ export default function FocusFlowTDAH({
                         <Brain size={24} />
                       </div>
                       <p style={{ fontSize: "20px", fontWeight: 700, margin: "0 0 8px" }}>{t.app.stopThink.evaluateLabel}</p>
-                      <p style={{ fontSize: "14px", color: C.text, margin: "0 0 16px" }}>
+                      <p style={{ fontSize: "14px", color: C.text, margin: "0 0 4px" }}>
                         {stContext === "compra"
                           ? t.app.stopThink.evaluatePurchase
-                          : t.app.stopThink.evaluateGeneral}
+                          : stEvalGeneralText}
                       </p>
+                      {!stEvalAnswer && (
+                        <div>
+                          <StopThinkListenButton
+                            text={stContext === "compra" ? t.app.stopThink.evaluatePurchase : stEvalGeneralText}
+                          />
+                        </div>
+                      )}
                       {!stEvalAnswer ? (
                         <div style={{ display: "flex", gap: "10px", justifyContent: "center" }}>
                           <button
-                            onClick={() => setStEvalAnswer("yes")}
+                            onClick={() => {
+                              stopStopThinkSpeech();
+                              setStEvalAnswer("yes");
+                            }}
                             style={{ ...btnPrimary(C.lavender, C.lavenderText), minWidth: "84px" }}
                           >
                             {t.app.stopThink.evalYes}
                           </button>
                           <button
-                            onClick={() => setStEvalAnswer("no")}
+                            onClick={() => {
+                              stopStopThinkSpeech();
+                              setStEvalAnswer("no");
+                            }}
                             style={{
                               ...btnPrimary(C.surfaceAlt, C.text),
                               minWidth: "84px",
@@ -6118,7 +6222,7 @@ export default function FocusFlowTDAH({
                               background: tint(C.lavender, 0.18),
                               borderRadius: "10px",
                               padding: "10px 12px",
-                              margin: "0 0 14px",
+                              margin: "0 0 6px",
                             }}
                           >
                             {stContext === "compra"
@@ -6129,6 +6233,19 @@ export default function FocusFlowTDAH({
                               ? t.app.stopThink.evalYesGeneralFeedback
                               : t.app.stopThink.evalNoGeneralFeedback}
                           </p>
+                          <div>
+                            <StopThinkListenButton
+                              text={
+                                stContext === "compra"
+                                  ? stEvalAnswer === "yes"
+                                    ? t.app.stopThink.evalYesPurchaseFeedback
+                                    : t.app.stopThink.evalNoPurchaseFeedback
+                                  : stEvalAnswer === "yes"
+                                  ? t.app.stopThink.evalYesGeneralFeedback
+                                  : t.app.stopThink.evalNoGeneralFeedback
+                              }
+                            />
+                          </div>
                           <button onClick={advanceStage} style={btnPrimary(C.lavender, C.lavenderText)}>
                             {t.app.stopThink.alreadyThought}
                           </button>
@@ -6154,11 +6271,16 @@ export default function FocusFlowTDAH({
                         <Target size={24} />
                       </div>
                       <p style={{ fontSize: "20px", fontWeight: 700, margin: "0 0 8px" }}>{t.app.stopThink.actLabel}</p>
-                      <p style={{ fontSize: "13px", color: C.textMuted, margin: "0 0 16px" }}>
+                      <p style={{ fontSize: "13px", color: C.textMuted, margin: "0 0 4px" }}>
                         {stContext === "compra"
                           ? t.app.stopThink.actPurchase
                           : t.app.stopThink.actGeneral}
                       </p>
+                      <div>
+                        <StopThinkListenButton
+                          text={stContext === "compra" ? t.app.stopThink.actPurchase : t.app.stopThink.actGeneral}
+                        />
+                      </div>
                       <button onClick={advanceStage} style={btnPrimary(C.lavender, C.lavenderText)}>
                         {t.app.stopThink.finish}
                       </button>
