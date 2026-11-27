@@ -305,6 +305,8 @@ const fr = {
     freeTextHint: "Ceci ne remplace pas ton médecin ou ton thérapeute. En cas d'urgence, utilise le bouton ci-dessous.",
     freeTextRecordVoice: "Enregistrer à la voix",
     freeTextStop: "Arrêter",
+    listenResponse: "Écouter",
+    stopSpeaking: "Arrêter",
   },
 
   companionSituationContent: {

@@ -340,6 +340,14 @@ const es = {
     // por api/quick-capture.js ni ninguna IA, solo transcribe).
     freeTextRecordVoice: "Grabar por voz",
     freeTextStop: "Detener",
+    // 27 de noviembre de 2026 ("podría ser hablado el comentario?"): que el
+    // mensaje de apoyo (situación fija o texto libre) se pueda escuchar en
+    // voz alta — mismo ajuste de voz suave que la burbuja de respiración y
+    // MindfulnessPanel.jsx, pero a petición (botón), nunca automático: este
+    // mensaje puede llegar mientras la paciente está en un lugar donde no
+    // quiere que el celular hable solo.
+    listenResponse: "Escuchar",
+    stopSpeaking: "Detener",
   },
 
   companionSituationContent: {

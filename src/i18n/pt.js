@@ -308,6 +308,8 @@ const pt = {
     freeTextHint: "Isso não substitui seu médico ou terapeuta. Se for uma emergência, use o botão abaixo.",
     freeTextRecordVoice: "Gravar por voz",
     freeTextStop: "Parar",
+    listenResponse: "Ouvir",
+    stopSpeaking: "Parar",
   },
 
   companionSituationContent: {
