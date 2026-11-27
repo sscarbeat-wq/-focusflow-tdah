@@ -47,6 +47,7 @@ import {
 } from "../src/aiUsage.js";
 import { containsRiskLanguage } from "../src/companionSituations.js";
 import { aiLanguageName, whisperLanguageCode, aiErrorMessages } from "../src/aiLanguage.js";
+import { requireUser } from "./_auth.js";
 
 const supabaseAdmin = createClient(process.env.VITE_SUPABASE_URL, process.env.SUPABASE_SERVICE_ROLE_KEY);
 
@@ -63,10 +64,27 @@ export default async function handler(req, res) {
     return res.status(405).json({ error: "Método no permitido" });
   }
 
-  const { userId, audioBase64, mimeType, text, language, multiple } = req.body || {};
-  if (!userId || (!audioBase64 && !String(text || "").trim())) {
+  const { audioBase64, mimeType, text, language, multiple } = req.body || {};
+  if (!audioBase64 && !String(text || "").trim()) {
     return res.status(400).json({ error: "Falta el audio, el texto o el usuario." });
   }
+
+  // Parche de seguridad (27 de noviembre de 2026). Cuando la nota viene
+  // ESCRITA (no por voz), la salvaguarda de crisis se puede revisar de una
+  // vez, antes de verificar la sesión: no toca datos de nadie ni gasta
+  // nada, y mostrar los recursos de crisis nunca debe depender de que la
+  // sesión se haya podido verificar. (Por voz no se puede adelantar:
+  // primero hay que transcribir, y eso sí cuesta — esa revisión sigue más
+  // abajo, igual que antes.)
+  if (!audioBase64 && containsRiskLanguage(String(text || "").trim().slice(0, multiple ? 1500 : 500))) {
+    return res.status(200).json({ unsafe: true });
+  }
+
+  // El usuario sale del token de sesión verificado (ver api/_auth.js),
+  // nunca del `userId` que mande el navegador — ese campo ahora se ignora.
+  const authUser = await requireUser(req, res);
+  if (!authUser) return;
+  const userId = authUser.id;
 
   const usageField = multiple ? "brainDumpAiUsage" : "quickCaptureAiUsage";
 

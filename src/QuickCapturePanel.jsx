@@ -1,6 +1,7 @@
 import React, { useRef, useState } from "react";
 import { Mic, Square, Keyboard, Trash2, CheckCircle2, StickyNote, AlertTriangle } from "lucide-react";
 import { pendingQuickNotes, canConfirmQuickCaptureSuggestion, describeQuickCaptureSuggestion } from "./quickCapture";
+import { apiFetch } from "./apiFetch";
 
 // "Captura rápida" (inspirado en Eco, de Bitblocks SAS) — un solo botón
 // para dejar una idea suelta por voz o texto sin tener que decidir primero
@@ -64,7 +65,7 @@ export default function QuickCapturePanel({
     setBusy(true);
     setError("");
     try {
-      const res = await fetch("/api/quick-capture", {
+      const res = await apiFetch("/api/quick-capture", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ userId, audioBase64, mimeType, text, language: lang }),

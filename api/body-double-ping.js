@@ -23,6 +23,7 @@
 // con scheduleBlocks.js, encontrada justo por faltar esta extensión).
 import { createClient } from "@supabase/supabase-js";
 import webpush from "web-push";
+import { requireUser } from "./_auth.js";
 
 const supabaseAdmin = createClient(process.env.VITE_SUPABASE_URL, process.env.SUPABASE_SERVICE_ROLE_KEY);
 
@@ -43,10 +44,14 @@ export default async function handler(req, res) {
     return res.status(405).json({ error: "Método no permitido" });
   }
 
-  const { userId } = req.body || {};
-  if (!userId || typeof userId !== "string") {
-    return res.status(400).json({ error: "Falta el usuario." });
-  }
+  // Parche de seguridad (27 de noviembre de 2026): antes cualquiera — con
+  // o sin cuenta — podía llamar aquí y mandarle una notificación a TODAS
+  // las personas suscritas, cada 20 minutos, sin que hubiera nadie en la
+  // sala. Ahora solo lo puede disparar alguien con sesión iniciada, y el
+  // usuario sale del token verificado (ver api/_auth.js), no del cuerpo.
+  const authUser = await requireUser(req, res);
+  if (!authUser) return;
+  const userId = authUser.id;
 
   try {
     const now = new Date();

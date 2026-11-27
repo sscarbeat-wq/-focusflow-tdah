@@ -1,6 +1,7 @@
 import React, { useState } from "react";
 import { Wand2, AlertTriangle } from "lucide-react";
 import { MODES, TONE_OPTIONS, cleanMessageText } from "./messageToneOptions";
+import { apiFetch } from "./apiFetch";
 
 // "Ayuda con mensajes" (inspirado en Formalizer/Judge de Goblin Tools) —
 // reescribir el tono de un mensaje que vas a mandar, o leer con más calma
@@ -42,7 +43,7 @@ export default function MessageTonePanel({ C, t, lang, userId }) {
     setError("");
     setResult(null);
     try {
-      const res = await fetch("/api/breakdown-task", {
+      const res = await apiFetch("/api/breakdown-task", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({

@@ -1,6 +1,7 @@
 import React, { useState, useRef, useEffect } from "react";
 import { ArrowRight, AlertTriangle, RotateCcw, Lock, Mic, Square, Volume2, VolumeX } from "lucide-react";
 import { SITUATIONS, getSituation, nextResponseIndex } from "./companionSituations";
+import { apiFetch } from "./apiFetch";
 
 // El reconocimiento de voz del navegador (Web Speech API) necesita un BCP-47
 // completo, no solo el código de 2 letras — mismo mapa que ya se usa en
@@ -188,7 +189,7 @@ export default function CompanionPanel({ C, t, lang, userId, onNavigate, isPlus 
   const requestAiResponse = async (situationId, avoidText) => {
     setLoadingId(situationId);
     try {
-      const res = await fetch("/api/companion-response", {
+      const res = await apiFetch("/api/companion-response", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ userId, situationId, avoid: avoidText || "", language: lang }),
@@ -247,7 +248,7 @@ export default function CompanionPanel({ C, t, lang, userId, onNavigate, isPlus 
     setCustomLoading(true);
     setCustomError(false);
     try {
-      const res = await fetch("/api/companion-response", {
+      const res = await apiFetch("/api/companion-response", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ userId, freeText: text, avoid: avoidText || "", language: lang }),

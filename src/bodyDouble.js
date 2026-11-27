@@ -37,7 +37,8 @@
 // componente se desmonta (se sale de Inicio).
 import { useCallback, useEffect, useRef, useState } from "react";
 import { supabase } from "./supabaseClient";
-import { avatarFor, participantsFromPresenceState, isValidReaction } from "./bodyDoublePure";
+import { avatarFor, participantsFromPresenceState, isValidReaction, newPresenceId } from "./bodyDoublePure";
+import { apiFetch } from "./apiFetch";
 
 const ROOM = "senda-cuerpo-doble";
 
@@ -52,13 +53,20 @@ export function useBodyDouble(userId, species) {
   // cada vez que cambia.
   const speciesRef = useRef(species);
   speciesRef.current = species;
+  // Parche de seguridad (27 de noviembre de 2026): lo que se transmite a
+  // la sala ya NO lleva el `userId` de la cuenta — ni como "key" de
+  // presencia ni dentro del mensaje. En su lugar va este identificador al
+  // azar (ver newPresenceId en bodyDoublePure.js), que se inventa una vez
+  // por cada vez que se abre la app y solo sirve para reconocer cuál de
+  // los avatares es el propio. `userId` se sigue usando aquí adentro, sin
+  // transmitirse, para elegir el avatar anónimo (avatarFor) y para saber
+  // que ya hay sesión.
+  const presenceIdRef = useRef(null);
+  if (!presenceIdRef.current) presenceIdRef.current = newPresenceId();
 
-  const syncParticipants = useCallback(
-    (channel) => {
-      setParticipants(participantsFromPresenceState(channel.presenceState(), userId));
-    },
-    [userId]
-  );
+  const syncParticipants = useCallback((channel) => {
+    setParticipants(participantsFromPresenceState(channel.presenceState(), presenceIdRef.current));
+  }, []);
 
   // 17 de noviembre de 2026 ("el reacción se quita, quisiera que se
   // quedara pero en la burbuja"): antes esto era una lista que crecía con
@@ -80,7 +88,7 @@ export function useBodyDouble(userId, species) {
   // había un canal abierto, no hace nada (evita duplicar la suscripción).
   const ensureChannel = useCallback(() => {
     if (channelRef.current || !userId) return channelRef.current;
-    const channel = supabase.channel(ROOM, { config: { presence: { key: userId } } });
+    const channel = supabase.channel(ROOM, { config: { presence: { key: presenceIdRef.current } } });
     channel
       .on("presence", { event: "sync" }, () => syncParticipants(channel))
       .on("broadcast", { event: "reaction" }, ({ payload }) => {
@@ -105,7 +113,7 @@ export function useBodyDouble(userId, species) {
     if (!userId) return;
     const channel = ensureChannel();
     if (!channel) return;
-    channel.track({ userId, avatar: avatarFor(userId, speciesRef.current), status: "aqui" }).then(() => {
+    channel.track({ pid: presenceIdRef.current, avatar: avatarFor(userId, speciesRef.current), status: "aqui" }).then(() => {
       setJoined(true);
       // "Memoria ANRO" (3 de noviembre de 2026): avisa por push a las
       // demás personas (nunca a esta) de que hay actividad en la sala
@@ -115,10 +123,10 @@ export function useBodyDouble(userId, species) {
       // internet un instante, por ejemplo), no afecta en nada la
       // experiencia de unirse a la sala, así que el error solo se
       // registra en consola, nunca se le muestra a la paciente.
-      fetch("/api/body-double-ping", {
+      apiFetch("/api/body-double-ping", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ userId }),
+        body: JSON.stringify({}),
       }).catch((err) => console.error("No se pudo avisar de la actividad en el cuerpo doble:", err.message));
     });
   }, [userId, ensureChannel]);
@@ -151,7 +159,7 @@ export function useBodyDouble(userId, species) {
   const setStatus = useCallback(
     (status) => {
       if (!channelRef.current || !userId) return;
-      channelRef.current.track({ userId, avatar: avatarFor(userId, speciesRef.current), status });
+      channelRef.current.track({ pid: presenceIdRef.current, avatar: avatarFor(userId, speciesRef.current), status });
     },
     [userId]
   );

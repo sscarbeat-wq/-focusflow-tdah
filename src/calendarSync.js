@@ -1,21 +1,39 @@
 // Utilidades de integración con Google Calendar, del lado del navegador.
 // Nunca manejan tokens directamente (eso vive solo en el servidor) — solo
 // llaman a los endpoints de /api/calendar/* y /api/auth/google/*.
+//
+// Parche de seguridad (27 de noviembre de 2026): todas estas llamadas van
+// ahora con `apiFetch` (ver src/apiFetch.js), que adjunta el token de
+// sesión de la paciente — el servidor saca de ahí quién es y ya no le cree
+// al `userId` que se mandaba antes. Las funciones conservan su parámetro
+// `userId` solo para no cambiarle la firma a quienes las llaman; el
+// servidor lo ignora.
+import { apiFetch } from "./apiFetch";
 
-// Manda al paciente a la pantalla de permiso de Google. Navegación real de
-// página completa (no un fetch) porque así funciona OAuth.
-export function startGoogleAuth(userId) {
-  window.location.href = `/api/auth/google/start?userId=${encodeURIComponent(userId)}`;
+// Manda al paciente a la pantalla de permiso de Google. Antes era una
+// navegación directa a /api/auth/google/start?userId=... (que no puede
+// llevar el token de sesión); ahora primero se le pide al servidor, ya con
+// la sesión verificada, la dirección de Google lista y firmada, y luego sí
+// se navega hacia allá — esa parte sigue siendo una navegación real de
+// página completa, porque así funciona OAuth. Lanza un error si el
+// servidor no pudo armar la dirección (CalendarPanel.jsx lo muestra).
+export async function startGoogleAuth() {
+  const res = await apiFetch("/api/auth/google/start", { method: "POST" });
+  const data = await res.json().catch(() => ({}));
+  if (!res.ok || !data.url) throw new Error(data.error || "");
+  window.location.href = data.url;
 }
 
-export async function fetchCalendarStatus(userId) {
-  const res = await fetch(`/api/calendar/status?userId=${encodeURIComponent(userId)}`);
+export async function fetchCalendarStatus() {
+  // Sin `?userId=` en la dirección: los identificadores no deben viajar en
+  // una URL (quedan en historiales y registros), y el servidor ya no lo usa.
+  const res = await apiFetch("/api/calendar/status");
   if (!res.ok) throw new Error("No se pudo consultar el estado del calendario.");
   return res.json();
 }
 
 export async function updateCalendarPreferences(userId, prefs) {
-  const res = await fetch("/api/calendar/preferences", {
+  const res = await apiFetch("/api/calendar/preferences", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ userId, ...prefs }),
@@ -25,7 +43,7 @@ export async function updateCalendarPreferences(userId, prefs) {
 }
 
 export async function disconnectCalendar(userId) {
-  const res = await fetch("/api/calendar/disconnect", {
+  const res = await apiFetch("/api/calendar/disconnect", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ userId }),
@@ -35,7 +53,7 @@ export async function disconnectCalendar(userId) {
 }
 
 async function createCalendarEvent(userId, title, minutes, startTime, kind) {
-  const res = await fetch("/api/calendar/create-event", {
+  const res = await apiFetch("/api/calendar/create-event", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ userId, title, minutes, startTime, kind }),

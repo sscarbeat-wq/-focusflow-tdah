@@ -1,6 +1,7 @@
 import React, { useRef, useState } from "react";
 import { Mic, Square, Keyboard, CheckCircle2, StickyNote, AlertTriangle, Sparkles } from "lucide-react";
 import { canConfirmQuickCaptureSuggestion, describeQuickCaptureSuggestion } from "./quickCapture";
+import { apiFetch } from "./apiFetch";
 
 // "Descarga mental con IA" — Módulo 3 de ANRO TDAH 2.0 (8 de noviembre de
 // 2026). Para cuando hay VARIAS cosas dándole vueltas a la cabeza a la vez
@@ -68,7 +69,7 @@ export default function BrainDumpPanel({
     setBusy(true);
     setError("");
     try {
-      const res = await fetch("/api/quick-capture", {
+      const res = await apiFetch("/api/quick-capture", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ userId, audioBase64, mimeType, text, language: lang, multiple: true }),

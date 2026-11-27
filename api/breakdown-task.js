@@ -36,6 +36,7 @@ import { containsRiskLanguage } from "../src/companionSituations.js";
 import { MODES, isValidMode, isValidTone, cleanMessageText, toneHint } from "../src/messageToneOptions.js";
 import { ENERGY_LEVELS } from "../src/energyLog.js";
 import { aiLanguageName, languageDirective, aiErrorMessages } from "../src/aiLanguage.js";
+import { requireUser } from "./_auth.js";
 
 const supabaseAdmin = createClient(process.env.VITE_SUPABASE_URL, process.env.SUPABASE_SERVICE_ROLE_KEY);
 
@@ -68,8 +69,15 @@ export default async function handler(req, res) {
 // se movió dentro de esta función para compartir archivo con el de abajo).
 // ---------------------------------------------------------------------
 async function handleBreakdown(req, res, body) {
-  const { userId, task, granularity, language } = body;
-  if (!userId || typeof task !== "string" || !task.trim()) {
+  // Parche de seguridad (27 de noviembre de 2026): el usuario sale del
+  // token de sesión verificado (ver api/_auth.js), nunca del `userId` que
+  // mande el navegador en el cuerpo — ese campo ahora se ignora.
+  const authUser = await requireUser(req, res);
+  if (!authUser) return;
+  const userId = authUser.id;
+
+  const { task, granularity, language } = body;
+  if (typeof task !== "string" || !task.trim()) {
     return res.status(400).json({ error: "Falta la tarea o el usuario." });
   }
   const cleanTask = task.trim().slice(0, 300);
@@ -204,9 +212,9 @@ async function callOpenAiBreakdown(task, granularityKey, language) {
 // que regresa la IA.
 // ---------------------------------------------------------------------
 async function handleMessageTone(req, res, body) {
-  const { userId, mode, text, tone, language } = body;
+  const { mode, text, tone, language } = body;
   const cleanText = cleanMessageText(text);
-  if (!userId || !isValidMode(mode) || !cleanText) {
+  if (!isValidMode(mode) || !cleanText) {
     return res.status(400).json({ error: "Falta el mensaje, el modo o el usuario." });
   }
   if (mode === MODES.REWRITE && !isValidTone(tone)) {
@@ -219,6 +227,15 @@ async function handleMessageTone(req, res, body) {
   if (containsRiskLanguage(cleanText)) {
     return res.status(200).json({ unsafe: true });
   }
+
+  // Parche de seguridad (27 de noviembre de 2026): identidad verificada
+  // por token (ver api/_auth.js). Va DESPUÉS de la salvaguarda de crisis
+  // de arriba a propósito: esa revisión no toca datos de nadie ni gasta
+  // nada, y una señal de crisis nunca debe depender de que la sesión se
+  // haya podido verificar.
+  const authUser = await requireUser(req, res);
+  if (!authUser) return;
+  const userId = authUser.id;
 
   try {
     const { data: row, error: readErr } = await supabaseAdmin

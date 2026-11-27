@@ -36,6 +36,7 @@ import { createClient } from "@supabase/supabase-js";
 import { DEFAULT_COMPANION_AI_USAGE, nextCompanionAiUsage, COMPANION_AI_MONTHLY_LIMIT } from "../src/aiUsage.js";
 import { getSituation, containsRiskLanguage } from "../src/companionSituations.js";
 import { aiLanguageName, languageDirective, aiErrorMessages } from "../src/aiLanguage.js";
+import { requireUser } from "./_auth.js";
 
 const supabaseAdmin = createClient(process.env.VITE_SUPABASE_URL, process.env.SUPABASE_SERVICE_ROLE_KEY);
 
@@ -46,11 +47,11 @@ export default async function handler(req, res) {
     return res.status(405).json({ error: "Método no permitido" });
   }
 
-  const { userId, situationId, freeText, avoid, language } = req.body || {};
+  const { situationId, freeText, avoid, language } = req.body || {};
   const isFreeText = typeof freeText === "string" && freeText.trim().length > 0;
   // Si viene freeText, manda sobre situationId (nunca se combinan).
   const situation = !isFreeText && typeof situationId === "string" ? getSituation(situationId) : null;
-  if (!userId || (!situation && !isFreeText)) {
+  if (!situation && !isFreeText) {
     // Esto también bloquea situationId === "crisis": getSituation() solo
     // busca dentro de SITUATIONS, nunca regresa CRISIS.
     return res.status(400).json({ error: "Situación no válida." });
@@ -65,6 +66,16 @@ export default async function handler(req, res) {
   if (isFreeText && containsRiskLanguage(trimmedFreeText)) {
     return res.status(200).json({ unsafe: true });
   }
+
+  // Parche de seguridad (27 de noviembre de 2026): el usuario sale del
+  // token de sesión verificado (ver api/_auth.js), nunca del `userId` que
+  // mande el navegador — ese campo ahora se ignora. Va DESPUÉS de la
+  // salvaguarda de crisis de arriba a propósito: esa revisión no toca
+  // datos de nadie ni gasta nada, y mostrar los recursos de crisis nunca
+  // debe depender de que la sesión se haya podido verificar.
+  const authUser = await requireUser(req, res);
+  if (!authUser) return;
+  const userId = authUser.id;
 
   try {
     // 1) Leer y actualizar el contador de uso mensual ANTES de llamar a la

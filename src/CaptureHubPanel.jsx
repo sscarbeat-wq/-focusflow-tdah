@@ -8,6 +8,7 @@ import {
   QUICK_NOTE_PHOTOS_BUCKET,
 } from "./quickCapture";
 import { supabase } from "./supabaseClient";
+import { apiFetch } from "./apiFetch";
 
 // Mismo patrón de ClinicalReportPanel.jsx/ScheduleAgendaPanel.jsx: este
 // mapeo de locale se duplica por archivo en vez de vivir en un helper
@@ -116,7 +117,7 @@ export default function CaptureHubPanel({
     setBusy(true);
     setError("");
     try {
-      const res = await fetch("/api/quick-capture", {
+      const res = await apiFetch("/api/quick-capture", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({

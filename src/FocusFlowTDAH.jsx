@@ -216,6 +216,7 @@ import CompassEditSheet from "./CompassEditSheet";
 import SpeciesPickerSheet from "./SpeciesPickerSheet";
 import { MascotArt } from "./MascotSprite";
 import { XP_MILESTONES, isUnlocked, justCrossedMilestones } from "./xpMilestones";
+import { apiFetch } from "./apiFetch";
 
 const DEFAULT_PROGRESS = {
   xp: 0,
@@ -2072,7 +2073,7 @@ export default function FocusFlowTDAH({
     setAiLoading(true);
     setAiError("");
     try {
-      const res = await fetch("/api/breakdown-task", {
+      const res = await apiFetch("/api/breakdown-task", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ userId, task: bigTask.trim(), granularity: aiGranularity }),

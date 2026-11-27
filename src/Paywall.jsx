@@ -1,6 +1,7 @@
 import React, { useState } from "react";
 import { Sparkles, LogOut, Sun, Moon, X } from "lucide-react";
 import LanguageSwitcher from "./LanguageSwitcher";
+import { apiFetch } from "./apiFetch";
 
 // Fase 3 del sistema de planes (30 de octubre de 2026) — hasta ahora Paywall
 // solo existía como pantalla completa obligatoria para cuentas sin Plus (ver
@@ -37,10 +38,13 @@ export default function Paywall({ userId, userEmail, onSignOut, C, theme, onTogg
     }
     setLoading(true);
     try {
-      const res = await fetch("/api/create-checkout-session", {
+      const res = await apiFetch("/api/create-checkout-session", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ userId, email: userEmail, priceId }),
+        // Parche de seguridad (27 de noviembre de 2026): ya no se mandan
+        // `userId` ni correo — el servidor los saca de la sesión verificada
+        // (ver api/create-checkout-session.js).
+        body: JSON.stringify({ priceId }),
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || t.paywall.checkoutError);

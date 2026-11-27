@@ -2,7 +2,7 @@
 // permiso. Intercambiamos el "code" por tokens, guardamos el refresh_token
 // en Supabase (nunca llega al navegador del paciente), y lo regresamos a la
 // app con un mensaje de éxito/error en la URL.
-import { supabaseAdmin, getAppUrl } from "../../_googleCalendar.js";
+import { supabaseAdmin, getAppUrl, verifyOAuthState } from "../../_googleCalendar.js";
 
 export default async function handler(req, res) {
   const { code, state, error } = req.query;
@@ -15,6 +15,16 @@ export default async function handler(req, res) {
   }
 
   if (!code || !state) {
+    res.writeHead(302, { Location: `${appUrl}/?calendar=error` });
+    return res.end();
+  }
+
+  // Parche de seguridad (27 de noviembre de 2026): el "state" ya no es el
+  // userId tal cual — viene firmado por /api/auth/google/start y vence en
+  // 10 minutos (ver verifyOAuthState en api/_googleCalendar.js). Si la
+  // firma no cuadra o ya venció, no se guarda ningún calendario.
+  const userId = verifyOAuthState(String(state));
+  if (!userId) {
     res.writeHead(302, { Location: `${appUrl}/?calendar=error` });
     return res.end();
   }
@@ -43,7 +53,7 @@ export default async function handler(req, res) {
       const { data: existing } = await supabaseAdmin
         .from("calendar_connections")
         .select("refresh_token")
-        .eq("user_id", state)
+        .eq("user_id", userId)
         .maybeSingle();
       refreshToken = existing?.refresh_token;
     }
@@ -52,7 +62,7 @@ export default async function handler(req, res) {
     const expiry = new Date(Date.now() + (tokens.expires_in || 3600) * 1000).toISOString();
 
     const { error: dbError } = await supabaseAdmin.from("calendar_connections").upsert({
-      user_id: state,
+      user_id: userId,
       refresh_token: refreshToken,
       access_token: tokens.access_token,
       access_token_expiry: expiry,

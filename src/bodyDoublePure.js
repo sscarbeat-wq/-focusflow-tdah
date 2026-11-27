@@ -55,13 +55,34 @@ export function avatarFor(userId, species) {
   return (species && SPECIES_AVATARS[species]) || anonymousAvatarFor(userId);
 }
 
+// Parche de seguridad (27 de noviembre de 2026): identificador ANÓNIMO de
+// presencia. Antes, lo que cada persona transmitía a la sala incluía su
+// `userId` real de la cuenta (como "key" de presencia y dentro del
+// mensaje) — y todo el que abre la sala recibe eso de todos los demás. El
+// `userId` no se ve en pantalla, pero sí viajaba, y era justo el dato que
+// hacía falta para molestar a otra persona desde fuera de la app. Ahora
+// cada vez que se abre la sala se inventa un identificador al azar, que
+// solo sirve para saber "cuál de estos avatares soy yo" y no tiene
+// ninguna relación con la cuenta.
+export function newPresenceId() {
+  try {
+    if (typeof crypto !== "undefined" && typeof crypto.randomUUID === "function") {
+      return `p-${crypto.randomUUID()}`;
+    }
+  } catch (err) {
+    // sigue al respaldo de abajo
+  }
+  return `p-${Date.now().toString(36)}-${Math.random().toString(36).slice(2)}${Math.random().toString(36).slice(2)}`;
+}
+
 // Convierte el objeto crudo que regresa channel.presenceState() de Supabase
 // (agrupado por key) en la lista plana que pinta el panel, marcando cuál
-// es "yo".
-export function participantsFromPresenceState(state, userId) {
+// es "yo". `selfPresenceId` es el identificador anónimo de arriba (campo
+// `pid` de lo que se transmite), ya no el userId de la cuenta.
+export function participantsFromPresenceState(state, selfPresenceId) {
   return Object.values(state)
     .flat()
-    .map((p) => ({ avatar: p.avatar, status: p.status, isMe: p.userId === userId }));
+    .map((p) => ({ avatar: p.avatar, status: p.status, isMe: !!p.pid && p.pid === selfPresenceId }));
 }
 
 // 15 de noviembre de 2026 — mismo texto de estatus corto para el chip del

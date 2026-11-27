@@ -55,9 +55,21 @@ export default function CalendarPanel({ C, userId, t }) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [userId]);
 
-  const handleConnect = () => {
+  // Parche de seguridad (27 de noviembre de 2026): startGoogleAuth ya no
+  // navega de inmediato — primero le pide al servidor (con la sesión
+  // verificada) la dirección firmada de Google, así que ahora puede fallar
+  // antes de salir de la app. Si falla, se muestra el mismo aviso de
+  // "algo falló al conectar" que ya existía y se libera el botón; si sale
+  // bien, la página navega a Google y este componente deja de existir.
+  const handleConnect = async () => {
     setBusy(true);
-    startGoogleAuth(userId);
+    setError("");
+    try {
+      await startGoogleAuth(userId);
+    } catch (err) {
+      setError(err.message || t.calendar.errorMessage);
+      setBusy(false);
+    }
   };
 
   const handleDisconnect = async () => {

@@ -9,6 +9,7 @@ import { DARK_THEME, LIGHT_THEME, getStoredTheme, storeTheme, DEFAULT_ACCENT } f
 import { getStoredLanguage, storeLanguage, getTranslations } from "./i18n";
 import { getStoredSpecies, storeSpecies } from "./mascotLogic";
 import { getPlanState, hasPlusAccess } from "./plans";
+import { apiFetch } from "./apiFetch";
 
 export default function App() {
   const [session, setSession] = useState(undefined); // undefined = cargando, null = sin sesión
@@ -223,10 +224,13 @@ export default function App() {
     if (!subscription?.stripe_customer_id) return;
     setManageSubscriptionError("");
     try {
-      const res = await fetch("/api/create-portal-session", {
+      const res = await apiFetch("/api/create-portal-session", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ customerId: subscription.stripe_customer_id }),
+        // Parche de seguridad (27 de noviembre de 2026): ya no se manda el
+        // número de cliente de Stripe — el servidor lo busca él mismo a
+        // partir de la sesión verificada (ver api/create-portal-session.js).
+        body: JSON.stringify({}),
       });
       const data = await res.json();
       if (!res.ok || !data.url) throw new Error(data.error || t.common.genericError);

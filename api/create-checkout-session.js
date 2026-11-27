@@ -1,4 +1,5 @@
 import Stripe from "stripe";
+import { requireUser } from "./_auth.js";
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY);
 
@@ -19,9 +20,19 @@ export default async function handler(req, res) {
     return res.status(405).json({ error: "Método no permitido" });
   }
 
-  const { userId, email, priceId } = req.body || {};
-  if (!userId || !email || !priceId) {
-    return res.status(400).json({ error: "Falta userId, email o priceId" });
+  // Parche de seguridad (27 de noviembre de 2026): el usuario y su correo
+  // salen del token de sesión verificado (ver api/_auth.js), nunca del
+  // cuerpo de la petición — así la suscripción que se paga siempre queda
+  // ligada a la cuenta que de verdad inició sesión. El `userId`/`email`
+  // que mande el navegador se ignoran.
+  const authUser = await requireUser(req, res);
+  if (!authUser) return;
+  const userId = authUser.id;
+  const email = authUser.email;
+
+  const { priceId } = req.body || {};
+  if (!email || !priceId) {
+    return res.status(400).json({ error: "Falta email o priceId" });
   }
 
   const plans = allowedPlans();

@@ -7,13 +7,22 @@
 // y un error real de Google tampoco debe tumbar el desglosador ni el Modo
 // Enfoque, que deben seguir funcionando igual aunque el calendario falle.
 import { supabaseAdmin, getFreshAccessToken } from "../_googleCalendar.js";
+import { requireUser } from "../_auth.js";
 
 export default async function handler(req, res) {
   if (req.method !== "POST") {
     return res.status(405).json({ error: "Método no permitido" });
   }
-  const { userId, title, minutes, startTime, kind } = req.body || {};
-  if (!userId || !title || !minutes) {
+  // Parche de seguridad (27 de noviembre de 2026): el usuario sale del
+  // token de sesión verificado (ver api/_auth.js) — antes cualquiera podía
+  // crear eventos en el Google Calendar de otra persona mandando su
+  // `userId`.
+  const authUser = await requireUser(req, res);
+  if (!authUser) return;
+  const userId = authUser.id;
+
+  const { title, minutes, startTime, kind } = req.body || {};
+  if (!title || !minutes) {
     return res.status(400).json({ error: "Faltan datos del evento." });
   }
 
