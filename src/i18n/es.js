@@ -1968,7 +1968,11 @@ const es = {
       breatheLabel: "Respira",
       evaluateLabel: "Evalúa",
       evaluatePurchase: "¿Esta compra está en tu plan, o es un impulso? Si puedes, espera 24 horas antes de decidir.",
-      evaluateGeneral: "¿Esta acción te acerca a lo que quieres lograr?",
+      evaluateGeneral: [
+        "¿Te vas a sentir bien con esto más tarde, o es solo el impulso del momento?",
+        "¿Esto te conviene de verdad, o nada más se siente urgente ahora mismo?",
+        "¿Mañana vas a estar de acuerdo con esta decisión?",
+      ],
       evalYes: "Sí",
       evalNo: "No",
       evalYesPurchaseFeedback: "Bien, dale esas 24 horas — si mañana lo sigues queriendo, probablemente valga la pena.",

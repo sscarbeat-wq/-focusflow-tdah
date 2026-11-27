@@ -1810,7 +1810,11 @@ const en = {
       breatheLabel: "Breathe",
       evaluateLabel: "Evaluate",
       evaluatePurchase: "Is this purchase part of your plan, or is it an impulse? If you can, wait 24 hours before deciding.",
-      evaluateGeneral: "Does this action move you toward what you want to achieve?",
+      evaluateGeneral: [
+        "Will you feel good about this later, or is it just the impulse of the moment?",
+        "Does this really serve you, or does it just feel urgent right now?",
+        "Will you still agree with this decision tomorrow?",
+      ],
       evalYes: "Yes",
       evalNo: "No",
       evalYesPurchaseFeedback: "Good — give it those 24 hours. If you still want it tomorrow, it's probably worth it.",
