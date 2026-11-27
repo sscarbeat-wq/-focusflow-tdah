@@ -1,5 +1,5 @@
-import React, { useState, useRef } from "react";
-import { ArrowRight, AlertTriangle, RotateCcw, Lock, Mic, Square } from "lucide-react";
+import React, { useState, useRef, useEffect } from "react";
+import { ArrowRight, AlertTriangle, RotateCcw, Lock, Mic, Square, Volume2, VolumeX } from "lucide-react";
 import { SITUATIONS, getSituation, nextResponseIndex } from "./companionSituations";
 
 // El reconocimiento de voz del navegador (Web Speech API) necesita un BCP-47
@@ -16,6 +16,43 @@ const SPEECH_LOCALES = { es: "es-MX", en: "en-US", fr: "fr-FR", pt: "pt-BR" };
 function getSpeechRecognition() {
   if (typeof window === "undefined") return null;
   return window.SpeechRecognition || window.webkitSpeechRecognition || null;
+}
+
+// 27 de noviembre de 2026 ("podría ser hablado el comentario?"): que el
+// mensaje de apoyo (situación fija o respuesta al texto libre) se pueda
+// escuchar en voz alta con un botón — texto a voz (SpeechSynthesis), lo
+// opuesto del dictado de arriba (voz a texto). A propósito NO es automático:
+// este mensaje puede llegar mientras la paciente está en un lugar donde no
+// quiere que el celular hable solo, a diferencia de la narración de
+// MindfulnessPanel.jsx (ahí sí es automática porque es una práctica guiada
+// que la paciente ya eligió empezar). Si el navegador no lo soporta, el
+// botón de "Escuchar" simplemente no aparece.
+function getSpeechSynthesis() {
+  if (typeof window === "undefined") return null;
+  return window.speechSynthesis || null;
+}
+
+// Misma voz suave/ASMR que ya se afinó para la burbuja de respiración y
+// MindfulnessPanel.jsx (rate/pitch/volume más bajos que el default, y una
+// voz "natural" del navegador si hay alguna disponible) — un mensaje de
+// apoyo se beneficia del mismo tono tranquilo, no de la voz robótica por
+// default del sistema.
+function pickSoftVoice(speechSynthesis, langCode) {
+  try {
+    const voices = speechSynthesis.getVoices();
+    if (!voices || !voices.length) return null;
+    const base = (langCode || "es").slice(0, 2).toLowerCase();
+    const matching = voices.filter((v) => v.lang && v.lang.toLowerCase().startsWith(base));
+    if (!matching.length) return null;
+    const soft = matching.find((v) =>
+      /female|mujer|natural|enhanced|premium|neural|siri|google|paulina|mónica|monica|lucía|lucia|lupe|sabina|helena|esperanza/i.test(
+        v.name
+      )
+    );
+    return soft || matching[0];
+  } catch (_) {
+    return null;
+  }
 }
 
 // Compañero de apoyo situacional — botones de entrada rápida (5 situaciones
@@ -69,6 +106,42 @@ export default function CompanionPanel({ C, t, lang, userId, onNavigate, isPlus 
   const [listening, setListening] = useState(false); // dictado por voz del cuadro de texto libre
   const recognitionRef = useRef(null);
   const SpeechRecognition = getSpeechRecognition();
+
+  // --- Escuchar la respuesta (texto a voz) ---
+  const [speaking, setSpeaking] = useState(false);
+  const speechSynthesis = getSpeechSynthesis();
+  const speechSynthesisSupported =
+    !!speechSynthesis && typeof window !== "undefined" && !!window.SpeechSynthesisUtterance;
+
+  const speak = (text) => {
+    if (!speechSynthesisSupported || !text) return;
+    speechSynthesis.cancel();
+    const utterance = new window.SpeechSynthesisUtterance(text);
+    utterance.lang = SPEECH_LOCALES[lang] || SPEECH_LOCALES.es;
+    const voice = pickSoftVoice(speechSynthesis, utterance.lang);
+    if (voice) utterance.voice = voice;
+    utterance.rate = 0.82;
+    utterance.pitch = 0.92;
+    utterance.volume = 0.65;
+    utterance.onend = () => setSpeaking(false);
+    utterance.onerror = () => setSpeaking(false);
+    setSpeaking(true);
+    speechSynthesis.speak(utterance);
+  };
+
+  const stopSpeaking = () => {
+    speechSynthesis?.cancel();
+    setSpeaking(false);
+  };
+
+  // Si se cierra o navega fuera del panel con la voz todavía sonando, hay
+  // que apagarla — si no, sigue hablando de fondo sin que se vea el texto.
+  useEffect(() => {
+    return () => {
+      speechSynthesis?.cancel();
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const startListening = () => {
     if (!SpeechRecognition) return;
@@ -140,6 +213,7 @@ export default function CompanionPanel({ C, t, lang, userId, onNavigate, isPlus 
   };
 
   const openSituation = (situationId) => {
+    stopSpeaking();
     setActiveId(situationId);
     // Fase 3: plan Gratis nunca llama a la IA aquí — usa directo uno de los
     // textos de respaldo fijos, los mismos que ya existían como red de
@@ -153,6 +227,7 @@ export default function CompanionPanel({ C, t, lang, userId, onNavigate, isPlus 
   };
 
   const otraIdea = (situationId) => {
+    stopSpeaking();
     if (!isPlus || usingFallback[situationId]) {
       // Ya estamos en modo respaldo para esta situación (la IA falló antes,
       // o el plan Gratis nunca la llama) — seguimos rotando el texto fijo
@@ -203,6 +278,7 @@ export default function CompanionPanel({ C, t, lang, userId, onNavigate, isPlus 
     const text = freeText.trim();
     if (!text || customLoading) return;
     if (listening) stopListening();
+    stopSpeaking();
     if (!isPlus) {
       // Plan Gratis: el texto libre nunca se manda a ningún lado — mismo
       // upsell que ya existía para las respuestas personalizadas.
@@ -223,10 +299,12 @@ export default function CompanionPanel({ C, t, lang, userId, onNavigate, isPlus 
 
   const otraIdeaCustom = () => {
     if (!freeTextSent || customLoading) return;
+    stopSpeaking();
     requestFreeTextResponse(freeTextSent, customResponse);
   };
 
   const goBackFromCustom = () => {
+    stopSpeaking();
     setActiveId(null);
     setCustomResponse(null);
     setCustomError(false);
@@ -234,7 +312,10 @@ export default function CompanionPanel({ C, t, lang, userId, onNavigate, isPlus 
     setFreeTextSent("");
   };
 
-  const goBack = () => setActiveId(null);
+  const goBack = () => {
+    stopSpeaking();
+    setActiveId(null);
+  };
 
   const btnOption = {
     display: "block",
@@ -342,6 +423,20 @@ export default function CompanionPanel({ C, t, lang, userId, onNavigate, isPlus 
               <RotateCcw size={12} style={{ verticalAlign: "-1px", marginRight: "4px" }} />
               {t.companion.anotherIdea}
             </button>
+            {speechSynthesisSupported && (
+              <button
+                type="button"
+                onClick={() => (speaking ? stopSpeaking() : speak(customResponse))}
+                style={{ ...btnBack, padding: 0 }}
+              >
+                {speaking ? (
+                  <VolumeX size={12} style={{ verticalAlign: "-1px", marginRight: "4px" }} />
+                ) : (
+                  <Volume2 size={12} style={{ verticalAlign: "-1px", marginRight: "4px" }} />
+                )}
+                {speaking ? t.companion.stopSpeaking : t.companion.listenResponse}
+              </button>
+            )}
           </div>
         )}
         <button onClick={goBackFromCustom} style={btnBack}>
@@ -383,6 +478,20 @@ export default function CompanionPanel({ C, t, lang, userId, onNavigate, isPlus 
             <RotateCcw size={12} style={{ verticalAlign: "-1px", marginRight: "4px" }} />
             {t.companion.anotherIdea}
           </button>
+          {speechSynthesisSupported && !isLoading && text && (
+            <button
+              type="button"
+              onClick={() => (speaking ? stopSpeaking() : speak(text))}
+              style={{ ...btnBack, padding: 0 }}
+            >
+              {speaking ? (
+                <VolumeX size={12} style={{ verticalAlign: "-1px", marginRight: "4px" }} />
+              ) : (
+                <Volume2 size={12} style={{ verticalAlign: "-1px", marginRight: "4px" }} />
+              )}
+              {speaking ? t.companion.stopSpeaking : t.companion.listenResponse}
+            </button>
+          )}
         </div>
         {/* Fase 3: aviso breve de que la respuesta de arriba es un texto fijo
             de respaldo, no personalizado por IA (eso es Plus) — nunca en la
